@@ -1,23 +1,27 @@
 <view class="page-shell profile-page-shell safe-bottom">
   <view class="page-content profile-page page-enter">
-    <view class="hero-card profile-hero">
-      <view class="profile-hero__glow"></view>
-      <view class="profile-hero__shine"></view>
-      <view class="profile-hero__top">
-        <view class="profile-avatar-wrap">
-          <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
-        </view>
-        <view class="profile-identity">
-          <view class="profile-kicker">SUNSHINE MEMBER</view>
-          <view class="profile-name">{{profile.name}}</view>
-          <view class="profile-badge-row">
-            <view class="profile-badge">{{profile.memberLevel}}</view>
-            <view class="profile-badge profile-badge--light">{{verifiedText}}</view>
-          </view>
-        </view>
-        <view class="profile-level">LV</view>
+    <view class="profile-header">
+      <view class="profile-avatar-wrap">
+        <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
       </view>
+      <view class="profile-identity">
+        <view class="profile-name">{{profile.name}}</view>
+        <view class="profile-subline">
+          <view class="profile-pill">{{profile.memberLevel}}</view>
+          <view class="profile-pill profile-pill--plain">{{verifiedText}}</view>
+        </view>
+      </view>
+      <view class="profile-edit tap-scale" data-url="/pages/profileEdit/index" bindtap="openMenu">编辑</view>
+    </view>
 
+    <view class="panel-card profile-assets">
+      <view class="profile-assets__head">
+        <view>
+          <view class="section-title profile-assets__title">账户资产</view>
+          <view class="section-subtitle profile-assets__desc">余额、发票和优惠券集中管理</view>
+        </view>
+        <view class="profile-assets__tag">实时同步</view>
+      </view>
       <view class="metric-grid profile-metrics">
         <view class="metric-item tap-scale" bindtap="openOrders">
           <view class="metric-value">{{wallet.balance}}</view>
@@ -32,34 +36,19 @@
           <view class="metric-label">优惠总额</view>
         </view>
       </view>
-
-      <view class="profile-quick-row">
-        <view class="profile-quick tap-scale" data-url="/pages/profileEdit/index" bindtap="openMenu">
-          <view class="profile-quick__label">资料</view>
-          <view class="profile-quick__desc">完善账户</view>
-        </view>
-        <view class="profile-quick tap-scale" data-url="/pages/messages/index" bindtap="openMenu">
-          <view class="profile-quick__label">消息</view>
-          <view class="profile-quick__desc">服务通知</view>
-        </view>
-        <view class="profile-quick tap-scale" data-url="/pages/settings/index" bindtap="openMenu">
-          <view class="profile-quick__label">设置</view>
-          <view class="profile-quick__desc">偏好管理</view>
-        </view>
-      </view>
     </view>
 
     <view class="profile-section-head">
       <view>
-        <view class="profile-section-kicker">ACCOUNT SERVICES</view>
+        <view class="profile-section-kicker">常用功能</view>
         <view class="section-title profile-section-title">账户服务</view>
       </view>
-      <view class="soft-pill">9 项</view>
+      <view class="soft-pill">{{menus.length}} 项</view>
     </view>
 
     <view class="profile-menu-list">
       <view class="panel-card menu-card tap-scale" wx:for="{{menus}}" wx:key="title" data-url="{{item.url}}" bindtap="openMenu">
-        <view class="menu-index">{{index + 1}}</view>
+        <view class="menu-index">{{item.icon}}</view>
         <view class="menu-copy">
           <view class="menu-title">{{item.title}}</view>
           <view class="menu-desc">{{item.desc}}</view>
