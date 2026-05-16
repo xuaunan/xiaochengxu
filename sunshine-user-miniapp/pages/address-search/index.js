@@ -408,6 +408,8 @@ Page({
     navigateBackSilky(this, {
       delta: 1,
       duration: 160,
+      selector: '.address-page',
+      source: 'address-search',
       beforeLeave: () => {
         clearTimeout(this.blurTimer)
         this.setData({

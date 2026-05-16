@@ -198,7 +198,9 @@ Page({
   navigateBackWithAnimation(delta) {
     navigateBackSilky(this, {
       delta,
-      duration: 160
+      duration: 160,
+      selector: '.picker-page',
+      source: 'map-picker'
     })
   },
 
