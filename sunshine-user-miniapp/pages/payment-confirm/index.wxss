@@ -5,10 +5,9 @@
 .amount-card {
   text-align: center;
   background:
-    radial-gradient(circle at top, rgba(255, 177, 74, 0.3), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(255, 122, 0, 0.08), transparent 38%),
-    linear-gradient(180deg, #ffffff 0%, #fff8ef 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.1);
+    radial-gradient(circle at top, rgba(255, 122, 0, 0.08), transparent 40%),
+    rgba(255, 255, 255, 0.97);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .amount-label {
@@ -32,9 +31,8 @@
   margin-top: 28rpx;
   padding: 24rpx;
   border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(255, 122, 0, 0.08);
-  box-shadow: 0 10rpx 24rpx rgba(31, 36, 50, 0.04);
+  background: #f7f8fc;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .route-text {
@@ -75,9 +73,9 @@
 
 .method-item-active {
   border-color: rgba(255, 122, 0, 0.3);
-  background: linear-gradient(180deg, #fffaf3 0%, #fff4e6 100%);
-  box-shadow: 0 16rpx 30rpx rgba(255, 122, 0, 0.1);
-  transform: translateY(-2rpx);
+  background: rgba(255, 122, 0, 0.08);
+  box-shadow: 0 10rpx 24rpx rgba(255, 122, 0, 0.08);
+  transform: translateY(-1rpx);
 }
 
 .method-main {
@@ -117,9 +115,7 @@
 
 .tip-card {
   margin-top: 20rpx;
-  background:
-    radial-gradient(circle at 100% 0, rgba(255, 177, 74, 0.1), transparent 34%),
-    #ffffff;
+  background: rgba(255, 255, 255, 0.97);
 }
 
 .tip-list {
@@ -177,13 +173,13 @@
 .footer-cancel {
   width: 220rpx;
   min-height: 96rpx;
-  border-radius: 999rpx;
+  border-radius: 26rpx;
 }
 
 .footer-confirm {
   flex: 1;
   min-height: 96rpx;
-  border-radius: 999rpx;
+  border-radius: 26rpx;
   font-size: 32rpx;
 }
 
@@ -196,9 +192,7 @@
   z-index: 70;
   padding: 48rpx 32rpx;
   border-radius: 36rpx;
-  background:
-    radial-gradient(circle at 50% 0, rgba(255, 177, 74, 0.16), transparent 42%),
-    #ffffff;
+  background: #ffffff;
   text-align: center;
   box-shadow: 0 28rpx 50rpx rgba(31, 36, 50, 0.16);
 }
@@ -214,7 +208,7 @@
   font-size: 54rpx;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, #ff7a00 0%, #ffb14a 100%);
+  background: #ff7a00;
 }
 
 .success-title {

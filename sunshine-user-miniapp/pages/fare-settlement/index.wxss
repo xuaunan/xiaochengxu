@@ -1,10 +1,9 @@
 .settlement-hero {
   overflow: hidden;
   background:
-    radial-gradient(circle at 100% 0, rgba(255, 177, 74, 0.28), transparent 36%),
-    radial-gradient(circle at 0 100%, rgba(255, 122, 0, 0.08), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #fff8ef 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.1);
+    radial-gradient(circle at 100% 0, rgba(255, 122, 0, 0.08), transparent 36%),
+    rgba(255, 255, 255, 0.97);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .payable {
@@ -30,19 +29,19 @@
 
 .status-accent {
   color: #ffffff;
-  background: linear-gradient(135deg, #ff7a00 0%, #ff9b2f 100%);
-  box-shadow: 0 12rpx 24rpx rgba(255, 122, 0, 0.2);
+  background: #ff7a00;
+  box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.16);
 }
 
 .status-success {
   color: #ffffff;
-  background: linear-gradient(135deg, #25b36a 0%, #4ccc86 100%);
-  box-shadow: 0 12rpx 24rpx rgba(37, 179, 106, 0.18);
+  background: #25b36a;
+  box-shadow: 0 10rpx 22rpx rgba(37, 179, 106, 0.14);
 }
 
 .status-muted {
   color: #5b6476;
-  background: linear-gradient(180deg, #eef2f7 0%, #e5ebf3 100%);
+  background: #eef2f7;
   box-shadow: none;
 }
 
@@ -64,9 +63,9 @@
   gap: 18rpx;
   padding: 24rpx;
   border-radius: 30rpx;
-  background: linear-gradient(180deg, #fffaf3 0%, #fff4e6 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.08);
-  box-shadow: 0 16rpx 30rpx rgba(255, 122, 0, 0.08);
+  background: rgba(255, 255, 255, 0.97);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.06);
 }
 
 .coupon-entry:active {
@@ -95,7 +94,7 @@
   font-size: 24rpx;
   font-weight: 800;
   color: #ffffff;
-  background: linear-gradient(135deg, #ff7a00 0%, #ffb14a 100%);
+  background: #ff7a00;
 }
 
 .coupon-entry__label {
@@ -181,13 +180,13 @@
 .settlement-secondary {
   width: 220rpx;
   min-height: 96rpx;
-  border-radius: 999rpx;
+  border-radius: 26rpx;
 }
 
 .settlement-primary {
   flex: 1;
   min-height: 96rpx;
-  border-radius: 999rpx;
+  border-radius: 26rpx;
 }
 
 .coupon-picker-mask {
