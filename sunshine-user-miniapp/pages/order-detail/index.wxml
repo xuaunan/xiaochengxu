@@ -135,7 +135,6 @@
 
   <view class="payment-bar" wx:if="{{showPayBar}}">
     <view class="payment-bar__inner">
-      <view class="payment-scene-tip">{{paymentSceneText}}</view>
       <view class="coupon-entry {{couponActionDisabled ? 'coupon-entry--disabled' : 'tap-scale'}}" wx:if="{{allowCoupon}}" bindtap="openCouponPicker" hover-class="pressable-hover" hover-stay-time="60">
         <view class="coupon-entry__main">
           <view class="coupon-entry__icon">券</view>
@@ -144,7 +143,6 @@
         <view class="coupon-entry__summary {{couponActionDisabled ? '' : 'coupon-entry__summary--active'}}">{{couponSummaryText}}</view>
         <view class="coupon-entry__action {{couponActionDisabled ? 'coupon-entry__action--disabled' : ''}}">去选择 ></view>
       </view>
-      <view class="cancel-fee-note" wx:else>超时取消产生取消费，本单需完成支付后关闭待支付状态。</view>
 
       <view class="payment-bar__row">
         <view class="payment-meta">
