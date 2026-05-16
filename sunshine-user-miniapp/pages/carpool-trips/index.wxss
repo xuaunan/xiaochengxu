@@ -1,0 +1,38 @@
+.trip-summary {
+  margin-top: 22rpx;
+}
+
+.trip-record {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.record-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  line-height: 1.4;
+}
+
+.record-meta,
+.record-hint {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.record-action {
+  margin-top: 14rpx;
+}
+
+.empty-card {
+  text-align: center;
+  padding: 40rpx 24rpx;
+}
+
+.empty-title {
+  font-size: 30rpx;
+}
+
+

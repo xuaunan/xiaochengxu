@@ -1,0 +1,43 @@
+<view class="home-page" wx:if="{{order}}">
+  <map
+    class="home-map"
+    longitude="{{longitude}}"
+    latitude="{{latitude}}"
+    scale="11"
+    markers="{{markers}}"
+    polyline="{{polyline}}"
+    include-points="{{includePoints}}"
+    enable-rotate
+    enable-overlooking
+  ></map>
+
+  <view class="home-overlay">
+    <sun-nav title="司机已接单" subtitle="司机位置每 3 秒自动刷新" transparent backable></sun-nav>
+  </view>
+
+  <view class="arrival-bottom glass-card">
+    <sun-driver-card driver="{{order.driver}}" etaText="{{etaText}}" bindaction="contactDriver"></sun-driver-card>
+    <view class="metric-grid arrival-metrics">
+      <view class="metric-item">
+        <view class="metric-value">{{progressText}}</view>
+        <view class="metric-label">接驾进度</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{order.carType.name}}</view>
+        <view class="metric-label">订单车型</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{order.driver.plateNo}}</view>
+        <view class="metric-label">车牌号</view>
+      </view>
+    </view>
+    <view class="chip-row arrival-chip-row">
+      <view class="chip">{{trafficText}}</view>
+      <view class="chip">{{order.cancelRule}}</view>
+    </view>
+    <view class="arrival-actions">
+      <button class="ghost-button arrival-cancel" hover-class="button-hover" loading="{{canceling}}" disabled="{{canceling}}" bindtap="cancelRideOrder">{{canceling ? '取消中' : '取消订单'}}</button>
+      <button class="primary-button arrival-button" hover-class="button-hover" disabled="{{canceling}}" bindtap="startTripNow">{{actionButtonText}}</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,19 @@
+<view class="coupon-card {{item.cardDisabled ? 'coupon-card-disabled' : ''}}" bindtap="handleTap">
+  <view class="coupon-main">
+    <view class="coupon-value">{{item.faceValueText}}</view>
+    <view class="coupon-scope">{{item.scopeText}}</view>
+  </view>
+  <view class="coupon-body">
+    <view class="coupon-name">{{item.title}}</view>
+    <view class="coupon-rule">{{item.ruleText}}</view>
+    <view class="coupon-code">{{item.metaText}}</view>
+  </view>
+  <view class="coupon-side">
+    <view wx:if="{{item.actionText}}" class="coupon-action {{item.actionDisabled ? 'coupon-action--disabled' : ''}}" data-id="{{item.id}}" catchtap="handleAction">
+      {{item.actionText}}
+    </view>
+    <view wx:else class="coupon-status {{item.statusClass}}">
+      {{selectedId === item.id ? '已选' : item.statusText}}
+    </view>
+  </view>
+</view>

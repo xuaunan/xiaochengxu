@@ -1,0 +1,77 @@
+.driver-settings {
+  margin-top: 18rpx;
+}
+
+.voice-style-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.track-mode-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.track-mode-chip {
+  min-width: 0;
+  padding: 18rpx;
+  border-radius: 24rpx;
+  background: #f3f5fb;
+  border: 2rpx solid transparent;
+}
+
+.track-mode-chip--active {
+  background: rgba(255, 122, 0, 0.12);
+  border-color: rgba(255, 122, 0, 0.34);
+}
+
+.track-mode-chip__title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1f2432;
+}
+
+.track-mode-chip__desc {
+  margin-top: 10rpx;
+  color: #7a8396;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.voice-style-chip {
+  padding: 16rpx 24rpx;
+  border-radius: 999rpx;
+  background: #f3f5fb;
+  color: #556074;
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.voice-style-chip--active {
+  background: rgba(255, 122, 0, 0.14);
+  color: #ff7a00;
+  font-weight: 600;
+}
+
+.voice-style-current {
+  margin-top: 22rpx;
+  color: #7a8396;
+  font-size: 24rpx;
+}
+
+.voice-preview-btn {
+  min-width: 112rpx;
+  padding: 18rpx 28rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #ff9d2f 0%, #ff7a00 100%);
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 1;
+  text-align: center;
+}
+
+

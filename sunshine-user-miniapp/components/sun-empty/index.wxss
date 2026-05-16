@@ -1,0 +1,35 @@
+.empty-box {
+  padding: 56rpx 40rpx;
+  text-align: center;
+}
+
+.empty-image {
+  width: 240rpx;
+  height: 180rpx;
+}
+
+.empty-title {
+  margin-top: 20rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2432;
+}
+
+.empty-desc {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #7a8396;
+}
+
+.empty-button {
+  margin-top: 24rpx;
+  color: #ff7a00;
+  background: #fff1df;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+}
+
+.empty-button::after {
+  border: none;
+}

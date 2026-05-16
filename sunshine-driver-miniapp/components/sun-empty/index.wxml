@@ -1,0 +1,5 @@
+<view class="empty">
+  <image class="empty__image" src="/images/empty-state.svg" mode="aspectFit"></image>
+  <view class="empty__title">{{title}}</view>
+  <view class="empty__desc">{{description}}</view>
+</view>

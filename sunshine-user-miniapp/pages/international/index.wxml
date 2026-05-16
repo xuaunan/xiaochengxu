@@ -1,0 +1,46 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="intl-hero">
+      <view>
+        <view class="intl-kicker">Global Mobility</view>
+        <view class="intl-title">{{pageTitle}}</view>
+        <view class="intl-subtitle">{{pageSubtitle}}</view>
+      </view>
+      <view class="intl-exchange">{{exchangeRate}}</view>
+      <view class="intl-metrics">
+        <view class="intl-metric" wx:for="{{metrics}}" wx:key="label">
+          <view>{{item.value}}</view>
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-gap">
+      <view class="intl-card tap-scale" wx:for="{{options}}" wx:key="id" data-id="{{item.id}}" bindtap="openOrder">
+        <view class="row-between">
+          <view>
+            <view class="intl-route-title">{{item.titleZh}}</view>
+            <view class="intl-route-en">{{item.titleEn}}</view>
+          </view>
+          <view class="intl-price">
+            <text>{{item.currency}}</text>
+            <view>{{item.basePrice}}</view>
+          </view>
+        </view>
+        <view class="intl-route-line">{{item.startName}} → {{item.endName}}</view>
+        <view class="intl-meta-row">
+          <view>{{item.badge}}</view>
+          <view>{{item.vehicle}}</view>
+          <view>{{item.durationText}}</view>
+        </view>
+        <view class="intl-service-row">
+          <text wx:for="{{item.inclusions}}" wx:key="*this">{{item}}</text>
+        </view>
+        <view class="intl-notice">{{item.notice}}</view>
+      </view>
+    </view>
+  </view>
+  <view class="floating-bar">
+    <button class="ghost-button" hover-class="button-hover" bindtap="openList">查看我的国际行程</button>
+  </view>
+</view>

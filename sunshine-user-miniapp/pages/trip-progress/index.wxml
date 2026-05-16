@@ -1,0 +1,46 @@
+<view class="home-page" wx:if="{{order}}">
+  <map
+    class="home-map"
+    longitude="{{currentPoint.longitude || order.start.longitude}}"
+    latitude="{{currentPoint.latitude || order.start.latitude}}"
+    scale="12"
+    markers="{{markers}}"
+    polyline="{{polyline}}"
+    include-points="{{includePoints}}"
+    enable-rotate
+    enable-overlooking
+  ></map>
+
+  <view class="home-overlay">
+    <sun-nav title="行程进行中" subtitle="车辆轨迹实时更新，支持安全中心入口" transparent backable></sun-nav>
+  </view>
+
+  <view class="trip-card glass-card">
+    <view class="row-between trip-head">
+      <view class="trip-summary">
+        <view class="section-title trip-route">{{order.start.name}} -> {{order.end.name}}</view>
+        <view class="section-subtitle">{{etaText}} | {{trafficText}}</view>
+      </view>
+      <view class="status-tag processing trip-status">行程中</view>
+    </view>
+    <view class="metric-grid arrival-metrics">
+      <view class="metric-item">
+        <view class="metric-value">{{mileageText}}</view>
+        <view class="metric-label">当前里程</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{durationText}}</view>
+        <view class="metric-label">已用时长</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{progressText}}</view>
+        <view class="metric-label">路线进度</view>
+      </view>
+    </view>
+    <view class="trip-actions">
+      <button class="ghost-button trip-action" hover-class="button-hover" bindtap="openSafetyCenter">安全中心</button>
+      <button class="ghost-button trip-action" hover-class="button-hover" bindtap="openEmergencyContact">紧急联系人</button>
+    </view>
+    <view class="trip-alert">若车辆偏离既定路线，系统将弹出风险提醒并建议联系平台客服。</view>
+  </view>
+</view>

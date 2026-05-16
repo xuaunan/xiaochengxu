@@ -1,0 +1,57 @@
+<view class="page-shell">
+  <view class="page-content list-gap">
+    <view class="hero-card profile-hero">
+      <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+      <view class="profile-name">{{profile.name}}</view>
+      <view class="profile-desc">{{profile.phone}} · {{profile.carModel}}</view>
+
+      <view class="metric-grid" style="margin-top: 24rpx;">
+        <view class="metric-item">
+          <view class="metric-value">{{profile.serviceScore || 0}}</view>
+          <view class="metric-label">服务分</view>
+        </view>
+        <view class="metric-item">
+          <view class="metric-value">{{wallet.completedTrips || 0}}</view>
+          <view class="metric-label">累计完成</view>
+        </view>
+        <view class="metric-item">
+          <view class="metric-value">{{vehicleView.auditText}}</view>
+          <view class="metric-label">车辆审核</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="permission-card">
+      <view class="permission-header">
+        <view class="section-title">接单权限</view>
+        <view class="status-chip {{vehicleView.auditClassName}}">{{permission.canReceiveOrders ? '已解锁' : '未解锁'}}</view>
+      </view>
+      <view class="section-subtitle">{{permission.message}}</view>
+    </view>
+
+    <view class="group-block" wx:for="{{menuGroups}}" wx:key="title">
+      <view class="group-title">{{item.title}}</view>
+      <view class="list-gap">
+        <view
+          class="panel-card menu-card tap-scale"
+          wx:for="{{item.items}}"
+          wx:for-item="menu"
+          wx:key="title"
+          data-url="{{menu.url}}"
+          data-mode="{{menu.mode}}"
+          bindtap="openMenu"
+        >
+          <view class="row-between">
+            <view class="menu-title">{{menu.title}}</view>
+            <view class="menu-badge">{{menu.badge}}</view>
+          </view>
+          <view class="section-subtitle">{{menu.desc}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel-card menu-card menu-card--logout profile-logout-card tap-scale" bindtap="handleLogout">
+      <view class="menu-title menu-title--logout">{{logoutText}}</view>
+    </view>
+  </view>
+</view>

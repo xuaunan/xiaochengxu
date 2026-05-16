@@ -1,0 +1,66 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content">
+    <view class="hero-card">
+      <view class="section-title">订单中心</view>
+      <view class="section-subtitle">支持按业务类型与状态筛选，进入详情可继续投诉、退款、开发票。</view>
+      <scroll-view scroll-x enable-flex show-scrollbar="{{false}}" class="tabs-scroll">
+        <view class="tabs-row">
+          <view
+            class="chip {{activeType === item.key ? 'chip-active' : ''}}"
+            wx:for="{{typeTabs}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="chooseType"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </scroll-view>
+      <scroll-view scroll-x enable-flex show-scrollbar="{{false}}" class="tabs-scroll">
+        <view class="tabs-row">
+          <view
+            class="chip {{activeStatus === item.key ? 'chip-active' : ''}}"
+            wx:for="{{statusTabs}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="chooseStatus"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="list-gap order-list" wx:if="{{list.length}}">
+      <view
+        class="panel-card tap-scale"
+        wx:for="{{list}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="openDetail"
+        hover-class="pressable-hover"
+        hover-stay-time="60"
+      >
+        <view class="row-between">
+          <view class="section-title order-title">{{item.typeText}}</view>
+          <view class="status-tag {{item.statusTag}}">{{item.statusText}}</view>
+        </view>
+        <view class="order-route">{{item.startName}} → {{item.endName}}</view>
+        <view class="row-between order-meta">
+          <text>{{item.createdAtText}}</text>
+          <text class="brand-text">{{item.amountText}}</text>
+        </view>
+        <view class="order-no">订单号：{{item.orderNo}}</view>
+      </view>
+    </view>
+
+    <view class="panel-card" wx:else>
+      <sun-empty
+        title="暂无符合条件的订单"
+        description="你可以返回首页下单，或切换筛选条件查看其他订单。"
+        buttonText="返回首页"
+        bindaction="goHome"
+      ></sun-empty>
+    </view>
+  </view>
+</view>

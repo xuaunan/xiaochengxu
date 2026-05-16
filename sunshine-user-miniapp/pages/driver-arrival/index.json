@@ -1,0 +1,7 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "sun-nav": "/components/sun-nav/index",
+    "sun-driver-card": "/components/sun-driver-card/index"
+  }
+}

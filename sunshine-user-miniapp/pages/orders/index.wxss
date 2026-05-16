@@ -1,0 +1,39 @@
+.tabs-scroll {
+  margin-top: 18rpx;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.tabs-row {
+  display: inline-flex;
+  gap: 14rpx;
+}
+
+.order-list {
+  margin-top: 24rpx;
+}
+
+.order-title {
+  font-size: 30rpx;
+}
+
+.order-route {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2432;
+}
+
+.order-meta {
+  margin-top: 18rpx;
+  font-size: 22rpx;
+  color: #7a8396;
+}
+
+.order-no {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #98a1b3;
+}
+
+

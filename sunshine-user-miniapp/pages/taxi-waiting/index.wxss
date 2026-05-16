@@ -1,0 +1,30 @@
+.waiting-banner {
+  text-align: center;
+}
+
+.waiting-title {
+  margin-top: 24rpx;
+  font-size: 42rpx;
+  font-weight: 800;
+  color: #1f2432;
+}
+
+.waiting-desc {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  color: #6b7385;
+}
+
+.waiting-circle {
+  width: 180rpx;
+  height: 180rpx;
+  margin: 36rpx auto 0;
+  border-radius: 50%;
+  line-height: 180rpx;
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #ff7a00;
+  background: radial-gradient(circle, rgba(255, 122, 0, 0.12), rgba(255, 122, 0, 0.02));
+}
+
+

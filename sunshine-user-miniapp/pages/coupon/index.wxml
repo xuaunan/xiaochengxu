@@ -1,0 +1,54 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content">
+    <view class="hero-card coupon-hero">
+      <view class="section-title">优惠券中心</view>
+      <view class="section-subtitle">自动匹配打车、顺风车、国际出行可用优惠券，领取后实时同步到券包。</view>
+      <view class="chip-row coupon-tabs">
+        <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="coupon-section coupon-section--list" wx:if="{{list.length}}">
+      <view class="coupon-section__head">
+        <view class="section-title coupon-section__title">我的券包</view>
+        <view class="coupon-section__meta">{{list.length}} 张</view>
+      </view>
+      <view class="list-gap coupon-list">
+        <sun-coupon-card wx:for="{{visibleList}}" wx:key="id" item="{{item}}" bindselect="handleSelect"></sun-coupon-card>
+      </view>
+      <view wx:if="{{showCouponListToggle}}" class="coupon-more" bindtap="toggleCouponList">
+        {{couponListToggleText}}
+      </view>
+    </view>
+
+    <view class="panel-card coupon-empty" wx:else>
+      <sun-empty
+        title="暂无对应优惠券"
+        description="去首页下单或参加活动后，会在这里看到可用券。"
+        buttonText="去首页看看"
+        bindaction="jumpToHome"
+      ></sun-empty>
+    </view>
+
+    <view class="hero-card coupon-center">
+      <view class="coupon-section__head coupon-center__head">
+        <view>
+          <view class="section-title">券中心</view>
+          <view class="section-subtitle">以下为后端当前可领取的优惠券模板。</view>
+        </view>
+        <view class="coupon-section__meta">{{centerList.length}} 张</view>
+      </view>
+      <block wx:if="{{centerList.length}}">
+        <view class="list-gap coupon-list">
+          <sun-coupon-card wx:for="{{visibleCenterList}}" wx:key="id" item="{{item}}" bindaction="claimCoupon"></sun-coupon-card>
+        </view>
+        <view wx:if="{{showCenterToggle}}" class="coupon-more" bindtap="toggleCenterList">
+          {{centerToggleText}}
+        </view>
+      </block>
+      <view class="coupon-center__empty" wx:else>
+        当前暂无可领取优惠券
+      </view>
+    </view>
+  </view>
+</view>

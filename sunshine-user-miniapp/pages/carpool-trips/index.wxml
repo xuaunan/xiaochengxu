@@ -1,0 +1,45 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="hero-card">
+      <view class="section-title">我的顺风车</view>
+      <view class="section-subtitle">查看自己作为车主发布的行程，以及作为乘客提交的搭乘申请。</view>
+
+      <view class="metric-grid trip-summary">
+        <view class="metric-item">
+          <view class="metric-value">{{summary.ownerTripTotal}}</view>
+          <view class="metric-label">车主行程</view>
+        </view>
+        <view class="metric-item">
+          <view class="metric-value">{{summary.passengerTripTotal}}</view>
+          <view class="metric-label">乘客申请</view>
+        </view>
+        <view class="metric-item">
+          <view class="metric-value">{{summary.pendingTotal}}</view>
+          <view class="metric-label">待处理</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="chip-row">
+      <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
+    </view>
+
+    <view wx:if="{{list.length}}" class="list-gap">
+      <view class="panel-card trip-record" wx:for="{{list}}" wx:key="id" data-id="{{item.tripId}}" bindtap="openDetail">
+        <view class="row-between">
+          <view class="section-title record-title">{{item.routeText}}</view>
+          <view class="status-tag {{item.statusClassName}}">{{item.statusText}}</view>
+        </view>
+        <view class="record-meta">{{item.roleText}} · {{item.departTimeText}}</view>
+        <view class="record-meta">{{item.seatText}} · {{item.priceText}}</view>
+        <view class="record-hint" wx:if="{{item.pendingApplicationCount > 0}}">当前有 {{item.pendingApplicationCount}} 条乘客申请待你处理</view>
+        <button class="ghost-button record-action" hover-class="button-hover" catchtap="handleAction" data-type="{{item.action.type}}" data-id="{{item.tripId}}" data-application-id="{{item.applicationId}}">{{item.action.text}}</button>
+      </view>
+    </view>
+
+    <view wx:else class="panel-card empty-card">
+      <view class="section-title empty-title">当前分类下还没有记录</view>
+      <view class="section-subtitle">可以返回顺风车首页继续搜索合适路线，或发布新的出发计划。</view>
+    </view>
+  </view>
+</view>

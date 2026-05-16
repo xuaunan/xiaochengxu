@@ -1,0 +1,100 @@
+{
+  "pages": [
+    "pages/welcome/index",
+    "pages/login/index",
+    "pages/home/index",
+    "pages/address-search/index",
+    "pages/map-picker/index",
+    "pages/taxi-waiting/index",
+    "pages/driver-arrival/index",
+    "pages/trip-progress/index",
+    "pages/fare-settlement/index",
+    "pages/ride-review/index",
+    "pages/orders/index",
+    "pages/order-detail/index",
+    "pages/payment-confirm/index",
+    "pages/carpool/index",
+    "pages/carpool-confirm/index",
+    "pages/carpool-publish/index",
+    "pages/carpool-detail/index",
+    "pages/carpool-apply/index",
+    "pages/carpool-trips/index",
+    "pages/international/index",
+    "pages/international-order/index",
+    "pages/international-orders/index",
+    "pages/coupon/index",
+    "pages/profile/index",
+    "pages/profileEdit/index",
+    "pages/auth/index",
+    "pages/wallet/index",
+    "pages/reviews/index",
+    "pages/complaint/index",
+    "pages/help/index",
+    "pages/settings/index",
+    "pages/messages/index",
+    "pages/invoice/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "\u9633\u5149\u51fa\u884c",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f8fc",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#7a8396",
+    "selectedColor": "#ff7a00",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "\u9996\u9875",
+        "iconPath": "images/tabbar/tab-home.png",
+        "selectedIconPath": "images/tabbar/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/orders/index",
+        "text": "\u884c\u7a0b",
+        "iconPath": "images/tabbar/tab-orders.png",
+        "selectedIconPath": "images/tabbar/tab-orders-active.png"
+      },
+      {
+        "pagePath": "pages/carpool/index",
+        "text": "\u987a\u98ce\u8f66",
+        "iconPath": "images/tabbar/tab-carpool.png",
+        "selectedIconPath": "images/tabbar/tab-carpool-active.png"
+      },
+      {
+        "pagePath": "pages/coupon/index",
+        "text": "\u4f18\u60e0\u5238",
+        "iconPath": "images/tabbar/tab-coupon.png",
+        "selectedIconPath": "images/tabbar/tab-coupon-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "\u6211\u7684",
+        "iconPath": "images/tabbar/tab-profile.png",
+        "selectedIconPath": "images/tabbar/tab-profile-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "\u7528\u4e8e\u83b7\u53d6\u5f53\u524d\u4f4d\u7f6e\u3001\u89c4\u5212\u8def\u7ebf\u4e0e\u6f14\u793a\u53f8\u673a\u5b9e\u65f6\u63a5\u9a7e\u6d41\u7a0b"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "networkTimeout": {
+    "request": 15000,
+    "connectSocket": 15000,
+    "uploadFile": 15000,
+    "downloadFile": 15000
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

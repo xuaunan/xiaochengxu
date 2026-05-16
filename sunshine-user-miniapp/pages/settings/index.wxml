@@ -1,0 +1,25 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="panel-card setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting">
+      <view>
+        <view class="section-title">消息推送</view>
+        <view class="section-subtitle">订单、优惠券与公告提醒</view>
+      </view>
+      <switch color="#ff7a00" checked="{{settings.pushEnabled}}"></switch>
+    </view>
+    <view class="panel-card setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting">
+      <view>
+        <view class="section-title">自动匹配优惠券</view>
+        <view class="section-subtitle">下单时优先推荐最优券</view>
+      </view>
+      <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}"></switch>
+    </view>
+    <view class="panel-card setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting">
+      <view>
+        <view class="section-title">暗黑模式基础兼容</view>
+        <view class="section-subtitle">当前仅演示颜色切换逻辑</view>
+      </view>
+      <switch color="#ff7a00" checked="{{settings.darkMode}}"></switch>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,14 @@
+.order-route {
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
+}
+
+.order-extra {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+

@@ -1,0 +1,47 @@
+.sun-nav {
+  position: relative;
+  z-index: 20;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.sun-nav-transparent {
+  background: transparent;
+}
+
+.sun-nav__inner {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+}
+
+.sun-nav__left,
+.sun-nav__right {
+  font-size: 26rpx;
+  color: #6b7385;
+  flex-shrink: 0;
+}
+
+.sun-nav__center {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.sun-nav__title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2432;
+  line-height: 1.2;
+}
+
+.sun-nav__subtitle {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: #98a1b3;
+}
+
+.sun-nav__left--ghost {
+  opacity: 0;
+}

@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "sun-nav": "/components/sun-nav/index"
+  }
+}

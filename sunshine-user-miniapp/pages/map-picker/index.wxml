@@ -1,0 +1,103 @@
+<view class="picker-page {{pageReady ? 'picker-page--enter' : ''}} {{pageLeaving ? 'picker-page--leave' : ''}}">
+  <view class="picker-map-wrap" style="height: {{mapHeight}}px;">
+    <map
+      id="pickerMap"
+      class="picker-map"
+      style="height: {{mapHeight}}px;"
+      longitude="{{longitude}}"
+      latitude="{{latitude}}"
+      scale="{{zoom}}"
+      markers="{{markers}}"
+      show-location
+      enable-3D="{{false}}"
+      enable-rotate="{{false}}"
+      enable-overlooking="{{false}}"
+      enable-satellite="{{false}}"
+      bindtap="handleMapTap"
+      bindlongpress="handleMapLongPress"
+      bindregionchange="handleRegionChange"
+    >
+      <cover-view class="picker-center-pin {{mapMoving ? 'picker-center-pin--lifting' : ''}} {{selecting ? 'picker-center-pin--loading' : ''}}">
+        <cover-image class="picker-center-pin__icon" src="{{type === 'end' ? '/images/map-end.png' : '/images/map-start.png'}}"></cover-image>
+        <cover-view class="picker-center-pin__shadow"></cover-view>
+      </cover-view>
+    </map>
+
+    <view class="picker-top" style="padding-top: {{navTop}}px;">
+      <view class="picker-back tap-scale" bindtap="handleBack" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="picker-back__icon"></view>
+      </view>
+      <view class="picker-title">
+        <view class="picker-title__main">{{copy.titleMain}}</view>
+        <view class="picker-title__sub">{{copy.titleSub}}</view>
+      </view>
+    </view>
+
+    <view class="picker-tip">{{mapServiceReady ? copy.tipReady : copy.tipFallback}}</view>
+  </view>
+
+  <view class="picker-panel slide-in" style="height: {{panelHeight}}px;">
+    <view class="picker-panel__summary">
+      <view class="picker-panel__summary-main">
+        <view class="picker-panel__tag">{{copy.currentTag}}</view>
+        <view class="picker-panel__title">{{(selectedPoint && selectedPoint.name) || (anchorPoint && anchorPoint.name) || copy.currentTitleFallback}}</view>
+        <view class="picker-panel__desc">{{(selectedPoint && selectedPoint.address) || (anchorPoint && anchorPoint.address) || copy.currentDescFallback}}</view>
+      </view>
+      <button class="picker-panel__ghost" hover-class="button-hover" bindtap="useMyLocation">{{copy.myLocationText}}</button>
+    </view>
+
+    <view class="picker-panel__permission" wx:if="{{locationPermissionDenied}}">
+      <view class="picker-panel__permission-title">{{copy.permissionTitle}}</view>
+      <view class="picker-panel__permission-desc">{{copy.permissionDesc}}</view>
+    </view>
+
+    <view class="picker-panel__loading" wx:if="{{selecting}}">
+      <view class="picker-panel__spinner"></view>
+      <view>{{copy.loadingText}}</view>
+    </view>
+
+    <view class="picker-panel__list-head">
+      <view class="picker-panel__list-title">{{copy.nearbyTitle}}</view>
+      <view class="picker-panel__list-subtitle">{{copy.nearbySubtitle}}</view>
+    </view>
+
+    <scroll-view class="picker-list {{listAnimating ? 'picker-list--animating' : ''}}" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="picker-list__inner">
+        <view
+          class="picker-item pressable-row {{selectedPoint && selectedPoint.addressKey === item.addressKey ? 'picker-item--active' : ''}}"
+          wx:for="{{nearbyItems}}"
+          wx:key="addressKey"
+          data-item="{{item}}"
+          bindtap="chooseNearbyAddress"
+          hover-class="pressable-hover"
+          hover-stay-time="60"
+        >
+          <view class="picker-item__marker {{selectedPoint && selectedPoint.addressKey === item.addressKey ? 'picker-item__marker--active' : ''}}"></view>
+          <view class="picker-item__content">
+            <view class="picker-item__main">
+              <view class="picker-item__name">{{item.name}}</view>
+              <view class="picker-item__detail">{{item.address}}</view>
+            </view>
+            <view class="picker-item__meta">
+              <view class="picker-item__distance">{{item.distanceText}}</view>
+              <view
+                class="picker-item__favorite {{item.favorite ? 'picker-item__favorite--active' : ''}} {{favoriteBounceKey === item.addressKey ? 'picker-item__favorite--bounce' : ''}}"
+                catchtap="handleFavoriteTap"
+                data-item="{{item}}"
+              >{{item.favorite ? copy.favoriteFilled : copy.favoriteOutline}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="picker-list__empty" wx:if="{{!loadingList && !nearbyItems.length}}">
+          <view class="picker-list__empty-title">{{copy.emptyTitle}}</view>
+          <view class="picker-list__empty-desc">{{copy.emptyDesc}}</view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="picker-panel__footer">
+      <button class="picker-panel__confirm" hover-class="button-hover" bindtap="confirmSelection" disabled="{{!(selectedPoint || anchorPoint)}}">{{copy.confirmText}}</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,48 @@
+<view class="page-shell welcome-page safe-bottom">
+  <sun-nav title="阳光出行" subtitle="智慧出行服务平台" transparent></sun-nav>
+
+  <view class="hero">
+    <view class="hero__badge">新人礼包已备好</view>
+    <view class="hero__title">一站式出行平台</view>
+    <view class="hero__subtitle">打车、顺风车、国际出行一次开启，地图、支付、优惠券全流程可演示。</view>
+  </view>
+
+  <view class="coupon-stack">
+    <view class="coupon-card coupon-card--main">
+      <text class="coupon-card__amount">18 元</text>
+      <text class="coupon-card__name">新人打车立减券</text>
+      <text class="coupon-card__desc">注册即领，首页下单自动可选</text>
+    </view>
+    <view class="coupon-card coupon-card--sub">
+      <text class="coupon-card__desc">顺风车 8 折券 + 国际出行 80 元券</text>
+    </view>
+  </view>
+
+  <view class="feature-list hero-card">
+    <view class="feature-item">
+      <view class="feature-item__index">01</view>
+      <view>
+        <view class="feature-item__title">地图路线可视化</view>
+        <view class="feature-item__desc">首页支持实时定位、长按选点、路线绘制与费用预估。</view>
+      </view>
+    </view>
+    <view class="feature-item">
+      <view class="feature-item__index">02</view>
+      <view>
+        <view class="feature-item__title">模拟支付与司机轨迹</view>
+        <view class="feature-item__desc">无需商户号和第三方地图密钥，也可演示完整业务闭环。</view>
+      </view>
+    </view>
+    <view class="feature-item">
+      <view class="feature-item__index">03</view>
+      <view>
+        <view class="feature-item__title">暖橙色品牌体验</view>
+        <view class="feature-item__desc">统一视觉语言与弹窗、抽屉、按钮动效，体验更成熟。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="floating-bar">
+    <button class="primary-button" hover-class="button-hover" bindtap="claimWelcomePack">领取 {{couponCount}} 张新人券并进入</button>
+  </view>
+</view>

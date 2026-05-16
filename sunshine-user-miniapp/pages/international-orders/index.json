@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我的国际行程",
+  "usingComponents": {
+    "sun-empty": "/components/sun-empty/index"
+  }
+}

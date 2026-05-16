@@ -1,0 +1,58 @@
+.profile-hero {
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 32rpx;
+}
+
+.profile-name {
+  margin-top: 20rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #1f2432;
+}
+
+.profile-subtitle {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #7a8396;
+}
+
+.profile-metrics {
+  margin-top: 24rpx;
+}
+
+.menu-card {
+  padding: 26rpx 24rpx;
+}
+
+.menu-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2432;
+}
+
+.menu-desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #7a8396;
+}
+
+.menu-card--logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 126rpx;
+  background: #ffffff;
+}
+
+.menu-title--logout {
+  color: #ff5b57;
+  text-align: center;
+}
+
+

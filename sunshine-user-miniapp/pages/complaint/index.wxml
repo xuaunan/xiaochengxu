@@ -1,0 +1,16 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="hero-card">
+      <view class="section-title">提交投诉或建议</view>
+      <textarea class="review-textarea" placeholder="请输入订单问题、司机服务反馈或产品建议" value="{{content}}" bindinput="updateContent"></textarea>
+      <button class="primary-button" hover-class="button-hover" bindtap="submitComplaint">提交反馈</button>
+    </view>
+    <view class="panel-card" wx:for="{{history}}" wx:key="id">
+      <view class="row-between">
+        <view class="section-title">{{item.title}}</view>
+        <view class="status-tag processing">{{item.status}}</view>
+      </view>
+      <view class="section-subtitle">{{item.createdAt}}</view>
+    </view>
+  </view>
+</view>

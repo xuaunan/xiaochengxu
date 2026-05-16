@@ -1,0 +1,142 @@
+<view class="page-shell">
+  <view class="page-content list-gap">
+    <view class="hero-card list-gap" wx:if="{{!loggedIn}}">
+      <view>
+        <view class="section-title">司机账号登录</view>
+        <view class="section-subtitle">司机账号注册成功后即可登录小程序，添加车辆并提交审核。</view>
+      </view>
+
+      <view class="tip-board">
+        <view class="tip-title">演示账号</view>
+        <view class="tip-text">手机号：13900000001</view>
+        <view class="tip-text">密码：123456</view>
+      </view>
+
+      <view class="chip-row">
+        <view class="chip {{mode === 'login' ? 'chip-active' : ''}}" data-mode="login" bindtap="chooseMode">登录</view>
+        <view class="chip {{mode === 'register' ? 'chip-active' : ''}}" data-mode="register" bindtap="chooseMode">注册</view>
+      </view>
+
+      <input class="driver-input" data-key="phone" type="number" value="{{loginForm.phone}}" bindinput="updateLoginField" placeholder="请输入手机号" />
+      <input class="driver-input" data-key="password" password value="{{loginForm.password}}" bindinput="updateLoginField" placeholder="请输入密码" />
+      <input
+        wx:if="{{mode === 'register'}}"
+        class="driver-input"
+        data-key="nickname"
+        value="{{loginForm.nickname}}"
+        bindinput="updateLoginField"
+        placeholder="请输入司机昵称"
+      />
+
+      <button class="primary-button" hover-class="button-hover" bindtap="submitLogin">
+        {{mode === 'register' ? '注册并登录' : '登录司机端'}}
+      </button>
+    </view>
+
+    <view wx:else class="list-gap">
+      <view class="hero-card list-gap">
+        <view class="row-between">
+          <view>
+            <view class="section-title">我的车辆</view>
+            <view class="section-subtitle">一个司机只可绑定一辆车，提交或更换车辆后都需要重新等待管理员审核。</view>
+          </view>
+          <view class="status-chip {{vehicleView.auditClassName}}">{{vehicleView.auditText}}</view>
+        </view>
+
+        <view class="summary-card" wx:if="{{vehicleView.hasVehicle}}">
+          <view class="summary-header">
+            <view>
+              <view class="summary-title">{{vehicleView.plateNo}}</view>
+              <view class="summary-subtitle">{{vehicleView.brand}} {{vehicleView.modelName}} / {{vehicleView.color}}</view>
+            </view>
+            <view class="summary-right">{{profile.canReceiveOrders ? '可接单' : '待解锁'}}</view>
+          </view>
+          <view class="summary-grid">
+            <view class="summary-item">
+              <view class="summary-label">座位数</view>
+              <view class="summary-value">{{vehicleView.seatCount}} 座</view>
+            </view>
+            <view class="summary-item">
+              <view class="summary-label">保险到期</view>
+              <view class="summary-value">{{vehicleView.insuranceExpireDate}}</view>
+            </view>
+            <view class="summary-item">
+              <view class="summary-label">年检到期</view>
+              <view class="summary-value">{{vehicleView.annualInspectExpireDate}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view wx:else class="empty-vehicle">
+          <image class="empty-vehicle-image" src="/images/empty-state.svg" mode="aspectFit"></image>
+          <view class="empty-vehicle-title">还没有绑定车辆</view>
+          <view class="empty-vehicle-desc">先补充车辆信息并提交审核，审核通过后即可进入接单大厅开始接单。</view>
+        </view>
+
+        <view class="lock-card">
+          <view class="lock-title">{{permission.canReceiveOrders ? '当前可接单' : '接单权限未解锁'}}</view>
+          <view class="lock-desc">{{permission.message}}</view>
+        </view>
+      </view>
+
+      <view class="panel-card list-gap">
+        <view class="section-title">{{vehicleView.hasVehicle ? '更换车辆信息' : '添加车辆信息'}}</view>
+        <view class="section-subtitle">
+          {{vehicleView.hasVehicle ? '提交更换后，车辆审核状态会回到待审核，接单权限临时锁定。' : '提交后系统会同步到后台司机管理列表，等待管理员审核。'}}
+        </view>
+
+        <input class="driver-input" data-key="licenseNo" value="{{vehicleForm.licenseNo}}" bindinput="updateVehicleField" placeholder="驾驶证号" />
+        <input class="driver-input" data-key="plateNo" value="{{vehicleForm.plateNo}}" bindinput="updateVehicleField" placeholder="车牌号" />
+        <input class="driver-input" data-key="brand" value="{{vehicleForm.brand}}" bindinput="updateVehicleField" placeholder="车辆品牌" />
+        <input class="driver-input" data-key="modelName" value="{{vehicleForm.modelName}}" bindinput="updateVehicleField" placeholder="车型" />
+        <input class="driver-input" data-key="color" value="{{vehicleForm.color}}" bindinput="updateVehicleField" placeholder="车辆颜色" />
+        <input class="driver-input" data-key="seatCount" type="number" value="{{vehicleForm.seatCount}}" bindinput="updateVehicleField" placeholder="座位数" />
+        <input class="driver-input" data-key="insuranceExpireDate" value="{{vehicleForm.insuranceExpireDate}}" bindinput="updateVehicleField" placeholder="保险到期日，例如 2026-12-31" />
+        <input class="driver-input" data-key="annualInspectExpireDate" value="{{vehicleForm.annualInspectExpireDate}}" bindinput="updateVehicleField" placeholder="年检到期日，例如 2026-10-31" />
+
+        <view class="upload-grid">
+          <view class="upload-card">
+            <view class="upload-title">行驶证照片</view>
+            <image
+              wx:if="{{vehiclePreview.vehicleLicenseImageUrl}}"
+              class="upload-preview"
+              src="{{vehiclePreview.vehicleLicenseImageUrl}}"
+              mode="aspectFill"
+              data-key="vehicleLicenseImageUrl"
+              bindtap="handleImageTap"
+            ></image>
+            <view wx:else class="upload-placeholder" data-key="vehicleLicenseImageUrl" bindtap="chooseImage">点击选择行驶证图片</view>
+            <button class="ghost-button" hover-class="button-hover" data-key="vehicleLicenseImageUrl" bindtap="chooseImage">
+              {{vehicleForm.vehicleLicenseImageUrl ? '重新选择' : '上传行驶证'}}
+            </button>
+          </view>
+
+          <view class="upload-card">
+            <view class="upload-title">驾驶证照片</view>
+            <image
+              wx:if="{{vehiclePreview.driverLicenseImageUrl}}"
+              class="upload-preview"
+              src="{{vehiclePreview.driverLicenseImageUrl}}"
+              mode="aspectFill"
+              data-key="driverLicenseImageUrl"
+              bindtap="handleImageTap"
+            ></image>
+            <view wx:else class="upload-placeholder" data-key="driverLicenseImageUrl" bindtap="chooseImage">点击选择驾驶证图片</view>
+            <button class="ghost-button" hover-class="button-hover" data-key="driverLicenseImageUrl" bindtap="chooseImage">
+              {{vehicleForm.driverLicenseImageUrl ? '重新选择' : '上传驾驶证'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="floating-bar" wx:if="{{loggedIn}}">
+    <view class="floating-actions">
+      <button class="ghost-button" hover-class="button-hover" bindtap="goDashboard">返回接单大厅</button>
+      <button class="primary-button" hover-class="button-hover" bindtap="submitVehicle">
+        {{vehicleView.hasVehicle ? '确认更换车辆' : '添加车辆'}}
+      </button>
+    </view>
+  </view>
+</view>

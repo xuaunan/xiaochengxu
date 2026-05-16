@@ -1,0 +1,128 @@
+<view class="dashboard-page">
+  <view wx:if="{{noticePopup.visible}}" class="mini-popup mini-popup--{{noticePopup.type}}">
+    <view class="mini-popup__title">{{noticePopup.title}}</view>
+    <view class="mini-popup__content">{{noticePopup.content}}</view>
+  </view>
+
+  <map
+    class="dashboard-map"
+    longitude="{{longitude}}"
+    latitude="{{latitude}}"
+    scale="11"
+    markers="{{markers}}"
+    show-location
+    enable-scroll
+    enable-zoom
+    enable-rotate
+  ></map>
+  <view class="dashboard-map-mask"></view>
+
+  <view class="dashboard-overlay">
+    <view class="dashboard-nav-wrap">
+      <sun-nav title="接单大厅" subtitle="附近订单与接单状态实时同步"></sun-nav>
+    </view>
+
+    <view class="glass-card dashboard-top {{hasActiveTrip ? 'is-busy' : (listening ? 'is-online' : 'is-offline')}}">
+      <view class="dashboard-top-head row-between">
+        <view class="dashboard-status-copy">
+          <view class="status-title">当前接单状态</view>
+          <view class="status-desc">{{listeningText}}</view>
+        </view>
+        <button
+          class="listen-button {{(!permission.canReceiveOrders || hasActiveTrip) ? 'disabled' : ''}} {{hasActiveTrip ? 'is-busy' : (listening ? 'is-online' : 'is-offline')}}"
+          hover-class="button-hover"
+          bindtap="toggleListening"
+          disabled="{{!permission.canReceiveOrders || hasActiveTrip}}"
+        >
+          {{hasActiveTrip ? '服务中' : (permission.canReceiveOrders ? listeningActionText : '未解锁')}}
+        </button>
+      </view>
+
+      <view class="metric-grid dashboard-metric-grid">
+        <view class="metric-item dashboard-metric-card">
+          <view class="metric-value">{{availableOrders.length}}</view>
+          <view class="metric-label">附近订单</view>
+        </view>
+        <view class="metric-item dashboard-metric-card">
+          <view class="metric-value">{{currentIncome}}</view>
+          <view class="metric-label">今日收入</view>
+        </view>
+        <view class="metric-item dashboard-metric-card">
+          <view class="metric-badge metric-badge-{{vehicleView.auditClassName}}">{{vehicleView.auditText}}</view>
+          <view class="metric-label">车辆审核</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="dashboard-bottom glass-card">
+    <view class="dashboard-bottom-head row-between">
+      <view class="dashboard-bottom-copy">
+        <view class="section-title board-title">接单大厅</view>
+        <view class="section-subtitle board-desc">这里会实时展示附近乘客订单，并在听单中自动刷新。</view>
+      </view>
+      <view class="status-chip {{vehicleView.auditClassName}}">{{vehicleView.auditText}}</view>
+    </view>
+
+    <view class="dashboard-bottom-body">
+      <scroll-view class="dashboard-scroll" scroll-y enable-flex="true">
+        <view class="dashboard-scroll-content">
+          <view wx:if="{{activeTripCard}}" class="current-trip-card tap-scale" bindtap="openCurrentTrip" hover-class="button-hover">
+            <view class="current-trip-card__head">
+              <view>
+                <view class="current-trip-card__eyebrow">当前进行中的行程</view>
+                <view class="current-trip-card__title">{{activeTripCard.title}}</view>
+              </view>
+              <view class="status-tag processing">{{activeTripCard.statusText}}</view>
+            </view>
+            <view class="current-trip-card__foot">
+              <view class="current-trip-card__price">{{activeTripCard.fareText}}</view>
+              <view class="current-trip-card__action">{{activeTripCard.actionText}}</view>
+            </view>
+          </view>
+
+          <view wx:if="{{permission.canReceiveOrders}}">
+            <view wx:if="{{hasActiveTrip}}" class="busy-board">
+              <view class="busy-board__title">当前正在服务中</view>
+              <view class="busy-board__desc">服务期间接单按钮会自动置灰，你也可以从上方卡片继续进入当前订单；订单完成后大厅会自动恢复到听单中并刷新附近订单。</view>
+            </view>
+
+            <view wx:elif="{{availableOrders.length > 0}}" class="list-gap order-list">
+              <view class="panel-card order-card {{item.isNew ? 'order-card-new' : ''}}" wx:for="{{availableOrders}}" wx:key="id">
+                <view class="order-card-head">
+                  <view class="row-between order-card-top">
+                    <view class="section-title order-title">{{item.startName}} → {{item.endName}}</view>
+                    <view class="status-tag {{item.serviceTypeClassName}}">{{item.serviceTypeLabel}}</view>
+                  </view>
+                </view>
+                <view class="order-card-meta">
+                  <view class="section-subtitle order-passenger">{{item.passengerName}} · {{item.distanceText}}</view>
+                  <view class="brand-text order-price">{{item.fareText}}</view>
+                </view>
+                <view wx:if="{{item.orderInfoText}}" class="section-subtitle order-passenger">{{item.orderInfoText}}</view>
+                <view class="order-seat-hint">{{item.seatHint}}</view>
+                <view class="order-actions">
+                  <button class="ghost-button order-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="rejectOrder">暂不接</button>
+                  <button class="primary-button order-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="acceptOrder">立即接单</button>
+                </view>
+              </view>
+            </view>
+
+            <view wx:else class="empty-board">
+              <image class="empty-board-image" src="/images/empty-state.svg" mode="aspectFit"></image>
+              <view class="empty-board-title">暂无附近订单</view>
+              <view class="empty-board-desc">保持“开始接单”状态后，新订单会自动刷新到这里，不需要手动下拉。</view>
+            </view>
+          </view>
+
+          <view wx:else class="lock-mask">
+            <view class="lock-mask-title">接单功能暂未解锁</view>
+            <view class="lock-mask-desc">{{permission.message}}</view>
+            <view class="lock-mask-tip">前往“我的车辆”提交或更新车辆信息后，审核通过即可恢复接单。</view>
+            <button class="primary-button order-button" hover-class="button-hover" bindtap="goVehiclePage">去提交车辆信息</button>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

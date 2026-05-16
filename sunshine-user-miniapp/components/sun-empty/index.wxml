@@ -1,0 +1,6 @@
+<view class="empty-box">
+  <image class="empty-image" src="/images/empty-state.svg" mode="aspectFit"></image>
+  <view class="empty-title">{{title}}</view>
+  <view class="empty-desc">{{description}}</view>
+  <button wx:if="{{buttonText}}" class="empty-button" hover-class="button-hover" bindtap="emitAction">{{buttonText}}</button>
+</view>

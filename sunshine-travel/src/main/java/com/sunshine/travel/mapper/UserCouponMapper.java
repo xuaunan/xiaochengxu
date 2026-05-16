@@ -1,0 +1,8 @@
+package com.sunshine.travel.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.sunshine.travel.entity.UserCoupon;
+
+public interface UserCouponMapper extends BaseMapper<UserCoupon> {
+}
+

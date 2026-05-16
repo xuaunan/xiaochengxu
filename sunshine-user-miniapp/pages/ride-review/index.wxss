@@ -1,0 +1,40 @@
+.review-card {
+  text-align: center;
+}
+
+.star-row {
+  display: flex;
+  justify-content: center;
+  gap: 18rpx;
+  margin-top: 32rpx;
+}
+
+.star {
+  font-size: 58rpx;
+  color: #d9dde8;
+}
+
+.star--active {
+  color: #ffb020;
+}
+
+.review-tags {
+  margin-top: 22rpx;
+}
+
+.review-textarea {
+  width: 100%;
+  min-height: 220rpx;
+  margin-top: 24rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background: #f7f8fc;
+}
+
+.review-switch {
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  color: #1f2432;
+}
+
+

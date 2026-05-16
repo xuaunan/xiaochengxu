@@ -1,0 +1,48 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sunshine-travel
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/sunshine_travel?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 2000ms
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+  sql:
+    init:
+      mode: never
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      encoding: UTF-8
+      continue-on-error: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+jwt:
+  secret: sunshine-travel-demo-secret-key-for-course-project-2026
+  expiration: 86400000
+
+app:
+  upload-dir: D:/xiaochengxu/sunshine-travel/uploads
+  map:
+    tencent-key: NHNBZ-F5FW3-Z4C3Q-R4WUM-ODTPE-DRFDV
+
+knife4j:
+  enable: true
+
+logging:
+  level:
+    com.sunshine.travel: info

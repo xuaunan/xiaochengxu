@@ -1,0 +1,68 @@
+<view class="trip-progress-page" wx:if="{{order}}">
+  <view wx:if="{{noticePopup.visible}}" class="mini-popup mini-popup--{{noticePopup.type}}">
+    <view class="mini-popup__title">{{noticePopup.title}}</view>
+    <view class="mini-popup__content">{{noticePopup.content}}</view>
+  </view>
+
+  <map
+    class="trip-progress-map"
+    longitude="{{order.includePoints[2] && order.includePoints[2].longitude || order.start.longitude}}"
+    latitude="{{order.includePoints[2] && order.includePoints[2].latitude || order.start.latitude}}"
+    scale="12"
+    markers="{{order.markers}}"
+    polyline="{{order.polyline}}"
+    include-points="{{order.includePoints}}"
+    enable-rotate
+    enable-overlooking
+  ></map>
+
+  <view class="trip-progress-overlay">
+    <sun-nav title="行程进行中" subtitle="车辆轨迹实时同步，返回后也能从首页继续进入" transparent backable></sun-nav>
+  </view>
+
+  <view class="trip-progress-glow"></view>
+
+  <view class="trip-progress-card glass-card">
+    <view class="trip-progress-badge-row">
+      <view class="trip-progress-pill">{{order.trackModeText}}</view>
+      <view class="trip-progress-pill trip-progress-pill--soft">{{order.serviceTypeLabel}}</view>
+    </view>
+
+    <view class="row-between trip-progress-head">
+      <view class="trip-progress-summary">
+        <view class="section-title trip-progress-route">{{order.start.name}} → {{order.end.name}}</view>
+        <view class="section-subtitle trip-progress-subtitle">{{order.etaText}} · {{order.trafficText}}</view>
+      </view>
+      <view class="status-tag processing trip-progress-status">{{order.statusText}}</view>
+    </view>
+
+    <view class="trip-progress-focus">
+      <view class="trip-progress-focus__label">当前预估车费</view>
+      <view class="trip-progress-focus__value">{{order.fareText}}</view>
+    </view>
+
+    <view class="metric-grid trip-progress-metrics">
+      <view class="metric-item trip-progress-metric">
+        <view class="metric-value">{{order.mileageText}}</view>
+        <view class="metric-label">当前里程</view>
+      </view>
+      <view class="metric-item trip-progress-metric">
+        <view class="metric-value">{{order.durationText}}</view>
+        <view class="metric-label">已用时长</view>
+      </view>
+      <view class="metric-item trip-progress-metric">
+        <view class="metric-value">{{order.progressText}}</view>
+        <view class="metric-label">路线进度</view>
+      </view>
+    </view>
+
+    <view class="trip-progress-tips">
+      <view class="trip-progress-tip">{{order.trafficText}}</view>
+      <view class="trip-progress-tip">{{order.speedText}}</view>
+    </view>
+
+    <button class="primary-button trip-progress-button" hover-class="button-hover" bindtap="openTripDetail">
+      {{order.actionText}}
+    </button>
+  </view>
+</view>

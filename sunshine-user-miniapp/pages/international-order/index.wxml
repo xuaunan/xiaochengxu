@@ -1,0 +1,68 @@
+<view class="page-shell safe-bottom" wx:if="{{option}}">
+  <view class="page-content intl-order list-gap">
+    <view class="intl-order-hero">
+      <view>
+        <view class="intl-kicker">International Booking</view>
+        <view class="intl-title">{{option.titleZh}}</view>
+        <view class="intl-subtitle">{{option.startName}} → {{option.endName}}</view>
+      </view>
+      <view class="intl-price-card">
+        <text>预计支付</text>
+        <view>{{estimate.amountText}}</view>
+        <text>{{estimate.rateText}}</text>
+      </view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">服务确认</view>
+      <view class="intl-summary-grid">
+        <view>
+          <text>里程</text>
+          <view>{{estimate.distanceText}}</view>
+        </view>
+        <view>
+          <text>时长</text>
+          <view>{{estimate.durationText}}</view>
+        </view>
+        <view>
+          <text>车型</text>
+          <view>{{option.vehicle}}</view>
+        </view>
+      </view>
+      <view class="intl-service-row">
+        <text wx:for="{{serviceItems}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="panel-card list-gap">
+      <view>
+        <view class="section-title">预约信息</view>
+        <view class="section-subtitle">这些信息会写入订单备注，乘客端、司机端、管理后台同步可见。</view>
+      </view>
+      <view class="form-grid">
+        <input class="search-input" data-key="date" value="{{form.date}}" bindinput="updateField" placeholder="预约日期 YYYY-MM-DD" />
+        <input class="search-input" data-key="time" value="{{form.time}}" bindinput="updateField" placeholder="预约时间 HH:mm" />
+      </view>
+      <view class="form-grid">
+        <input class="search-input" data-key="passengerCount" type="number" value="{{form.passengerCount}}" bindinput="updateField" placeholder="乘车人数" />
+        <input class="search-input" data-key="luggageCount" type="number" value="{{form.luggageCount}}" bindinput="updateField" placeholder="行李件数" />
+      </view>
+      <input class="search-input" data-key="contactName" value="{{form.contactName}}" bindinput="updateField" placeholder="联系人姓名" />
+      <input class="search-input" data-key="contactPhone" type="number" value="{{form.contactPhone}}" bindinput="updateField" placeholder="联系人电话" />
+      <input class="search-input" data-key="flightNo" value="{{form.flightNo}}" bindinput="updateField" placeholder="航班号/车次/会议编号（选填）" />
+      <input class="search-input" data-key="pickupSign" value="{{form.pickupSign}}" bindinput="updateField" placeholder="接机牌名称" />
+      <textarea class="intl-textarea" data-key="note" bindinput="updateField" placeholder="补充需求">{{form.note}}</textarea>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">出行材料</view>
+      <view class="section-subtitle">下单前请确认材料完整，平台只做本地演示校验与后台记录。</view>
+      <view class="document-list">
+        <view wx:for="{{documentItems}}" wx:key="*this">{{item}}</view>
+      </view>
+    </view>
+  </view>
+  <view class="floating-bar">
+    <button class="primary-button" hover-class="button-hover" bindtap="submitOrder">确认预约并同步后台</button>
+  </view>
+</view>

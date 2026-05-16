@@ -1,0 +1,11 @@
+<view class="sun-nav {{transparent ? 'sun-nav-transparent' : ''}}" style="padding-top: {{statusBarHeight}}px;">
+  <view class="sun-nav__inner" style="min-height: {{navHeight}}px;">
+    <view class="sun-nav__left" style="width: {{sideWidth}}px;" wx:if="{{backable}}" bindtap="handleBack">返回</view>
+    <view class="sun-nav__left sun-nav__left--ghost" style="width: {{sideWidth}}px;" wx:else></view>
+    <view class="sun-nav__center">
+      <view class="sun-nav__title">{{title}}</view>
+      <view class="sun-nav__subtitle" wx:if="{{subtitle}}">{{subtitle}}</view>
+    </view>
+    <view class="sun-nav__right" style="width: {{sideWidth}}px;"></view>
+  </view>
+</view>
