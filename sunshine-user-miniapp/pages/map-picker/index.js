@@ -10,6 +10,11 @@ const {
   saveHistoryAddress,
   toggleFavoriteAddress
 } = require('../../utils/address-book')
+const {
+  clearSilkyTransitionTimers,
+  markSilkyPageReady,
+  navigateBackSilky
+} = require('../../utils/page')
 
 function isValidCoordinate(latitude, longitude) {
   return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
@@ -95,9 +100,7 @@ Page({
       })
     }
 
-    this.enterTimer = setTimeout(() => {
-      this.setData({ pageReady: true })
-    }, 24)
+    markSilkyPageReady(this)
 
     await this.bootstrapPage()
   },
@@ -109,6 +112,7 @@ Page({
   onUnload() {
     clearTimeout(this.enterTimer)
     clearTimeout(this.leaveTimer)
+    clearSilkyTransitionTimers(this)
     clearTimeout(this.animateTimer)
     clearTimeout(this.favoriteTimer)
     clearTimeout(this.regionTimer)
@@ -192,11 +196,10 @@ Page({
   },
 
   navigateBackWithAnimation(delta) {
-    this.setData({ pageLeaving: true })
-    clearTimeout(this.leaveTimer)
-    this.leaveTimer = setTimeout(() => {
-      wx.navigateBack({ delta })
-    }, 160)
+    navigateBackSilky(this, {
+      delta,
+      duration: 160
+    })
   },
 
   handleBack() {
