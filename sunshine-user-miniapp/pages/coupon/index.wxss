@@ -1,5 +1,18 @@
 .coupon-hero {
   padding: 24rpx;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.2), transparent 34%),
+    linear-gradient(135deg, #ff7a00 0%, #ff9a31 62%, #ffbd63 100%);
+}
+
+.coupon-hero .section-title,
+.coupon-hero .section-subtitle {
+  color: #ffffff;
+}
+
+.coupon-hero .section-subtitle {
+  color: rgba(255, 255, 255, 0.84);
 }
 
 .coupon-tabs {
@@ -12,6 +25,18 @@
   justify-content: center;
   padding: 12rpx 22rpx;
   font-size: 22rpx;
+}
+
+.coupon-hero .chip {
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.coupon-hero .chip-active {
+  color: #ff7a00;
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 .coupon-section {
@@ -59,6 +84,8 @@
   font-size: 22rpx;
   font-weight: 700;
   line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 8rpx 18rpx rgba(255, 122, 0, 0.1);
 }
 
 .coupon-empty {
@@ -68,6 +95,9 @@
 .coupon-center {
   margin-top: 20rpx;
   padding: 24rpx;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 177, 74, 0.12), transparent 34%),
+    #ffffff;
 }
 
 .coupon-center__head {

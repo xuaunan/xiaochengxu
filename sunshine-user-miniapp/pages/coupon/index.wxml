@@ -1,5 +1,5 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content">
+  <view class="page-content page-enter">
     <view class="hero-card coupon-hero">
       <view class="section-title">优惠券中心</view>
       <view class="section-subtitle">自动匹配打车、顺风车、国际出行可用优惠券，领取后实时同步到券包。</view>

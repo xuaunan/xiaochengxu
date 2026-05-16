@@ -1,5 +1,5 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content list-gap">
+  <view class="page-content list-gap page-enter">
     <view class="hero-card profile-hero">
       <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
       <view class="profile-name">{{profile.name}}</view>

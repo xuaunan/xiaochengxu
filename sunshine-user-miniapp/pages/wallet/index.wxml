@@ -1,13 +1,13 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content list-gap">
-    <view class="hero-card">
+  <view class="page-content list-gap page-enter">
+    <view class="hero-card wallet-hero">
       <view class="section-title">钱包余额</view>
-      <view class="payable">¥{{wallet.balance}}</view>
+      <view class="wallet-balance">¥{{wallet.balance}}</view>
       <view class="section-subtitle">优惠累计 {{wallet.couponBalance}} 元 · 可开发票 {{wallet.invoices}} 张</view>
     </view>
-    <view class="row-between">
-      <button class="ghost-button" hover-class="button-hover" bindtap="recharge">充值</button>
-      <button class="ghost-button" hover-class="button-hover" bindtap="withdraw">提现说明</button>
+    <view class="wallet-actions">
+      <button class="ghost-button wallet-action" hover-class="button-hover" bindtap="recharge">充值</button>
+      <button class="ghost-button wallet-action" hover-class="button-hover" bindtap="withdraw">提现说明</button>
     </view>
   </view>
 </view>
