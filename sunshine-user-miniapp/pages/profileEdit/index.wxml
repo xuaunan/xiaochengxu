@@ -35,6 +35,6 @@
       </view>
     </view>
 
-    <button class="primary-action" disabled="{{saving}}" bindtap="submitForm">{{copy.save}}</button>
+    <button class="primary-action" hover-class="button-hover" disabled="{{saving}}" bindtap="submitForm">{{copy.save}}</button>
   </view>
 </view>

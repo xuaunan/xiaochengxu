@@ -1,29 +1,35 @@
-<view class="page-shell safe-bottom">
-  <view class="page-content list-gap page-enter">
-    <view class="hero-card settings-hero">
-      <view class="section-title">出行偏好</view>
-      <view class="section-subtitle">消息、优惠和显示偏好会保存在本地，并在下次进入小程序时继续生效。</view>
-    </view>
-    <view class="panel-card setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting">
+<view class="page-shell settings-shell safe-bottom">
+  <view class="page-content settings-page page-enter">
+    <view class="panel-card settings-hero">
       <view>
-        <view class="section-title">消息推送</view>
-        <view class="section-subtitle">订单、优惠券与公告提醒</view>
+        <view class="settings-kicker">系统设置</view>
+        <view class="section-title settings-title">出行偏好</view>
       </view>
-      <switch color="#ff7a00" checked="{{settings.pushEnabled}}"></switch>
+      <view class="section-subtitle settings-desc">消息、优惠和显示偏好会保存在本地，并在下次进入小程序时继续生效。</view>
     </view>
-    <view class="panel-card setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting">
-      <view>
-        <view class="section-title">自动匹配优惠券</view>
-        <view class="section-subtitle">下单时优先推荐最优券</view>
+
+    <view class="panel-card setting-list">
+      <view class="setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting">
+        <view class="setting-copy">
+          <view class="setting-title">消息推送</view>
+          <view class="setting-subtitle">订单、优惠券与公告提醒</view>
+        </view>
+        <switch color="#ff7a00" checked="{{settings.pushEnabled}}"></switch>
       </view>
-      <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}"></switch>
-    </view>
-    <view class="panel-card setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting">
-      <view>
-        <view class="section-title">暗黑模式基础兼容</view>
-        <view class="section-subtitle">当前仅演示颜色切换逻辑</view>
+      <view class="setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting">
+        <view class="setting-copy">
+          <view class="setting-title">自动匹配优惠券</view>
+          <view class="setting-subtitle">下单时优先推荐最优券</view>
+        </view>
+        <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}"></switch>
       </view>
-      <switch color="#ff7a00" checked="{{settings.darkMode}}"></switch>
+      <view class="setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting">
+        <view class="setting-copy">
+          <view class="setting-title">暗黑模式基础兼容</view>
+          <view class="setting-subtitle">当前仅演示颜色切换逻辑</view>
+        </view>
+        <switch color="#ff7a00" checked="{{settings.darkMode}}"></switch>
+      </view>
     </view>
   </view>
 </view>
