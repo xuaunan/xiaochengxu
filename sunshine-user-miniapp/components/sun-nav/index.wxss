@@ -3,7 +3,9 @@
   z-index: 20;
   padding-left: 24rpx;
   padding-right: 24rpx;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18rpx);
+  box-shadow: 0 8rpx 24rpx rgba(24, 34, 56, 0.04);
 }
 
 .sun-nav-transparent {
@@ -31,7 +33,7 @@
 
 .sun-nav__title {
   font-size: 34rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: #1f2432;
   line-height: 1.2;
 }

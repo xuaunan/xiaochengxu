@@ -1,6 +1,10 @@
 .empty-box {
-  padding: 56rpx 40rpx;
+  padding: 58rpx 42rpx;
   text-align: center;
+  border-radius: 32rpx;
+  background:
+    radial-gradient(circle at 50% 0, rgba(255, 177, 74, 0.16), transparent 38%),
+    rgba(255, 255, 255, 0.72);
 }
 
 .empty-image {
@@ -10,8 +14,8 @@
 
 .empty-title {
   margin-top: 20rpx;
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 31rpx;
+  font-weight: 800;
   color: #1f2432;
 }
 
@@ -24,10 +28,15 @@
 
 .empty-button {
   margin-top: 24rpx;
+  padding: 0 34rpx;
+  height: 76rpx;
+  line-height: 76rpx;
   color: #ff7a00;
   background: #fff1df;
   border-radius: 999rpx;
   font-size: 26rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 24rpx rgba(255, 122, 0, 0.12);
 }
 
 .empty-button::after {
