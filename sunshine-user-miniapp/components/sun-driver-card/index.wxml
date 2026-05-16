@@ -1,0 +1,16 @@
+<view class="driver-card">
+  <image class="driver-avatar" src="{{driver.avatar}}" mode="aspectFill"></image>
+  <view class="driver-body">
+    <view class="driver-line">
+      <text class="driver-name">{{driver.name}}</text>
+      <text class="driver-rate">{{driver.rating}} 分</text>
+    </view>
+    <view class="driver-meta">{{driver.carModel}} · {{driver.carColor}}</view>
+    <view class="driver-tags">
+      <text class="driver-tag">{{driver.plateNo}}</text>
+      <text class="driver-tag">{{driver.completedTrips}} 单</text>
+    </view>
+    <view class="driver-eta" wx:if="{{etaText}}">{{etaText}}</view>
+  </view>
+  <button class="driver-button" hover-class="button-hover" bindtap="handleAction">{{actionText}}</button>
+</view>

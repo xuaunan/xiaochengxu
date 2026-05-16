@@ -1,0 +1,136 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap" wx:if="{{order}}">
+    <view class="hero-card">
+      <view class="row-between">
+        <view>
+          <view class="section-title">{{summaryTitle}}</view>
+          <view class="section-subtitle">{{order.startDisplay}} -> {{order.endDisplay}}</view>
+        </view>
+        <view class="status-tag {{statusTagClass}}">{{statusTagText}}</view>
+      </view>
+      <view class="payable">{{estimateView.payableText}}</view>
+      <view class="original-payable" wx:if="{{showDiscountPrice}}">原价 {{order.originalAmountText}} · {{couponHint}}</view>
+      <view class="payable-desc">{{summaryDesc}}</view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">费用明细</view>
+      <view class="fee-row"><text>起步费</text><text>{{estimateView.startFeeText}}</text></view>
+      <view class="fee-row"><text>里程费</text><text>{{estimateView.distanceFeeText}}</text></view>
+      <view class="fee-row"><text>时长费</text><text>{{estimateView.durationFeeText}}</text></view>
+      <view class="fee-row"><text>远途费</text><text>{{estimateView.longDistanceFeeText}}</text></view>
+      <view class="fee-row"><text>夜间附加费</text><text>{{estimateView.nightFeeText}}</text></view>
+      <view class="fee-row brand-text"><text>优惠抵扣</text><text>-{{estimateView.couponDiscountText}}</text></view>
+    </view>
+
+    <view class="coupon-entry {{couponActionDisabled ? 'coupon-entry--disabled' : 'tap-scale'}}" bindtap="openCouponPicker" hover-class="pressable-hover" hover-stay-time="60">
+      <view class="coupon-entry__main">
+        <view class="coupon-entry__icon">券</view>
+        <view>
+          <view class="coupon-entry__label">优惠券</view>
+          <view class="coupon-entry__desc">支付前可选择最优抵扣</view>
+        </view>
+      </view>
+      <view class="coupon-entry__summary {{couponActionDisabled ? '' : 'coupon-entry__summary--active'}}">{{couponSummaryText}}</view>
+      <view class="coupon-entry__action {{couponActionDisabled ? 'coupon-entry__action--disabled' : ''}}">去选择 ></view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">支付说明</view>
+      <view class="section-subtitle">{{couponHint}}</view>
+      <view class="tips">
+        <view class="tip-item">支付确认页默认选中微信支付，也支持余额支付演示。</view>
+        <view class="tip-item" wx:if="{{canPay}}">未支付订单会保留为待支付状态，支付完成前不能再次打车。</view>
+        <view class="tip-item" wx:else>如果订单状态已经变化，页面会在重新进入时自动刷新最新结果。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="floating-bar settlement-bar" wx:if="{{order}}">
+    <view class="settlement-actions">
+      <button class="ghost-button settlement-secondary" hover-class="button-hover" bindtap="goToDetail">查看订单</button>
+      <button class="primary-button settlement-primary" hover-class="button-hover" bindtap="goPrimaryAction">{{primaryButtonText}}</button>
+    </view>
+  </view>
+
+  <view wx:if="{{couponModalVisible}}">
+    <view class="mask-panel coupon-picker-mask" bindtap="closeCouponPicker"></view>
+    <view class="coupon-picker slide-in">
+      <view class="coupon-picker__header">
+        <view class="coupon-picker__title">选择优惠券</view>
+        <view class="coupon-picker__close tap-scale" bindtap="closeCouponPicker">×</view>
+      </view>
+
+      <view class="coupon-tabs">
+        <view
+          class="coupon-tab {{activeCouponTab === 'available' ? 'coupon-tab--active' : ''}}"
+          data-tab="available"
+          bindtap="switchCouponTab"
+        >
+          可用优惠券
+        </view>
+        <view
+          class="coupon-tab {{activeCouponTab === 'unavailable' ? 'coupon-tab--active' : ''}}"
+          data-tab="unavailable"
+          bindtap="switchCouponTab"
+        >
+          不可用优惠券
+        </view>
+      </view>
+
+      <scroll-view class="coupon-picker__content" scroll-y enhanced show-scrollbar="{{false}}">
+        <view class="coupon-list" wx:if="{{activeCouponTab === 'available' && availableCoupons.length}}">
+          <view
+            class="coupon-card tap-scale {{selectedCouponId === item.userCouponIdText ? 'coupon-card--selected' : ''}}"
+            wx:for="{{availableCoupons}}"
+            wx:key="userCouponIdText"
+            data-id="{{item.userCouponIdText}}"
+            bindtap="chooseCoupon"
+            hover-class="pressable-hover"
+            hover-stay-time="60"
+          >
+            <view class="coupon-card__value">
+              <view class="coupon-card__amount">{{item.discountAmountText}}</view>
+              <view class="coupon-card__caption">本单最高可减</view>
+            </view>
+            <view class="coupon-card__body">
+              <view class="coupon-card__name">{{item.name}}</view>
+              <view class="coupon-card__rule">{{item.ruleText}}</view>
+              <view class="coupon-card__valid">{{item.validText}}</view>
+            </view>
+            <view class="coupon-card__radio">
+              <view class="coupon-card__radio-inner" wx:if="{{selectedCouponId === item.userCouponIdText}}"></view>
+            </view>
+          </view>
+        </view>
+
+        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'available'}}">
+          当前订单暂无可用优惠券
+        </view>
+
+        <view class="coupon-list" wx:if="{{activeCouponTab === 'unavailable' && unavailableCoupons.length}}">
+          <view class="coupon-card coupon-card--disabled" wx:for="{{unavailableCoupons}}" wx:key="userCouponIdText">
+            <view class="coupon-card__value coupon-card__value--disabled">
+              <view class="coupon-card__amount">{{item.discountAmountText}}</view>
+              <view class="coupon-card__caption">暂不可抵扣</view>
+            </view>
+            <view class="coupon-card__body">
+              <view class="coupon-card__name">{{item.name}}</view>
+              <view class="coupon-card__rule">{{item.ruleText}}</view>
+              <view class="coupon-card__valid">{{item.validText}}</view>
+            </view>
+            <view class="coupon-card__reason">{{item.unavailableReason}}</view>
+          </view>
+        </view>
+
+        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'unavailable'}}">
+          暂无不可用优惠券
+        </view>
+      </scroll-view>
+
+      <view class="coupon-picker__footer">
+        <button class="ghost-button coupon-picker__clear" hover-class="button-hover" bindtap="clearCouponSelection">不使用优惠券</button>
+      </view>
+    </view>
+  </view>
+</view>

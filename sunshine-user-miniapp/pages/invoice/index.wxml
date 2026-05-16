@@ -1,0 +1,14 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="panel-card" wx:for="{{list}}" wx:key="id">
+      <view class="row-between">
+        <view>
+          <view class="section-title">{{item.title}}</view>
+          <view class="section-subtitle">{{item.createdAt}}</view>
+        </view>
+        <view class="brand-text">{{item.amountText}}</view>
+      </view>
+      <button class="ghost-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="applyInvoice" style="margin-top: 18rpx;">{{item.status}}</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,8 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="panel-card" wx:for="{{list}}" wx:key="id">
+      <view class="section-title">{{item.title}}</view>
+      <view class="section-subtitle">{{item.content}}</view>
+    </view>
+  </view>
+</view>

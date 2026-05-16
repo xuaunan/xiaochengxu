@@ -1,0 +1,10 @@
+<view class="nav" style="padding-top: {{statusBarHeight}}px;">
+  <view class="nav__inner">
+    <view class="nav__left" wx:if="{{backable}}" bindtap="back">返回</view>
+    <view class="nav__center">
+      <view class="nav__title">{{title}}</view>
+      <view class="nav__subtitle" wx:if="{{subtitle}}">{{subtitle}}</view>
+    </view>
+    <view class="nav__right"></view>
+  </view>
+</view>

@@ -1,0 +1,31 @@
+<view class="page-shell safe-bottom" wx:if="{{trip}}">
+  <view class="page-content list-gap">
+    <view class="hero-card">
+      <view class="section-title">{{trip.routeText}}</view>
+      <view class="section-subtitle">{{trip.departTimeText}} · {{trip.priceText}} / 人</view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">同行人数</view>
+      <view class="section-subtitle">请确认本次搭乘总人数，包含你自己。</view>
+
+      <view class="counter-row">
+        <button class="ghost-button counter-button" hover-class="button-hover" bindtap="decreaseCompanions">-</button>
+        <view class="counter-value">{{companions}}</view>
+        <button class="ghost-button counter-button" hover-class="button-hover" bindtap="increaseCompanions">+</button>
+      </view>
+
+      <view class="apply-summary">预估分摊：{{trip.priceText}} × {{companions}} = {{totalPriceText}}</view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">备注说明</view>
+      <view class="section-subtitle">可补充行李件数、是否携带儿童等信息，方便车主更快确认。</view>
+      <textarea class="apply-textarea" placeholder="例如：1 个 20 寸行李箱，准点到上车点" maxlength="80" bindinput="updateNote"></textarea>
+    </view>
+  </view>
+
+  <view class="floating-bar">
+    <button class="primary-button" hover-class="button-hover" bindtap="submitApply">提交搭乘申请</button>
+  </view>
+</view>

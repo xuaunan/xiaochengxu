@@ -1,0 +1,80 @@
+.arrival-bottom {
+  position: absolute;
+  left: 20rpx;
+  right: 20rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 16rpx);
+  z-index: 10;
+  padding: 16rpx;
+  border-radius: 28rpx;
+}
+
+.arrival-metrics {
+  margin-top: 12rpx;
+  gap: 10rpx;
+}
+
+.arrival-metrics .metric-item {
+  min-width: 0;
+  padding: 12rpx 10rpx;
+  border-radius: 18rpx;
+}
+
+.arrival-metrics .metric-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 26rpx;
+}
+
+.arrival-metrics .metric-label {
+  margin-top: 4rpx;
+  font-size: 19rpx;
+}
+
+.arrival-chip-row {
+  margin-top: 10rpx;
+  gap: 8rpx;
+  flex-wrap: nowrap;
+}
+
+.arrival-chip-row .chip {
+  min-width: 0;
+  padding: 8rpx 14rpx;
+  font-size: 21rpx;
+  line-height: 1.25;
+}
+
+.arrival-chip-row .chip:first-child {
+  flex-shrink: 0;
+}
+
+.arrival-chip-row .chip:last-child {
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.arrival-actions {
+  display: grid;
+  grid-template-columns: 0.86fr 1.24fr;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.arrival-button,
+.arrival-cancel {
+  width: 100%;
+  margin: 0;
+  padding: 20rpx 12rpx;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+}
+
+.arrival-button[disabled],
+.arrival-cancel[disabled] {
+  opacity: 0.72;
+}
+
+

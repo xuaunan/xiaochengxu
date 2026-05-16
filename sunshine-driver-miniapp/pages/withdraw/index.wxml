@@ -1,0 +1,14 @@
+<view class="page-shell">
+  <view class="page-content list-gap">
+    <view class="hero-card">
+      <view class="section-title">提现申请</view>
+      <view class="section-subtitle">提交后预计 1 个工作日内完成审核，请留意站内消息通知。</view>
+      <input class="driver-input" data-key="amount" type="digit" value="{{form.amount}}" bindinput="updateField" placeholder="请输入提现金额" />
+      <input class="driver-input" data-key="bankAccount" value="{{form.bankAccount}}" bindinput="updateField" placeholder="请输入银行卡号" />
+      <input class="driver-input" data-key="bankName" value="{{form.bankName}}" bindinput="updateField" placeholder="请输入开户行" />
+    </view>
+  </view>
+  <view class="floating-bar">
+    <button class="primary-button" hover-class="button-hover" bindtap="submit">确认提现</button>
+  </view>
+</view>

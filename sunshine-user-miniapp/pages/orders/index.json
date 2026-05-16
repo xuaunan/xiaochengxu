@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "行程",
+  "usingComponents": {
+    "sun-empty": "/components/sun-empty/index"
+  }
+}

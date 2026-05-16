@@ -1,0 +1,54 @@
+<view class="page-shell safe-bottom">
+  <view class="profile-edit-page">
+    <view class="edit-hero">
+      <view>
+        <view class="edit-kicker">{{copy.account}}</view>
+        <view class="edit-title">{{copy.title}}</view>
+        <view class="edit-subtitle">{{phoneText}}</view>
+      </view>
+      <image class="driver-avatar" src="/images/avatar-driver-main.svg" mode="aspectFill"></image>
+    </view>
+
+    <view class="form-section">
+      <view class="section-title">{{copy.archive}}</view>
+      <view class="form-item">
+        <view class="form-label">{{copy.nickname}}</view>
+        <input class="form-input" maxlength="20" data-key="nickname" value="{{form.nickname}}" bindinput="updateField" placeholder="{{copy.nicknamePlaceholder}}"></input>
+      </view>
+      <view class="form-item">
+        <view class="form-label">{{copy.cityCode}}</view>
+        <input class="form-input" data-key="cityCode" value="{{form.cityCode}}" bindinput="updateField" placeholder="310100"></input>
+      </view>
+      <view class="form-item">
+        <view class="form-label">{{copy.licenseNo}}</view>
+        <input class="form-input" data-key="licenseNo" value="{{form.licenseNo}}" bindinput="updateField" placeholder="{{copy.licensePlaceholder}}"></input>
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="section-title">{{copy.contact}}</view>
+      <view class="form-item">
+        <view class="form-label">{{copy.emergencyContact}}</view>
+        <input class="form-input" maxlength="20" data-key="emergencyContact" value="{{form.emergencyContact}}" bindinput="updateField" placeholder="{{copy.optional}}"></input>
+      </view>
+      <view class="form-item">
+        <view class="form-label">{{copy.emergencyPhone}}</view>
+        <input class="form-input" type="number" maxlength="16" data-key="emergencyPhone" value="{{form.emergencyPhone}}" bindinput="updateField" placeholder="8-16位纯数字"></input>
+      </view>
+    </view>
+
+    <view class="form-section readonly-card">
+      <view class="section-title">{{copy.readonly}}</view>
+      <view class="readonly-row">
+        <text>{{copy.vehicle}}</text>
+        <text>{{vehicleText}}</text>
+      </view>
+      <view class="readonly-row">
+        <text>{{copy.model}}</text>
+        <text>{{modelText}}</text>
+      </view>
+    </view>
+
+    <button class="primary-action" disabled="{{saving}}" bindtap="submitForm">{{copy.save}}</button>
+  </view>
+</view>

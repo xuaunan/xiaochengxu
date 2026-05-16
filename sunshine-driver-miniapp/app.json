@@ -1,0 +1,64 @@
+{
+  "pages": [
+    "pages/onboarding/index",
+    "pages/dashboard/index",
+    "pages/orders/index",
+    "pages/wallet/index",
+    "pages/profile/index",
+    "pages/profile-edit/index",
+    "pages/trip-progress/index",
+    "pages/trip-detail/index",
+    "pages/withdraw/index",
+    "pages/messages/index",
+    "pages/settings/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "阳光出行司机端",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f8fc",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#7a8396",
+    "selectedColor": "#ff7a00",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/dashboard/index",
+        "text": "听单",
+        "iconPath": "images/tabbar/tab-listen.png",
+        "selectedIconPath": "images/tabbar/tab-listen-active.png"
+      },
+      {
+        "pagePath": "pages/orders/index",
+        "text": "行程",
+        "iconPath": "images/tabbar/tab-orders.png",
+        "selectedIconPath": "images/tabbar/tab-orders-active.png"
+      },
+      {
+        "pagePath": "pages/wallet/index",
+        "text": "收益",
+        "iconPath": "images/tabbar/tab-wallet.png",
+        "selectedIconPath": "images/tabbar/tab-wallet-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "images/tabbar/tab-profile.png",
+        "selectedIconPath": "images/tabbar/tab-profile-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于展示司机当前位置、附近订单和模拟接驾路线"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

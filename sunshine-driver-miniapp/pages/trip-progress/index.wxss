@@ -1,0 +1,180 @@
+.trip-progress-page {
+  min-height: 100vh;
+}
+
+.trip-progress-map {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+}
+
+.mini-popup {
+  position: fixed;
+  top: 150rpx;
+  left: 50%;
+  z-index: 40;
+  width: 520rpx;
+  max-width: calc(100vw - 72rpx);
+  transform: translateX(-50%);
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: rgba(31, 36, 50, 0.9);
+  color: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(31, 36, 50, 0.18);
+}
+
+.mini-popup--voice {
+  background: rgba(255, 122, 0, 0.94);
+}
+
+.mini-popup__title {
+  font-size: 22rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.mini-popup__content {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.trip-progress-overlay {
+  position: relative;
+  z-index: 10;
+}
+
+.trip-progress-glow {
+  position: fixed;
+  left: 30rpx;
+  right: 30rpx;
+  bottom: 270rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 122, 0, 0.14) 0%, rgba(255, 122, 0, 0) 72%);
+  pointer-events: none;
+  z-index: 9;
+}
+
+.trip-progress-card {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 18rpx);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 26rpx;
+  border-radius: 34rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 241, 0.96));
+  box-shadow: 0 18rpx 44rpx rgba(31, 36, 50, 0.12);
+}
+
+.trip-progress-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.trip-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #ff7a00;
+  background: rgba(255, 122, 0, 0.12);
+}
+
+.trip-progress-pill--soft {
+  color: #7b879a;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.trip-progress-head {
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.trip-progress-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-progress-route {
+  line-height: 1.35;
+}
+
+.trip-progress-subtitle {
+  margin-top: 12rpx;
+}
+
+.trip-progress-status {
+  flex-shrink: 0;
+  margin-top: 6rpx;
+}
+
+.trip-progress-focus {
+  padding: 22rpx 24rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.1), rgba(255, 173, 72, 0.06));
+  border: 1rpx solid rgba(255, 122, 0, 0.1);
+}
+
+.trip-progress-focus__label {
+  font-size: 22rpx;
+  color: #8c95a8;
+}
+
+.trip-progress-focus__value {
+  margin-top: 10rpx;
+  font-size: 44rpx;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #ff7a00;
+}
+
+.trip-progress-metrics {
+  margin-top: 0;
+}
+
+.trip-progress-metric {
+  padding: 24rpx 18rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 243, 232, 0.9));
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.8);
+}
+
+.trip-progress-tips {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.trip-progress-tip {
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #6f7b90;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1rpx solid rgba(31, 36, 50, 0.06);
+}
+
+.trip-progress-button {
+  width: 100%;
+  min-height: 92rpx;
+  border-radius: 24rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+

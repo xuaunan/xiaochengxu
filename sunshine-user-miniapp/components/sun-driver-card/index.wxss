@@ -1,0 +1,102 @@
+.driver-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 14rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(180deg, #ffffff, #fff8ef);
+  box-shadow: 0 12rpx 28rpx rgba(31, 36, 50, 0.06);
+}
+
+.driver-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+
+.driver-body {
+  flex: 1;
+  min-width: 0;
+  padding-right: 118rpx;
+}
+
+.driver-line {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.driver-name {
+  min-width: 0;
+  max-width: 260rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 27rpx;
+  font-weight: 700;
+  color: #1f2432;
+}
+
+.driver-rate {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #ff7a00;
+}
+
+.driver-meta,
+.driver-eta {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  line-height: 1.3;
+  color: #7a8396;
+}
+
+.driver-meta,
+.driver-eta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 6rpx;
+}
+
+.driver-tag {
+  max-width: 160rpx;
+  padding: 5rpx 10rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 122, 0, 0.1);
+  color: #7a8396;
+  font-size: 21rpx;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-button {
+  position: absolute;
+  top: 14rpx;
+  right: 14rpx;
+  min-width: 108rpx;
+  height: 44rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  font-size: 21rpx;
+  font-weight: 700;
+  line-height: 44rpx;
+  color: #ff7a00;
+  background: #fff1df;
+}
+
+.driver-button::after {
+  border: none;
+}

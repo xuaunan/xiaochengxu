@@ -1,0 +1,75 @@
+<view class="page-shell safe-bottom fade-in">
+  <view class="page-content payment-page {{loading ? '' : 'payment-page-ready'}}" wx:if="{{order}}">
+    <view class="hero-card amount-card">
+      <view class="amount-label">订单总金额</view>
+      <view class="amount-value">{{order.amountText}}</view>
+      <view class="section-subtitle amount-subtitle">
+        {{order.payStatus === 'PAID' ? '当前订单已完成支付，可直接返回订单详情。' : '支付成功后会实时写入后端和数据库。'}}
+      </view>
+      <view class="route-summary">
+        <view class="route-text">{{order.startDisplay}} -> {{order.endDisplay}}</view>
+        <view class="route-order">订单号：{{order.orderNo}}</view>
+      </view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">支付方式</view>
+      <view class="section-subtitle">默认选中微信支付，可切换为余额支付。</view>
+      <view class="method-list">
+        <view
+          class="method-item {{selectedMethod === item.key ? 'method-item-active' : ''}}"
+          wx:for="{{paymentMethods}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          bindtap="selectMethod"
+        >
+          <view class="method-main">
+            <view class="method-name">{{item.name}}</view>
+            <view class="method-desc">{{item.desc}}</view>
+          </view>
+          <view class="method-check">
+            <view class="method-check__inner" wx:if="{{selectedMethod === item.key}}"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel-card tip-card">
+      <view class="section-title">演示说明</view>
+      <view class="tip-list">
+        <view class="tip-item">点击“确认支付”后会先展示 1 秒支付处理中动画。</view>
+        <view class="tip-item">支付成功后会优先等待后端状态回写，再自动返回订单详情。</view>
+        <view class="tip-item">如果后端没有确认成功，订单会继续保持待支付状态。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="page-content" wx:elif="{{loading}}">
+    <view class="hero-card skeleton skeleton-card"></view>
+    <view class="panel-card skeleton skeleton-panel"></view>
+  </view>
+
+  <view class="payment-footer" wx:if="{{order}}">
+    <button class="ghost-button footer-cancel" hover-class="button-hover" bindtap="cancelPay">
+      {{order.payStatus === 'PAID' ? '查看订单' : '暂不支付'}}
+    </button>
+    <button
+      class="primary-button footer-confirm"
+      hover-class="button-hover"
+      bindtap="confirmPay"
+      loading="{{processing}}"
+      disabled="{{processing || order.payStatus === 'PAID'}}"
+    >
+      {{confirmText}}
+    </button>
+  </view>
+
+  <view wx:if="{{showSuccessPopup}}">
+    <view class="mask-panel"></view>
+    <view class="success-popup fade-in">
+      <view class="success-icon">✓</view>
+      <view class="success-title">支付成功</view>
+      <view class="success-desc">{{successHint}}</view>
+    </view>
+  </view>
+</view>

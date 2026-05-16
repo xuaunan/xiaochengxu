@@ -1,0 +1,33 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="hero-card profile-hero">
+      <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+      <view class="profile-name">{{profile.name}}</view>
+      <view class="profile-subtitle">{{profile.memberLevel}} · {{verifiedText}}</view>
+      <view class="metric-grid profile-metrics">
+        <view class="metric-item tap-scale" bindtap="openOrders">
+          <view class="metric-value">{{wallet.balance}}</view>
+          <view class="metric-label">钱包余额</view>
+        </view>
+        <view class="metric-item tap-scale" bindtap="openOrders">
+          <view class="metric-value">{{wallet.invoices}}</view>
+          <view class="metric-label">可开发票</view>
+        </view>
+        <view class="metric-item tap-scale" bindtap="openCoupons">
+          <view class="metric-value">{{wallet.couponBalance}}</view>
+          <view class="metric-label">优惠总额</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-gap">
+      <view class="panel-card menu-card tap-scale" wx:for="{{menus}}" wx:key="title" data-url="{{item.url}}" bindtap="openMenu">
+        <view class="menu-title">{{item.title}}</view>
+        <view class="menu-desc">{{item.desc}}</view>
+      </view>
+      <view class="panel-card menu-card menu-card--logout tap-scale" bindtap="handleLogout">
+        <view class="menu-title menu-title--logout">{{logoutText}}</view>
+      </view>
+    </view>
+  </view>
+</view>

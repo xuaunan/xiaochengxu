@@ -1,0 +1,22 @@
+.empty {
+  text-align: center;
+  padding: 50rpx 40rpx;
+}
+
+.empty__image {
+  width: 220rpx;
+  height: 160rpx;
+}
+
+.empty__title {
+  margin-top: 18rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.empty__desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #7a8396;
+}

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "评价管理",
+  "usingComponents": {
+    "sun-empty": "/components/sun-empty/index"
+  }
+}

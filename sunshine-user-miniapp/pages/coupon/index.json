@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "优惠券中心",
+  "usingComponents": {
+    "sun-coupon-card": "/components/sun-coupon-card/index",
+    "sun-empty": "/components/sun-empty/index"
+  }
+}

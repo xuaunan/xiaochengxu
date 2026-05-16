@@ -1,0 +1,239 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap {{showPayBar ? 'has-pay-bar' : ''}}" wx:if="{{detail}}">
+    <view class="hero-card order-hero fade-in">
+      <view class="row-between hero-head">
+        <view class="hero-copy">
+          <view class="section-title hero-route">{{detail.serviceTypeText}}订单</view>
+          <view class="section-subtitle">订单号：{{detail.orderNo}}</view>
+        </view>
+        <view class="status-tag hero-status {{showPayBar ? 'waiting' : detail.uiStatus.tagType}} {{showPayBar ? 'hero-status-accent' : ''}}">
+          {{detail.uiStatus.label}}
+        </view>
+      </view>
+
+      <view class="amount-caption">{{detail.amountCaption}}</view>
+      <view class="detail-amount-row">
+        <text class="detail-amount {{detail.showDiscountPrice ? 'detail-amount--original' : ''}}">{{detail.originalAmountText}}</text>
+        <text class="detail-amount detail-amount--payable" wx:if="{{detail.showDiscountPrice}}">{{displayedPayableAmountText}}</text>
+      </view>
+      <view class="amount-discount-tip" wx:if="{{detail.showDiscountPrice}}">已优惠 {{detail.couponDiscountText}}</view>
+
+      <view class="address-card">
+        <view class="address-row">
+          <view class="address-badge start">起</view>
+          <view class="address-text">{{detail.startDisplay}}</view>
+        </view>
+        <view class="address-row">
+          <view class="address-badge end">终</view>
+          <view class="address-text">{{detail.endDisplay}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel-card timeline-panel">
+      <view class="timeline-panel-head">
+        <view class="section-title">状态轨迹</view>
+        <view class="timeline-toggle tap-scale" bindtap="toggleTimeline" hover-class="pressable-hover" hover-stay-time="60">
+          {{timelineExpanded ? '收起' : '展开'}}
+        </view>
+      </view>
+
+      <view class="timeline-summary timeline-{{timelineSummary.state}}" wx:if="{{!timelineExpanded && timelineSummary}}">
+        <view class="timeline-summary-main">
+          <view class="timeline-head">
+            <view class="timeline-title">{{timelineSummary.title}}</view>
+            <view class="timeline-time">{{timelineSummary.time}}</view>
+          </view>
+          <view class="timeline-desc">{{timelineSummary.description}}</view>
+        </view>
+      </view>
+
+      <view class="timeline-list" wx:if="{{timelineExpanded}}">
+        <view class="timeline-item timeline-{{item.state}}" wx:for="{{timelineSteps}}" wx:key="key">
+          <view class="timeline-tail" wx:if="{{index !== timelineSteps.length - 1}}"></view>
+          <view class="timeline-dot {{item.pulse ? 'timeline-dot-pulse' : ''}}"></view>
+          <view class="timeline-body">
+            <view class="timeline-head">
+              <view class="timeline-title">{{item.title}}</view>
+              <view class="timeline-time">{{item.time}}</view>
+            </view>
+            <view class="timeline-desc">{{item.description}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">售后服务</view>
+      <view class="section-subtitle">退款、投诉、发票入口前置，方便演示时一屏操作。</view>
+      <view class="action-grid">
+        <view class="action-card tap-scale" bindtap="applyRefund">申请退款</view>
+        <view class="action-card tap-scale" bindtap="gotoComplaint">投诉反馈</view>
+        <view class="action-card tap-scale" bindtap="gotoInvoice">申请发票</view>
+      </view>
+    </view>
+
+    <view class="panel-card">
+      <view class="section-title">订单信息</view>
+      <view class="info-list">
+        <view class="info-row">
+          <text class="info-label">业务类型</text>
+          <text class="info-value">{{detail.serviceTypeText}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">支付状态</text>
+          <text class="info-value">{{detail.payStatusText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.carpoolMeta}}">
+          <text class="info-label">出发时段</text>
+          <text class="info-value">{{detail.carpoolMeta.timeText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.carpoolMeta}}">
+          <text class="info-label">同行人数</text>
+          <text class="info-value">{{detail.carpoolMeta.passengerCountText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.carpoolMeta}}">
+          <text class="info-label">行李情况</text>
+          <text class="info-value">{{detail.carpoolMeta.luggageText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.carpoolMeta}}">
+          <text class="info-label">高速费</text>
+          <text class="info-value">{{detail.carpoolMeta.tollModeText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.carpoolMeta && detail.carpoolMeta.discountAmount > 0}}">
+          <text class="info-label">顺风车优惠</text>
+          <text class="info-value info-value--brand">-{{detail.carpoolMeta.discountAmountText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.showPaidCouponInfo}}">
+          <text class="info-label">使用优惠券</text>
+          <text class="info-value">{{detail.appliedCouponName}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.showPaidCouponInfo}}">
+          <text class="info-label">优惠抵扣</text>
+          <text class="info-value info-value--brand">-{{detail.appliedCouponDiscountText}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">创建时间</text>
+          <text class="info-value">{{detail.createdAt}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">司机信息</text>
+          <text class="info-value">{{detail.driver.name}} {{detail.driver.plateNo}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.remarkText}}">
+          <text class="info-label">订单备注</text>
+          <text class="info-value">{{detail.remarkText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="page-content" wx:elif="{{loading}}">
+    <view class="hero-card skeleton skeleton-card"></view>
+    <view class="panel-card skeleton skeleton-panel"></view>
+  </view>
+
+  <view class="payment-bar" wx:if="{{showPayBar}}">
+    <view class="payment-bar__inner">
+      <view class="payment-scene-tip">{{paymentSceneText}}</view>
+      <view class="coupon-entry {{couponActionDisabled ? 'coupon-entry--disabled' : 'tap-scale'}}" wx:if="{{allowCoupon}}" bindtap="openCouponPicker" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="coupon-entry__main">
+          <view class="coupon-entry__icon">券</view>
+          <view class="coupon-entry__label">优惠券</view>
+        </view>
+        <view class="coupon-entry__summary {{couponActionDisabled ? '' : 'coupon-entry__summary--active'}}">{{couponSummaryText}}</view>
+        <view class="coupon-entry__action {{couponActionDisabled ? 'coupon-entry__action--disabled' : ''}}">去选择 ></view>
+      </view>
+      <view class="cancel-fee-note" wx:else>超时取消产生取消费，本单需完成支付后关闭待支付状态。</view>
+
+      <view class="payment-bar__row">
+        <view class="payment-meta">
+          <view class="payment-label">当前需支付</view>
+          <view class="payment-amount">{{displayedPayableAmountText}}</view>
+        </view>
+        <button class="primary-button pay-button" hover-class="button-hover" bindtap="goToPay">{{payButtonText}}</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{couponModalVisible}}">
+    <view class="mask-panel coupon-picker-mask" bindtap="closeCouponPicker"></view>
+    <view class="coupon-picker slide-in">
+      <view class="coupon-picker__header">
+        <view class="coupon-picker__title">选择优惠券</view>
+        <view class="coupon-picker__close tap-scale" bindtap="closeCouponPicker">×</view>
+      </view>
+
+      <view class="coupon-tabs">
+        <view
+          class="coupon-tab {{activeCouponTab === 'available' ? 'coupon-tab--active' : ''}}"
+          data-tab="available"
+          bindtap="switchCouponTab"
+        >
+          可用优惠券
+        </view>
+        <view
+          class="coupon-tab {{activeCouponTab === 'unavailable' ? 'coupon-tab--active' : ''}}"
+          data-tab="unavailable"
+          bindtap="switchCouponTab"
+        >
+          不可用优惠券
+        </view>
+      </view>
+
+      <scroll-view class="coupon-picker__content" scroll-y enhanced show-scrollbar="{{false}}">
+        <view class="coupon-list" wx:if="{{activeCouponTab === 'available' && availableCoupons.length}}">
+          <view
+            class="coupon-card tap-scale {{selectedCouponId === item.userCouponIdText ? 'coupon-card--selected' : ''}}"
+            wx:for="{{availableCoupons}}"
+            wx:key="userCouponIdText"
+            data-id="{{item.userCouponIdText}}"
+            bindtap="chooseCoupon"
+            hover-class="pressable-hover"
+            hover-stay-time="60"
+          >
+            <view class="coupon-card__value">
+              <view class="coupon-card__amount">{{item.discountAmountText}}</view>
+              <view class="coupon-card__caption">本单最高可减</view>
+            </view>
+            <view class="coupon-card__body">
+              <view class="coupon-card__name">{{item.name}}</view>
+              <view class="coupon-card__rule">{{item.ruleText}}</view>
+              <view class="coupon-card__valid">{{item.validText}}</view>
+            </view>
+            <view class="coupon-card__radio">
+              <view class="coupon-card__radio-inner" wx:if="{{selectedCouponId === item.userCouponIdText}}"></view>
+            </view>
+          </view>
+        </view>
+
+        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'available'}}">
+          当前订单暂无可用优惠券
+        </view>
+
+        <view class="coupon-list" wx:if="{{activeCouponTab === 'unavailable' && unavailableCoupons.length}}">
+          <view class="coupon-card coupon-card--disabled" wx:for="{{unavailableCoupons}}" wx:key="userCouponIdText">
+            <view class="coupon-card__value coupon-card__value--disabled">
+              <view class="coupon-card__amount">{{item.discountAmountText}}</view>
+              <view class="coupon-card__caption">暂不可抵扣</view>
+            </view>
+            <view class="coupon-card__body">
+              <view class="coupon-card__name">{{item.name}}</view>
+              <view class="coupon-card__rule">{{item.ruleText}}</view>
+              <view class="coupon-card__valid">{{item.validText}}</view>
+            </view>
+            <view class="coupon-card__reason">{{item.unavailableReason}}</view>
+          </view>
+        </view>
+
+        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'unavailable'}}">
+          暂无不可用优惠券
+        </view>
+      </scroll-view>
+
+      <view class="coupon-picker__footer">
+        <button class="ghost-button coupon-picker__clear" hover-class="button-hover" bindtap="clearCouponSelection">不使用优惠券</button>
+      </view>
+    </view>
+  </view>
+</view>

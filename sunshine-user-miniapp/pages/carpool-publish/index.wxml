@@ -1,0 +1,44 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap">
+    <view class="hero-card">
+      <view class="section-title">发布顺风车行程</view>
+      <view class="section-subtitle">把固定通勤路线或临时出发计划发布出来，等候同路乘客申请。</view>
+    </view>
+
+    <view class="panel-card list-gap">
+      <input class="search-input" data-key="startName" value="{{form.startName}}" bindinput="updateField" placeholder="出发地" />
+      <input class="search-input" data-key="endName" value="{{form.endName}}" bindinput="updateField" placeholder="目的地" />
+
+      <view class="publish-grid">
+        <picker mode="date" value="{{form.departDate}}" bindchange="chooseDepartDate">
+          <view class="field-card tap-scale">
+            <view class="field-body">
+              <view class="field-label">出发日期</view>
+              <view class="field-value">{{form.departDate}}</view>
+            </view>
+          </view>
+        </picker>
+
+        <picker mode="time" value="{{form.departTime}}" bindchange="chooseDepartTime">
+          <view class="field-card tap-scale">
+            <view class="field-body">
+              <view class="field-label">出发时间</view>
+              <view class="field-value">{{form.departTime}}</view>
+            </view>
+          </view>
+        </picker>
+      </view>
+
+      <view class="publish-grid">
+        <input class="search-input" data-key="seats" type="number" value="{{form.seats}}" bindinput="updateField" placeholder="可载人数" />
+        <input class="search-input" data-key="price" type="digit" value="{{form.price}}" bindinput="updateField" placeholder="每人分摊" />
+      </view>
+
+      <input class="search-input" data-key="baggageRule" value="{{form.baggageRule}}" bindinput="updateField" placeholder="行李规则" />
+      <textarea class="publish-textarea" data-key="remark" bindinput="updateField" placeholder="补充上下车提醒、通勤频次或行程说明">{{form.remark}}</textarea>
+    </view>
+  </view>
+  <view class="floating-bar">
+    <button class="primary-button" hover-class="button-hover" bindtap="submitTrip">确认发布</button>
+  </view>
+</view>

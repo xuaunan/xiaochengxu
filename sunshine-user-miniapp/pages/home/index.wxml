@@ -1,0 +1,117 @@
+<view class="home-page">
+  <view class="home-map-wrap" style="height: {{mapHeight}}px;">
+    <map
+      id="sunMap"
+      class="home-map"
+      style="height: {{mapHeight}}px;"
+      longitude="{{longitude}}"
+      latitude="{{latitude}}"
+      scale="{{zoom}}"
+      show-location
+      enable-3D="{{false}}"
+      enable-rotate="{{false}}"
+      enable-overlooking="{{false}}"
+      enable-satellite="{{false}}"
+    ></map>
+
+    <view class="home-brand" style="top: {{statusBarHeight + 18}}px;">
+      <view class="home-brand__title">{{brandTitle}}</view>
+      <view class="home-brand__subtitle">{{brandSubtitle}}</view>
+    </view>
+  </view>
+
+  <view class="home-panel" style="height: {{panelHeight}}px;">
+    <scroll-view class="home-panel__content" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="service-tabs">
+        <view class="service-tab {{activeService === 'taxi' ? 'service-tab--active' : ''}}" data-type="taxi" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">打车</view>
+        <view class="service-tab {{activeService === 'carpool' ? 'service-tab--active' : ''}}" data-type="carpool" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">顺风车</view>
+        <view class="service-tab {{activeService === 'international' ? 'service-tab--active' : ''}}" data-type="international" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">国际出行</view>
+      </view>
+
+      <view wx:if="{{activeRideCard}}" class="current-ride-card tap-scale" bindtap="openCurrentRide" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="current-ride-card__head">
+          <view>
+            <view class="current-ride-card__eyebrow">{{activeRideCard.eyebrowText}}</view>
+            <view class="current-ride-card__title">{{activeRideCard.title}}</view>
+          </view>
+          <view class="current-ride-card__status">{{activeRideCard.statusText}}</view>
+        </view>
+        <view class="current-ride-card__foot">
+          <view class="current-ride-card__price">{{activeRideCard.amountText}}</view>
+          <view class="current-ride-card__action">{{activeRideCard.actionText}}</view>
+        </view>
+      </view>
+
+      <view class="address-block">
+        <view class="address-card tap-scale" data-type="start" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="address-card__dot address-card__dot--start"></view>
+          <view class="address-card__body">
+            <view class="address-card__label">从哪里出发</view>
+            <view class="address-card__value">{{draft.start.name || '请选择出发地'}}</view>
+          </view>
+        </view>
+
+        <view class="address-switch tap-scale" bindtap="swapAddress" hover-class="pressable-hover" hover-stay-time="60">换</view>
+
+        <view class="address-card tap-scale" data-type="end" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="address-card__dot address-card__dot--end"></view>
+          <view class="address-card__body">
+            <view class="address-card__label">去哪里</view>
+            <view class="address-card__value">{{draft.end.name || '请输入目的地'}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="estimate-block">
+        <view class="estimate-head">
+          <view>
+            <view class="estimate-title">实时预估</view>
+            <view class="estimate-subtitle">路线自动绘制，费用会随车型实时变化</view>
+          </view>
+          <view class="estimate-tip">长按地图可快速选点</view>
+        </view>
+
+        <view class="estimate-grid">
+          <view class="estimate-card" wx:for="{{metricCards}}" wx:key="key">
+            <view class="estimate-card__value">{{item.value}}</view>
+            <view class="estimate-card__label">{{item.label}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="car-list">
+        <view
+          class="car-card tap-scale {{selectedCarTypeId === item.id ? 'car-card--active' : ''}} {{cardAnimateId === item.id ? 'car-card--pulse' : ''}}"
+          wx:for="{{carCards}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="chooseCarType"
+          hover-class="pressable-hover"
+          hover-stay-time="60"
+        >
+          <view class="car-card__icon-box">
+            <image class="car-card__image" src="{{item.image}}" mode="aspectFit"></image>
+          </view>
+          <view class="car-card__name">{{item.name}}</view>
+          <view class="car-card__desc">{{item.description}}</view>
+          <view class="car-card__action {{selectedCarTypeId === item.id ? 'car-card__action--price' : ''}}">
+            <view class="car-card__price-row" wx:if="{{item.actionMode === 'price' && item.hasCouponDiscount}}">
+              <text class="car-card__price-original car-card__price-original--discounted">{{item.originalPriceText}}</text>
+              <text class="car-card__price-payable">{{item.payablePriceText}}</text>
+            </view>
+            <view class="car-card__price-row" wx:elif="{{item.actionMode === 'price'}}">
+              <text class="car-card__price-single">{{item.payablePriceText}}</text>
+            </view>
+            <text wx:else>{{item.actionText}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="home-panel__footer">
+      <button class="primary-button confirm-button" hover-class="button-hover" bindtap="createRideOrder" loading="{{dispatching}}" disabled="{{loading || dispatching}}">
+        确认叫车
+      </button>
+    </view>
+  </view>
+</view>

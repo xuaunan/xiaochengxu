@@ -1,0 +1,21 @@
+<view class="page-shell safe-bottom">
+  <view class="page-content list-gap" wx:if="{{list.length}}">
+    <view class="panel-card" wx:for="{{list}}" wx:key="id">
+      <view class="row-between">
+        <view>
+          <view class="section-title">订单 {{item.orderNo}}</view>
+          <view class="section-subtitle">{{item.serviceTypeText}}</view>
+        </view>
+        <view class="brand-text">{{item.score}} 分</view>
+      </view>
+      <view class="section-subtitle" style="margin-top: 16rpx;">{{item.content}}</view>
+      <view class="section-subtitle">{{item.createdAt}}</view>
+    </view>
+  </view>
+
+  <view class="page-content" wx:else>
+    <view class="panel-card">
+      <sun-empty title="暂时还没有评价" description="完成订单并支付后，就可以在这里查看你的历史评价。" buttonText="去订单中心" bindaction="jumpToOrders"></sun-empty>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,53 @@
+.trip-card {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 18rpx);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  max-height: calc(100vh - 280rpx - env(safe-area-inset-bottom));
+}
+
+.trip-head {
+  align-items: flex-start;
+  gap: 20rpx;
+}
+
+.trip-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-route {
+  line-height: 1.35;
+}
+
+.trip-status {
+  flex-shrink: 0;
+  margin-top: 8rpx;
+}
+
+.arrival-metrics {
+  margin-top: 0;
+}
+
+.trip-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 16rpx;
+}
+
+.trip-action {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-alert {
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #7a8396;
+}
+
+

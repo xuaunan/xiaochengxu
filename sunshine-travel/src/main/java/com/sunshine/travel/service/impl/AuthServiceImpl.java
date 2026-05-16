@@ -1,0 +1,178 @@
+package com.sunshine.travel.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.sunshine.travel.common.AuthStatus;
+import com.sunshine.travel.common.BusinessException;
+import com.sunshine.travel.common.DriverServiceStatus;
+import com.sunshine.travel.common.ErrorCode;
+import com.sunshine.travel.common.RoleCode;
+import com.sunshine.travel.common.UserContext;
+import com.sunshine.travel.dto.AuthLoginRequest;
+import com.sunshine.travel.dto.AuthRegisterRequest;
+import com.sunshine.travel.dto.ProfileUpdateRequest;
+import com.sunshine.travel.dto.RealNameSubmitRequest;
+import com.sunshine.travel.entity.DriverProfile;
+import com.sunshine.travel.entity.PlatformUser;
+import com.sunshine.travel.mapper.DriverProfileMapper;
+import com.sunshine.travel.mapper.PlatformUserMapper;
+import com.sunshine.travel.service.AuthService;
+import com.sunshine.travel.util.JwtUtil;
+import com.sunshine.travel.util.PasswordUtil;
+import com.sunshine.travel.vo.AuthLoginVO;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+@Service
+public class AuthServiceImpl implements AuthService {
+
+    private final PlatformUserMapper platformUserMapper;
+    private final DriverProfileMapper driverProfileMapper;
+    private final JwtUtil jwtUtil;
+
+    public AuthServiceImpl(PlatformUserMapper platformUserMapper,
+                           DriverProfileMapper driverProfileMapper,
+                           JwtUtil jwtUtil) {
+        this.platformUserMapper = platformUserMapper;
+        this.driverProfileMapper = driverProfileMapper;
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    @Transactional
+    public PlatformUser register(AuthRegisterRequest request) {
+        if (!RoleCode.isValid(request.getRoleCode())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "角色类型不合法");
+        }
+        PlatformUser existing = platformUserMapper.selectOne(new LambdaQueryWrapper<PlatformUser>()
+                .eq(PlatformUser::getPhone, request.getPhone())
+                .eq(PlatformUser::getRoleCode, request.getRoleCode()));
+        if (existing != null) {
+            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "该手机号已注册当前角色");
+        }
+        PlatformUser user = new PlatformUser();
+        user.setPhone(request.getPhone());
+        user.setPassword(PasswordUtil.encode(request.getPassword()));
+        user.setNickname(request.getNickname());
+        user.setRoleCode(request.getRoleCode());
+        user.setOpenId("mock-" + request.getPhone() + "-" + request.getRoleCode());
+        user.setAuthStatus(AuthStatus.UNVERIFIED);
+        user.setEnabled(1);
+        user.setWalletBalance(BigDecimal.valueOf(200));
+        user.setDefaultLanguage(StringUtils.hasText(request.getDefaultLanguage()) ? request.getDefaultLanguage() : "zh-CN");
+        platformUserMapper.insert(user);
+        if (RoleCode.DRIVER.equals(request.getRoleCode())) {
+            DriverProfile driverProfile = new DriverProfile();
+            driverProfile.setUserId(user.getId());
+            driverProfile.setDriverNo("DRV" + user.getId());
+            driverProfile.setLicenseNo("PENDING");
+            driverProfile.setServiceStatus(DriverServiceStatus.OFFLINE);
+            driverProfile.setAuditStatus(AuthStatus.UNVERIFIED);
+            driverProfile.setScore(BigDecimal.valueOf(5));
+            driverProfile.setTotalIncome(BigDecimal.ZERO);
+            driverProfile.setWithdrawableIncome(BigDecimal.ZERO);
+            driverProfile.setCityCode("310100");
+            driverProfileMapper.insert(driverProfile);
+        }
+        user.setPassword(null);
+        return user;
+    }
+
+    @Override
+    public AuthLoginVO login(AuthLoginRequest request) {
+        if (!RoleCode.isValid(request.getRoleCode())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "角色类型不合法");
+        }
+        PlatformUser user = platformUserMapper.selectOne(new LambdaQueryWrapper<PlatformUser>()
+                .eq(PlatformUser::getPhone, request.getPhone())
+                .eq(PlatformUser::getRoleCode, request.getRoleCode()));
+        if (user == null || !PasswordUtil.matches(request.getPassword(), user.getPassword())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号或密码错误");
+        }
+        if (user.getEnabled() == null || user.getEnabled() != 1) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "账号已被禁用");
+        }
+        return buildLoginVO(user);
+    }
+
+    @Override
+    public AuthLoginVO refreshToken() {
+        PlatformUser user = requireCurrentUser();
+        return buildLoginVO(user);
+    }
+
+    @Override
+    public PlatformUser currentProfile() {
+        PlatformUser user = requireCurrentUser();
+        user.setPassword(null);
+        return user;
+    }
+
+    @Override
+    @Transactional
+    public PlatformUser updateProfile(ProfileUpdateRequest request) {
+        PlatformUser user = requireCurrentUser();
+        user.setNickname(cleanRequired(request.getNickname()));
+        if (StringUtils.hasText(request.getAvatar())) {
+            user.setAvatar(request.getAvatar().trim());
+        } else if (!StringUtils.hasText(user.getAvatar())) {
+            user.setAvatar("/images/avatar-user.svg");
+        }
+        user.setRealName(cleanOptional(request.getRealName()));
+        user.setEmergencyContact(cleanOptional(request.getEmergencyContact()));
+        user.setEmergencyPhone(cleanOptional(request.getEmergencyPhone()));
+        platformUserMapper.updateById(user);
+        user.setPassword(null);
+        return user;
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> submitRealName(RealNameSubmitRequest request) {
+        PlatformUser user = requireCurrentUser();
+        user.setRealName(request.getRealName());
+        user.setIdCard(request.getIdCard());
+        user.setAuthStatus(AuthStatus.PENDING);
+        user.setAuthRemark("用户已提交实名认证，待管理员审核");
+        platformUserMapper.updateById(user);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("userId", user.getId());
+        result.put("authStatus", user.getAuthStatus());
+        result.put("message", "实名认证资料已提交");
+        return result;
+    }
+
+    private PlatformUser requireCurrentUser() {
+        Long userId = UserContext.userId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        PlatformUser user = platformUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "用户不存在");
+        }
+        return user;
+    }
+
+    private String cleanRequired(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String cleanOptional(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private AuthLoginVO buildLoginVO(PlatformUser user) {
+        return AuthLoginVO.builder()
+                .token(jwtUtil.createToken(user.getId(), user.getRoleCode(), user.getNickname()))
+                .userId(user.getId())
+                .roleCode(user.getRoleCode())
+                .nickname(user.getNickname())
+                .defaultLanguage(user.getDefaultLanguage())
+                .authStatus(user.getAuthStatus())
+                .build();
+    }
+}

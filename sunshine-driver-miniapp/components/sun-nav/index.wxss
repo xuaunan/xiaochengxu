@@ -1,0 +1,36 @@
+.nav {
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+}
+
+.nav__inner {
+  min-height: 100rpx;
+  display: flex;
+  align-items: center;
+}
+
+.nav__left,
+.nav__right {
+  width: 120rpx;
+  font-size: 26rpx;
+  color: #1f2432;
+}
+
+.nav__center {
+  flex: 1;
+  text-align: center;
+}
+
+.nav__title {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #1f2432;
+  letter-spacing: 2rpx;
+  text-shadow: 0 8rpx 20rpx rgba(255, 255, 255, 0.35);
+}
+
+.nav__subtitle {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(31, 36, 50, 0.54);
+}

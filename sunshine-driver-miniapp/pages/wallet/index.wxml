@@ -1,0 +1,37 @@
+<view class="page-shell wallet-page">
+  <view class="page-content wallet-content">
+    <view class="hero-card wallet-hero">
+      <view class="section-title wallet-title">收益总览</view>
+      <view class="metric-grid wallet-metric-grid">
+        <view class="metric-item wallet-metric wallet-metric--today">
+          <view class="metric-value">¥{{wallet.todayIncome}}</view>
+          <view class="metric-label">今日收入</view>
+        </view>
+        <view class="metric-item wallet-metric wallet-metric--month">
+          <view class="metric-value">¥{{wallet.monthIncome}}</view>
+          <view class="metric-label">本月收入</view>
+        </view>
+        <view class="metric-item wallet-metric wallet-metric--cash">
+          <view class="metric-value">¥{{wallet.withdrawable}}</view>
+          <view class="metric-label">可提现</view>
+        </view>
+      </view>
+    </view>
+    <button class="primary-button wallet-withdraw" hover-class="button-hover" bindtap="openWithdraw">申请提现</button>
+    <view class="panel-card wallet-panel">
+      <view class="row-between wallet-panel-head">
+        <view class="section-title wallet-title">本月流水</view>
+        <view class="wallet-summary">{{billSummary}}</view>
+      </view>
+      <view class="wallet-list">
+        <view class="row-between wallet-bill" wx:for="{{bills}}" wx:key="id">
+          <view class="wallet-bill-main">
+            <view class="wallet-bill-title">{{item.title}}</view>
+            <view class="section-subtitle">{{item.time}}</view>
+          </view>
+          <view class="brand-text wallet-bill-amount">{{item.amount}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

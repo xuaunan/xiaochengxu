@@ -1,0 +1,200 @@
+<view class="address-page {{pageReady ? 'address-page--enter' : ''}} {{pageLeaving ? 'address-page--leave' : ''}}">
+  <view class="address-top">
+    <view class="address-searchbar" style="padding-top: {{navTop}}px;">
+      <view class="address-back tap-scale" bindtap="handleBack" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="address-back__icon"></view>
+      </view>
+
+      <view class="address-input-wrap {{isInputFocused ? 'address-input-wrap--focus' : ''}}" bindtap="handleInputFocus">
+        <view class="address-input__dot {{type === 'end' ? 'address-input__dot--end' : ''}}"></view>
+        <input
+          class="address-input"
+          type="text"
+          value="{{keyword}}"
+          placeholder="{{placeholder}}"
+          placeholder-class="address-input__placeholder"
+          cursor-spacing="24"
+          adjust-position="{{true}}"
+          confirm-type="search"
+          maxlength="50"
+          bindfocus="handleInputFocus"
+          bindblur="handleInputBlur"
+          bindinput="updateKeyword"
+          bindconfirm="handleInputConfirm"
+        />
+      </view>
+    </view>
+
+    <view class="candidate-panel fade-in" wx:if="{{showSuggestionPanel}}">
+      <view class="candidate-panel__head">
+        <view class="candidate-panel__title">{{candidateTitle}}</view>
+        <view class="candidate-panel__count" wx:if="{{candidateItems.length}}">{{candidateItems.length}} 条</view>
+      </view>
+
+      <view
+        class="candidate-panel__item pressable-row"
+        wx:for="{{candidateItems}}"
+        wx:key="addressKey"
+        data-item="{{item}}"
+        bindtap="chooseAddress"
+        hover-class="pressable-hover"
+        hover-stay-time="60"
+      >
+        <view class="candidate-panel__marker {{type === 'end' ? 'candidate-panel__marker--end' : ''}}"></view>
+        <view class="address-content">
+          <view class="address-content__main">
+            <view class="address-content__name">{{item.name}}</view>
+            <view class="address-content__detail">{{item.address}}</view>
+          </view>
+          <view class="address-content__meta">
+            <view class="address-content__distance">{{item.distanceText}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="candidate-panel__empty" wx:if="{{!loading && !candidateItems.length}}">
+        <view class="candidate-panel__empty-text">{{candidateEmptyText}}</view>
+      </view>
+
+      <view class="candidate-panel__empty" wx:if="{{loading && !candidateItems.length}}">
+        <view class="candidate-panel__empty-text">正在加载候选地址...</view>
+      </view>
+    </view>
+
+    <view class="quick-actions">
+      <view class="quick-action tap-scale" bindtap="chooseMyLocation" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="quick-action__icon quick-action__icon--location">定</view>
+        <view class="quick-action__text">我的位置</view>
+      </view>
+      <view class="quick-action tap-scale" bindtap="toggleFavoritePanel" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="quick-action__icon quick-action__icon--favorite">藏</view>
+        <view class="quick-action__text">收藏夹</view>
+      </view>
+      <view class="quick-action tap-scale" bindtap="openMapPicker" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="quick-action__icon quick-action__icon--map">图</view>
+        <view class="quick-action__text">地图选点</view>
+      </view>
+    </view>
+
+    <view class="favorite-panel fade-in" wx:if="{{showFavoritePanel}}">
+      <view class="favorite-panel__head">
+        <view class="favorite-panel__title">收藏夹</view>
+        <view class="favorite-panel__count">{{favoriteItems.length}} 个地址</view>
+      </view>
+
+      <view
+        class="favorite-panel__item pressable-row"
+        wx:for="{{favoriteItems}}"
+        wx:key="addressKey"
+        wx:for-item="favorite"
+        data-item="{{favorite}}"
+        bindtap="chooseAddress"
+        hover-class="pressable-hover"
+        hover-stay-time="60"
+      >
+        <view class="address-content">
+          <view class="address-content__main">
+            <view class="address-content__name">{{favorite.name}}</view>
+            <view class="address-content__detail">{{favorite.address}}</view>
+          </view>
+          <view class="address-content__meta">
+            <view class="address-content__distance">{{favorite.distanceText}}</view>
+            <view
+              class="favorite-toggle favorite-toggle--active {{favoriteBounceKey === favorite.addressKey ? 'favorite-toggle--bounce' : ''}}"
+              catchtap="handleFavoriteTap"
+              data-item="{{favorite}}"
+            >★</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view
+    class="address-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
+    <view class="address-scroll__inner {{listAnimating ? 'address-scroll__inner--animating' : ''}}">
+      <view class="address-section">
+        <view class="address-section__head">
+          <view class="address-section__title">{{displayMode === 'search' ? '搜索结果' : '历史搜索记录'}}</view>
+          <view class="address-section__desc" wx:if="{{displayMode === 'search'}}">实时匹配附近 POI 地址</view>
+          <view class="address-section__desc" wx:else>按最近搜索时间倒序排列</view>
+        </view>
+
+        <view class="address-loading" wx:if="{{loading}}">
+          <view class="address-loading__spinner"></view>
+          <view class="address-loading__text">正在搜索地址...</view>
+        </view>
+
+        <block wx:elif="{{!loadError && !empty}}">
+          <view
+            class="swipe-row {{item.deleting ? 'swipe-row--deleting' : ''}}"
+            wx:for="{{listItems}}"
+            wx:key="addressKey"
+            data-key="{{item.addressKey}}"
+            data-swipex="{{item.swipeX}}"
+            bindtouchstart="handleRowTouchStart"
+            bindtouchmove="handleRowTouchMove"
+            bindtouchend="handleRowTouchEnd"
+          >
+            <view
+              class="swipe-row__delete tap-scale"
+              wx:if="{{displayMode === 'history'}}"
+              data-key="{{item.addressKey}}"
+              catchtap="deleteHistoryItem"
+              hover-class="pressable-hover"
+              hover-stay-time="60"
+            >删除</view>
+
+            <view class="swipe-row__content" style="transform: translateX({{item.swipeX}}px);">
+              <view
+                class="address-item pressable-row"
+                data-item="{{item}}"
+                bindtap="chooseAddress"
+                hover-class="pressable-hover"
+                hover-stay-time="60"
+              >
+                <view class="address-item__marker {{type === 'end' ? 'address-item__marker--end' : ''}}"></view>
+                <view class="address-content">
+                  <view class="address-content__main">
+                    <view class="address-content__name">{{item.name}}</view>
+                    <view class="address-content__detail">{{item.address}}</view>
+                  </view>
+                  <view class="address-content__meta">
+                    <view class="address-content__distance">{{item.distanceText}}</view>
+                    <view
+                      class="favorite-toggle {{item.favorite ? 'favorite-toggle--active' : ''}} {{favoriteBounceKey === item.addressKey ? 'favorite-toggle--bounce' : ''}}"
+                      catchtap="handleFavoriteTap"
+                      data-item="{{item}}"
+                    >{{item.favorite ? '★' : '☆'}}</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <view class="address-empty" wx:elif="{{loadError}}">
+          <view class="address-empty__title">地址加载失败</view>
+          <view class="address-empty__desc">可以下拉重试，或点击下方按钮重新获取地址。</view>
+          <button class="address-empty__button" hover-class="button-hover" bindtap="retryLoad">重新加载</button>
+        </view>
+
+        <view class="address-empty" wx:else>
+          <view class="address-empty__title">{{emptyTitle}}</view>
+          <view class="address-empty__desc">{{emptyDesc}}</view>
+        </view>
+      </view>
+
+      <view class="history-footer" wx:if="{{displayMode === 'history' && historyItems.length}}">
+        <button class="history-footer__button" hover-class="button-hover" bindtap="clearHistory">清空历史记录</button>
+      </view>
+    </view>
+  </scroll-view>
+</view>

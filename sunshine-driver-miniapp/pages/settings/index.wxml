@@ -1,0 +1,65 @@
+<view class="page-shell">
+  <view class="page-content list-gap driver-settings">
+    <view class="panel-card row-between tap-scale" data-key="listenMode" bindtap="toggle">
+      <view>
+        <view class="section-title">听单模式</view>
+        <view class="section-subtitle">关闭后不再接收新订单</view>
+      </view>
+      <switch color="#ff7a00" checked="{{settings.listenMode}}"></switch>
+    </view>
+    <view class="panel-card row-between tap-scale" data-key="autoAccept" bindtap="toggle">
+      <view>
+        <view class="section-title">自动接单</view>
+        <view class="section-subtitle">开启后，仅自动接取开始听单后产生的即时打车订单，订单产生 5 秒后执行</view>
+      </view>
+      <switch color="#ff7a00" checked="{{settings.autoAccept}}"></switch>
+    </view>
+    <view class="panel-card row-between tap-scale" data-key="voiceBroadcast" bindtap="toggle">
+      <view>
+        <view class="section-title">语音播报</view>
+        <view class="section-subtitle">播报接驾 500 米、乘客上车、上车后提醒、目的地 500 米、自动接单、顺风车和乘客取消</view>
+      </view>
+      <switch color="#ff7a00" checked="{{settings.voiceBroadcast}}"></switch>
+    </view>
+    <view class="panel-card">
+      <view class="section-title">轨迹模式</view>
+      <view class="section-subtitle">{{currentTrackModeDesc}}</view>
+      <view class="track-mode-list">
+        <view
+          wx:for="{{trackModeOptions}}"
+          wx:key="value"
+          class="track-mode-chip {{settings.trackMode === item.value ? 'track-mode-chip--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="selectTrackMode"
+        >
+          <view class="track-mode-chip__title">{{item.label}}</view>
+          <view class="track-mode-chip__desc">{{item.desc}}</view>
+        </view>
+      </view>
+      <view class="voice-style-current">当前选择：{{currentTrackModeLabel}}轨迹</view>
+    </view>
+    <view class="panel-card">
+      <view class="section-title">播报声音</view>
+      <view class="section-subtitle">默认、温柔女声、阳光活力女声、稳重女声使用真实中文播报；搞怪为特效音，播放时会按顺序排队</view>
+      <view class="voice-style-list">
+        <view
+          wx:for="{{voiceStyleOptions}}"
+          wx:key="value"
+          class="voice-style-chip {{settings.voiceStyle === item.value ? 'voice-style-chip--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="selectVoiceStyle"
+        >
+          {{item.label}}
+        </view>
+      </view>
+      <view class="voice-style-current">当前选择：{{currentVoiceStyleLabel}}</view>
+    </view>
+    <view class="panel-card row-between">
+      <view>
+        <view class="section-title">试听当前声音</view>
+        <view class="section-subtitle">立即播放一条测试语音，检查当前音色是否正常</view>
+      </view>
+      <view class="voice-preview-btn tap-scale" bindtap="previewVoice">试听</view>
+    </view>
+  </view>
+</view>
