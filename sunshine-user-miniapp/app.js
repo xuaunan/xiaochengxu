@@ -127,6 +127,20 @@ function animatePageRoot(page, frames, duration) {
   })
 }
 
+function resetPageRootAnimation(page) {
+  if (!page || typeof page.clearAnimation !== 'function') return
+
+  ;['.page-shell', '.home-page', '.home-map-wrap', '.home-panel', '.picker-page', '.address-page'].forEach((selector) => {
+    try {
+      page.clearAnimation(selector, {
+        opacity: true,
+        transform: true
+      })
+    } catch (error) {
+    }
+  })
+}
+
 function markGlobalNavTransition(app, type) {
   if (!app || !app.globalData) return
   app.globalData.uiTransition = {
@@ -150,7 +164,7 @@ function playGlobalPageEnter(page, app) {
 
   setTimeout(() => {
     animatePageRoot(page, [
-      { opacity: 0.94, transform: 'translateY(12rpx) scale(0.996)' },
+      { opacity: 0.96, transform: 'translateY(8rpx) scale(0.998)' },
       { opacity: 1, transform: 'translateY(0) scale(1)' }
     ], 260)
   }, 16)
@@ -188,7 +202,7 @@ function installGlobalNavigationBridge(app) {
 
       animatePageRoot(getCurrentPageInstance(), [
         { opacity: 1, transform: 'translateY(0) scale(1)' },
-        { opacity: 0.82, transform: 'translateY(4rpx) scale(0.998)' }
+        { opacity: 0.9, transform: 'translateY(3rpx) scale(0.999)' }
       ], duration)
 
       setTimeout(() => {
@@ -210,6 +224,7 @@ function installGlobalPageBridge(app) {
     const originalOnUnload = config.onUnload
 
     config.onShow = function sunshinePageOnShow(...args) {
+      resetPageRootAnimation(this)
       const result = originalOnShow ? originalOnShow.apply(this, args) : undefined
       playGlobalPageEnter(this, app)
       return result
