@@ -1,13 +1,52 @@
-<view class="page-shell safe-bottom">
-  <view class="page-content list-gap page-enter">
-    <view class="hero-card wallet-hero">
-      <view class="section-title">钱包余额</view>
+<view class="page-shell wallet-shell safe-bottom">
+  <view class="page-content wallet-page page-enter">
+    <view class="panel-card wallet-overview">
+      <view class="wallet-overview__top">
+        <view>
+          <view class="wallet-kicker">账户钱包</view>
+          <view class="section-title wallet-title">钱包余额</view>
+        </view>
+        <view class="wallet-state">已同步</view>
+      </view>
       <view class="wallet-balance">¥{{wallet.balance}}</view>
-      <view class="section-subtitle">优惠累计 {{wallet.couponBalance}} 元 · 可开发票 {{wallet.invoices}} 张</view>
+      <view class="wallet-subtitle">优惠累计 {{wallet.couponBalance}} 元 · 可开发票 {{wallet.invoices}} 张</view>
+      <view class="wallet-actions">
+        <button class="wallet-action wallet-action--primary" hover-class="button-hover" bindtap="recharge">充值</button>
+        <button class="wallet-action" hover-class="button-hover" bindtap="withdraw">提现说明</button>
+      </view>
     </view>
-    <view class="wallet-actions">
-      <button class="ghost-button wallet-action" hover-class="button-hover" bindtap="recharge">充值</button>
-      <button class="ghost-button wallet-action" hover-class="button-hover" bindtap="withdraw">提现说明</button>
+
+    <view class="wallet-metrics">
+      <view class="wallet-metric tap-scale">
+        <view class="wallet-metric__value">{{wallet.balance}}</view>
+        <view class="wallet-metric__label">可用余额</view>
+      </view>
+      <view class="wallet-metric tap-scale">
+        <view class="wallet-metric__value">{{wallet.couponBalance}}</view>
+        <view class="wallet-metric__label">券包额度</view>
+      </view>
+      <view class="wallet-metric tap-scale">
+        <view class="wallet-metric__value">{{wallet.invoices}}</view>
+        <view class="wallet-metric__label">发票张数</view>
+      </view>
+    </view>
+
+    <view class="panel-card wallet-detail">
+      <view class="wallet-detail__title">资产说明</view>
+      <view class="wallet-detail__row">
+        <view>
+          <view class="wallet-detail__name">余额展示</view>
+          <view class="wallet-detail__desc">与后端用户资料实时同步</view>
+        </view>
+        <view class="wallet-detail__tag">实时</view>
+      </view>
+      <view class="wallet-detail__row">
+        <view>
+          <view class="wallet-detail__name">优惠资产</view>
+          <view class="wallet-detail__desc">优惠券领取后自动计入账户</view>
+        </view>
+        <view class="wallet-detail__tag wallet-detail__tag--soft">券包</view>
+      </view>
     </view>
   </view>
 </view>
