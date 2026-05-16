@@ -1,6 +1,10 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content list-gap">
-    <view class="panel-card" wx:for="{{list}}" wx:key="id">
+  <view class="page-content list-gap page-enter">
+    <view class="hero-card help-hero">
+      <view class="section-title">帮助中心</view>
+      <view class="section-subtitle">常见问题、订单处理和平台服务说明都汇总在这里，方便快速定位。</view>
+    </view>
+    <view class="panel-card help-card tap-scale" wx:for="{{list}}" wx:key="id">
       <view class="section-title">{{item.title}}</view>
       <view class="section-subtitle">{{item.content}}</view>
     </view>
