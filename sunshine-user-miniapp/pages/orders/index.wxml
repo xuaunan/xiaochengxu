@@ -1,6 +1,6 @@
 <view class="page-shell safe-bottom">
   <view class="page-content">
-    <view class="hero-card">
+    <view class="hero-card orders-hero page-enter">
       <view class="section-title">订单中心</view>
       <view class="section-subtitle">支持按业务类型与状态筛选，进入详情可继续投诉、退款、开发票。</view>
       <scroll-view scroll-x enable-flex show-scrollbar="{{false}}" class="tabs-scroll">
@@ -33,7 +33,7 @@
 
     <view class="list-gap order-list" wx:if="{{list.length}}">
       <view
-        class="panel-card tap-scale"
+        class="panel-card order-card tap-scale"
         wx:for="{{list}}"
         wx:key="id"
         data-id="{{item.id}}"

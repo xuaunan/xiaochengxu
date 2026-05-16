@@ -1,5 +1,5 @@
 <view class="page-shell safe-bottom fade-in">
-  <view class="page-content payment-page {{loading ? '' : 'payment-page-ready'}}" wx:if="{{order}}">
+  <view class="page-content payment-page page-enter {{loading ? '' : 'payment-page-ready'}}" wx:if="{{order}}">
     <view class="hero-card amount-card">
       <view class="amount-label">订单总金额</view>
       <view class="amount-value">{{order.amountText}}</view>
