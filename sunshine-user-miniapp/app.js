@@ -268,8 +268,6 @@ App({
   userStorePersistTimer: null,
 
   onLaunch() {
-    installGlobalNavigationBridge(this)
-    installGlobalPageBridge(this)
     this.globalData.poiLibrary = POI_LIBRARY
     this.bootstrapState()
     this.syncSystemTheme()
