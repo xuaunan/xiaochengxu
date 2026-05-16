@@ -85,7 +85,7 @@ function navigateBackSilky(context, options = {}) {
   if (selector && typeof context.animate === 'function') {
     context.animate(selector, [
       { opacity: 1, transform: 'translateY(0) scale(1)' },
-      { opacity: 0.04, transform: 'translateY(6rpx) scale(0.992)' }
+      { opacity: 0.84, transform: 'translateY(5rpx) scale(0.998)' }
     ], duration, () => {
       wx.navigateBack({ delta, __silkyHandled: true })
     })
