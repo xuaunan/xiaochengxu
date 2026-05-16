@@ -12,6 +12,11 @@ const {
   saveHistoryAddress,
   toggleFavoriteAddress
 } = require('../../utils/address-book')
+const {
+  clearSilkyTransitionTimers,
+  markSilkyPageReady,
+  navigateBackSilky
+} = require('../../utils/page')
 
 function buildEmptyState(mode, keyword) {
   if (mode === 'search') {
@@ -127,9 +132,7 @@ Page({
       placeholder: type === 'end' ? '请输入终点' : '请输入起点'
     })
 
-    this.enterTimer = setTimeout(() => {
-      this.setData({ pageReady: true })
-    }, 24)
+    markSilkyPageReady(this)
 
     await this.bootstrapPage()
   },
@@ -137,6 +140,7 @@ Page({
   onUnload() {
     clearTimeout(this.enterTimer)
     clearTimeout(this.leaveTimer)
+    clearSilkyTransitionTimers(this)
     clearTimeout(this.animateTimer)
     clearTimeout(this.favoriteTimer)
     clearTimeout(this.blurTimer)
@@ -401,21 +405,20 @@ Page({
   },
 
   navigateBackWithAnimation() {
-    clearTimeout(this.blurTimer)
-    this.setData({
-      isInputFocused: false,
-      showSuggestionPanel: false
+    navigateBackSilky(this, {
+      delta: 1,
+      duration: 160,
+      beforeLeave: () => {
+        clearTimeout(this.blurTimer)
+        this.setData({
+          isInputFocused: false,
+          showSuggestionPanel: false
+        })
+        wx.hideKeyboard({
+          complete: () => {}
+        })
+      }
     })
-    wx.hideKeyboard({
-      complete: () => {}
-    })
-    this.setData({ pageLeaving: true })
-    clearTimeout(this.leaveTimer)
-    this.leaveTimer = setTimeout(() => {
-      wx.navigateBack({
-        delta: 1
-      })
-    }, 160)
   },
 
   handleBack() {
