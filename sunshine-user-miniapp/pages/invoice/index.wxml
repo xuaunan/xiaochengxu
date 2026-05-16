@@ -1,18 +1,28 @@
-<view class="page-shell safe-bottom">
-  <view class="page-content list-gap page-enter">
-    <view class="hero-card invoice-hero">
-      <view class="section-title">发票中心</view>
+<view class="page-shell invoice-shell safe-bottom">
+  <view class="page-content invoice-page page-enter">
+    <view class="invoice-header">
+      <view>
+        <view class="invoice-kicker">票据服务</view>
+        <view class="section-title invoice-title">发票中心</view>
+      </view>
+      <view class="invoice-count">{{list.length}} 张</view>
+    </view>
+
+    <view class="panel-card invoice-intro">
       <view class="section-subtitle">可开票订单会实时同步，支持按订单发起电子发票申请。</view>
     </view>
-    <view class="panel-card invoice-card" wx:for="{{list}}" wx:key="id">
-      <view class="row-between">
-        <view>
-          <view class="section-title">{{item.title}}</view>
-          <view class="section-subtitle">{{item.createdAt}}</view>
+
+    <view class="invoice-list">
+      <view class="invoice-card tap-scale" wx:for="{{list}}" wx:key="id">
+        <view class="row-between">
+          <view>
+            <view class="invoice-card__title">{{item.title}}</view>
+            <view class="invoice-card__time">{{item.createdAt}}</view>
+          </view>
+          <view class="brand-text">{{item.amountText}}</view>
         </view>
-        <view class="brand-text">{{item.amountText}}</view>
+        <button class="ghost-button invoice-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="applyInvoice">{{item.status}}</button>
       </view>
-      <button class="ghost-button invoice-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="applyInvoice">{{item.status}}</button>
     </view>
   </view>
 </view>

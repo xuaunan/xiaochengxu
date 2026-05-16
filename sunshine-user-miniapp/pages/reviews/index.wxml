@@ -1,19 +1,29 @@
-<view class="page-shell safe-bottom">
-  <view class="page-content list-gap page-enter" wx:if="{{list.length}}">
-    <view class="hero-card reviews-hero">
-      <view class="section-title">评价记录</view>
+<view class="page-shell reviews-shell safe-bottom">
+  <view class="page-content reviews-page page-enter" wx:if="{{list.length}}">
+    <view class="reviews-header">
+      <view>
+        <view class="reviews-kicker">服务评价</view>
+        <view class="section-title reviews-title">评价记录</view>
+      </view>
+      <view class="reviews-count">{{list.length}} 条</view>
+    </view>
+
+    <view class="panel-card reviews-intro">
       <view class="section-subtitle">历史评价会沉淀为服务质量反馈，帮助平台持续优化派单和服务体验。</view>
     </view>
-    <view class="panel-card review-card" wx:for="{{list}}" wx:key="id">
-      <view class="row-between">
-        <view>
-          <view class="section-title">订单 {{item.orderNo}}</view>
-          <view class="section-subtitle">{{item.serviceTypeText}}</view>
+
+    <view class="reviews-list">
+      <view class="review-card tap-scale" wx:for="{{list}}" wx:key="id">
+        <view class="row-between">
+          <view>
+            <view class="review-card__title">订单 {{item.orderNo}}</view>
+            <view class="review-card__meta">{{item.serviceTypeText}}</view>
+          </view>
+          <view class="brand-text">{{item.score}} 分</view>
         </view>
-        <view class="brand-text">{{item.score}} 分</view>
+        <view class="review-content">{{item.content}}</view>
+        <view class="review-card__time">{{item.createdAt}}</view>
       </view>
-      <view class="section-subtitle review-content">{{item.content}}</view>
-      <view class="section-subtitle">{{item.createdAt}}</view>
     </view>
   </view>
 

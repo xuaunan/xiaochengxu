@@ -1,17 +1,29 @@
-<view class="page-shell safe-bottom">
-  <view class="page-content list-gap page-enter">
-    <view class="hero-card complaint-hero">
-      <view class="section-title">提交投诉或建议</view>
-      <view class="section-subtitle">描述订单问题、司机服务反馈或产品建议，平台会记录处理进度。</view>
+<view class="page-shell complaint-shell safe-bottom">
+  <view class="page-content complaint-page page-enter">
+    <view class="complaint-header">
+      <view>
+        <view class="complaint-kicker">服务反馈</view>
+        <view class="section-title complaint-title">投诉与建议</view>
+      </view>
+      <view class="complaint-count">{{history.length}} 条</view>
+    </view>
+
+    <view class="panel-card complaint-form">
+      <view class="complaint-form__title">提交投诉或建议</view>
+      <view class="complaint-form__desc">描述订单问题、司机服务反馈或产品建议，平台会记录处理进度。</view>
       <textarea class="review-textarea" placeholder="请输入订单问题、司机服务反馈或产品建议" value="{{content}}" bindinput="updateContent"></textarea>
       <button class="primary-button" hover-class="button-hover" bindtap="submitComplaint">提交反馈</button>
     </view>
-    <view class="panel-card complaint-card" wx:for="{{history}}" wx:key="id">
-      <view class="row-between">
-        <view class="section-title">{{item.title}}</view>
-        <view class="status-tag processing">{{item.status}}</view>
+
+    <view class="complaint-history">
+      <view class="complaint-history__title">处理记录</view>
+      <view class="panel-card complaint-card tap-scale" wx:for="{{history}}" wx:key="id">
+        <view class="row-between">
+          <view class="complaint-card__title">{{item.title}}</view>
+          <view class="status-tag processing">{{item.status}}</view>
+        </view>
+        <view class="complaint-card__time">{{item.createdAt}}</view>
       </view>
-      <view class="section-subtitle">{{item.createdAt}}</view>
     </view>
   </view>
 </view>
