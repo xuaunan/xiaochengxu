@@ -1,4 +1,4 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell coupon-page-shell safe-bottom">
   <view class="page-content page-enter">
     <view class="hero-card coupon-hero">
       <view class="section-title">优惠券中心</view>
