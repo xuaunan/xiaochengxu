@@ -289,7 +289,7 @@ input {
 .primary-button {
   color: #ffffff;
   background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
-  box-shadow: var(--shadow-brand);
+  box-shadow: 0 14rpx 32rpx rgba(255, 122, 0, 0.22);
 }
 
 .ghost-button {
