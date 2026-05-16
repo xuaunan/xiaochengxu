@@ -87,13 +87,13 @@ function navigateBackSilky(context, options = {}) {
       { opacity: 1, transform: 'translateY(0) scale(1)' },
       { opacity: 0.04, transform: 'translateY(6rpx) scale(0.992)' }
     ], duration, () => {
-      wx.navigateBack({ delta })
+      wx.navigateBack({ delta, __silkyHandled: true })
     })
     return null
   }
 
   context.__silkyLeaveTimer = setTimeout(() => {
-    wx.navigateBack({ delta })
+    wx.navigateBack({ delta, __silkyHandled: true })
   }, duration)
   return context.__silkyLeaveTimer
 }

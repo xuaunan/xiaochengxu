@@ -110,6 +110,123 @@ function normalizeUserStore(store) {
   return merged
 }
 
+function getCurrentPageInstance() {
+  if (typeof getCurrentPages !== 'function') return null
+  const pages = getCurrentPages()
+  return pages && pages.length ? pages[pages.length - 1] : null
+}
+
+function animatePageRoot(page, frames, duration) {
+  if (!page || typeof page.animate !== 'function') return
+
+  ;['.page-shell', '.home-page', '.picker-page', '.address-page'].forEach((selector) => {
+    try {
+      page.animate(selector, frames, duration)
+    } catch (error) {
+    }
+  })
+}
+
+function markGlobalNavTransition(app, type) {
+  if (!app || !app.globalData) return
+  app.globalData.uiTransition = {
+    ...(app.globalData.uiTransition || {}),
+    globalNavAt: Date.now(),
+    globalNavType: type || 'navigate',
+    globalNavConsumed: false
+  }
+}
+
+function playGlobalPageEnter(page, app) {
+  const transition = app && app.globalData ? app.globalData.uiTransition || {} : {}
+  const navAt = Number(transition.globalNavAt || 0)
+
+  if (!navAt || transition.globalNavConsumed || Date.now() - navAt > 1000) return
+
+  app.globalData.uiTransition = {
+    ...transition,
+    globalNavConsumed: true
+  }
+
+  setTimeout(() => {
+    animatePageRoot(page, [
+      { opacity: 0.94, transform: 'translateY(12rpx) scale(0.996)' },
+      { opacity: 1, transform: 'translateY(0) scale(1)' }
+    ], 260)
+  }, 16)
+}
+
+function stripInternalNavOptions(options = {}) {
+  const cleanOptions = { ...options }
+  delete cleanOptions.__silkyHandled
+  delete cleanOptions.__silkyImmediate
+  return cleanOptions
+}
+
+function installGlobalNavigationBridge(app) {
+  if (!wx || wx.__sunshineNavBridgeInstalled) return
+
+  const navApis = [
+    ['navigateTo', 96],
+    ['redirectTo', 96],
+    ['switchTab', 96],
+    ['navigateBack', 130]
+  ]
+
+  navApis.forEach(([name, duration]) => {
+    const original = wx[name]
+    if (typeof original !== 'function') return
+
+    wx[name] = function sunshineNavBridge(options = {}) {
+      const cleanOptions = stripInternalNavOptions(options)
+
+      markGlobalNavTransition(app, name)
+
+      if (options.__silkyImmediate || options.__silkyHandled) {
+        return original.call(wx, cleanOptions)
+      }
+
+      animatePageRoot(getCurrentPageInstance(), [
+        { opacity: 1, transform: 'translateY(0) scale(1)' },
+        { opacity: 0.82, transform: 'translateY(4rpx) scale(0.998)' }
+      ], duration)
+
+      setTimeout(() => {
+        original.call(wx, cleanOptions)
+      }, duration)
+      return undefined
+    }
+  })
+
+  wx.__sunshineNavBridgeInstalled = true
+}
+
+function installGlobalPageBridge(app) {
+  if (typeof Page !== 'function' || Page.__sunshinePageBridgeInstalled) return
+
+  const originalPage = Page
+  Page = function sunshinePageBridge(config = {}) {
+    const originalOnShow = config.onShow
+    const originalOnUnload = config.onUnload
+
+    config.onShow = function sunshinePageOnShow(...args) {
+      const result = originalOnShow ? originalOnShow.apply(this, args) : undefined
+      playGlobalPageEnter(this, app)
+      return result
+    }
+
+    config.onUnload = function sunshinePageOnUnload(...args) {
+      clearTimeout(this.silkyReturnTimer)
+      clearTimeout(this.__sunshineGlobalEnterTimer)
+      return originalOnUnload ? originalOnUnload.apply(this, args) : undefined
+    }
+
+    return originalPage(config)
+  }
+
+  Page.__sunshinePageBridgeInstalled = true
+}
+
 App({
   globalData: {
     baseUrl: 'http://127.0.0.1:8080',
@@ -136,6 +253,8 @@ App({
   userStorePersistTimer: null,
 
   onLaunch() {
+    installGlobalNavigationBridge(this)
+    installGlobalPageBridge(this)
     this.globalData.poiLibrary = POI_LIBRARY
     this.bootstrapState()
     this.syncSystemTheme()
