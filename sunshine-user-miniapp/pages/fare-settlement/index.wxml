@@ -1,6 +1,6 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content list-gap" wx:if="{{order}}">
-    <view class="hero-card">
+  <view class="page-content list-gap page-enter" wx:if="{{order}}">
+    <view class="hero-card settlement-hero">
       <view class="row-between">
         <view>
           <view class="section-title">{{summaryTitle}}</view>
