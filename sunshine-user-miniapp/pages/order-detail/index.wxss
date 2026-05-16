@@ -1,5 +1,5 @@
 .has-pay-bar {
-  padding-bottom: 356rpx;
+  padding-bottom: 250rpx;
 }
 
 .order-hero {
@@ -373,24 +373,6 @@
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-}
-
-.payment-scene-tip {
-  padding: 16rpx 20rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 122, 0, 0.1);
-  color: #ff7a00;
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-.cancel-fee-note {
-  padding: 20rpx 24rpx;
-  border-radius: 26rpx;
-  background: rgba(255, 122, 0, 0.08);
-  color: #7a8396;
-  font-size: 24rpx;
-  line-height: 1.5;
 }
 
 .payment-bar__row {
