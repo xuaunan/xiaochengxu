@@ -50,11 +50,24 @@ function markSilkyPageReady(context, options = {}) {
   return context.__silkyEnterTimer
 }
 
+function setSilkyReturnSignal(options = {}) {
+  const app = typeof getApp === 'function' ? getApp() : null
+  if (!app || !app.globalData) return
+
+  app.globalData.uiTransition = {
+    ...(app.globalData.uiTransition || {}),
+    silkyReturnAt: Date.now(),
+    silkyReturnSource: options.source || ''
+  }
+}
+
 function navigateBackSilky(context, options = {}) {
   const delta = Number(options.delta || 1)
   const duration = Number(options.duration !== undefined ? options.duration : 160)
   const key = options.key || 'pageLeaving'
+  const selector = options.selector || ''
   const beforeLeave = typeof options.beforeLeave === 'function' ? options.beforeLeave : null
+  const source = options.source || ''
 
   if (beforeLeave) {
     beforeLeave()
@@ -65,8 +78,20 @@ function navigateBackSilky(context, options = {}) {
     return null
   }
 
+  setSilkyReturnSignal({ source })
   context.setData({ [key]: true })
   clearTimeout(context.__silkyLeaveTimer)
+
+  if (selector && typeof context.animate === 'function') {
+    context.animate(selector, [
+      { opacity: 1, transform: 'translateY(0) scale(1)' },
+      { opacity: 0.04, transform: 'translateY(6rpx) scale(0.992)' }
+    ], duration, () => {
+      wx.navigateBack({ delta })
+    })
+    return null
+  }
+
   context.__silkyLeaveTimer = setTimeout(() => {
     wx.navigateBack({ delta })
   }, duration)

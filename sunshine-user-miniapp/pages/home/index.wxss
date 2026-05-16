@@ -44,6 +44,14 @@
   box-shadow: 0 -10rpx 28rpx rgba(24, 34, 56, 0.08);
 }
 
+.home-page--silky-return .home-map-wrap {
+  animation: home-map-return 0.28s ease both;
+}
+
+.home-page--silky-return .home-panel {
+  animation: home-panel-return 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 .home-panel::after {
   content: '';
   position: absolute;
@@ -429,5 +437,25 @@
   }
   100% {
     transform: scale(1);
+  }
+}
+
+@keyframes home-map-return {
+  from {
+    opacity: 0.94;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes home-panel-return {
+  from {
+    opacity: 0.92;
+    transform: translateY(18rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

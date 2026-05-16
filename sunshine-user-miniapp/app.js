@@ -116,6 +116,7 @@ App({
     token: '',
     poiLibrary: [],
     runtimeCache: {},
+    uiTransition: {},
     mapConfig: {
       tencentKey: 'YOUR_TENCENT_MAP_KEY'
     },
