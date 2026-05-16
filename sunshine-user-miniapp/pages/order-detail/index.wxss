@@ -5,10 +5,9 @@
 .order-hero {
   overflow: hidden;
   background:
-    radial-gradient(circle at top right, rgba(255, 177, 74, 0.3), transparent 36%),
-    radial-gradient(circle at bottom left, rgba(255, 122, 0, 0.08), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #fff9f1 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.1);
+    radial-gradient(circle at top right, rgba(255, 122, 0, 0.08), transparent 36%),
+    rgba(255, 255, 255, 0.97);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .hero-head {
@@ -31,8 +30,8 @@
 
 .hero-status-accent {
   color: #ffffff;
-  background: linear-gradient(135deg, #ff7a00 0%, #ff9b2f 100%);
-  box-shadow: 0 12rpx 24rpx rgba(255, 122, 0, 0.2);
+  background: #ff7a00;
+  box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.16);
 }
 
 .amount-caption {
@@ -78,9 +77,8 @@
   margin-top: 26rpx;
   padding: 24rpx;
   border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 10rpx 24rpx rgba(31, 36, 50, 0.04);
+  background: #f7f8fc;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .address-row {
@@ -283,7 +281,7 @@
 
 .timeline-summary.timeline-completed,
 .timeline-summary.timeline-completed-muted {
-  background: linear-gradient(180deg, #fffaf3 0%, #fff7ec 100%);
+  background: rgba(255, 122, 0, 0.06);
 }
 
 .timeline-summary.timeline-current {
@@ -308,9 +306,8 @@
   font-size: 24rpx;
   font-weight: 700;
   color: #ff7a00;
-  background: linear-gradient(180deg, #fff6ea 0%, #fff1df 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.08);
+  background: rgba(255, 122, 0, 0.09);
+  border: 1rpx solid rgba(255, 122, 0, 0.12);
 }
 
 .info-list {
@@ -390,7 +387,7 @@
 .cancel-fee-note {
   padding: 20rpx 24rpx;
   border-radius: 26rpx;
-  background: linear-gradient(180deg, #fffaf3 0%, #fff4e6 100%);
+  background: rgba(255, 122, 0, 0.08);
   color: #7a8396;
   font-size: 24rpx;
   line-height: 1.5;
@@ -408,9 +405,9 @@
   gap: 18rpx;
   padding: 22rpx 24rpx;
   border-radius: 28rpx;
-  background: linear-gradient(180deg, #fffaf3 0%, #fff4e6 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 10rpx 24rpx rgba(255, 122, 0, 0.08);
+  background: rgba(255, 255, 255, 0.97);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.06);
 }
 
 .coupon-entry--disabled {
@@ -434,7 +431,7 @@
   font-size: 22rpx;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, #ff7a00 0%, #ffb14a 100%);
+  background: #ff7a00;
 }
 
 .coupon-entry__label {
@@ -488,7 +485,7 @@
 .pay-button {
   flex: 1;
   min-height: 96rpx;
-  border-radius: 999rpx;
+  border-radius: 26rpx;
   font-size: 32rpx;
 }
 
