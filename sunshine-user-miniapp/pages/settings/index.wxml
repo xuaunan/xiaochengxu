@@ -1,5 +1,9 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content list-gap">
+  <view class="page-content list-gap page-enter">
+    <view class="hero-card settings-hero">
+      <view class="section-title">出行偏好</view>
+      <view class="section-subtitle">消息、优惠和显示偏好会保存在本地，并在下次进入小程序时继续生效。</view>
+    </view>
     <view class="panel-card setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting">
       <view>
         <view class="section-title">消息推送</view>

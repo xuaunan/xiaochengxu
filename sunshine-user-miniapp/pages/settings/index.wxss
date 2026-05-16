@@ -1,7 +1,25 @@
+.settings-hero {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 177, 74, 0.24), transparent 36%),
+    linear-gradient(180deg, #ffffff 0%, #fff8ef 100%);
+  border: 1rpx solid rgba(255, 122, 0, 0.1);
+}
+
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24rpx;
+  border: 1rpx solid rgba(255, 122, 0, 0.07);
+}
+
+.setting-row .section-title {
+  font-size: 30rpx;
+}
+
+.setting-row switch {
+  flex-shrink: 0;
 }
 
 

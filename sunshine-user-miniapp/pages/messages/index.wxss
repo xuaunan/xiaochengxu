@@ -2,14 +2,29 @@
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  margin-top: 18rpx;
 }
 
 .message-card {
-  padding: 20rpx 22rpx;
-  border-radius: 18rpx;
-  background: #ffffff;
-  box-shadow: 0 10rpx 24rpx rgba(31, 36, 50, 0.06);
+  position: relative;
+  overflow: hidden;
+  padding: 24rpx 24rpx 24rpx 30rpx;
+  border-radius: 26rpx;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 177, 74, 0.1), transparent 34%),
+    #ffffff;
+  border: 1rpx solid rgba(255, 122, 0, 0.07);
+  box-shadow: 0 14rpx 32rpx rgba(31, 36, 50, 0.06);
+}
+
+.message-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22rpx;
+  bottom: 22rpx;
+  width: 6rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #ff7a00, #ffb14a);
 }
 
 .message-card__head {
@@ -20,9 +35,9 @@
 
 .message-card__title {
   min-width: 0;
-  font-size: 26rpx;
+  font-size: 28rpx;
   line-height: 1.35;
-  font-weight: 700;
+  font-weight: 800;
   color: #1f2432;
 }
 
@@ -47,7 +62,11 @@
 }
 
 .message-empty {
-  padding: 60rpx 24rpx;
+  padding: 80rpx 28rpx;
+  border-radius: 32rpx;
+  background:
+    radial-gradient(circle at 50% 0, rgba(255, 177, 74, 0.14), transparent 38%),
+    rgba(255, 255, 255, 0.78);
   text-align: center;
   color: #8a94a8;
 }
