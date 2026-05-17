@@ -207,6 +207,29 @@ Page({
     this.navigateBackWithAnimation(1)
   },
 
+  returnHomeAfterSelection() {
+    clearTimeout(this.leaveTimer)
+    this.setData({
+      pageLeaving: true,
+      pageReady: true
+    })
+    this.leaveTimer = setTimeout(() => {
+      wx.switchTab({
+        url: '/pages/home/index',
+        fail: () => {
+          this.setData({
+            pageLeaving: false,
+            pageReady: true
+          })
+          wx.showToast({
+            title: '返回首页失败，请重试',
+            icon: 'none'
+          })
+        }
+      })
+    }, 120)
+  },
+
   async getMapCenterLocation() {
     if (!this.mapCtx || !this.mapCtx.getCenterLocation) {
       return {
@@ -460,6 +483,11 @@ Page({
 
     saveHistoryAddress(normalized)
     app.updateDraft(draft)
-    this.navigateBackWithAnimation(this.data.source === 'search' ? 2 : 1)
+    if (this.data.source === 'search') {
+      this.returnHomeAfterSelection()
+      return
+    }
+
+    this.navigateBackWithAnimation(1)
   }
 })

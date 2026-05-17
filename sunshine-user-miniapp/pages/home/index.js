@@ -205,8 +205,7 @@ Page({
     dispatching: false,
     activeRideCard: null,
     brandTitle: '阳光出行',
-    brandSubtitle: '暖橙色出行服务平台',
-    silkyReturnActive: false
+    brandSubtitle: '暖橙色出行服务平台'
   },
 
   async onLoad() {
@@ -230,7 +229,6 @@ Page({
 
   async onShow() {
     const app = getApp()
-    this.playSilkyReturnIfNeeded()
     const storeCoupons = app.globalData.userStore.coupons || []
     const draft = app.globalData.routeDraft || {}
     const nextDraft = {
@@ -278,7 +276,6 @@ Page({
     })
     clearInterval(this.metricTimer)
     clearTimeout(this.cardAnimateTimer)
-    clearTimeout(this.silkyReturnTimer)
     this.stopActiveRidePolling()
   },
 
@@ -294,24 +291,6 @@ Page({
       clearInterval(this.activeRideSyncTimer)
       this.activeRideSyncTimer = null
     }
-  },
-
-  playSilkyReturnIfNeeded() {
-    const app = getApp()
-    const transition = (app.globalData && app.globalData.uiTransition) || {}
-    const returnedAt = Number(transition.silkyReturnAt || 0)
-
-    if (!returnedAt || Date.now() - returnedAt > 900) return
-
-    app.globalData.uiTransition = {
-      ...transition,
-      silkyReturnAt: 0
-    }
-    clearTimeout(this.silkyReturnTimer)
-    this.setData({ silkyReturnActive: true })
-    this.silkyReturnTimer = setTimeout(() => {
-      this.setData({ silkyReturnActive: false })
-    }, 320)
   },
 
   initLayoutMetrics() {
