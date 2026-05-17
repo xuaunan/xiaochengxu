@@ -1,16 +1,30 @@
-<view class="page-shell">
-  <view class="page-content list-gap">
-    <view class="hero-card withdraw-card page-enter">
-      <view class="section-title">提现申请</view>
-      <view class="section-subtitle">提交后预计 1 个工作日内完成审核，请留意站内消息通知。</view>
-      <view class="withdraw-form">
-        <input class="driver-input" data-key="amount" type="digit" value="{{form.amount}}" bindinput="updateField" placeholder="请输入提现金额" />
-        <input class="driver-input" data-key="bankAccount" value="{{form.bankAccount}}" bindinput="updateField" placeholder="请输入银行卡号" />
-        <input class="driver-input" data-key="bankName" value="{{form.bankName}}" bindinput="updateField" placeholder="请输入开户行" />
+<view class="page-shell withdraw-shell safe-bottom">
+  <view class="page-content withdraw-page has-bottom-action">
+    <view class="withdraw-hero page-enter">
+      <view class="withdraw-hero__icon"></view>
+      <view class="withdraw-hero__copy">
+        <view class="withdraw-title">提现申请</view>
+        <view class="withdraw-desc">提交后预计 1 个工作日内完成审核，请留意站内消息通知。</view>
+      </view>
+    </view>
+
+    <view class="withdraw-card">
+      <view class="withdraw-field">
+        <view class="withdraw-field__label">提现金额</view>
+        <input class="driver-input withdraw-input" data-key="amount" type="digit" value="{{form.amount}}" bindinput="updateField" placeholder="请输入提现金额" />
+      </view>
+      <view class="withdraw-field">
+        <view class="withdraw-field__label">银行卡号</view>
+        <input class="driver-input withdraw-input" data-key="bankAccount" value="{{form.bankAccount}}" bindinput="updateField" placeholder="请输入银行卡号" />
+      </view>
+      <view class="withdraw-field">
+        <view class="withdraw-field__label">开户行</view>
+        <input class="driver-input withdraw-input" data-key="bankName" value="{{form.bankName}}" bindinput="updateField" placeholder="请输入开户行" />
       </view>
     </view>
   </view>
-  <view class="floating-bar">
-    <button class="primary-button" hover-class="button-hover" bindtap="submit">确认提现</button>
+
+  <view class="floating-bar withdraw-floating-bar">
+    <button class="primary-button withdraw-button" hover-class="button-hover" bindtap="submit">确认提现</button>
   </view>
 </view>
