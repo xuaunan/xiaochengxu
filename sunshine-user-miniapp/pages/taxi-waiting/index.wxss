@@ -1,10 +1,17 @@
+.waiting-shell {
+  background: linear-gradient(180deg, rgba(255, 246, 237, 0.62) 0%, #f7f8fc 30%, #f5f7fb 100%);
+}
+
 .waiting-banner {
   text-align: center;
+  border-radius: 30rpx;
+  background: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
 }
 
 .waiting-title {
   margin-top: 24rpx;
-  font-size: 42rpx;
+  font-size: 38rpx;
   font-weight: 800;
   color: #1f2432;
 }
@@ -16,15 +23,26 @@
 }
 
 .waiting-circle {
-  width: 180rpx;
-  height: 180rpx;
+  width: 168rpx;
+  height: 168rpx;
   margin: 36rpx auto 0;
   border-radius: 50%;
-  line-height: 180rpx;
-  font-size: 48rpx;
+  line-height: 168rpx;
+  font-size: 44rpx;
   font-weight: 800;
   color: #ff7a00;
   background: radial-gradient(circle, rgba(255, 122, 0, 0.12), rgba(255, 122, 0, 0.02));
+}
+
+.waiting-metrics {
+  margin-top: 22rpx;
+}
+
+.waiting-metric,
+.waiting-rule {
+  border-radius: 26rpx;
+  background: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
 }
 
 

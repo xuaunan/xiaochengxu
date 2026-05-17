@@ -1,4 +1,4 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell waiting-shell safe-bottom">
   <view class="page-content">
     <view class="hero-card waiting-banner">
       <view class="pill">智能派单中</view>
@@ -7,22 +7,22 @@
       <view class="waiting-circle">{{countdown}}s</view>
     </view>
 
-    <view class="metric-grid">
-      <view class="metric-item">
+    <view class="metric-grid waiting-metrics">
+      <view class="metric-item waiting-metric">
         <view class="metric-value">{{order.nearbyDrivers}}</view>
         <view class="metric-label">附近司机</view>
       </view>
-      <view class="metric-item">
+      <view class="metric-item waiting-metric">
         <view class="metric-value">{{order.waitingMinutes}}分钟</view>
         <view class="metric-label">预计接单</view>
       </view>
-      <view class="metric-item">
+      <view class="metric-item waiting-metric">
         <view class="metric-value">{{order.carType.name}}</view>
         <view class="metric-label">已选车型</view>
       </view>
     </view>
 
-    <view class="panel-card">
+    <view class="panel-card waiting-rule">
       <view class="section-title">取消规则</view>
       <view class="section-subtitle">{{order.cancelRule}}</view>
     </view>
