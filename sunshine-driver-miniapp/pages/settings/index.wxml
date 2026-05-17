@@ -1,23 +1,27 @@
 <view class="page-shell">
   <view class="page-content list-gap driver-settings">
-    <view class="panel-card row-between tap-scale" data-key="listenMode" bindtap="toggle">
+    <view class="hero-card driver-settings-hero page-enter">
+      <view class="section-title">接单设置</view>
+      <view class="section-subtitle">听单、自动接单、轨迹模式与播报偏好</view>
+    </view>
+    <view class="panel-card setting-row row-between tap-scale" data-key="listenMode" bindtap="toggle">
       <view>
         <view class="section-title">听单模式</view>
         <view class="section-subtitle">关闭后不再接收新订单</view>
       </view>
       <switch color="#ff7a00" checked="{{settings.listenMode}}"></switch>
     </view>
-    <view class="panel-card row-between tap-scale" data-key="autoAccept" bindtap="toggle">
+    <view class="panel-card setting-row row-between tap-scale" data-key="autoAccept" bindtap="toggle">
       <view>
         <view class="section-title">自动接单</view>
-        <view class="section-subtitle">开启后，仅自动接取开始听单后产生的即时打车订单，订单产生 5 秒后执行</view>
+        <view class="section-subtitle">听单后自动接取符合条件的即时打车订单</view>
       </view>
       <switch color="#ff7a00" checked="{{settings.autoAccept}}"></switch>
     </view>
-    <view class="panel-card row-between tap-scale" data-key="voiceBroadcast" bindtap="toggle">
+    <view class="panel-card setting-row row-between tap-scale" data-key="voiceBroadcast" bindtap="toggle">
       <view>
         <view class="section-title">语音播报</view>
-        <view class="section-subtitle">播报接驾 500 米、乘客上车、上车后提醒、目的地 500 米、自动接单、顺风车和乘客取消</view>
+        <view class="section-subtitle">播报接驾、上车、目的地提醒和订单变化</view>
       </view>
       <switch color="#ff7a00" checked="{{settings.voiceBroadcast}}"></switch>
     </view>
@@ -54,7 +58,7 @@
       </view>
       <view class="voice-style-current">当前选择：{{currentVoiceStyleLabel}}</view>
     </view>
-    <view class="panel-card row-between">
+    <view class="panel-card setting-row row-between">
       <view>
         <view class="section-title">试听当前声音</view>
         <view class="section-subtitle">立即播放一条测试语音，检查当前音色是否正常</view>
