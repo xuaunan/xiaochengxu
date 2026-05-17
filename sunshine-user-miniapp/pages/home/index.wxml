@@ -14,18 +14,57 @@
       enable-satellite="{{false}}"
     ></map>
 
-    <view class="home-brand" style="top: {{statusBarHeight + 18}}px;">
-      <view class="home-brand__title">{{brandTitle}}</view>
-      <view class="home-brand__subtitle">{{brandSubtitle}}</view>
+    <view class="map-brand" style="top: {{statusBarHeight + 24}}px;">
+      <view class="brand-mark">
+        <view class="brand-mark__shield"></view>
+        <view>
+          <view class="brand-title">{{brandTitle}}</view>
+          <view class="brand-subtitle">让出行更美好</view>
+        </view>
+      </view>
+      <view class="brand-road"></view>
+      <view class="brand-taxi">
+        <view class="brand-taxi__body"></view>
+        <view class="brand-taxi__top"></view>
+        <view class="brand-taxi__wheel brand-taxi__wheel--left"></view>
+        <view class="brand-taxi__wheel brand-taxi__wheel--right"></view>
+      </view>
+    </view>
+
+    <view class="map-center-pin">
+      <view class="map-center-pin__ring"></view>
+      <view class="map-center-pin__dot"></view>
+    </view>
+
+    <view class="map-driver-car">
+      <view class="map-driver-car__body"></view>
+      <view class="map-driver-car__top"></view>
+      <view class="map-driver-car__wheel map-driver-car__wheel--left"></view>
+      <view class="map-driver-car__wheel map-driver-car__wheel--right"></view>
+    </view>
+
+    <view class="safety-pill tap-scale" hover-class="pressable-hover" hover-stay-time="60">
+      <view class="safety-icon">✓</view>
+      <text>安全中心</text>
+      <view class="safety-arrow"></view>
     </view>
   </view>
 
   <view class="home-panel" style="height: {{panelHeight}}px;">
     <scroll-view class="home-panel__content" scroll-y enhanced show-scrollbar="{{false}}">
       <view class="service-tabs">
-        <view class="service-tab {{activeService === 'taxi' ? 'service-tab--active' : ''}}" data-type="taxi" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">打车</view>
-        <view class="service-tab {{activeService === 'carpool' ? 'service-tab--active' : ''}}" data-type="carpool" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">顺风车</view>
-        <view class="service-tab {{activeService === 'international' ? 'service-tab--active' : ''}}" data-type="international" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">国际出行</view>
+        <view class="service-tab {{activeService === 'taxi' ? 'service-tab--active' : ''}}" data-type="taxi" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="service-tab__icon service-tab__icon--taxi"></view>
+          <text>打车</text>
+        </view>
+        <view class="service-tab {{activeService === 'carpool' ? 'service-tab--active' : ''}}" data-type="carpool" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="service-tab__icon service-tab__icon--people"></view>
+          <text>顺风车</text>
+        </view>
+        <view class="service-tab {{activeService === 'international' ? 'service-tab--active' : ''}}" data-type="international" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="service-tab__icon service-tab__icon--plane"></view>
+          <text>国际出行</text>
+        </view>
       </view>
 
       <view wx:if="{{activeRideCard}}" class="current-ride-card tap-scale" bindtap="openCurrentRide" hover-class="pressable-hover" hover-stay-time="60">
@@ -42,31 +81,34 @@
         </view>
       </view>
 
-      <view class="address-block">
-        <view class="address-card tap-scale" data-type="start" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="address-card__dot address-card__dot--start"></view>
-          <view class="address-card__body">
-            <view class="address-card__label">从哪里出发</view>
-            <view class="address-card__value">{{draft.start.name || '请选择出发地'}}</view>
+      <view class="address-card">
+        <view class="address-row tap-scale" data-type="start" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="address-pin address-pin--start"></view>
+          <view class="address-copy">
+            <view class="address-label">从哪里出发</view>
+            <view class="address-value">{{draft.start.name || '请选择出发地'}}</view>
           </view>
+          <view class="address-arrow"></view>
         </view>
 
-        <view class="address-switch tap-scale" bindtap="swapAddress" hover-class="pressable-hover" hover-stay-time="60">换</view>
+        <view class="address-divider"></view>
+        <view class="address-switch tap-scale" bindtap="swapAddress" hover-class="pressable-hover" hover-stay-time="60">⇅</view>
 
-        <view class="address-card tap-scale" data-type="end" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="address-card__dot address-card__dot--end"></view>
-          <view class="address-card__body">
-            <view class="address-card__label">去哪里</view>
-            <view class="address-card__value">{{draft.end.name || '请输入目的地'}}</view>
+        <view class="address-row tap-scale" data-type="end" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="address-pin address-pin--end"></view>
+          <view class="address-copy">
+            <view class="address-label">去哪里</view>
+            <view class="address-value">{{draft.end.name || '请输入目的地'}}</view>
           </view>
+          <view class="address-arrow"></view>
         </view>
       </view>
 
       <view class="estimate-block">
         <view class="estimate-head">
-          <view>
+          <view class="estimate-title-wrap">
+            <view class="estimate-icon">⌚</view>
             <view class="estimate-title">实时预估</view>
-            <view class="estimate-subtitle">路线自动绘制，费用会随车型实时变化</view>
           </view>
           <view class="estimate-tip">长按地图可快速选点</view>
         </view>
@@ -89,17 +131,18 @@
           hover-class="pressable-hover"
           hover-stay-time="60"
         >
-          <view class="car-card__icon-box">
-            <image class="car-card__image" src="{{item.image}}" mode="aspectFit"></image>
-          </view>
+          <view class="car-card__check" wx:if="{{selectedCarTypeId === item.id}}">✓</view>
           <view class="car-card__name">{{item.name}}</view>
           <view class="car-card__desc">{{item.description}}</view>
+          <image class="car-card__image" src="{{item.image}}" mode="aspectFit"></image>
           <view class="car-card__action {{selectedCarTypeId === item.id ? 'car-card__action--price' : ''}}">
             <view class="car-card__price-row" wx:if="{{item.actionMode === 'price' && item.hasCouponDiscount}}">
+              <text class="car-card__price-label">预估</text>
               <text class="car-card__price-original car-card__price-original--discounted">{{item.originalPriceText}}</text>
               <text class="car-card__price-payable">{{item.payablePriceText}}</text>
             </view>
             <view class="car-card__price-row" wx:elif="{{item.actionMode === 'price'}}">
+              <text class="car-card__price-label">预估</text>
               <text class="car-card__price-single">{{item.payablePriceText}}</text>
             </view>
             <text wx:else>{{item.actionText}}</text>

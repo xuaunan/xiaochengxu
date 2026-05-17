@@ -303,6 +303,7 @@
 }
 
 .section-icon {
+  position: relative;
   width: 48rpx;
   height: 48rpx;
   flex-shrink: 0;
@@ -311,16 +312,61 @@
   justify-content: center;
   border-radius: 16rpx;
   color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 900;
 }
 
 .section-icon--asset {
   background: linear-gradient(135deg, #ffb456 0%, #ff7a00 100%);
 }
 
+.section-icon--asset::before {
+  content: "";
+  position: absolute;
+  left: 13rpx;
+  top: 17rpx;
+  width: 22rpx;
+  height: 17rpx;
+  border-radius: 5rpx;
+  background: #ffffff;
+}
+
+.section-icon--asset::after {
+  content: "";
+  position: absolute;
+  left: 17rpx;
+  top: 11rpx;
+  width: 14rpx;
+  height: 12rpx;
+  border-radius: 6rpx 6rpx 2rpx 2rpx;
+  border: 4rpx solid #ffffff;
+  border-bottom: none;
+}
+
 .section-icon--service {
   background: linear-gradient(135deg, #ff9838 0%, #ff6f00 100%);
+}
+
+.section-icon--service::before {
+  content: "";
+  position: absolute;
+  left: 12rpx;
+  top: 12rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 7rpx;
+  border: 5rpx solid #ffffff;
+  transform: rotate(45deg);
+}
+
+.section-icon--service::after {
+  content: "";
+  position: absolute;
+  left: 21rpx;
+  top: 13rpx;
+  width: 8rpx;
+  height: 18rpx;
+  border-right: 5rpx solid #ffffff;
+  border-bottom: 5rpx solid #ffffff;
+  transform: rotate(42deg);
 }
 
 .profile-card-title,
@@ -365,14 +411,13 @@
 }
 
 .asset-icon {
+  position: relative;
   width: 48rpx;
   height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 16rpx;
-  font-size: 22rpx;
-  font-weight: 900;
 }
 
 .asset-icon--wallet,
@@ -384,6 +429,71 @@
 .asset-icon--invoice {
   color: #2f72db;
   background: #eaf2ff;
+}
+
+.asset-icon--wallet::before {
+  content: "";
+  position: absolute;
+  left: 12rpx;
+  top: 14rpx;
+  width: 27rpx;
+  height: 22rpx;
+  border-radius: 6rpx;
+  border: 4rpx solid currentColor;
+}
+
+.asset-icon--wallet::after {
+  content: "";
+  position: absolute;
+  right: 8rpx;
+  top: 21rpx;
+  width: 11rpx;
+  height: 9rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.asset-icon--invoice::before {
+  content: "";
+  position: absolute;
+  left: 14rpx;
+  top: 10rpx;
+  width: 22rpx;
+  height: 29rpx;
+  border-radius: 6rpx;
+  background: currentColor;
+}
+
+.asset-icon--invoice::after {
+  content: "";
+  position: absolute;
+  left: 20rpx;
+  top: 17rpx;
+  width: 12rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 0 #ffffff, 0 16rpx 0 #ffffff;
+}
+
+.asset-icon--coupon::before {
+  content: "";
+  position: absolute;
+  left: 10rpx;
+  top: 14rpx;
+  width: 28rpx;
+  height: 21rpx;
+  border-radius: 6rpx;
+  border: 4rpx solid currentColor;
+}
+
+.asset-icon--coupon::after {
+  content: "";
+  position: absolute;
+  left: 22rpx;
+  top: 14rpx;
+  height: 21rpx;
+  border-left: 3rpx dashed currentColor;
 }
 
 .asset-value {
@@ -425,7 +535,8 @@
   border-bottom: none;
 }
 
-.menu-index {
+.menu-icon {
+  position: relative;
   width: 58rpx;
   height: 58rpx;
   flex-shrink: 0;
@@ -435,19 +546,187 @@
   border-radius: 18rpx;
   color: #ff7a00;
   background: #fff0df;
-  font-size: 24rpx;
-  font-weight: 900;
 }
 
-.menu-index--1 {
+.menu-icon--shield {
   color: #10a566;
   background: #eaf8f1;
 }
 
-.menu-index--4,
-.menu-index--5 {
+.menu-icon--message,
+.menu-icon--bell {
   color: #2f72db;
   background: #edf5ff;
+}
+
+.menu-icon--user::before,
+.menu-icon--user::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.menu-icon--user::before {
+  top: 12rpx;
+  width: 18rpx;
+  height: 18rpx;
+}
+
+.menu-icon--user::after {
+  left: 14rpx;
+  bottom: 11rpx;
+  width: 30rpx;
+  height: 19rpx;
+  border-radius: 18rpx 18rpx 8rpx 8rpx;
+}
+
+.menu-icon--shield::before {
+  content: "";
+  position: absolute;
+  left: 14rpx;
+  top: 10rpx;
+  width: 30rpx;
+  height: 34rpx;
+  border-radius: 13rpx 13rpx 18rpx 18rpx;
+  background: currentColor;
+}
+
+.menu-icon--shield::after {
+  content: "";
+  position: absolute;
+  left: 24rpx;
+  top: 18rpx;
+  width: 10rpx;
+  height: 18rpx;
+  border-right: 5rpx solid #ffffff;
+  border-bottom: 5rpx solid #ffffff;
+  transform: rotate(42deg);
+}
+
+.menu-icon--wallet::before,
+.menu-icon--invoice::before {
+  content: "";
+  position: absolute;
+  left: 14rpx;
+  top: 18rpx;
+  width: 30rpx;
+  height: 22rpx;
+  border-radius: 7rpx;
+  border: 4rpx solid currentColor;
+}
+
+.menu-icon--wallet::after {
+  content: "";
+  position: absolute;
+  right: 11rpx;
+  top: 26rpx;
+  width: 10rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.menu-icon--star::before {
+  content: "★";
+  position: absolute;
+  left: 12rpx;
+  top: 6rpx;
+  color: currentColor;
+  font-size: 37rpx;
+  line-height: 1;
+}
+
+.menu-icon--message::before {
+  content: "";
+  position: absolute;
+  left: 12rpx;
+  top: 15rpx;
+  width: 34rpx;
+  height: 25rpx;
+  border-radius: 8rpx;
+  background: currentColor;
+}
+
+.menu-icon--message::after {
+  content: "";
+  position: absolute;
+  left: 22rpx;
+  top: 26rpx;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 9rpx 0 0 #ffffff, 18rpx 0 0 #ffffff;
+}
+
+.menu-icon--bell::before {
+  content: "";
+  position: absolute;
+  left: 15rpx;
+  top: 12rpx;
+  width: 28rpx;
+  height: 30rpx;
+  border-radius: 16rpx 16rpx 9rpx 9rpx;
+  background: currentColor;
+}
+
+.menu-icon--bell::after {
+  content: "";
+  position: absolute;
+  left: 25rpx;
+  bottom: 10rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 14rpx -34rpx 0 0 #ff5b2f;
+}
+
+.menu-icon--help::before {
+  content: "?";
+  position: absolute;
+  left: 18rpx;
+  top: 7rpx;
+  color: currentColor;
+  font-size: 40rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.menu-icon--settings::before {
+  content: "";
+  position: absolute;
+  left: 14rpx;
+  top: 14rpx;
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  border: 8rpx solid currentColor;
+}
+
+.menu-icon--settings::after {
+  content: "";
+  position: absolute;
+  left: 25rpx;
+  top: 4rpx;
+  width: 8rpx;
+  height: 50rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.menu-icon--invoice::after {
+  content: "";
+  position: absolute;
+  left: 21rpx;
+  top: 24rpx;
+  width: 15rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: 0 8rpx 0 currentColor;
 }
 
 .menu-copy {
