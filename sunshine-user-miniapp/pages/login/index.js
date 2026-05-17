@@ -8,6 +8,7 @@ Page({
     password: '123456',
     nickname: '',
     agreed: true,
+    showPassword: false,
     loading: false,
     loginTip: '默认乘客测试账号：13800000001 / 123456。'
   },
@@ -42,6 +43,36 @@ Page({
   updateNickname(e) {
     this.setData({
       nickname: e.detail.value
+    })
+  },
+
+  clearPhone() {
+    this.setData({
+      phone: ''
+    })
+  },
+
+  togglePasswordVisible() {
+    this.setData({
+      showPassword: !this.data.showPassword
+    })
+  },
+
+  handleForgotPassword() {
+    wx.showToast({
+      title: '演示环境请使用默认密码 123456',
+      icon: 'none'
+    })
+  },
+
+  goBack() {
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      wx.navigateBack()
+      return
+    }
+    wx.redirectTo({
+      url: '/pages/welcome/index'
     })
   },
 
