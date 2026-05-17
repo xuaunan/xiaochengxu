@@ -81,6 +81,7 @@ Page({
       password: '123456',
       nickname: '演示司机'
     },
+    showPassword: false,
     vehicleForm: {
       licenseNo: '沪驾字2026001',
       plateNo: '沪A12345',
@@ -130,6 +131,27 @@ Page({
     const { key } = e.currentTarget.dataset
     this.setData({
       [`loginForm.${key}`]: e.detail.value
+    })
+  },
+
+  clearLoginField(e) {
+    const { key } = e.currentTarget.dataset
+    if (!key) return
+    this.setData({
+      [`loginForm.${key}`]: ''
+    })
+  },
+
+  togglePasswordVisible() {
+    this.setData({
+      showPassword: !this.data.showPassword
+    })
+  },
+
+  handleForgotPassword() {
+    wx.showToast({
+      title: '演示环境请使用默认密码 123456',
+      icon: 'none'
     })
   },
 
