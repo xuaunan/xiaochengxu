@@ -78,17 +78,17 @@
     </view>
   </view>
 
-  <view wx:else class="vehicle-page">
-    <view class="vehicle-card">
-      <view class="row-between">
-        <view>
-          <view class="section-title">我的车辆</view>
-          <view class="section-subtitle">一个司机只可绑定一辆车，提交或更换车辆后都需要重新等待管理员审核。</view>
+  <view wx:else class="vehicle-page vehicle-reference-page">
+    <view class="vehicle-card vehicle-reference-card page-enter">
+      <view class="vehicle-reference-head">
+        <view class="vehicle-reference-copy">
+          <view class="vehicle-reference-title">我的车辆</view>
+          <view class="vehicle-reference-desc">一个司机只可绑定一辆车，提交或更换车辆后都需要重新等待管理员审核。</view>
         </view>
         <view class="status-chip {{vehicleView.auditClassName}}">{{vehicleView.auditText}}</view>
       </view>
 
-      <view class="summary-card" wx:if="{{vehicleView.hasVehicle}}">
+      <view class="vehicle-summary-box" wx:if="{{vehicleView.hasVehicle}}">
         <view class="summary-header">
           <view>
             <view class="summary-title">{{vehicleView.plateNo}}</view>
@@ -96,19 +96,36 @@
           </view>
           <view class="summary-right">{{profile.canReceiveOrders ? '可接单' : '待解锁'}}</view>
         </view>
-        <view class="summary-grid">
+        <view class="summary-grid summary-grid--reference">
           <view class="summary-item">
-            <view class="summary-label">座位数</view>
-            <view class="summary-value">{{vehicleView.seatCount}} 座</view>
+            <view class="summary-icon summary-icon--seat"></view>
+            <view>
+              <view class="summary-label">座位数</view>
+              <view class="summary-value">{{vehicleView.seatCount}}座</view>
+            </view>
           </view>
           <view class="summary-item">
-            <view class="summary-label">保险到期</view>
-            <view class="summary-value">{{vehicleView.insuranceExpireDate}}</view>
+            <view class="summary-icon summary-icon--shield"></view>
+            <view>
+              <view class="summary-label">保险到期</view>
+              <view class="summary-value">{{vehicleView.insuranceExpireDate}}</view>
+            </view>
           </view>
           <view class="summary-item">
-            <view class="summary-label">年检到期</view>
-            <view class="summary-value">{{vehicleView.annualInspectExpireDate}}</view>
+            <view class="summary-icon summary-icon--calendar"></view>
+            <view>
+              <view class="summary-label">年检到期</view>
+              <view class="summary-value">{{vehicleView.annualInspectExpireDate}}</view>
+            </view>
           </view>
+        </view>
+        <view class="permission-box">
+          <view class="permission-icon"></view>
+          <view class="permission-copy">
+            <view class="permission-title">{{permission.canReceiveOrders ? '当前可接单' : '接单权限未解锁'}}</view>
+            <view class="permission-desc">{{permission.message}}</view>
+          </view>
+          <view class="summary-right">{{profile.canReceiveOrders ? '可接单' : '待解锁'}}</view>
         </view>
       </view>
 
@@ -117,31 +134,63 @@
         <view class="empty-vehicle-title">还没有绑定车辆</view>
         <view class="empty-vehicle-desc">先补充车辆信息并提交审核，审核通过后即可进入接单大厅开始接单。</view>
       </view>
-
-      <view class="lock-card">
-        <view class="lock-title">{{permission.canReceiveOrders ? '当前可接单' : '接单权限未解锁'}}</view>
-        <view class="lock-desc">{{permission.message}}</view>
-      </view>
     </view>
 
-    <view class="vehicle-form">
-      <view class="section-title">{{vehicleView.hasVehicle ? '更换车辆信息' : '添加车辆信息'}}</view>
-      <view class="section-subtitle">
-        {{vehicleView.hasVehicle ? '提交更换后，车辆审核状态会回到待审核，接单权限临时锁定。' : '提交后系统会同步到后台司机管理列表，等待管理员审核。'}}
+    <view class="vehicle-form vehicle-form-reference">
+      <view class="vehicle-form-head">
+        <view class="vehicle-form-title">{{vehicleView.hasVehicle ? '更换车辆信息' : '添加车辆信息'}}</view>
+        <view class="vehicle-form-desc">
+          {{vehicleView.hasVehicle ? '提交更换后，车辆审核状态会回到待审核，接单权限临时锁定。' : '提交后系统会同步到后台司机管理列表，等待管理员审核。'}}
+        </view>
       </view>
 
-      <input class="vehicle-input" data-key="licenseNo" value="{{vehicleForm.licenseNo}}" bindinput="updateVehicleField" placeholder="驾驶证号" />
-      <input class="vehicle-input" data-key="plateNo" value="{{vehicleForm.plateNo}}" bindinput="updateVehicleField" placeholder="车牌号" />
-      <input class="vehicle-input" data-key="brand" value="{{vehicleForm.brand}}" bindinput="updateVehicleField" placeholder="车辆品牌" />
-      <input class="vehicle-input" data-key="modelName" value="{{vehicleForm.modelName}}" bindinput="updateVehicleField" placeholder="车型" />
-      <input class="vehicle-input" data-key="color" value="{{vehicleForm.color}}" bindinput="updateVehicleField" placeholder="车辆颜色" />
-      <input class="vehicle-input" data-key="seatCount" type="number" value="{{vehicleForm.seatCount}}" bindinput="updateVehicleField" placeholder="座位数" />
-      <input class="vehicle-input" data-key="insuranceExpireDate" value="{{vehicleForm.insuranceExpireDate}}" bindinput="updateVehicleField" placeholder="保险到期日，例如 2026-12-31" />
-      <input class="vehicle-input" data-key="annualInspectExpireDate" value="{{vehicleForm.annualInspectExpireDate}}" bindinput="updateVehicleField" placeholder="年检到期日，例如 2026-10-31" />
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--card"></view>
+        <view class="vehicle-field-label">行驶证编号</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="licenseNo" value="{{vehicleForm.licenseNo}}" bindinput="updateVehicleField" placeholder="驾驶证号" />
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--plate"></view>
+        <view class="vehicle-field-label">车牌号</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="plateNo" value="{{vehicleForm.plateNo}}" bindinput="updateVehicleField" placeholder="车牌号" />
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--brand"></view>
+        <view class="vehicle-field-label">品牌</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="brand" value="{{vehicleForm.brand}}" bindinput="updateVehicleField" placeholder="车辆品牌" />
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--car"></view>
+        <view class="vehicle-field-label">车型</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="modelName" value="{{vehicleForm.modelName}}" bindinput="updateVehicleField" placeholder="车型" />
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--color"></view>
+        <view class="vehicle-field-label">颜色</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="color" value="{{vehicleForm.color}}" bindinput="updateVehicleField" placeholder="车辆颜色" />
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--seat"></view>
+        <view class="vehicle-field-label">座位数</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="seatCount" type="number" value="{{vehicleForm.seatCount}}" bindinput="updateVehicleField" placeholder="座位数" />
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--shield"></view>
+        <view class="vehicle-field-label">保险到期</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="insuranceExpireDate" value="{{vehicleForm.insuranceExpireDate}}" bindinput="updateVehicleField" placeholder="2026-12-31" />
+        <view class="calendar-icon"></view>
+      </view>
+      <view class="vehicle-form-row">
+        <view class="vehicle-field-icon vehicle-field-icon--calendar"></view>
+        <view class="vehicle-field-label">年检到期</view>
+        <input class="vehicle-input vehicle-input-reference" data-key="annualInspectExpireDate" value="{{vehicleForm.annualInspectExpireDate}}" bindinput="updateVehicleField" placeholder="2026-10-31" />
+        <view class="calendar-icon"></view>
+      </view>
 
-      <view class="upload-grid">
-        <view class="upload-card">
+      <view class="upload-grid upload-grid-reference">
+        <view class="upload-card upload-card-reference">
           <view class="upload-title">行驶证照片</view>
+          <view class="upload-desc">请上传清晰、完整的行驶证照片</view>
           <image
             wx:if="{{vehiclePreview.vehicleLicenseImageUrl}}"
             class="upload-preview"
@@ -151,13 +200,14 @@
             bindtap="handleImageTap"
           ></image>
           <view wx:else class="upload-placeholder" data-key="vehicleLicenseImageUrl" bindtap="chooseImage">点击选择行驶证图片</view>
-          <button class="ghost-button" hover-class="button-hover" data-key="vehicleLicenseImageUrl" bindtap="chooseImage">
+          <button class="upload-action" hover-class="button-hover" data-key="vehicleLicenseImageUrl" bindtap="chooseImage">
             {{vehicleForm.vehicleLicenseImageUrl ? '重新选择' : '上传行驶证'}}
           </button>
         </view>
 
-        <view class="upload-card">
+        <view class="upload-card upload-card-reference">
           <view class="upload-title">驾驶证照片</view>
+          <view class="upload-desc">请上传清晰、完整的驾驶证照片</view>
           <image
             wx:if="{{vehiclePreview.driverLicenseImageUrl}}"
             class="upload-preview"
@@ -167,16 +217,16 @@
             bindtap="handleImageTap"
           ></image>
           <view wx:else class="upload-placeholder" data-key="driverLicenseImageUrl" bindtap="chooseImage">点击选择驾驶证图片</view>
-          <button class="ghost-button" hover-class="button-hover" data-key="driverLicenseImageUrl" bindtap="chooseImage">
+          <button class="upload-action" hover-class="button-hover" data-key="driverLicenseImageUrl" bindtap="chooseImage">
             {{vehicleForm.driverLicenseImageUrl ? '重新选择' : '上传驾驶证'}}
           </button>
         </view>
       </view>
     </view>
 
-    <view class="floating-actions">
-      <button class="ghost-button" hover-class="button-hover" bindtap="goDashboard">返回接单大厅</button>
-      <button class="primary-button" hover-class="button-hover" bindtap="submitVehicle">
+    <view class="floating-actions floating-actions-reference">
+      <button class="vehicle-secondary-button" hover-class="button-hover" bindtap="goDashboard">返回接单大厅</button>
+      <button class="vehicle-primary-button" hover-class="button-hover" bindtap="submitVehicle">
         {{vehicleView.hasVehicle ? '确认更换车辆' : '添加车辆'}}
       </button>
     </view>
