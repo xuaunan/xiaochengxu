@@ -1,63 +1,135 @@
-<view class="page-shell" wx:if="{{trip}}">
+<view class="page-shell trip-detail-shell safe-bottom" wx:if="{{trip}}">
   <view wx:if="{{noticePopup.visible}}" class="mini-popup mini-popup--{{noticePopup.type}}">
     <view class="mini-popup__title">{{noticePopup.title}}</view>
     <view class="mini-popup__content">{{noticePopup.content}}</view>
   </view>
 
-  <view class="page-content list-gap">
-    <view class="hero-card trip-hero page-enter">
-      <view class="trip-hero__top">
-        <view>
-          <view class="section-title trip-route">{{trip.startName}} -> {{trip.endName}}</view>
-          <view class="section-subtitle trip-order-no">订单号 {{trip.orderNo}} | {{trip.passengerText}}</view>
+  <view class="page-content trip-detail-page has-floating-action">
+    <view class="trip-hero page-enter">
+      <view class="trip-hero__head">
+        <view class="trip-hero__copy">
+          <view class="trip-route">{{trip.startName}} -> {{trip.endName}}</view>
+          <view class="trip-order-no">订单号 {{trip.orderNo}} ｜ {{trip.passengerText}}</view>
+          <view class="trip-detail-tags">
+            <view class="status-tag {{trip.serviceTypeClassName}}">{{trip.serviceTypeLabel}}</view>
+            <view class="pill trip-fare">{{trip.fareText}}</view>
+          </view>
         </view>
-        <view class="status-tag {{trip.statusTagType}}">{{trip.statusText}}</view>
+        <view class="status-tag {{trip.statusTagType}} trip-status">{{trip.statusText}}</view>
       </view>
 
-      <view class="trip-detail-tags">
-        <view class="status-tag {{trip.serviceTypeClassName}}">{{trip.serviceTypeLabel}}</view>
-        <view class="pill">{{trip.fareText}}</view>
+      <view class="trip-city">
+        <view class="trip-building trip-building--1"></view>
+        <view class="trip-building trip-building--2"></view>
+        <view class="trip-building trip-building--3"></view>
+        <view class="trip-building trip-building--4"></view>
+      </view>
+      <view class="trip-road"></view>
+      <view class="trip-taxi">
+        <view class="trip-taxi__body"></view>
+        <view class="trip-taxi__top"></view>
+        <view class="trip-taxi__wheel trip-taxi__wheel--left"></view>
+        <view class="trip-taxi__wheel trip-taxi__wheel--right"></view>
       </view>
 
       <view class="trip-metrics">
         <view class="trip-metric-card">
-          <view class="trip-metric-value">{{trip.distanceText}}</view>
-          <view class="trip-metric-label">已行驶里程</view>
+          <view class="trip-metric-icon trip-metric-icon--route"></view>
+          <view>
+            <view class="trip-metric-value">{{trip.distanceText}}</view>
+            <view class="trip-metric-label">已行驶里程</view>
+          </view>
         </view>
         <view class="trip-metric-card">
-          <view class="trip-metric-value">{{trip.durationText}}</view>
-          <view class="trip-metric-label">已行驶时长</view>
+          <view class="trip-metric-icon trip-metric-icon--clock"></view>
+          <view>
+            <view class="trip-metric-value">{{trip.durationText}}</view>
+            <view class="trip-metric-label">已行驶时长</view>
+          </view>
         </view>
         <view class="trip-metric-card">
-          <view class="trip-metric-value">{{trip.percentText}}</view>
-          <view class="trip-metric-label">当前进度</view>
+          <view class="trip-metric-icon trip-metric-icon--progress"></view>
+          <view>
+            <view class="trip-metric-value">{{trip.percentText}}</view>
+            <view class="trip-metric-label">当前进度</view>
+          </view>
         </view>
       </view>
     </view>
 
-    <view class="panel-card trip-panel">
-      <view class="section-title">服务流程</view>
+    <view class="trip-panel flow-panel">
+      <view class="panel-title-row">
+        <view class="panel-title-icon panel-title-icon--flow"></view>
+        <view class="panel-title">服务流程</view>
+      </view>
       <view class="timeline">
         <view class="timeline-item" wx:for="{{trip.timeline}}" wx:key="key">
           <view class="timeline-dot {{item.done ? 'done' : ''}} {{item.active ? 'active' : ''}}"></view>
-          <view class="timeline-label {{item.done ? 'done' : ''}}">{{item.label}}</view>
+          <view class="timeline-line" wx:if="{{index !== trip.timeline.length - 1}}"></view>
+          <view class="timeline-label {{item.done ? 'done' : ''}} {{item.active ? 'active' : ''}}">{{item.label}}</view>
         </view>
       </view>
     </view>
 
-    <view class="panel-card trip-panel">
-      <view class="section-title">行驶状态</view>
-      <view class="section-subtitle">{{trip.trafficText}}</view>
+    <view class="trip-panel drive-panel">
+      <view class="drive-copy">
+        <view class="panel-title-row">
+          <view class="panel-title-icon panel-title-icon--car"></view>
+          <view class="panel-title">行驶状态</view>
+        </view>
+        <view class="drive-subtitle">按道路路线行驶中</view>
+        <view class="drive-status">
+          <view class="drive-pin"></view>
+          <text>{{trip.trafficText}}</text>
+        </view>
+      </view>
+      <view class="mini-map">
+        <view class="mini-map__grid"></view>
+        <view class="mini-map__route"></view>
+        <view class="mini-map__point mini-map__point--start"></view>
+        <view class="mini-map__point mini-map__point--end"></view>
+      </view>
     </view>
 
-    <view class="panel-card trip-panel">
-      <view class="section-title">司机操作</view>
-      <view class="section-subtitle">推进状态后会同步刷新司机端、乘客端和后台。</view>
+    <view class="trip-panel action-panel">
+      <view class="panel-title-row">
+        <view class="panel-title-icon panel-title-icon--driver"></view>
+        <view class="panel-title">司机操作</view>
+      </view>
+      <view class="action-desc">推进状态后会同步刷新司机端、乘客端和后台。</view>
+      <view class="driver-actions">
+        <view class="driver-action driver-action--{{trip.orderStatus === 'ACCEPTED' ? 'active' : 'done'}}">
+          <view class="driver-action__icon driver-action__icon--wheel"></view>
+          <view class="driver-action__copy">
+            <view class="driver-action__title">开始接驾</view>
+            <view class="driver-action__desc">司机已接单出发</view>
+            <view class="driver-action__state">{{trip.orderStatus === 'ACCEPTED' ? '待处理' : '已完成'}}</view>
+          </view>
+          <view class="driver-action__arrow"></view>
+        </view>
+        <view class="driver-action driver-action--{{trip.orderStatus === 'PICKING_UP' ? 'active' : (trip.orderStatus === 'ACCEPTED' ? 'pending' : 'done')}}">
+          <view class="driver-action__icon driver-action__icon--user"></view>
+          <view class="driver-action__copy">
+            <view class="driver-action__title">到达乘客</view>
+            <view class="driver-action__desc">已到达上车点</view>
+            <view class="driver-action__state">{{trip.orderStatus === 'PICKING_UP' ? '待处理' : (trip.orderStatus === 'ACCEPTED' ? '待完成' : '已完成')}}</view>
+          </view>
+          <view class="driver-action__arrow"></view>
+        </view>
+        <view class="driver-action driver-action--{{trip.orderStatus === 'FINISHED' ? 'done' : (trip.orderStatus === 'IN_TRIP' ? 'active' : 'pending')}}">
+          <view class="driver-action__icon driver-action__icon--check"></view>
+          <view class="driver-action__copy">
+            <view class="driver-action__title">完成行程</view>
+            <view class="driver-action__desc">已送达目的地</view>
+            <view class="driver-action__state">{{trip.orderStatus === 'FINISHED' ? '已完成' : (trip.orderStatus === 'IN_TRIP' ? '待处理' : '待完成')}}</view>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 
-  <view class="floating-bar">
-    <button class="primary-button" hover-class="button-hover" bindtap="updateStatus" disabled="{{trip.orderStatus === 'FINISHED' || trip.orderStatus === 'CANCELLED'}}">
+  <view class="floating-bar trip-floating-bar">
+    <button class="primary-button trip-action-button" hover-class="button-hover" bindtap="updateStatus" disabled="{{trip.orderStatus === 'FINISHED' || trip.orderStatus === 'CANCELLED'}}">
       {{actionText}}
     </button>
   </view>
