@@ -1,10 +1,20 @@
 <view class="page-shell">
   <view class="page-content">
-    <view class="chip-row">
-      <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
+    <view class="hero-card driver-orders-hero page-enter">
+      <view class="driver-orders-head">
+        <view>
+          <view class="section-title">行程订单</view>
+          <view class="section-subtitle">接单记录、进行中订单与历史行程</view>
+        </view>
+        <view class="driver-orders-count">{{list.length}} 单</view>
+      </view>
+      <view class="chip-row driver-order-tabs">
+        <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
+      </view>
     </view>
-    <view class="list-gap" style="margin-top: 24rpx;">
-      <view class="panel-card tap-scale" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="openDetail">
+
+    <view class="list-gap driver-order-list">
+      <view class="panel-card driver-order-card tap-scale" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="openDetail">
         <view class="row-between">
           <view class="section-title order-route">{{item.startName}} → {{item.endName}}</view>
           <view class="status-tag {{item.status === 'completed' ? 'success' : item.status === 'processing' ? 'processing' : 'waiting'}}">{{item.statusText}}</view>

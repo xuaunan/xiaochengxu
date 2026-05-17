@@ -2,6 +2,28 @@
   margin-top: 18rpx;
 }
 
+.driver-settings-hero {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 232, 0.98) 0%, rgba(255, 255, 255, 0.98) 58%),
+    #ffffff;
+  box-shadow: 0 14rpx 32rpx rgba(24, 34, 56, 0.055);
+}
+
+.setting-row {
+  gap: 24rpx;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
+}
+
+.setting-row > view:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-settings .panel-card {
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
+}
+
 .voice-style-list {
   display: flex;
   flex-wrap: wrap;
@@ -19,8 +41,8 @@
 .track-mode-chip {
   min-width: 0;
   padding: 18rpx;
-  border-radius: 24rpx;
-  background: #f3f5fb;
+  border-radius: 22rpx;
+  background: #f8fafc;
   border: 2rpx solid transparent;
 }
 
@@ -45,7 +67,7 @@
 .voice-style-chip {
   padding: 16rpx 24rpx;
   border-radius: 999rpx;
-  background: #f3f5fb;
+  background: #f8fafc;
   color: #556074;
   font-size: 24rpx;
   line-height: 1;

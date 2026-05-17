@@ -1,10 +1,19 @@
 <view class="page-shell safe-bottom">
   <view class="page-content driver-message-list">
+    <view class="hero-card driver-message-hero page-enter">
+      <view class="driver-message-head">
+        <view>
+          <view class="section-title">消息通知</view>
+          <view class="section-subtitle">订单通知、平台提醒与审核结果</view>
+        </view>
+        <view class="driver-message-count">{{list.length}} 条</view>
+      </view>
+    </view>
     <view wx:if="{{list.length === 0}}" class="message-empty">
       <view class="message-empty__title">暂无消息</view>
       <view class="message-empty__desc">订单通知、平台提醒和取消消息会显示在这里。</view>
     </view>
-    <view class="message-card" wx:for="{{list}}" wx:key="id">
+    <view class="message-card tap-scale" wx:for="{{list}}" wx:key="id">
       <view class="message-card__main">
         <view class="message-card__head">
           <view class="message-card__title">{{item.title}}</view>

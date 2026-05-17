@@ -1,11 +1,15 @@
 <view class="page-shell">
   <view class="page-content list-gap">
-    <view class="hero-card profile-hero">
-      <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
-      <view class="profile-name">{{profile.name}}</view>
-      <view class="profile-desc">{{profile.phone}} · {{profile.carModel}}</view>
+    <view class="hero-card profile-hero page-enter">
+      <view class="profile-head">
+        <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+        <view class="profile-copy">
+          <view class="profile-name">{{profile.name}}</view>
+          <view class="profile-desc">{{profile.phone}} · {{profile.carModel}}</view>
+        </view>
+      </view>
 
-      <view class="metric-grid" style="margin-top: 24rpx;">
+      <view class="metric-grid profile-metrics">
         <view class="metric-item">
           <view class="metric-value">{{profile.serviceScore || 0}}</view>
           <view class="metric-label">服务分</view>
