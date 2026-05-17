@@ -3,7 +3,6 @@
     <view class="panel-card wallet-overview">
       <view class="wallet-overview__top">
         <view>
-          <view class="wallet-kicker">账户钱包</view>
           <view class="section-title wallet-title">钱包余额</view>
         </view>
         <view class="wallet-state">已同步</view>
@@ -11,8 +10,8 @@
       <view class="wallet-balance">¥{{wallet.balance}}</view>
       <view class="wallet-subtitle">优惠累计 {{wallet.couponBalance}} 元 · 可开发票 {{wallet.invoices}} 张</view>
       <view class="wallet-actions">
-        <button class="wallet-action wallet-action--primary" hover-class="button-hover" bindtap="recharge">充值</button>
-        <button class="wallet-action" hover-class="button-hover" bindtap="withdraw">提现说明</button>
+        <button class="wallet-action wallet-action--primary" hover-class="button-hover" bindtap="recharge">余额说明</button>
+        <button class="wallet-action" hover-class="button-hover" bindtap="withdraw">提现规则</button>
       </view>
     </view>
 

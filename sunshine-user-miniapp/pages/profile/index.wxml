@@ -1,6 +1,6 @@
 <view class="page-shell profile-page-shell safe-bottom">
   <view class="page-content profile-page page-enter">
-    <view class="profile-header">
+    <view class="profile-header panel-card">
       <view class="profile-avatar-wrap">
         <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
       </view>
@@ -20,7 +20,7 @@
           <view class="section-title profile-assets__title">账户资产</view>
           <view class="section-subtitle profile-assets__desc">余额、发票和优惠券集中管理</view>
         </view>
-        <view class="profile-assets__tag">实时同步</view>
+        <view class="profile-assets__tag">已同步</view>
       </view>
       <view class="metric-grid profile-metrics">
         <view class="metric-item tap-scale" bindtap="openOrders">
@@ -40,7 +40,6 @@
 
     <view class="profile-section-head">
       <view>
-        <view class="profile-section-kicker">常用功能</view>
         <view class="section-title profile-section-title">账户服务</view>
       </view>
       <view class="soft-pill">{{menus.length}} 项</view>
