@@ -770,7 +770,8 @@ onUnmounted(stopDetailPolling)
 
 .panel-kicker {
   font-size: 12px;
-  text-transform: uppercase;
+  text-transform: none;
+  letter-spacing: 0;
   color: #8b96a9;
 }
 

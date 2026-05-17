@@ -2,7 +2,7 @@
   <section class="page">
     <article class="panel toolbar">
       <div>
-        <span class="panel-kicker">Marketing Hub</span>
+        <span class="panel-kicker">营销中心</span>
         <h3 class="panel-title">营销中心 - 优惠券管理</h3>
         <p class="panel-subtitle">支持新建、编辑、上下架、发券和领取/使用记录查看，所有操作均实时写入后端数据库。</p>
       </div>
@@ -20,7 +20,7 @@
     <article class="panel">
       <div class="panel-head">
         <div>
-          <span class="panel-kicker">Coupon List</span>
+          <span class="panel-kicker">券模板</span>
           <h3 class="panel-title">优惠券模板列表</h3>
         </div>
         <el-button type="success" plain @click="openGrant()">手动发券</el-button>

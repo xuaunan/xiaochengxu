@@ -2,7 +2,7 @@
   <section class="page dashboard-page">
     <article class="panel toolbar">
       <div>
-        <span class="panel-kicker">Realtime BI</span>
+        <span class="panel-kicker">运营总览</span>
         <h3 class="panel-title">阳光出行运营数据大盘</h3>
         <p class="panel-subtitle">实时业务数据看板，所有指标、趋势和画像数据均来自后端数据库真实业务表。</p>
       </div>
@@ -22,8 +22,8 @@
       <article
         v-for="card in metricCards"
         :key="card.key"
-        class="panel metric-gradient metric-card"
-        :style="{ background: card.gradient }"
+        class="panel metric-card"
+        :style="{ '--metric-accent': card.accent, '--metric-bg': card.bg }"
         @click="card.action && card.action()"
       >
         <div class="metric-top">
@@ -526,61 +526,67 @@ function aggregateRideRegionDistribution(orderList = []) {
 const metricCards = computed(() => [
   {
     key: 'userTotal',
-    icon: '👤',
+    icon: '客',
     label: '累计用户总量',
     value: `${Math.round(animated.userTotal || 0)}`,
     metaLeft: `实名用户 ${dashboard.value.verifiedUserTotal || 0} 人`,
     metaRight: `昨日新增 ${dashboard.value.newUserDelta || 0} 人`,
-    gradient: 'linear-gradient(135deg, #16a34a 0%, #34d399 100%)',
+    accent: '#16a34a',
+    bg: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 62%)',
     action: () => router.push('/users')
   },
   {
     key: 'driverTotal',
-    icon: '🚗',
+    icon: '司',
     label: '累计司机总量',
     value: `${Math.round(animated.driverTotal || 0)}`,
     metaLeft: `已审核 ${dashboard.value.approvedDriverTotal || 0} 人`,
     metaRight: `待审核 ${dashboard.value.pendingDriverTotal || 0} 人`,
-    gradient: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
+    accent: '#2563eb',
+    bg: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 62%)',
     warn: Number(dashboard.value.pendingDriverTotal || 0) > 0,
     action: () => router.push('/drivers')
   },
   {
     key: 'orderTotal',
-    icon: '📦',
+    icon: '单',
     label: '累计订单总量',
     value: `${Math.round(animated.orderTotal || 0)}`,
     metaLeft: `打车 ${dashboard.value.taxiOrderTotal || 0} 单`,
     metaRight: `顺风 ${dashboard.value.carpoolOrderTotal || 0} 单 / 国际 ${dashboard.value.internationalOrderTotal || 0} 单`,
-    gradient: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
+    accent: '#f97316',
+    bg: 'linear-gradient(135deg, #fff7ed 0%, #ffffff 62%)',
     action: () => router.push('/orders')
   },
   {
     key: 'turnoverTotal',
-    icon: '💰',
+    icon: '额',
     label: '累计交易总额',
     value: formatMoney(animated.turnoverTotal, 'CNY'),
     metaLeft: `昨日交易额 ${formatMoney(dashboard.value.yesterdayTurnover)}`,
     metaRight: `环比 ${formatPercent(dashboard.value.turnoverDeltaRate)}`,
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)'
+    accent: '#7c3aed',
+    bg: 'linear-gradient(135deg, #f5f3ff 0%, #ffffff 62%)'
   },
   {
     key: 'commissionTotal',
-    icon: '🪙',
+    icon: '佣',
     label: '平台累计佣金',
     value: formatMoney(animated.commissionTotal, 'CNY'),
     metaLeft: `昨日佣金 ${formatMoney(dashboard.value.yesterdayCommission)}`,
     metaRight: `环比 ${formatPercent(dashboard.value.commissionDeltaRate)}`,
-    gradient: 'linear-gradient(135deg, #d97706 0%, #fbbf24 100%)'
+    accent: '#d97706',
+    bg: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 62%)'
   },
   {
     key: 'complaintResolveRate',
-    icon: '🛡️',
+    icon: '诉',
     label: '投诉解决率',
     value: formatPercent(animated.complaintResolveRate),
     metaLeft: `已处理 ${dashboard.value.resolvedComplaintTotal || 0} 单`,
     metaRight: `未解决 ${dashboard.value.unresolvedComplaintTotal || 0} 单`,
-    gradient: 'linear-gradient(135deg, #dc2626 0%, #fb7185 100%)',
+    accent: '#dc2626',
+    bg: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 62%)',
     warn: Number(dashboard.value.unresolvedComplaintTotal || 0) > 0,
     action: () => router.push('/orders')
   }
@@ -907,6 +913,17 @@ onBeforeUnmount(() => {
 
 .metric-card {
   min-height: 182px;
+  color: #172033;
+  cursor: pointer;
+  background: var(--metric-bg, #ffffff);
+  border-color: rgba(226, 232, 240, 0.96);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 122, 24, 0.28);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
 }
 
 .metric-top {
@@ -923,14 +940,25 @@ onBeforeUnmount(() => {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.16);
-  font-size: 20px;
+  background: rgba(255, 122, 24, 0.08);
+  color: var(--metric-accent, #ff7a18);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.metric-value {
+  color: #111827;
 }
 
 .metric-label {
   margin: 8px 0 12px;
   font-size: 16px;
   font-weight: 700;
+  color: #475569;
+}
+
+.metric-card .metric-meta {
+  color: #7b8495;
 }
 
 .chart-panel {
@@ -954,13 +982,7 @@ onBeforeUnmount(() => {
 }
 
 .live-panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  border: 1px solid rgba(59, 130, 246, 0.12);
-  box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.08);
-  pointer-events: none;
+  display: none;
 }
 
 .live-panel .panel-head {
@@ -1044,16 +1066,16 @@ onBeforeUnmount(() => {
 .live-item {
   padding: 10px 12px;
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.88) 100%);
-  border: 1px solid rgba(226, 232, 240, 0.72);
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .live-item:hover {
-  transform: translateX(4px);
+  transform: translateX(2px);
   border-color: rgba(255, 122, 24, 0.36);
-  box-shadow: 0 14px 32px rgba(255, 122, 24, 0.12);
+  box-shadow: 0 10px 24px rgba(255, 122, 24, 0.1);
 }
 
 .live-main,
@@ -1094,10 +1116,10 @@ onBeforeUnmount(() => {
 }
 
 .ops-card {
-  padding: 18px;
-  border-radius: 20px;
-  background: rgba(248, 250, 252, 0.86);
-  border: 1px solid rgba(226, 232, 240, 0.72);
+  padding: 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.92);
   display: grid;
   gap: 12px;
 }
@@ -1116,8 +1138,8 @@ onBeforeUnmount(() => {
 }
 
 .ops-card.clickable:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
 }
 
 @media (max-width: 1400px) {
