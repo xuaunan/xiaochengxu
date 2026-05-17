@@ -334,6 +334,65 @@ function buildCouponGroups(rawOrder, coupons = []) {
   return result
 }
 
+function formatDistanceValue(rawOrder = {}) {
+  const value = toNumber(rawOrder.actualDistanceKm, toNumber(rawOrder.estimatedDistanceKm, 0))
+  return `${Number(value.toFixed(1))} 公里`
+}
+
+function formatDurationValue(rawOrder = {}) {
+  const value = Math.max(0, Math.round(toNumber(rawOrder.actualDurationMin, toNumber(rawOrder.estimatedDurationMin, 0))))
+  return `${value} 分钟`
+}
+
+function getProgressValue(rawOrder = {}) {
+  if (rawOrder.orderStatus === ORDER_STATUS.CANCELLED) return 0
+  if (rawOrder.orderStatus === ORDER_STATUS.FINISHED) return 100
+  const stage = Math.max(0, getOrderStage(rawOrder))
+  return Math.min(100, Math.round((stage / 6) * 100))
+}
+
+function buildDetailMetrics(rawOrder = {}) {
+  return [
+    {
+      key: 'distance',
+      icon: 'route',
+      value: formatDistanceValue(rawOrder),
+      label: rawOrder.orderStatus === ORDER_STATUS.FINISHED ? '已行驶里程' : '预计里程'
+    },
+    {
+      key: 'duration',
+      icon: 'clock',
+      value: formatDurationValue(rawOrder),
+      label: rawOrder.orderStatus === ORDER_STATUS.FINISHED ? '已行驶时长' : '预计时长'
+    },
+    {
+      key: 'progress',
+      icon: 'progress',
+      value: `${getProgressValue(rawOrder)}%`,
+      label: '当前进度'
+    }
+  ]
+}
+
+function buildServiceFlowSteps(rawOrder = {}) {
+  const stage = getOrderStage(rawOrder)
+  const cancelled = rawOrder.orderStatus === ORDER_STATUS.CANCELLED
+  const items = [
+    { key: 'accepted', title: '开始接驾', desc: '司机已接单出发', threshold: 2, icon: 'wheel' },
+    { key: 'picked', title: '到达乘客', desc: '已到达上车点', threshold: 3, icon: 'user' },
+    { key: 'finished', title: '完成行程', desc: '已送达目的地', threshold: 5, icon: 'check' }
+  ]
+
+  return items.map((item) => {
+    const done = !cancelled && stage >= item.threshold
+    return {
+      ...item,
+      stateText: done ? '已完成' : '待同步',
+      done
+    }
+  })
+}
+
 function buildAppliedCoupon(rawOrder, coupons = []) {
   const discountAmount = toNumber(rawOrder.couponDiscount)
   if (discountAmount <= 0) return null
@@ -415,6 +474,8 @@ function buildDetailViewState(rawOrder, coupons = []) {
 
   return {
     detail: detailState,
+    detailMetrics: buildDetailMetrics(rawOrder),
+    serviceFlowSteps: buildServiceFlowSteps(rawOrder),
     timelineSteps: buildOrderTimelineSteps(rawOrder),
     showPayBar,
     payButtonText: `立即支付 ${payableAmountText}`,
@@ -436,6 +497,8 @@ function buildDetailViewState(rawOrder, coupons = []) {
 Page({
   data: {
     detail: null,
+    detailMetrics: [],
+    serviceFlowSteps: [],
     timelineSteps: [],
     showPayBar: false,
     payButtonText: '',
@@ -674,6 +737,8 @@ Page({
 
     this.setData({
       detail: viewState.detail,
+      detailMetrics: viewState.detailMetrics,
+      serviceFlowSteps: viewState.serviceFlowSteps,
       timelineSteps: viewState.timelineSteps,
       timelineSummary: this.getTimelineSummary(viewState.timelineSteps),
       showPayBar: viewState.showPayBar,
