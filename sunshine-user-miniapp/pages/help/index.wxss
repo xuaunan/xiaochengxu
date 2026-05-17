@@ -1,7 +1,6 @@
 .help-shell {
   background:
-    radial-gradient(circle at 92% 0%, rgba(255, 193, 117, 0.12), transparent 34%),
-    linear-gradient(180deg, #fff8f2 0%, #f7f8fc 34%, #f5f7fb 100%);
+    linear-gradient(180deg, rgba(255, 246, 237, 0.72) 0%, #f7f8fc 26%, #f5f7fb 100%);
 }
 
 .help-page {
@@ -15,33 +14,28 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20rpx;
-  padding: 4rpx 6rpx 0;
-}
-
-.help-kicker {
-  margin-bottom: 6rpx;
-  font-size: 22rpx;
-  font-weight: 800;
-  color: #ff7a00;
+  padding: 8rpx 8rpx 2rpx;
 }
 
 .help-title {
-  font-size: 36rpx;
+  font-size: 34rpx;
+}
+
+.help-subtitle {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: #8a94a8;
 }
 
 .help-count {
   flex-shrink: 0;
   margin-bottom: 4rpx;
-  padding: 8rpx 16rpx;
+  padding: 9rpx 17rpx;
   border-radius: 999rpx;
   color: #ff7a00;
-  background: rgba(255, 122, 0, 0.1);
+  background: rgba(255, 122, 0, 0.08);
   font-size: 21rpx;
   font-weight: 800;
-}
-
-.help-intro {
-  padding: 22rpx 24rpx;
 }
 
 .help-list {
@@ -52,22 +46,28 @@
 
 .help-card {
   display: flex;
+  align-items: flex-start;
   gap: 18rpx;
   padding: 24rpx;
-  border-radius: 30rpx;
-  background: rgba(255, 255, 255, 0.97);
+  border-radius: 26rpx;
+  background: #ffffff;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
-  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.06);
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.055);
 }
 
 .help-card__mark {
-  width: 18rpx;
-  height: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44rpx;
+  height: 44rpx;
   flex-shrink: 0;
-  margin-top: 9rpx;
-  border-radius: 50%;
-  background: #ff5b57;
-  box-shadow: 0 0 0 10rpx rgba(255, 91, 87, 0.1);
+  margin-top: 2rpx;
+  border-radius: 18rpx;
+  color: #ff7a00;
+  background: rgba(255, 122, 0, 0.08);
+  font-size: 22rpx;
+  font-weight: 800;
 }
 
 .help-card__body {
@@ -87,4 +87,12 @@
   font-size: 24rpx;
   line-height: 1.58;
   color: #6f7b90;
+}
+
+.help-card__arrow {
+  flex-shrink: 0;
+  margin-top: 2rpx;
+  color: #c0c7d4;
+  font-size: 40rpx;
+  line-height: 1;
 }

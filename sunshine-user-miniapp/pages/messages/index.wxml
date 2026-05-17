@@ -2,13 +2,14 @@
   <view class="page-content message-page page-enter">
     <view class="message-header">
       <view>
-        <view class="message-kicker">通知中心</view>
         <view class="section-title message-title">消息通知</view>
+        <view class="message-subtitle">订单进度、优惠提醒与系统通知</view>
       </view>
       <view class="message-count">{{list.length}} 条</view>
     </view>
 
     <view wx:if="{{list.length === 0}}" class="message-empty">
+      <view class="message-empty__mark"></view>
       <view class="message-empty__title">暂无消息</view>
       <view class="message-empty__desc">订单状态、优惠券和系统通知会显示在这里。</view>
     </view>
@@ -16,6 +17,7 @@
     <view class="message-list" wx:if="{{list.length > 0}}">
       <view class="message-card tap-scale" wx:for="{{list}}" wx:key="id">
         <view class="message-card__head">
+          <view class="message-card__badge"></view>
           <view class="message-card__title">{{item.title}}</view>
           <view class="message-card__dot" wx:if="{{item.unread}}"></view>
         </view>

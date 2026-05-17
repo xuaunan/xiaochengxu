@@ -2,33 +2,35 @@
   <view class="page-content settings-page page-enter">
     <view class="panel-card settings-hero">
       <view>
-        <view class="settings-kicker">系统设置</view>
         <view class="section-title settings-title">出行偏好</view>
       </view>
-      <view class="section-subtitle settings-desc">消息、优惠和显示偏好会保存在本地，并在下次进入小程序时继续生效。</view>
+      <view class="section-subtitle settings-desc">消息提醒、优惠匹配和显示偏好会保存在本地。</view>
     </view>
 
     <view class="panel-card setting-list">
+      <view class="setting-group-title">通知</view>
       <view class="setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting">
         <view class="setting-copy">
           <view class="setting-title">消息推送</view>
           <view class="setting-subtitle">订单、优惠券与公告提醒</view>
         </view>
-        <switch color="#ff7a00" checked="{{settings.pushEnabled}}"></switch>
+        <switch color="#ff7a00" checked="{{settings.pushEnabled}}" data-key="pushEnabled" catchtap="noop" bindchange="changeSetting"></switch>
       </view>
+      <view class="setting-group-title">优惠</view>
       <view class="setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting">
         <view class="setting-copy">
           <view class="setting-title">自动匹配优惠券</view>
           <view class="setting-subtitle">下单时优先推荐最优券</view>
         </view>
-        <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}"></switch>
+        <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}" data-key="autoUseCoupon" catchtap="noop" bindchange="changeSetting"></switch>
       </view>
+      <view class="setting-group-title">外观</view>
       <view class="setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting">
         <view class="setting-copy">
-          <view class="setting-title">暗黑模式基础兼容</view>
-          <view class="setting-subtitle">当前仅演示颜色切换逻辑</view>
+          <view class="setting-title">深色外观</view>
+          <view class="setting-subtitle">跟随系统外观偏好</view>
         </view>
-        <switch color="#ff7a00" checked="{{settings.darkMode}}"></switch>
+        <switch color="#ff7a00" checked="{{settings.darkMode}}" data-key="darkMode" catchtap="noop" bindchange="changeSetting"></switch>
       </view>
     </view>
   </view>
