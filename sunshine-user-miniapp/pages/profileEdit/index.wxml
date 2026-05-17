@@ -1,8 +1,7 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell profile-edit-shell safe-bottom">
   <view class="profile-edit-page page-enter">
     <view class="edit-hero">
       <view>
-        <view class="edit-kicker">{{copy.account}}</view>
         <view class="edit-title">{{copy.title}}</view>
         <view class="edit-subtitle">{{phoneText}}</view>
       </view>
