@@ -14,8 +14,7 @@ const {
 } = require('../../utils/address-book')
 const {
   clearSilkyTransitionTimers,
-  markSilkyPageReady,
-  navigateBackSilky
+  markSilkyPageReady
 } = require('../../utils/page')
 
 function buildEmptyState(mode, keyword) {
@@ -404,27 +403,37 @@ Page({
     }, 260)
   },
 
-  navigateBackWithAnimation() {
-    navigateBackSilky(this, {
-      delta: 1,
-      duration: 160,
-      selector: '.address-page',
-      source: 'address-search',
-      beforeLeave: () => {
-        clearTimeout(this.blurTimer)
-        this.setData({
-          isInputFocused: false,
-          showSuggestionPanel: false
-        })
-        wx.hideKeyboard({
-          complete: () => {}
-        })
-      }
-    })
+  handleBack() {
+    this.returnHomeSafely()
   },
 
-  handleBack() {
-    this.navigateBackWithAnimation()
+  returnHomeSafely() {
+    clearTimeout(this.leaveTimer)
+    clearTimeout(this.blurTimer)
+    this.setData({
+      isInputFocused: false,
+      showSuggestionPanel: false,
+      pageLeaving: true,
+      pageReady: true
+    })
+    wx.hideKeyboard({
+      complete: () => {}
+    })
+    this.leaveTimer = setTimeout(() => {
+      wx.switchTab({
+        url: '/pages/home/index',
+        fail: () => {
+          this.setData({
+            pageLeaving: false,
+            pageReady: true
+          })
+          wx.showToast({
+            title: '返回首页失败，请重试',
+            icon: 'none'
+          })
+        }
+      })
+    }, 120)
   },
 
   commitAddress(point) {
@@ -441,7 +450,7 @@ Page({
     saveHistoryAddress(normalized)
     app.updateDraft(draft)
     this.refreshStoredCollections()
-    this.navigateBackWithAnimation()
+    this.returnHomeSafely()
   },
 
   chooseAddress(e) {
