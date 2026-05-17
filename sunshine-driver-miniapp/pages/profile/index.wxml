@@ -1,43 +1,64 @@
-<view class="page-shell">
-  <view class="page-content list-gap">
-    <view class="hero-card profile-hero page-enter">
-      <view class="profile-head">
-        <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+<view class="page-shell driver-profile-shell">
+  <view class="driver-profile page-enter">
+    <view class="driver-profile-title">我的</view>
+
+    <view class="driver-hero">
+      <view class="driver-city">
+        <view class="driver-city__block driver-city__block--1"></view>
+        <view class="driver-city__block driver-city__block--2"></view>
+        <view class="driver-city__block driver-city__block--3"></view>
+        <view class="driver-city__block driver-city__block--4"></view>
+      </view>
+      <view class="driver-road"></view>
+      <view class="driver-taxi">
+        <view class="driver-taxi__body"></view>
+        <view class="driver-taxi__top"></view>
+        <view class="driver-taxi__wheel driver-taxi__wheel--left"></view>
+        <view class="driver-taxi__wheel driver-taxi__wheel--right"></view>
+      </view>
+
+      <view class="driver-head">
+        <view class="driver-avatar-wrap">
+          <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+          <view class="driver-avatar-badge">盾</view>
+        </view>
         <view class="profile-copy">
           <view class="profile-name">{{profile.name}}</view>
           <view class="profile-desc">{{profile.phone}} · {{profile.carModel}}</view>
         </view>
       </view>
 
-      <view class="metric-grid profile-metrics">
-        <view class="metric-item">
-          <view class="metric-value">{{profile.serviceScore || 0}}</view>
-          <view class="metric-label">服务分</view>
+      <view class="driver-metrics">
+        <view class="driver-metric">
+          <view class="driver-metric__value">{{profile.serviceScore || 0}}</view>
+          <view class="driver-metric__label">服务分</view>
         </view>
-        <view class="metric-item">
-          <view class="metric-value">{{wallet.completedTrips || 0}}</view>
-          <view class="metric-label">累计完成</view>
+        <view class="driver-metric">
+          <view class="driver-metric__value">{{wallet.completedTrips || 0}}</view>
+          <view class="driver-metric__label">累计完成</view>
         </view>
-        <view class="metric-item">
-          <view class="metric-value">{{vehicleView.auditText}}</view>
-          <view class="metric-label">车辆审核</view>
+        <view class="driver-metric">
+          <view class="driver-metric__value driver-metric__value--text">{{vehicleView.auditText}}</view>
+          <view class="driver-metric__label">车辆审核</view>
         </view>
       </view>
     </view>
 
-    <view class="permission-card">
-      <view class="permission-header">
-        <view class="section-title">接单权限</view>
-        <view class="status-chip {{vehicleView.auditClassName}}">{{permission.canReceiveOrders ? '已解锁' : '未解锁'}}</view>
+    <view class="permission-card tap-scale" data-url="/pages/settings/index" data-mode="navigate" bindtap="openMenu">
+      <view class="permission-icon">✓</view>
+      <view class="permission-copy">
+        <view class="permission-title">接单权限</view>
+        <view class="permission-desc">{{permission.message}}</view>
       </view>
-      <view class="section-subtitle">{{permission.message}}</view>
+      <view class="status-chip {{vehicleView.auditClassName}}">{{permission.canReceiveOrders ? '已解锁' : '未解锁'}}</view>
+      <view class="menu-arrow"></view>
     </view>
 
     <view class="group-block" wx:for="{{menuGroups}}" wx:key="title">
       <view class="group-title">{{item.title}}</view>
-      <view class="list-gap">
+      <view class="group-card">
         <view
-          class="panel-card menu-card tap-scale"
+          class="menu-row tap-scale"
           wx:for="{{item.items}}"
           wx:for-item="menu"
           wx:key="title"
@@ -45,17 +66,17 @@
           data-mode="{{menu.mode}}"
           bindtap="openMenu"
         >
-          <view class="row-between">
+          <view class="menu-icon">{{menu.icon}}</view>
+          <view class="menu-copy">
             <view class="menu-title">{{menu.title}}</view>
-            <view class="menu-badge">{{menu.badge}}</view>
+            <view class="menu-desc">{{menu.desc}}</view>
           </view>
-          <view class="section-subtitle">{{menu.desc}}</view>
+          <view class="menu-badge">{{menu.badge}}</view>
+          <view class="menu-arrow"></view>
         </view>
       </view>
     </view>
 
-    <view class="panel-card menu-card menu-card--logout profile-logout-card tap-scale" bindtap="handleLogout">
-      <view class="menu-title menu-title--logout">{{logoutText}}</view>
-    </view>
+    <view class="profile-logout-card tap-scale" bindtap="handleLogout">{{logoutText}}</view>
   </view>
 </view>

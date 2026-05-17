@@ -1,61 +1,88 @@
 <view class="page-shell profile-page-shell safe-bottom">
-  <view class="page-content profile-page page-enter">
-    <view class="profile-header panel-card">
+  <view class="profile-page page-enter">
+    <view class="profile-title">我的</view>
+
+    <view class="profile-hero">
+      <view class="hero-cloud hero-cloud--left"></view>
+      <view class="hero-city">
+        <view class="city-block city-block--1"></view>
+        <view class="city-block city-block--2"></view>
+        <view class="city-block city-block--3"></view>
+        <view class="city-block city-block--4"></view>
+      </view>
+      <view class="hero-road"></view>
+      <view class="hero-taxi">
+        <view class="hero-taxi__body"></view>
+        <view class="hero-taxi__top"></view>
+        <view class="hero-taxi__wheel hero-taxi__wheel--left"></view>
+        <view class="hero-taxi__wheel hero-taxi__wheel--right"></view>
+      </view>
+
       <view class="profile-avatar-wrap">
         <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
       </view>
       <view class="profile-identity">
         <view class="profile-name">{{profile.name}}</view>
         <view class="profile-subline">
-          <view class="profile-pill">{{profile.memberLevel}}</view>
+          <view class="profile-pill profile-pill--member">{{profile.memberLevel}}</view>
           <view class="profile-pill profile-pill--plain">{{verifiedText}}</view>
         </view>
       </view>
-      <view class="profile-edit tap-scale" data-url="/pages/profileEdit/index" bindtap="openMenu">编辑</view>
+      <view class="profile-edit tap-scale" data-url="/pages/profileEdit/index" bindtap="openMenu">
+        <view class="profile-edit__icon"></view>
+        <text>编辑</text>
+      </view>
     </view>
 
-    <view class="panel-card profile-assets">
-      <view class="profile-assets__head">
-        <view>
-          <view class="section-title profile-assets__title">账户资产</view>
-          <view class="section-subtitle profile-assets__desc">余额、发票和优惠券集中管理</view>
+    <view class="profile-assets">
+      <view class="profile-card-head">
+        <view class="card-title-wrap">
+          <view class="section-icon section-icon--asset">◆</view>
+          <view>
+            <view class="profile-card-title">账户资产</view>
+            <view class="profile-card-desc">余额、发票和优惠券集中管理</view>
+          </view>
         </view>
-        <view class="profile-assets__tag">已同步</view>
+        <view class="sync-pill">已同步</view>
       </view>
-      <view class="metric-grid profile-metrics">
-        <view class="metric-item tap-scale" bindtap="openOrders">
-          <view class="metric-value">{{wallet.balance}}</view>
-          <view class="metric-label">钱包余额</view>
+      <view class="profile-metrics">
+        <view class="asset-card tap-scale" bindtap="openOrders">
+          <view class="asset-icon asset-icon--wallet">包</view>
+          <view class="asset-value">{{wallet.balance}}</view>
+          <view class="asset-label">钱包余额（元）</view>
         </view>
-        <view class="metric-item tap-scale" bindtap="openOrders">
-          <view class="metric-value">{{wallet.invoices}}</view>
-          <view class="metric-label">可开发票</view>
+        <view class="asset-card tap-scale" bindtap="openOrders">
+          <view class="asset-icon asset-icon--invoice">票</view>
+          <view class="asset-value">{{wallet.invoices}}</view>
+          <view class="asset-label">可开发票（张）</view>
         </view>
-        <view class="metric-item tap-scale" bindtap="openCoupons">
-          <view class="metric-value">{{wallet.couponBalance}}</view>
-          <view class="metric-label">优惠总额</view>
+        <view class="asset-card tap-scale" bindtap="openCoupons">
+          <view class="asset-icon asset-icon--coupon">券</view>
+          <view class="asset-value">{{wallet.couponBalance}}</view>
+          <view class="asset-label">优惠总额（元）</view>
         </view>
       </view>
     </view>
 
     <view class="profile-section-head">
-      <view>
-        <view class="section-title profile-section-title">账户服务</view>
+      <view class="section-title-wrap">
+        <view class="section-icon section-icon--service">◇</view>
+        <view class="profile-section-title">账户服务</view>
       </view>
-      <view class="soft-pill">{{menus.length}} 项</view>
+      <view class="soft-pill">{{menus.length}} 项服务</view>
     </view>
 
-    <view class="profile-menu-list">
-      <view class="panel-card menu-card tap-scale" wx:for="{{menus}}" wx:key="title" data-url="{{item.url}}" bindtap="openMenu">
-        <view class="menu-index">{{item.icon}}</view>
+    <view class="profile-menu-panel">
+      <view class="menu-row tap-scale" wx:for="{{menus}}" wx:key="title" data-url="{{item.url}}" bindtap="openMenu">
+        <view class="menu-index menu-index--{{index}}">{{item.icon}}</view>
         <view class="menu-copy">
           <view class="menu-title">{{item.title}}</view>
           <view class="menu-desc">{{item.desc}}</view>
         </view>
-      </view>
-      <view class="panel-card menu-card menu-card--logout tap-scale" bindtap="handleLogout">
-        <view class="menu-title menu-title--logout">{{logoutText}}</view>
+        <view class="menu-arrow"></view>
       </view>
     </view>
+
+    <view class="profile-logout tap-scale" bindtap="handleLogout">{{logoutText}}</view>
   </view>
 </view>

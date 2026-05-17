@@ -58,6 +58,7 @@ Page({
         title: '核心功能',
         items: [
           {
+            icon: '车',
             title: '我的车辆',
             url: '/pages/onboarding/index',
             mode: 'navigate',
@@ -65,6 +66,7 @@ Page({
             desc: vehicleView.hasVehicle ? '查看当前绑定车辆、审核状态和更换入口' : '先添加车辆信息，审核通过后才能开始接单'
           },
           {
+            icon: '单',
             title: '我的订单',
             url: '/pages/orders/index',
             mode: 'tab',
@@ -77,6 +79,7 @@ Page({
         title: '经营数据',
         items: [
           {
+            icon: '￥',
             title: '我的收入',
             url: '/pages/wallet/index',
             mode: 'tab',
@@ -84,6 +87,7 @@ Page({
             desc: '查看今日收入、月度收入和可提现金额'
           },
           {
+            icon: '设',
             title: '接单设置',
             url: '/pages/settings/index',
             mode: 'navigate',
@@ -96,6 +100,7 @@ Page({
         title: '账号与消息',
         items: [
           {
+            icon: '资',
             title: '司机资料',
             url: '/pages/profile-edit/index',
             mode: 'navigate',
@@ -103,6 +108,7 @@ Page({
             desc: '修改昵称、城市编码和紧急联系人并同步后台'
           },
           {
+            icon: '铃',
             title: '消息通知',
             url: '/pages/messages/index',
             mode: 'navigate',
