@@ -37,7 +37,7 @@
     <view class="profile-assets">
       <view class="profile-card-head">
         <view class="card-title-wrap">
-          <view class="section-icon section-icon--asset">◆</view>
+          <view class="section-icon section-icon--asset"></view>
           <view>
             <view class="profile-card-title">账户资产</view>
             <view class="profile-card-desc">余额、发票和优惠券集中管理</view>
@@ -47,17 +47,17 @@
       </view>
       <view class="profile-metrics">
         <view class="asset-card tap-scale" bindtap="openOrders">
-          <view class="asset-icon asset-icon--wallet">包</view>
+          <view class="asset-icon asset-icon--wallet"></view>
           <view class="asset-value">{{wallet.balance}}</view>
           <view class="asset-label">钱包余额（元）</view>
         </view>
         <view class="asset-card tap-scale" bindtap="openOrders">
-          <view class="asset-icon asset-icon--invoice">票</view>
+          <view class="asset-icon asset-icon--invoice"></view>
           <view class="asset-value">{{wallet.invoices}}</view>
           <view class="asset-label">可开发票（张）</view>
         </view>
         <view class="asset-card tap-scale" bindtap="openCoupons">
-          <view class="asset-icon asset-icon--coupon">券</view>
+          <view class="asset-icon asset-icon--coupon"></view>
           <view class="asset-value">{{wallet.couponBalance}}</view>
           <view class="asset-label">优惠总额（元）</view>
         </view>
@@ -66,7 +66,7 @@
 
     <view class="profile-section-head">
       <view class="section-title-wrap">
-        <view class="section-icon section-icon--service">◇</view>
+        <view class="section-icon section-icon--service"></view>
         <view class="profile-section-title">账户服务</view>
       </view>
       <view class="soft-pill">{{menus.length}} 项服务</view>
@@ -74,7 +74,7 @@
 
     <view class="profile-menu-panel">
       <view class="menu-row tap-scale" wx:for="{{menus}}" wx:key="title" data-url="{{item.url}}" bindtap="openMenu">
-        <view class="menu-index menu-index--{{index}}">{{item.icon}}</view>
+        <view class="menu-icon menu-icon--{{item.iconClass}}"></view>
         <view class="menu-copy">
           <view class="menu-title">{{item.title}}</view>
           <view class="menu-desc">{{item.desc}}</view>
