@@ -1,11 +1,11 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell carpool-publish-shell safe-bottom">
   <view class="page-content list-gap">
-    <view class="hero-card">
+    <view class="hero-card publish-hero page-enter">
       <view class="section-title">发布顺风车行程</view>
-      <view class="section-subtitle">把固定通勤路线或临时出发计划发布出来，等候同路乘客申请。</view>
+      <view class="section-subtitle">填写路线、座位和出发时间</view>
     </view>
 
-    <view class="panel-card list-gap">
+    <view class="panel-card publish-form list-gap">
       <input class="search-input" data-key="startName" value="{{form.startName}}" bindinput="updateField" placeholder="出发地" />
       <input class="search-input" data-key="endName" value="{{form.endName}}" bindinput="updateField" placeholder="目的地" />
 

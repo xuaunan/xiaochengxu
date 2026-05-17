@@ -1,6 +1,6 @@
-<view class="page-shell safe-bottom" wx:if="{{detail}}">
+<view class="page-shell carpool-detail-shell safe-bottom" wx:if="{{detail}}">
   <view class="page-content list-gap">
-    <view class="hero-card">
+    <view class="hero-card detail-hero page-enter">
       <view class="row-between">
         <view class="section-title detail-route">{{detail.trip.routeText}}</view>
         <view class="status-tag {{detail.trip.statusClassName}}">{{detail.trip.statusText}}</view>
@@ -28,12 +28,12 @@
       </view>
     </view>
 
-    <view class="panel-card">
+    <view class="panel-card owner-card">
       <view class="section-title">车主信息</view>
       <view class="section-subtitle">{{detail.owner.subtitle}}</view>
     </view>
 
-    <view class="panel-card" wx:if="{{detail.myApplication}}">
+    <view class="panel-card application-panel" wx:if="{{detail.myApplication}}">
       <view class="row-between">
         <view class="section-title">我的申请</view>
         <view class="status-tag {{detail.myApplication.statusClassName}}">{{detail.myApplication.statusText}}</view>
@@ -46,7 +46,7 @@
       </view>
     </view>
 
-    <view class="panel-card" wx:if="{{detail.currentUserRole === 'OWNER'}}">
+    <view class="panel-card application-panel" wx:if="{{detail.currentUserRole === 'OWNER'}}">
       <view class="row-between">
         <view class="section-title">乘客申请</view>
         <view class="section-subtitle">{{detail.applications.length}} 条</view>
