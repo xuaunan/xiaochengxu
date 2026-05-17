@@ -1,23 +1,38 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content carpool-page">
-    <view class="hero-card carpool-hero">
+  <view class="page-content carpool-page page-enter">
+    <view class="carpool-hero">
       <view class="hero-header">
         <view class="hero-badge">SF</view>
         <view class="hero-copy">
           <view class="hero-title">顺风车</view>
-          <view class="hero-subtitle">输入起终点后快速匹配顺路车主，价格与优惠实时联动。</view>
+          <view class="hero-subtitle">输入起终点后快速匹配顺路车主，价格与优惠实时联动</view>
         </view>
       </view>
-
+      <view class="hero-scene">
+        <view class="hero-city">
+          <view class="hero-building hero-building--1"></view>
+          <view class="hero-building hero-building--2"></view>
+          <view class="hero-building hero-building--3"></view>
+        </view>
+        <view class="hero-road"></view>
+        <view class="hero-car">
+          <view class="hero-car__top"></view>
+          <view class="hero-car__body"></view>
+          <view class="hero-car__wheel hero-car__wheel--left"></view>
+          <view class="hero-car__wheel hero-car__wheel--right"></view>
+        </view>
+        <view class="hero-pin"></view>
+        <view class="hero-chat"></view>
+      </view>
     </view>
 
-    <view class="panel-card form-panel">
+    <view class="carpool-panel">
       <view class="module-heading">
         <view class="section-title">行程发布</view>
-        <view class="section-subtitle">地址选择、基础信息、出行偏好和补充说明统一整理展示。</view>
+        <view class="section-subtitle">填写行程信息，匹配顺路车主</view>
       </view>
 
-      <view class="group-block">
+      <view class="group-block address-block">
         <view class="group-head">
           <view class="group-title">地址选择</view>
           <view class="group-tag">起点与终点</view>
@@ -30,9 +45,12 @@
               <view class="address-label">从哪里出发</view>
               <view class="address-value">{{draft.start.name || '请选择出发地'}}</view>
             </view>
+            <view class="address-arrow"></view>
           </view>
 
-          <view class="address-switch tap-scale" bindtap="swapAddress" hover-class="pressable-hover" hover-stay-time="60">换</view>
+          <view class="address-switch tap-scale" bindtap="swapAddress" hover-class="pressable-hover" hover-stay-time="60">
+            <view class="address-switch__icon"></view>
+          </view>
 
           <view class="address-row tap-scale" data-type="end" bindtap="openAddressSearch" hover-class="pressable-hover" hover-stay-time="60">
             <view class="address-dot address-dot--end"></view>
@@ -40,106 +58,118 @@
               <view class="address-label">去哪里</view>
               <view class="address-value">{{draft.end.name || '请输入目的地'}}</view>
             </view>
+            <view class="address-arrow"></view>
           </view>
         </view>
       </view>
+    </view>
 
-      <view class="group-divider"></view>
+    <view class="carpool-panel">
+      <view class="group-head">
+        <view class="group-title">基础信息</view>
+        <view class="group-tag">日期、时段和人数</view>
+      </view>
 
-      <view class="group-block">
-        <view class="group-head">
-          <view class="group-title">基础信息</view>
-          <view class="group-tag">日期、时段和人数</view>
-        </view>
-
+      <view class="basic-grid">
         <picker mode="date" value="{{departDate}}" start="{{minDate}}" bindchange="chooseDepartDate">
-          <view class="field-card field-card--date tap-scale">
-            <view class="field-body">
-              <view class="field-label">出发日期</view>
-              <view class="field-value">{{departDate}}</view>
+          <view class="basic-card basic-card--date tap-scale">
+            <view class="basic-icon basic-icon--date"></view>
+            <view class="basic-copy">
+              <view class="basic-label">出发日期</view>
+              <view class="basic-value">{{departDate}}</view>
             </view>
-            <view class="field-action">选择</view>
+            <view class="basic-arrow"></view>
           </view>
         </picker>
 
-        <view class="selection-grid">
-          <picker mode="selector" range="{{timeRangeOptions}}" range-key="label" value="{{selectedTimeRangeIndex}}" bindchange="chooseTimeRangeByPicker">
-            <view class="select-field tap-scale">
-              <view class="select-field__title">时间段</view>
-              <view class="select-field__value">{{selectedTimeRangeLabel}}</view>
-              <view class="select-field__arrow">▼</view>
+        <picker mode="selector" range="{{timeRangeOptions}}" range-key="label" value="{{selectedTimeRangeIndex}}" bindchange="chooseTimeRangeByPicker">
+          <view class="basic-card basic-card--time tap-scale">
+            <view class="basic-icon basic-icon--time"></view>
+            <view class="basic-copy">
+              <view class="basic-label">时间段</view>
+              <view class="basic-value">{{selectedTimeRangeLabel}}</view>
             </view>
-          </picker>
+            <view class="basic-arrow"></view>
+          </view>
+        </picker>
 
-          <picker mode="selector" range="{{passengerPickerOptions}}" value="{{selectedPassengerIndex}}" bindchange="choosePassengerCountByPicker">
-            <view class="select-field tap-scale">
-              <view class="select-field__title">乘车人数</view>
-              <view class="select-field__value">{{selectedPassengerLabel}}</view>
-              <view class="select-field__arrow">▼</view>
+        <picker mode="selector" range="{{passengerPickerOptions}}" value="{{selectedPassengerIndex}}" bindchange="choosePassengerCountByPicker">
+          <view class="basic-card basic-card--people tap-scale">
+            <view class="basic-icon basic-icon--people"></view>
+            <view class="basic-copy">
+              <view class="basic-label">乘车人数</view>
+              <view class="basic-value">{{selectedPassengerLabel}}</view>
             </view>
-          </picker>
-        </view>
+            <view class="basic-arrow"></view>
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="carpool-panel">
+      <view class="group-head">
+        <view class="group-title">出行偏好</view>
+        <view class="group-tag">行李和高速费方案</view>
       </view>
 
-      <view class="group-divider"></view>
-
-      <view class="group-block">
-        <view class="group-head">
-          <view class="group-title">出行偏好</view>
-          <view class="group-tag">行李和高速费方案</view>
-        </view>
-
-        <view class="option-group">
-          <view class="option-title">行李情况</view>
+      <view class="preference-list">
+        <view class="preference-row">
+          <view class="preference-label">
+            <view class="preference-icon preference-icon--luggage"></view>
+            <view>行李情况</view>
+          </view>
           <view class="option-grid-two">
             <view
-              class="option-tile {{luggageMode === item.key ? 'option-tile--active' : ''}}"
+              class="option-tile tap-scale {{luggageMode === item.key ? 'option-tile--active' : ''}}"
               wx:for="{{luggageOptions}}"
               wx:key="key"
               data-key="{{item.key}}"
               bindtap="chooseLuggageMode"
             >
-              {{item.label}}
+              <text>{{item.label}}</text>
+              <view wx:if="{{luggageMode === item.key}}" class="option-check"></view>
             </view>
           </view>
         </view>
 
-        <view class="option-group">
-          <view class="option-title">高速费方案</view>
+        <view class="preference-row">
+          <view class="preference-label">
+            <view class="preference-icon preference-icon--toll"></view>
+            <view>高速费方案</view>
+          </view>
           <view class="option-grid-two">
             <view
-              class="option-tile {{tollMode === item.key ? 'option-tile--active' : ''}}"
+              class="option-tile tap-scale {{tollMode === item.key ? 'option-tile--active' : ''}}"
               wx:for="{{tollOptions}}"
               wx:key="key"
               data-key="{{item.key}}"
               bindtap="chooseTollMode"
             >
-              {{item.label}}
+              <text>{{item.label}}</text>
+              <view wx:if="{{tollMode === item.key}}" class="option-check"></view>
             </view>
           </view>
         </view>
-      </view>
-
-      <view class="group-divider"></view>
-
-      <view class="group-block">
-        <view class="group-head">
-          <view class="group-title">补充说明</view>
-          <view class="group-tag">可选填写</view>
-        </view>
-        <view class="remark-entry tap-scale" bindtap="openNoteModal" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="remark-entry__main">
-            <view class="remark-entry__value {{note ? 'remark-entry__value--active' : ''}}">
-              {{note || '上车点细节、是否赶时间等'}}
-            </view>
-          </view>
-          <view class="remark-entry__action">{{note ? '修改' : '填写'}}</view>
-        </view>
-        <button class="primary-button confirm-order-button" hover-class="button-hover" bindtap="confirmOrder" disabled="{{navigating}}">
-          确认订单
-        </button>
       </view>
     </view>
+
+    <view class="carpool-panel carpool-panel--compact">
+      <view class="group-head">
+        <view class="group-title">补充说明</view>
+        <view class="group-tag">可选填写</view>
+      </view>
+      <view class="remark-entry tap-scale" bindtap="openNoteModal" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="remark-icon"></view>
+        <view class="remark-entry__value {{note ? 'remark-entry__value--active' : ''}}">
+          {{note || '上车点细节、是否赶时间等'}}
+        </view>
+        <view class="remark-counter">{{note ? note.length : 0}}/100</view>
+      </view>
+    </view>
+
+    <button class="primary-button confirm-order-button" hover-class="button-hover" bindtap="confirmOrder" disabled="{{navigating}}">
+      确认订单
+    </button>
   </view>
 
   <view wx:if="{{noteModalVisible}}">
@@ -150,11 +180,11 @@
           <view class="note-modal__title">补充说明</view>
           <view class="note-modal__subtitle">填写上车点细节、是否赶时间等</view>
         </view>
-        <view class="note-modal__count">{{noteDraftCount}}/60</view>
+        <view class="note-modal__count">{{noteDraftCount}}/100</view>
       </view>
       <textarea
         class="remark-textarea"
-        maxlength="60"
+        maxlength="100"
         placeholder="例如：柳巷店门口上车，赶 9 点前到"
         value="{{noteDraft}}"
         focus="{{noteModalVisible}}"

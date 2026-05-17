@@ -1,24 +1,54 @@
 <view class="page-shell invoice-shell safe-bottom">
   <view class="page-content invoice-page page-enter">
-    <view class="invoice-header">
-      <view>
-        <view class="section-title invoice-title">发票中心</view>
-        <view class="invoice-subtitle">可开票订单与申请状态</view>
+    <view class="invoice-hero">
+      <view class="invoice-hero__icon">
+        <view class="invoice-doc-lines"></view>
+        <view class="invoice-hero__check"></view>
+      </view>
+      <view class="invoice-hero__copy">
+        <view class="invoice-hero__title">发票中心</view>
+        <view class="invoice-hero__desc">可开票订单与申请状态</view>
       </view>
       <view class="invoice-count">{{list.length}} 张</view>
+      <view class="invoice-paper">
+        <view class="invoice-paper__sheet"></view>
+        <view class="invoice-paper__leaf invoice-paper__leaf--one"></view>
+        <view class="invoice-paper__leaf invoice-paper__leaf--two"></view>
+      </view>
     </view>
 
-    <view class="invoice-list">
+    <view class="invoice-list" wx:if="{{list.length}}">
       <view class="invoice-card tap-scale" wx:for="{{list}}" wx:key="id">
-        <view class="row-between">
-          <view>
-            <view class="invoice-card__title">{{item.title}}</view>
-            <view class="invoice-card__time">{{item.createdAt}}</view>
+        <view class="invoice-card__top">
+          <view class="invoice-service-icon invoice-service-icon--{{item.iconClass}}">
+            <view class="invoice-service-icon__shape"></view>
           </view>
-          <view class="brand-text">{{item.amountText}}</view>
+          <view class="invoice-card__main">
+            <view class="invoice-tag invoice-tag--{{item.iconClass}}">{{item.serviceTag}}</view>
+            <view class="invoice-card__title">{{item.title}}</view>
+            <view class="invoice-card__time">
+              <view class="invoice-time-icon"></view>
+              <text>{{item.displayTime}}</text>
+            </view>
+          </view>
+          <view class="invoice-amount">{{item.amountText}}</view>
         </view>
-        <button class="ghost-button invoice-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="applyInvoice">{{item.status}}</button>
+        <button
+          class="invoice-button {{item.canApply ? '' : 'invoice-button--disabled'}}"
+          hover-class="button-hover"
+          data-id="{{item.id}}"
+          bindtap="applyInvoice"
+        >
+          <text>{{item.status}}</text>
+          <text class="invoice-button__arrow">›</text>
+        </button>
       </view>
+    </view>
+
+    <view class="invoice-empty" wx:else>
+      <view class="invoice-empty__icon"></view>
+      <view class="invoice-empty__title">暂无可开票订单</view>
+      <view class="invoice-empty__desc">完成行程后，可在这里申请电子发票。</view>
     </view>
   </view>
 </view>
