@@ -55,7 +55,7 @@ Page({
     this.setData({
       phone: '13800000001',
       password: '123456',
-      loginTip: '已填入课程默认演示账号，可以直接登录体验。'
+      loginTip: '已填入默认账号，可以直接登录体验。'
     })
   },
 

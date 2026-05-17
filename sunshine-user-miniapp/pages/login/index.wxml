@@ -1,12 +1,12 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell login-shell safe-bottom">
   <view class="page-content">
     <view class="login-hero">
-      <view class="pill">安全出行 · 原生小程序演示版</view>
+      <view class="pill">安全出行</view>
       <view class="login-title">欢迎回到阳光出行</view>
-      <view class="login-desc">当前已切换为真实账号体系，乘客端登录、注册、鉴权和实名认证都已与后端完整联调。</view>
+      <view class="login-desc">登录后可同步订单、钱包、优惠券和实名认证状态。</view>
     </view>
 
-    <view class="hero-card">
+    <view class="hero-card login-card">
       <view class="chip-row login-switch">
         <view class="chip {{mode === 'login' ? 'chip-active' : ''}}" data-mode="login" bindtap="chooseMode">账号登录</view>
         <view class="chip {{mode === 'register' ? 'chip-active' : ''}}" data-mode="register" bindtap="chooseMode">注册新账号</view>
@@ -27,7 +27,7 @@
       <button class="primary-button login-button" hover-class="button-hover" bindtap="submit">{{mode === 'login' ? '登录并进入首页' : '注册并自动登录'}}</button>
     </view>
 
-    <view class="hero-card">
+    <view class="hero-card login-card">
       <view class="login-card__title">演示账号</view>
       <view class="login-tip">{{loginTip}}</view>
       <button class="ghost-button login-button" hover-class="button-hover" bindtap="fillDemoAccount">填入默认账号</button>
@@ -35,7 +35,7 @@
 
     <view class="agreement" bindtap="toggleAgree">
       <view class="agreement-check {{agreed ? 'agreement-check--active' : ''}}">{{agreed ? '√' : ''}}</view>
-      <view class="agreement-text">我已阅读并同意《用户服务协议》《隐私政策》，且知晓本项目为课程大作业演示版本。</view>
+      <view class="agreement-text">我已阅读并同意《用户服务协议》《隐私政策》。</view>
     </view>
   </view>
 </view>
