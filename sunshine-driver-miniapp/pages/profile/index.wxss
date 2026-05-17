@@ -179,15 +179,33 @@
   bottom: -2rpx;
   width: 38rpx;
   height: 38rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 50%;
-  color: #ffffff;
   background: linear-gradient(135deg, #ff9a31 0%, #ff7a00 100%);
   border: 4rpx solid rgba(255, 255, 255, 0.94);
-  font-size: 18rpx;
-  font-weight: 900;
+  box-shadow: 0 8rpx 16rpx rgba(255, 122, 0, 0.2);
+}
+
+.driver-avatar-badge::before {
+  content: "";
+  position: absolute;
+  left: 10rpx;
+  top: 10rpx;
+  width: 18rpx;
+  height: 18rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.96);
+  border-radius: 8rpx;
+}
+
+.driver-avatar-badge::after {
+  content: "";
+  position: absolute;
+  left: 15rpx;
+  top: 15rpx;
+  width: 8rpx;
+  height: 4rpx;
+  border-left: 3rpx solid #ff7a00;
+  border-bottom: 3rpx solid #ff7a00;
+  transform: rotate(-45deg);
 }
 
 .profile-copy {
@@ -274,18 +292,36 @@
 }
 
 .permission-icon {
+  position: relative;
   width: 64rpx;
   height: 64rpx;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 20rpx;
-  color: #ffffff;
   background: linear-gradient(135deg, #ffb34d 0%, #ff7a00 100%);
   box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.18);
-  font-size: 31rpx;
-  font-weight: 900;
+}
+
+.permission-icon::before {
+  content: "";
+  position: absolute;
+  left: 17rpx;
+  top: 15rpx;
+  width: 30rpx;
+  height: 30rpx;
+  border: 6rpx solid #ffffff;
+  border-radius: 12rpx;
+}
+
+.permission-icon::after {
+  content: "";
+  position: absolute;
+  left: 26rpx;
+  top: 27rpx;
+  width: 12rpx;
+  height: 7rpx;
+  border-left: 4rpx solid #ff7a00;
+  border-bottom: 4rpx solid #ff7a00;
+  transform: rotate(-45deg);
 }
 
 .permission-copy {
@@ -392,22 +428,145 @@
 }
 
 .menu-icon {
+  position: relative;
   width: 62rpx;
   height: 62rpx;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 19rpx;
-  color: #ff7a00;
   background: #fff0df;
-  font-size: 24rpx;
-  font-weight: 900;
 }
 
-.group-block:nth-of-type(3) .menu-icon {
-  color: #326fe6;
+.menu-icon::before,
+.menu-icon::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.menu-icon--vehicle::before {
+  left: 13rpx;
+  top: 24rpx;
+  width: 36rpx;
+  height: 20rpx;
+  border-radius: 8rpx 10rpx 6rpx 6rpx;
+  background: #ff7a00;
+}
+
+.menu-icon--vehicle::after {
+  left: 18rpx;
+  top: 17rpx;
+  width: 26rpx;
+  height: 18rpx;
+  border-radius: 14rpx 14rpx 4rpx 4rpx;
+  border: 6rpx solid #ff7a00;
+  border-bottom: 0;
+  box-shadow: -6rpx 24rpx 0 -2rpx #ffffff, 24rpx 24rpx 0 -2rpx #ffffff;
+}
+
+.menu-icon--orders {
   background: #edf5ff;
+}
+
+.menu-icon--orders::before {
+  left: 17rpx;
+  top: 13rpx;
+  width: 28rpx;
+  height: 36rpx;
+  border-radius: 7rpx;
+  background: #3b82f6;
+}
+
+.menu-icon--orders::after {
+  left: 24rpx;
+  top: 24rpx;
+  width: 16rpx;
+  height: 14rpx;
+  border-top: 4rpx solid rgba(255, 255, 255, 0.95);
+  border-bottom: 4rpx solid rgba(255, 255, 255, 0.95);
+}
+
+.menu-icon--income::before {
+  left: 16rpx;
+  top: 17rpx;
+  width: 30rpx;
+  height: 31rpx;
+  border-radius: 8rpx;
+  background: #ff7a00;
+}
+
+.menu-icon--income::after {
+  left: 26rpx;
+  top: 21rpx;
+  width: 12rpx;
+  height: 18rpx;
+  border-top: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  transform: rotate(90deg);
+}
+
+.menu-icon--settings {
+  background: #eef0ff;
+}
+
+.menu-icon--settings::before {
+  left: 18rpx;
+  top: 18rpx;
+  width: 26rpx;
+  height: 26rpx;
+  border: 8rpx solid #5b6ff0;
+  border-radius: 50%;
+}
+
+.menu-icon--settings::after {
+  left: 28rpx;
+  top: 9rpx;
+  width: 6rpx;
+  height: 44rpx;
+  border-radius: 999rpx;
+  background: #5b6ff0;
+  box-shadow: 0 0 0 0 #5b6ff0;
+  transform: rotate(45deg);
+}
+
+.menu-icon--profile::before {
+  left: 22rpx;
+  top: 13rpx;
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+  background: #ff7a00;
+}
+
+.menu-icon--profile::after {
+  left: 14rpx;
+  top: 34rpx;
+  width: 34rpx;
+  height: 17rpx;
+  border-radius: 18rpx 18rpx 9rpx 9rpx;
+  background: #ff7a00;
+}
+
+.menu-icon--bell {
+  background: #edf5ff;
+}
+
+.menu-icon--bell::before {
+  left: 18rpx;
+  top: 16rpx;
+  width: 26rpx;
+  height: 28rpx;
+  border-radius: 16rpx 16rpx 9rpx 9rpx;
+  background: #3b82f6;
+}
+
+.menu-icon--bell::after {
+  left: 28rpx;
+  top: 45rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 16rpx -29rpx 0 -1rpx #ff5a1f;
 }
 
 .menu-copy {
