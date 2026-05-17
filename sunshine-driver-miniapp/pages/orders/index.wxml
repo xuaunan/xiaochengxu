@@ -1,31 +1,89 @@
-<view class="page-shell">
-  <view class="page-content">
-    <view class="hero-card driver-orders-hero page-enter">
-      <view class="driver-orders-head">
-        <view>
-          <view class="section-title">行程订单</view>
-          <view class="section-subtitle">接单记录、进行中订单与历史行程</view>
-        </view>
-        <view class="driver-orders-count">{{list.length}} 单</view>
+<view class="page-shell driver-orders-shell safe-bottom">
+  <view class="page-content driver-orders-page">
+    <view class="driver-orders-hero page-enter">
+      <view class="driver-orders-hero__icon">
+        <view class="driver-orders-hero__icon-line"></view>
       </view>
-      <view class="chip-row driver-order-tabs">
-        <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
+      <view class="driver-orders-hero__copy">
+        <view class="driver-orders-title">行程订单</view>
+        <view class="driver-orders-desc">接单记录、进行中订单与历史行程</view>
+      </view>
+      <view class="driver-orders-count">{{list.length}} 单</view>
+      <view class="driver-orders-city">
+        <view class="driver-orders-building driver-orders-building--1"></view>
+        <view class="driver-orders-building driver-orders-building--2"></view>
+        <view class="driver-orders-building driver-orders-building--3"></view>
+        <view class="driver-orders-building driver-orders-building--4"></view>
+      </view>
+      <view class="driver-orders-road"></view>
+      <view class="driver-orders-taxi">
+        <view class="driver-orders-taxi__body"></view>
+        <view class="driver-orders-taxi__top"></view>
+        <view class="driver-orders-taxi__wheel driver-orders-taxi__wheel--left"></view>
+        <view class="driver-orders-taxi__wheel driver-orders-taxi__wheel--right"></view>
       </view>
     </view>
 
-    <view class="list-gap driver-order-list">
-      <view class="panel-card driver-order-card tap-scale" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="openDetail">
-        <view class="row-between">
-          <view class="section-title order-route">{{item.startName}} → {{item.endName}}</view>
-          <view class="status-tag {{item.status === 'completed' ? 'success' : item.status === 'processing' ? 'processing' : 'waiting'}}">{{item.statusText}}</view>
+    <view class="driver-filter-card">
+      <scroll-view scroll-x enable-flex show-scrollbar="{{false}}" class="driver-tabs-scroll">
+        <view class="driver-tabs-row">
+          <view
+            class="driver-filter-chip {{active === item.key ? 'driver-filter-chip--active' : ''}}"
+            wx:for="{{tabs}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="chooseTab"
+            hover-class="pressable-hover"
+            hover-stay-time="60"
+          >
+            {{item.label}}
+          </view>
         </view>
-        <view class="order-extra">
-          <view class="status-tag {{item.serviceTypeClassName}}">{{item.serviceTypeLabel}}</view>
-          <view class="section-subtitle">{{item.passengerName}} · {{item.createdAt}}</view>
+      </scroll-view>
+    </view>
+
+    <view class="driver-order-list" wx:if="{{list.length}}">
+      <view
+        class="driver-order-card tap-scale"
+        wx:for="{{list}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="openDetail"
+        hover-class="pressable-hover"
+        hover-stay-time="60"
+      >
+        <view class="driver-order-card__top">
+          <view class="driver-order-type">
+            <view class="driver-order-type__icon"></view>
+            <view class="driver-order-type__text">{{item.serviceTypeLabel}}</view>
+          </view>
+          <view class="driver-order-status driver-order-status--{{item.status}}">{{item.statusText}}</view>
         </view>
-        <view class="section-subtitle">{{item.seatHint}}</view>
-        <view class="section-subtitle">{{item.fareText}}</view>
+        <view class="driver-order-route">{{item.startName}} → {{item.endName}}</view>
+        <view class="driver-order-card__bottom">
+          <view class="driver-order-meta">
+            <view class="driver-order-meta__item">
+              <view class="driver-order-meta__icon driver-order-meta__icon--user"></view>
+              <text>{{item.passengerName}}</text>
+            </view>
+            <view class="driver-order-meta__item">
+              <view class="driver-order-meta__icon driver-order-meta__icon--time"></view>
+              <text>{{item.createdAt}}</text>
+            </view>
+            <view class="driver-order-meta__item" wx:if="{{item.seatHint}}">
+              <view class="driver-order-meta__icon driver-order-meta__icon--seat"></view>
+              <text>{{item.seatHint}}</text>
+            </view>
+          </view>
+          <view class="driver-order-price">{{item.fareText}}</view>
+        </view>
       </view>
+    </view>
+
+    <view class="driver-empty-card" wx:else>
+      <view class="driver-empty-icon"></view>
+      <view class="driver-empty-title">暂无行程订单</view>
+      <view class="driver-empty-desc">保持听单状态，新的行程会实时同步到这里。</view>
     </view>
   </view>
 </view>
