@@ -1,71 +1,102 @@
-<view class="page-shell safe-bottom">
-  <view class="page-content list-gap page-enter {{showPayBar ? 'has-pay-bar' : ''}}" wx:if="{{detail}}">
-    <view class="hero-card order-hero fade-in">
-      <view class="row-between hero-head">
-        <view class="hero-copy">
-          <view class="section-title hero-route">{{detail.serviceTypeText}}订单</view>
-          <view class="section-subtitle">订单号：{{detail.orderNo}}</view>
+<view class="page-shell detail-shell safe-bottom">
+  <view class="page-content detail-page {{showPayBar ? 'has-pay-bar' : ''}}" wx:if="{{detail}}">
+    <view class="detail-hero page-enter">
+      <view class="detail-hero__head">
+        <view class="detail-hero__copy">
+          <view class="detail-route">{{detail.startDisplay}} -> {{detail.endDisplay}}</view>
+          <view class="detail-order-no">订单号 {{detail.orderNo}} <text wx:if="{{detail.carpoolMeta}}">｜乘客 {{detail.carpoolMeta.passengerCountText}}</text></view>
+          <view class="detail-tags">
+            <view class="detail-tag detail-tag--type">{{detail.serviceTypeText}}</view>
+            <view class="detail-tag detail-tag--price">{{detail.showDiscountPrice ? displayedPayableAmountText : detail.originalAmountText}}</view>
+          </view>
         </view>
-        <view class="status-tag hero-status {{showPayBar ? 'waiting' : detail.uiStatus.tagType}} {{showPayBar ? 'hero-status-accent' : ''}}">
+        <view class="status-tag detail-status {{showPayBar ? 'waiting' : detail.uiStatus.tagType}}">
           {{detail.uiStatus.label}}
         </view>
       </view>
 
-      <view class="amount-caption">{{detail.amountCaption}}</view>
-      <view class="detail-amount-row">
-        <text class="detail-amount {{detail.showDiscountPrice ? 'detail-amount--original' : ''}}">{{detail.originalAmountText}}</text>
-        <text class="detail-amount detail-amount--payable" wx:if="{{detail.showDiscountPrice}}">{{displayedPayableAmountText}}</text>
+      <view class="detail-city">
+        <view class="detail-building detail-building--1"></view>
+        <view class="detail-building detail-building--2"></view>
+        <view class="detail-building detail-building--3"></view>
+        <view class="detail-building detail-building--4"></view>
       </view>
-      <view class="amount-discount-tip" wx:if="{{detail.showDiscountPrice}}">已优惠 {{detail.couponDiscountText}}</view>
-
-      <view class="address-card">
-        <view class="address-row">
-          <view class="address-badge start">起</view>
-          <view class="address-text">{{detail.startDisplay}}</view>
-        </view>
-        <view class="address-row">
-          <view class="address-badge end">终</view>
-          <view class="address-text">{{detail.endDisplay}}</view>
-        </view>
-      </view>
-    </view>
-
-    <view class="panel-card timeline-panel">
-      <view class="timeline-panel-head">
-        <view class="section-title">状态轨迹</view>
-        <view class="timeline-toggle tap-scale" bindtap="toggleTimeline" hover-class="pressable-hover" hover-stay-time="60">
-          {{timelineExpanded ? '收起' : '展开'}}
-        </view>
+      <view class="detail-road"></view>
+      <view class="detail-taxi">
+        <view class="detail-taxi__body"></view>
+        <view class="detail-taxi__top"></view>
+        <view class="detail-taxi__wheel detail-taxi__wheel--left"></view>
+        <view class="detail-taxi__wheel detail-taxi__wheel--right"></view>
       </view>
 
-      <view class="timeline-summary timeline-{{timelineSummary.state}}" wx:if="{{!timelineExpanded && timelineSummary}}">
-        <view class="timeline-summary-main">
-          <view class="timeline-head">
-            <view class="timeline-title">{{timelineSummary.title}}</view>
-            <view class="timeline-time">{{timelineSummary.time}}</view>
-          </view>
-          <view class="timeline-desc">{{timelineSummary.description}}</view>
-        </view>
-      </view>
-
-      <view class="timeline-list" wx:if="{{timelineExpanded}}">
-        <view class="timeline-item timeline-{{item.state}}" wx:for="{{timelineSteps}}" wx:key="key">
-          <view class="timeline-tail" wx:if="{{index !== timelineSteps.length - 1}}"></view>
-          <view class="timeline-dot {{item.pulse ? 'timeline-dot-pulse' : ''}}"></view>
-          <view class="timeline-body">
-            <view class="timeline-head">
-              <view class="timeline-title">{{item.title}}</view>
-              <view class="timeline-time">{{item.time}}</view>
-            </view>
-            <view class="timeline-desc">{{item.description}}</view>
+      <view class="detail-metrics">
+        <view class="detail-metric" wx:for="{{detailMetrics}}" wx:key="key">
+          <view class="detail-metric__icon detail-metric__icon--{{item.icon}}"></view>
+          <view>
+            <view class="detail-metric__value">{{item.value}}</view>
+            <view class="detail-metric__label">{{item.label}}</view>
           </view>
         </view>
       </view>
     </view>
 
-    <view class="panel-card">
-      <view class="section-title">售后服务</view>
-      <view class="section-subtitle">退款、投诉、发票入口前置，方便演示时一屏操作。</view>
+    <view class="detail-card service-panel">
+      <view class="detail-section-head">
+        <view class="detail-section-title-wrap">
+          <view class="detail-section-icon detail-section-icon--flow"></view>
+          <view class="detail-section-title">服务流程</view>
+        </view>
+      </view>
+      <view class="service-steps">
+        <view class="service-step service-step--{{item.state}}" wx:for="{{timelineSteps}}" wx:key="key">
+          <view class="service-dot">{{item.state === 'upcoming' ? '' : '✓'}}</view>
+          <view class="service-line" wx:if="{{index !== timelineSteps.length - 1}}"></view>
+          <view class="service-label">{{item.title}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-card drive-panel">
+      <view class="drive-copy">
+        <view class="detail-section-title-wrap">
+          <view class="detail-section-icon detail-section-icon--car"></view>
+          <view class="detail-section-title">行驶状态</view>
+        </view>
+        <view class="drive-subtitle">按道路路线行驶中</view>
+        <view class="drive-status">
+          <view class="drive-pin"></view>
+          <text>{{timelineSummary.description}}</text>
+        </view>
+      </view>
+      <view class="mini-map">
+        <view class="mini-map__grid"></view>
+        <view class="mini-map__route"></view>
+        <view class="mini-map__point mini-map__point--start"></view>
+        <view class="mini-map__point mini-map__point--end"></view>
+      </view>
+    </view>
+
+    <view class="detail-card action-panel">
+      <view class="detail-section-title-wrap">
+        <view class="detail-section-icon detail-section-icon--driver"></view>
+        <view class="detail-section-title">司机操作</view>
+      </view>
+      <view class="action-desc">推送状态后会同步刷新司机端、乘客端和后台。</view>
+      <view class="driver-actions">
+        <view class="driver-action driver-action--{{item.done ? 'done' : 'pending'}}" wx:for="{{serviceFlowSteps}}" wx:key="key">
+          <view class="driver-action__icon driver-action__icon--{{item.icon}}"></view>
+          <view class="driver-action__copy">
+            <view class="driver-action__title">{{item.title}}</view>
+            <view class="driver-action__desc">{{item.desc}}</view>
+            <view class="driver-action__state">{{item.stateText}}</view>
+          </view>
+          <view class="driver-action__arrow" wx:if="{{index !== serviceFlowSteps.length - 1}}"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-card aftersale-panel">
+      <view class="detail-section-title">售后服务</view>
       <view class="action-grid">
         <view class="action-card tap-scale" bindtap="applyRefund">申请退款</view>
         <view class="action-card tap-scale" bindtap="gotoComplaint">投诉反馈</view>
@@ -73,8 +104,8 @@
       </view>
     </view>
 
-    <view class="panel-card">
-      <view class="section-title">订单信息</view>
+    <view class="detail-card info-panel">
+      <view class="detail-section-title">订单信息</view>
       <view class="info-list">
         <view class="info-row">
           <text class="info-label">业务类型</text>
@@ -100,10 +131,6 @@
           <text class="info-label">高速费</text>
           <text class="info-value">{{detail.carpoolMeta.tollModeText}}</text>
         </view>
-        <view class="info-row" wx:if="{{detail.carpoolMeta && detail.carpoolMeta.discountAmount > 0}}">
-          <text class="info-label">顺风车优惠</text>
-          <text class="info-value info-value--brand">-{{detail.carpoolMeta.discountAmountText}}</text>
-        </view>
         <view class="info-row" wx:if="{{detail.showPaidCouponInfo}}">
           <text class="info-label">使用优惠券</text>
           <text class="info-value">{{detail.appliedCouponName}}</text>
@@ -126,11 +153,13 @@
         </view>
       </view>
     </view>
+
+    <view class="detail-complete" wx:if="{{!showPayBar}}">状态已完成</view>
   </view>
 
   <view class="page-content" wx:elif="{{loading}}">
-    <view class="hero-card skeleton skeleton-card"></view>
-    <view class="panel-card skeleton skeleton-panel"></view>
+    <view class="detail-hero skeleton skeleton-card"></view>
+    <view class="detail-card skeleton skeleton-panel"></view>
   </view>
 
   <view class="payment-bar" wx:if="{{showPayBar}}">
@@ -205,7 +234,7 @@
           </view>
         </view>
 
-        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'available'}}">
+        <view class="coupon-empty detail-card" wx:elif="{{activeCouponTab === 'available'}}">
           当前订单暂无可用优惠券
         </view>
 
@@ -224,7 +253,7 @@
           </view>
         </view>
 
-        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'unavailable'}}">
+        <view class="coupon-empty detail-card" wx:elif="{{activeCouponTab === 'unavailable'}}">
           暂无不可用优惠券
         </view>
       </scroll-view>
