@@ -1,18 +1,15 @@
-.intl-orders-shell {
-  background: linear-gradient(180deg, rgba(255, 246, 237, 0.62) 0%, #f7f8fc 28%, #f5f7fb 100%);
-}
-
 .international-list-hero,
 .intl-order-card {
   padding: 28rpx;
-  border-radius: 30rpx;
+  border-radius: 32rpx;
   background: #ffffff;
-  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
+  box-shadow: 0 18rpx 46rpx rgba(24, 34, 56, 0.08);
 }
 
 .international-list-hero {
-  background: #ffffff;
-  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  background:
+    linear-gradient(135deg, rgba(255, 122, 0, 0.12), rgba(37, 99, 235, 0.1)),
+    #ffffff;
 }
 
 .intl-card-title {
