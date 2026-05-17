@@ -1,48 +1,113 @@
-<view class="page-shell welcome-page safe-bottom">
-  <sun-nav title="阳光出行" subtitle="智慧出行服务平台" transparent></sun-nav>
+<view class="welcome-page">
+  <view class="welcome-bg">
+    <view class="sky-card sky-card--one"></view>
+    <view class="sky-card sky-card--two"></view>
+    <view class="sky-card sky-card--three"></view>
 
-  <view class="hero">
-    <view class="hero__badge">新人礼包已备好</view>
-    <view class="hero__title">出行，从这里开始</view>
-    <view class="hero__subtitle">打车、顺风车、国际出行与优惠券服务集中管理。</view>
+    <view class="city city--back">
+      <view class="building building--b1"></view>
+      <view class="building building--b2"></view>
+      <view class="building building--b3"></view>
+      <view class="building building--b4"></view>
+      <view class="building building--b5"></view>
+      <view class="building building--b6"></view>
+    </view>
+
+    <view class="city city--front">
+      <view class="building building--f1"></view>
+      <view class="building building--f2"></view>
+      <view class="building building--f3"></view>
+      <view class="building building--f4"></view>
+      <view class="building building--f5"></view>
+    </view>
+
+    <view class="tree tree--1"></view>
+    <view class="tree tree--2"></view>
+    <view class="tree tree--3"></view>
+    <view class="tree tree--4"></view>
+    <view class="road-scene">
+      <view class="road-line road-line--one"></view>
+      <view class="road-line road-line--two"></view>
+      <view class="road-line road-line--three"></view>
+    </view>
+    <view class="hero-car">
+      <view class="hero-car__body"></view>
+      <view class="hero-car__top"></view>
+      <view class="hero-car__light hero-car__light--left"></view>
+      <view class="hero-car__light hero-car__light--right"></view>
+      <view class="hero-car__window hero-car__window--left"></view>
+      <view class="hero-car__window hero-car__window--right"></view>
+      <view class="hero-car__plate"></view>
+      <view class="hero-car__wheel hero-car__wheel--left"></view>
+      <view class="hero-car__wheel hero-car__wheel--right"></view>
+      <view class="hero-car__sign">TAXI</view>
+    </view>
   </view>
 
-  <view class="coupon-stack">
-    <view class="coupon-card coupon-card--main">
-      <text class="coupon-card__amount">18 元</text>
-      <text class="coupon-card__name">新人打车立减券</text>
-      <text class="coupon-card__desc">注册即领，首页下单自动可选</text>
+  <view class="welcome-content">
+    <view class="brand-block">
+      <view class="brand-title">阳光出行</view>
+      <view class="brand-subtitle">智慧出行服务平台</view>
     </view>
-    <view class="coupon-card coupon-card--sub">
-      <text class="coupon-card__desc">顺风车 8 折券 + 国际出行 80 元券</text>
-    </view>
-  </view>
 
-  <view class="feature-list hero-card">
-    <view class="feature-item">
-      <view class="feature-item__index">01</view>
-      <view>
-        <view class="feature-item__title">地图路线可视化</view>
-        <view class="feature-item__desc">定位、选点、路线和费用预估集中呈现。</view>
+    <view class="gift-pill">
+      <view class="gift-icon">
+        <view class="gift-icon__bow"></view>
       </view>
+      <text>新人礼包已备好</text>
     </view>
-    <view class="feature-item">
-      <view class="feature-item__index">02</view>
-      <view>
-        <view class="feature-item__title">订单支付闭环</view>
-        <view class="feature-item__desc">订单、优惠、支付和评价保持同一套流程。</view>
-      </view>
-    </view>
-    <view class="feature-item">
-      <view class="feature-item__index">03</view>
-      <view>
-        <view class="feature-item__title">统一服务体验</view>
-        <view class="feature-item__desc">界面、状态和操作反馈保持一致。</view>
-      </view>
-    </view>
-  </view>
 
-  <view class="floating-bar">
-    <button class="primary-button" hover-class="button-hover" bindtap="claimWelcomePack">领取 {{couponCount}} 张新人券并进入</button>
+    <view class="hero-copy">
+      <view class="hero-title">出行，从这里开始</view>
+      <view class="hero-desc">打车、顺风车、国际出行与优惠券服务集中管理。</view>
+    </view>
+
+    <view class="coupon-card">
+      <view class="coupon-amount"><text>18</text><text class="coupon-unit">元</text></view>
+      <view class="coupon-title">新人打车立减券</view>
+      <view class="coupon-desc">注册即领，首页下单自动可选</view>
+      <view class="coupon-corner"></view>
+      <view class="coupon-ticket">%</view>
+    </view>
+
+    <view class="feature-card">
+      <view class="feature-row">
+        <view class="feature-icon feature-icon--pin"></view>
+        <view class="feature-index">01</view>
+        <view class="feature-copy">
+          <view class="feature-title">地图路线可视化</view>
+          <view class="feature-desc">定位、选点、路线和费用预估集中呈现。</view>
+        </view>
+        <view class="feature-arrow"></view>
+      </view>
+      <view class="feature-divider"></view>
+      <view class="feature-row">
+        <view class="feature-icon feature-icon--wallet"></view>
+        <view class="feature-index">02</view>
+        <view class="feature-copy">
+          <view class="feature-title">订单支付闭环</view>
+          <view class="feature-desc">订单、优惠、支付和评价保持同一套流程。</view>
+        </view>
+        <view class="feature-arrow"></view>
+      </view>
+      <view class="feature-divider"></view>
+      <view class="feature-row">
+        <view class="feature-icon feature-icon--shield"></view>
+        <view class="feature-index">03</view>
+        <view class="feature-copy">
+          <view class="feature-title">统一服务体验</view>
+          <view class="feature-desc">界面、状态和操作反馈保持一致。</view>
+        </view>
+        <view class="feature-arrow"></view>
+      </view>
+    </view>
+
+    <view class="bottom-action">
+      <button class="claim-button" hover-class="button-hover" bindtap="claimWelcomePack">领取 {{couponCount}} 张新人券并进入</button>
+      <view class="safe-note">
+        <view class="safe-note__icon"></view>
+        <text>安全出行 · 阳光相伴</text>
+      </view>
+    </view>
   </view>
 </view>
