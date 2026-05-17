@@ -4,7 +4,7 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <span class="panel-kicker">System Config</span>
+            <span class="panel-kicker">系统配置</span>
             <h3 class="panel-title">全局参数配置</h3>
             <p class="panel-subtitle">
               汇率、佣金比例、免费取消时长和夜间附加费时段都直接写入后端系统配置，保存后全业务模块即时生效。
@@ -32,7 +32,7 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <span class="panel-kicker">Runtime</span>
+            <span class="panel-kicker">运行环境</span>
             <h3 class="panel-title">演示环境说明</h3>
             <p class="panel-subtitle">
               当前后台、后端和小程序使用同一套演示数据库，适合课程答辩时联动展示。
@@ -72,7 +72,7 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <span class="panel-kicker">Notice Center</span>
+            <span class="panel-kicker">公告中心</span>
             <h3 class="panel-title">公告管理</h3>
             <p class="panel-subtitle">公告可同步到首页展示，支持新增、编辑、启停闭环管理。</p>
           </div>
@@ -136,7 +136,7 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <span class="panel-kicker">Version Center</span>
+            <span class="panel-kicker">版本中心</span>
             <h3 class="panel-title">版本管理</h3>
             <p class="panel-subtitle">统一管理后台、乘客端和司机端版本信息，支持发布和停用实时同步。</p>
           </div>

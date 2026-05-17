@@ -2,7 +2,7 @@
   <section class="page">
     <article class="panel toolbar">
       <div>
-        <span class="panel-kicker">Driver Ops</span>
+        <span class="panel-kicker">司机运营</span>
         <h3 class="panel-title">司机管理</h3>
         <p class="panel-subtitle">
           聚焦司机审核、账号启停、资料编辑和接单记录联动，所有动作提交后实时刷新列表与详情。
@@ -537,9 +537,10 @@ onMounted(() => {
   display: grid;
   gap: 10px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  background: #f8fafc;
+  border: 1px solid #e8edf3;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
 }
 
 .document-title {

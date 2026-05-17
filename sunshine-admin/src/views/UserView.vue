@@ -2,7 +2,7 @@
   <section class="page">
     <article class="panel toolbar">
       <div>
-        <span class="panel-kicker">User Center</span>
+        <span class="panel-kicker">用户中心</span>
         <h3 class="panel-title">用户管理</h3>
         <p class="panel-subtitle">
           统一处理用户资料、实名认证、账号启停与密码重置；司机账号会自动合并司机档案、车辆档案和真实订单数据。
