@@ -2,14 +2,10 @@
   <view class="page-content reviews-page page-enter" wx:if="{{list.length}}">
     <view class="reviews-header">
       <view>
-        <view class="reviews-kicker">服务评价</view>
         <view class="section-title reviews-title">评价记录</view>
+        <view class="reviews-subtitle">历史服务反馈与评分</view>
       </view>
       <view class="reviews-count">{{list.length}} 条</view>
-    </view>
-
-    <view class="panel-card reviews-intro">
-      <view class="section-subtitle">历史评价会沉淀为服务质量反馈，帮助平台持续优化派单和服务体验。</view>
     </view>
 
     <view class="reviews-list">
