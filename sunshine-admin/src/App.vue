@@ -2,7 +2,7 @@
   <div class="layout-shell">
     <aside class="sidebar">
       <div class="brand-card">
-        <span class="brand-kicker">Sunshine Travel</span>
+        <span class="brand-kicker">运营后台</span>
         <h1>阳光出行</h1>
         <p>后台管理平台</p>
       </div>
