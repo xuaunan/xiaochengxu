@@ -1,13 +1,13 @@
 <view class="page-shell">
   <view class="page-content list-gap">
-    <view class="hero-card list-gap" wx:if="{{!loggedIn}}">
+    <view class="hero-card onboarding-card onboarding-login page-enter list-gap" wx:if="{{!loggedIn}}">
       <view>
         <view class="section-title">司机账号登录</view>
         <view class="section-subtitle">司机账号注册成功后即可登录小程序，添加车辆并提交审核。</view>
       </view>
 
       <view class="tip-board">
-        <view class="tip-title">演示账号</view>
+        <view class="tip-title">默认账号</view>
         <view class="tip-text">手机号：13900000001</view>
         <view class="tip-text">密码：123456</view>
       </view>
@@ -34,7 +34,7 @@
     </view>
 
     <view wx:else class="list-gap">
-      <view class="hero-card list-gap">
+      <view class="hero-card onboarding-card onboarding-vehicle page-enter list-gap">
         <view class="row-between">
           <view>
             <view class="section-title">我的车辆</view>
@@ -79,7 +79,7 @@
         </view>
       </view>
 
-      <view class="panel-card list-gap">
+      <view class="panel-card onboarding-form list-gap">
         <view class="section-title">{{vehicleView.hasVehicle ? '更换车辆信息' : '添加车辆信息'}}</view>
         <view class="section-subtitle">
           {{vehicleView.hasVehicle ? '提交更换后，车辆审核状态会回到待审核，接单权限临时锁定。' : '提交后系统会同步到后台司机管理列表，等待管理员审核。'}}

@@ -3,8 +3,8 @@
   height: 76rpx;
   min-height: 76rpx;
   padding: 0 24rpx;
-  border-radius: 24rpx;
-  background: #f7f8fc;
+  border-radius: 22rpx;
+  background: #f8fafc;
   border: 1rpx solid rgba(31, 36, 50, 0.06);
   font-size: 28rpx;
   line-height: 76rpx;
@@ -15,10 +15,23 @@
   padding-bottom: calc(env(safe-area-inset-bottom) + 176rpx);
 }
 
+.onboarding-card {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 232, 0.98) 0%, rgba(255, 255, 255, 0.98) 58%),
+    #ffffff;
+  box-shadow: 0 14rpx 32rpx rgba(24, 34, 56, 0.055);
+}
+
+.onboarding-form {
+  background: #ffffff;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
+}
+
 .tip-board {
   padding: 24rpx;
-  border-radius: 24rpx;
-  background: linear-gradient(135deg, #fff1df, #fff7ef);
+  border-radius: 22rpx;
+  background: rgba(255, 122, 0, 0.08);
 }
 
 .tip-title {
@@ -67,8 +80,9 @@
 
 .summary-card {
   padding: 24rpx;
-  border-radius: 26rpx;
-  background: linear-gradient(180deg, rgba(255, 247, 239, 0.9), rgba(255, 255, 255, 1));
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .summary-header {
@@ -108,8 +122,8 @@
 
 .summary-item {
   padding: 18rpx;
-  border-radius: 22rpx;
-  background: #ffffff;
+  border-radius: 20rpx;
+  background: #f8fafc;
 }
 
 .summary-label {
@@ -181,8 +195,8 @@
   flex-direction: column;
   gap: 16rpx;
   padding: 20rpx;
-  border-radius: 24rpx;
-  background: #f7f8fc;
+  border-radius: 22rpx;
+  background: #f8fafc;
 }
 
 .upload-title {

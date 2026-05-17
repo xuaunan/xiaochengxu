@@ -5,7 +5,7 @@
   </view>
 
   <view class="page-content list-gap">
-    <view class="hero-card trip-hero">
+    <view class="hero-card trip-hero page-enter">
       <view class="trip-hero__top">
         <view>
           <view class="section-title trip-route">{{trip.startName}} -> {{trip.endName}}</view>
@@ -35,7 +35,7 @@
       </view>
     </view>
 
-    <view class="panel-card">
+    <view class="panel-card trip-panel">
       <view class="section-title">服务流程</view>
       <view class="timeline">
         <view class="timeline-item" wx:for="{{trip.timeline}}" wx:key="key">
@@ -45,14 +45,14 @@
       </view>
     </view>
 
-    <view class="panel-card">
+    <view class="panel-card trip-panel">
       <view class="section-title">行驶状态</view>
       <view class="section-subtitle">{{trip.trafficText}}</view>
     </view>
 
-    <view class="panel-card">
+    <view class="panel-card trip-panel">
       <view class="section-title">司机操作</view>
-      <view class="section-subtitle">接单后会自动同步到乘客端。你也可以手动推进状态，系统会同步刷新司机端、乘客端和后台。</view>
+      <view class="section-subtitle">推进状态后会同步刷新司机端、乘客端和后台。</view>
     </view>
   </view>
 

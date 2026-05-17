@@ -1,5 +1,21 @@
+.withdraw-card {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 232, 0.98) 0%, rgba(255, 255, 255, 0.98) 58%),
+    #ffffff;
+  box-shadow: 0 14rpx 32rpx rgba(24, 34, 56, 0.055);
+}
+
 .withdraw-form {
   margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.withdraw-form .driver-input {
+  border-radius: 22rpx;
+  background: #f8fafc;
+  border: 1rpx solid rgba(31, 36, 50, 0.06);
 }
 
 
