@@ -1,8 +1,8 @@
-<view class="page-shell intl-orders-shell safe-bottom">
+<view class="page-shell safe-bottom">
   <view class="page-content list-gap">
     <view class="international-list-hero">
       <view class="section-title">我的国际行程</view>
-      <view class="section-subtitle">国际出行订单和预约信息</view>
+      <view class="section-subtitle">订单从本地小程序进入后端数据库，后台订单中心会实时看到同一份数据。</view>
     </view>
     <block wx:if="{{list.length}}">
       <view class="intl-order-card" wx:for="{{list}}" wx:key="id">
