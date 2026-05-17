@@ -1,3 +1,7 @@
+.carpool-confirm-shell {
+  background: linear-gradient(180deg, rgba(255, 246, 237, 0.62) 0%, #f7f8fc 28%, #f5f7fb 100%);
+}
+
 .confirm-page {
   display: flex;
   flex-direction: column;
@@ -24,6 +28,8 @@
 .price-panel {
   padding: 24rpx;
   border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
 }
 
 .summary-card {
@@ -39,7 +45,7 @@
   gap: 12rpx;
   padding: 16rpx 18rpx;
   border-radius: 20rpx;
-  background: #f7f8fc;
+  background: #f8fafc;
 }
 
 .summary-route__dot {
@@ -84,7 +90,7 @@
   min-width: 0;
   padding: 16rpx;
   border-radius: 18rpx;
-  background: linear-gradient(180deg, #fffaf4 0%, #fff5ea 100%);
+  background: #f8fafc;
 }
 
 .summary-item--wide {
@@ -114,7 +120,7 @@
   margin-top: 20rpx;
   padding: 16rpx 18rpx;
   border-radius: 20rpx;
-  background: linear-gradient(180deg, #fffaf3 0%, #fff4e6 100%);
+  background: #f8fafc;
   border: 1rpx solid rgba(255, 122, 0, 0.08);
 }
 
@@ -172,8 +178,8 @@
   margin-top: 18rpx;
   padding: 14rpx;
   border-radius: 20rpx;
-  background: #fffaf4;
-  border: 1rpx solid rgba(255, 122, 0, 0.08);
+  background: #f8fafc;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .price-summary__main {
@@ -181,8 +187,8 @@
   min-width: 0;
   padding: 16rpx 18rpx;
   border-radius: 18rpx;
-  background: linear-gradient(180deg, #ff8d1a 0%, #ff7a00 100%);
-  box-shadow: 0 12rpx 24rpx rgba(255, 122, 0, 0.14);
+  background: #ff7a00;
+  box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.12);
 }
 
 .price-summary__label {
@@ -336,10 +342,10 @@
   align-items: stretch;
   gap: 18rpx;
   padding: 22rpx;
-  border-radius: 30rpx;
+  border-radius: 26rpx;
   background: #ffffff;
   border: 2rpx solid rgba(255, 122, 0, 0.08);
-  box-shadow: 0 16rpx 30rpx rgba(31, 36, 50, 0.06);
+  box-shadow: 0 12rpx 28rpx rgba(31, 36, 50, 0.05);
 }
 
 .coupon-card--selected {

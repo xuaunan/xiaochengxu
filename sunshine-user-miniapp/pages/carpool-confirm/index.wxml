@@ -1,6 +1,6 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell carpool-confirm-shell safe-bottom">
   <view class="page-content confirm-page">
-    <view class="module-heading confirm-heading">
+    <view class="module-heading confirm-heading page-enter">
       <view class="section-title list-title">行程确认</view>
       <view class="section-subtitle">{{priceView.distanceText}}</view>
     </view>
