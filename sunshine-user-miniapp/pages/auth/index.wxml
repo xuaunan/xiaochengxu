@@ -1,14 +1,16 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell auth-shell safe-bottom">
   <view class="page-content list-gap">
-    <view class="hero-card">
+    <view class="hero-card auth-hero page-enter">
       <view class="section-title">实名认证信息</view>
-      <view class="section-subtitle">提交真实姓名和身份证号后，后台会进入审核状态，审核结果会同步显示在这里。</view>
-      <view class="fee-row"><text>真实姓名</text><text>{{auth.realName || '未填写'}}</text></view>
-      <view class="fee-row"><text>身份证号</text><text>{{auth.idNo || '未填写'}}</text></view>
-      <view class="fee-row"><text>审核状态</text><text class="brand-text">{{auth.status}}</text></view>
+      <view class="section-subtitle">提交后进入审核流程，结果会同步到个人资料。</view>
+      <view class="auth-status-card">
+        <view class="fee-row"><text>真实姓名</text><text>{{auth.realName || '未填写'}}</text></view>
+        <view class="fee-row"><text>身份证号</text><text>{{auth.idNo || '未填写'}}</text></view>
+        <view class="fee-row"><text>审核状态</text><text class="brand-text">{{auth.status}}</text></view>
+      </view>
     </view>
 
-    <view class="panel-card list-gap">
+    <view class="panel-card auth-form list-gap">
       <input class="auth-input" data-key="realName" value="{{form.realName}}" bindinput="updateField" placeholder="请输入真实姓名" />
       <input class="auth-input" data-key="idCard" value="{{form.idCard}}" bindinput="updateField" placeholder="请输入身份证号" />
       <button class="primary-button" hover-class="button-hover" bindtap="submitRealName">提交实名认证</button>

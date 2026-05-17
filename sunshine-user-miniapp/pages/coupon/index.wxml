@@ -1,8 +1,13 @@
 <view class="page-shell coupon-page-shell safe-bottom">
   <view class="page-content page-enter">
     <view class="hero-card coupon-hero">
-      <view class="section-title">优惠券中心</view>
-      <view class="section-subtitle">自动匹配打车、顺风车、国际出行可用优惠券，领取后实时同步到券包。</view>
+      <view class="coupon-hero__head">
+        <view>
+          <view class="section-title">优惠券中心</view>
+          <view class="section-subtitle">查看券包并领取可用优惠</view>
+        </view>
+        <view class="coupon-hero__count">{{allCoupons.length}} 张</view>
+      </view>
       <view class="chip-row coupon-tabs">
         <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
       </view>
@@ -34,7 +39,7 @@
       <view class="coupon-section__head coupon-center__head">
         <view>
           <view class="section-title">券中心</view>
-          <view class="section-subtitle">以下为后端当前可领取的优惠券模板。</view>
+          <view class="section-subtitle">当前可领取的优惠</view>
         </view>
         <view class="coupon-section__meta">{{centerList.length}} 张</view>
       </view>

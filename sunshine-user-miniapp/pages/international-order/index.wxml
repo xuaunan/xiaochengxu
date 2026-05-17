@@ -1,8 +1,7 @@
-<view class="page-shell safe-bottom" wx:if="{{option}}">
+<view class="page-shell intl-order-shell safe-bottom" wx:if="{{option}}">
   <view class="page-content intl-order list-gap">
-    <view class="intl-order-hero">
+    <view class="intl-order-hero page-enter">
       <view>
-        <view class="intl-kicker">International Booking</view>
         <view class="intl-title">{{option.titleZh}}</view>
         <view class="intl-subtitle">{{option.startName}} → {{option.endName}}</view>
       </view>
@@ -37,7 +36,7 @@
     <view class="panel-card list-gap">
       <view>
         <view class="section-title">预约信息</view>
-        <view class="section-subtitle">这些信息会写入订单备注，乘客端、司机端、管理后台同步可见。</view>
+        <view class="section-subtitle">联系人、预约时间和服务需求会同步到订单。</view>
       </view>
       <view class="form-grid">
         <input class="search-input" data-key="date" value="{{form.date}}" bindinput="updateField" placeholder="预约日期 YYYY-MM-DD" />
@@ -56,7 +55,7 @@
 
     <view class="panel-card">
       <view class="section-title">出行材料</view>
-      <view class="section-subtitle">下单前请确认材料完整，平台只做本地演示校验与后台记录。</view>
+      <view class="section-subtitle">请提前确认材料完整，便于司机和后台核对。</view>
       <view class="document-list">
         <view wx:for="{{documentItems}}" wx:key="*this">{{item}}</view>
       </view>

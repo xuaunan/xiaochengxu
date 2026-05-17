@@ -1,8 +1,7 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell intl-shell safe-bottom">
   <view class="page-content list-gap">
-    <view class="intl-hero">
+    <view class="intl-hero page-enter">
       <view>
-        <view class="intl-kicker">Global Mobility</view>
         <view class="intl-title">{{pageTitle}}</view>
         <view class="intl-subtitle">{{pageSubtitle}}</view>
       </view>
