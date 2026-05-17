@@ -1,29 +1,33 @@
-<view class="page-shell driver-message-shell safe-bottom">
-  <view class="page-content driver-message-page page-enter">
-    <view class="driver-message-header">
-      <view>
-        <view class="driver-message-title">消息通知</view>
-        <view class="driver-message-subtitle">订单通知、平台提醒与审核结果</view>
+<view class="page-shell message-shell safe-bottom">
+  <view class="page-content message-page page-enter">
+    <view class="message-hero">
+      <view class="message-hero__copy">
+        <view class="message-hero__title">消息通知</view>
+        <view class="message-hero__desc">订单通知、平台提醒与审核结果</view>
       </view>
-      <view class="driver-message-count">{{list.length}} 条</view>
+      <view class="message-bell">
+        <view class="message-bell__body"></view>
+        <view class="message-bell__clapper"></view>
+      </view>
+      <view class="message-count">{{list.length}} 条</view>
     </view>
 
-    <view wx:if="{{list.length === 0}}" class="driver-message-empty">
-      <view class="driver-message-empty__mark"></view>
-      <view class="driver-message-empty__title">暂无消息</view>
-      <view class="driver-message-empty__desc">订单通知、平台提醒和取消消息会显示在这里。</view>
+    <view wx:if="{{list.length === 0}}" class="message-empty">
+      <view class="message-empty__mark message-icon message-icon--notice"></view>
+      <view class="message-empty__title">暂无消息</view>
+      <view class="message-empty__desc">订单通知、平台提醒和取消消息会显示在这里。</view>
     </view>
 
-    <view class="driver-message-list" wx:if="{{list.length > 0}}">
-      <view class="driver-message-card tap-scale" wx:for="{{list}}" wx:key="id">
-        <view class="driver-message-card__head">
-          <view class="driver-message-card__badge"></view>
-          <view class="driver-message-card__title">{{item.title}}</view>
-          <view class="driver-message-card__dot" wx:if="{{item.unread}}"></view>
-          <view class="driver-message-card__tag">{{item.type || 'notice'}}</view>
+    <view class="message-list" wx:if="{{list.length > 0}}">
+      <view class="message-card tap-scale" wx:for="{{list}}" wx:key="id">
+        <view class="message-icon message-icon--{{item.iconClass}}"></view>
+        <view class="message-card__main">
+          <view class="message-card__title">{{item.title}}</view>
+          <view class="message-card__content">{{item.content}}</view>
+          <view class="message-card__time">{{item.displayTime || item.time}}</view>
         </view>
-        <view class="driver-message-card__content">{{item.content}}</view>
-        <view class="driver-message-card__time">{{item.time}}</view>
+        <view class="message-card__dot" wx:if="{{item.unread}}"></view>
+        <view class="message-arrow"></view>
       </view>
     </view>
   </view>
