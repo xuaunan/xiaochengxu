@@ -14,7 +14,9 @@
   gap: 20rpx;
   padding: 24rpx;
   border-radius: 30rpx;
-  background: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(255, 244, 232, 0.98) 0%, rgba(255, 255, 255, 0.98) 58%),
+    #ffffff;
   box-shadow: 0 14rpx 32rpx rgba(24, 34, 56, 0.06);
 }
 
