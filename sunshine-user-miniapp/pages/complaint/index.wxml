@@ -2,8 +2,8 @@
   <view class="page-content complaint-page page-enter">
     <view class="complaint-header">
       <view>
-        <view class="complaint-kicker">服务反馈</view>
         <view class="section-title complaint-title">投诉与建议</view>
+        <view class="complaint-subtitle">订单问题与服务反馈</view>
       </view>
       <view class="complaint-count">{{history.length}} 条</view>
     </view>
@@ -17,6 +17,10 @@
 
     <view class="complaint-history">
       <view class="complaint-history__title">处理记录</view>
+      <view wx:if="{{history.length === 0}}" class="complaint-empty">
+        <view class="complaint-empty__title">暂无处理记录</view>
+        <view class="complaint-empty__desc">提交反馈后，处理进度会显示在这里。</view>
+      </view>
       <view class="panel-card complaint-card tap-scale" wx:for="{{history}}" wx:key="id">
         <view class="row-between">
           <view class="complaint-card__title">{{item.title}}</view>

@@ -2,14 +2,10 @@
   <view class="page-content invoice-page page-enter">
     <view class="invoice-header">
       <view>
-        <view class="invoice-kicker">票据服务</view>
         <view class="section-title invoice-title">发票中心</view>
+        <view class="invoice-subtitle">可开票订单与申请状态</view>
       </view>
       <view class="invoice-count">{{list.length}} 张</view>
-    </view>
-
-    <view class="panel-card invoice-intro">
-      <view class="section-subtitle">可开票订单会实时同步，支持按订单发起电子发票申请。</view>
     </view>
 
     <view class="invoice-list">
