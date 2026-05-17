@@ -628,13 +628,27 @@
 }
 
 .menu-icon--star::before {
-  content: "★";
+  content: "";
   position: absolute;
-  left: 12rpx;
-  top: 6rpx;
-  color: currentColor;
-  font-size: 37rpx;
-  line-height: 1;
+  left: 17rpx;
+  top: 13rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 7rpx;
+  border: 5rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.menu-icon--star::after {
+  content: "";
+  position: absolute;
+  left: 25rpx;
+  top: 20rpx;
+  width: 8rpx;
+  height: 18rpx;
+  border-right: 5rpx solid currentColor;
+  border-bottom: 5rpx solid currentColor;
+  transform: rotate(42deg);
 }
 
 .menu-icon--message::before {
@@ -684,14 +698,25 @@
 }
 
 .menu-icon--help::before {
-  content: "?";
+  content: "";
   position: absolute;
-  left: 18rpx;
-  top: 7rpx;
-  color: currentColor;
-  font-size: 40rpx;
-  font-weight: 900;
-  line-height: 1;
+  left: 15rpx;
+  top: 12rpx;
+  width: 28rpx;
+  height: 24rpx;
+  border-radius: 14rpx 14rpx 5rpx 14rpx;
+  border: 5rpx solid currentColor;
+}
+
+.menu-icon--help::after {
+  content: "";
+  position: absolute;
+  left: 24rpx;
+  bottom: 10rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .menu-icon--settings::before {
