@@ -1,4 +1,4 @@
-<view class="page-shell safe-bottom fade-in">
+<view class="page-shell payment-shell safe-bottom fade-in">
   <view class="page-content payment-page page-enter {{loading ? '' : 'payment-page-ready'}}" wx:if="{{order}}">
     <view class="hero-card amount-card">
       <view class="amount-label">订单总金额</view>
@@ -14,7 +14,7 @@
 
     <view class="panel-card">
       <view class="section-title">支付方式</view>
-      <view class="section-subtitle">默认选中微信支付，可切换为余额支付。</view>
+      <view class="section-subtitle">选择本次订单的支付渠道</view>
       <view class="method-list">
         <view
           class="method-item {{selectedMethod === item.key ? 'method-item-active' : ''}}"
@@ -35,11 +35,10 @@
     </view>
 
     <view class="panel-card tip-card">
-      <view class="section-title">演示说明</view>
+      <view class="section-title">支付提示</view>
       <view class="tip-list">
-        <view class="tip-item">点击“确认支付”后会先展示 1 秒支付处理中动画。</view>
-        <view class="tip-item">支付成功后会优先等待后端状态回写，再自动返回订单详情。</view>
-        <view class="tip-item">如果后端没有确认成功，订单会继续保持待支付状态。</view>
+        <view class="tip-item">支付完成后，订单状态会自动同步到订单详情。</view>
+        <view class="tip-item">未完成支付时，订单会继续保留为待支付状态。</view>
       </view>
     </view>
   </view>

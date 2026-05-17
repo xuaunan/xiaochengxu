@@ -4,10 +4,10 @@
 
 .order-hero {
   overflow: hidden;
-  background:
-    radial-gradient(circle at top right, rgba(255, 122, 0, 0.08), transparent 36%),
-    rgba(255, 255, 255, 0.97);
+  background: #ffffff;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
+  border-radius: 30rpx;
+  box-shadow: 0 14rpx 32rpx rgba(24, 34, 56, 0.055);
 }
 
 .hero-head {
@@ -48,7 +48,7 @@
 }
 
 .detail-amount {
-  font-size: 68rpx;
+  font-size: 64rpx;
   font-weight: 800;
   color: #ff7a00;
   line-height: 1.1;
@@ -63,7 +63,7 @@
 }
 
 .detail-amount--payable {
-  font-size: 72rpx;
+  font-size: 68rpx;
 }
 
 .amount-discount-tip {
@@ -76,8 +76,8 @@
 .address-card {
   margin-top: 26rpx;
   padding: 24rpx;
-  border-radius: 28rpx;
-  background: #f7f8fc;
+  border-radius: 24rpx;
+  background: #f8fafc;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
@@ -129,7 +129,7 @@
   flex-shrink: 0;
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
-  background: rgba(255, 122, 0, 0.1);
+  background: rgba(255, 122, 0, 0.08);
   color: #ff7a00;
   font-size: 22rpx;
   font-weight: 700;
@@ -141,8 +141,8 @@
   gap: 20rpx;
   margin-top: 22rpx;
   padding: 20rpx 22rpx;
-  border-radius: 24rpx;
-  background: #f8f9fc;
+  border-radius: 22rpx;
+  background: #f8fafc;
   border: 1rpx solid rgba(31, 36, 50, 0.04);
 }
 
@@ -301,12 +301,12 @@
 
 .action-card {
   padding: 30rpx 14rpx;
-  border-radius: 26rpx;
+  border-radius: 22rpx;
   text-align: center;
   font-size: 24rpx;
   font-weight: 700;
   color: #ff7a00;
-  background: rgba(255, 122, 0, 0.09);
+  background: rgba(255, 122, 0, 0.07);
   border: 1rpx solid rgba(255, 122, 0, 0.12);
 }
 
@@ -366,7 +366,7 @@
   padding: 18rpx 24rpx calc(env(safe-area-inset-bottom) + 20rpx);
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(18rpx);
-  box-shadow: 0 -16rpx 38rpx rgba(31, 36, 50, 0.1);
+  box-shadow: 0 -12rpx 30rpx rgba(31, 36, 50, 0.08);
 }
 
 .payment-bar__inner {
@@ -386,10 +386,10 @@
   align-items: center;
   gap: 18rpx;
   padding: 22rpx 24rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.97);
+  border-radius: 24rpx;
+  background: #ffffff;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
-  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.06);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.045);
 }
 
 .coupon-entry--disabled {

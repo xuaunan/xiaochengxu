@@ -1,4 +1,4 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell ride-review-shell safe-bottom">
   <view class="page-content list-gap page-enter">
     <view class="hero-card review-card">
       <view class="section-title">本次行程服务如何？</view>

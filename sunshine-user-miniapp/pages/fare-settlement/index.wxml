@@ -1,4 +1,4 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell settlement-shell safe-bottom">
   <view class="page-content list-gap page-enter" wx:if="{{order}}">
     <view class="hero-card settlement-hero">
       <view class="row-between">
@@ -39,7 +39,7 @@
       <view class="section-title">支付说明</view>
       <view class="section-subtitle">{{couponHint}}</view>
       <view class="tips">
-        <view class="tip-item">支付确认页默认选中微信支付，也支持余额支付演示。</view>
+        <view class="tip-item">支付确认页可选择微信支付或余额支付。</view>
         <view class="tip-item" wx:if="{{canPay}}">未支付订单会保留为待支付状态，支付完成前不能再次打车。</view>
         <view class="tip-item" wx:else>如果订单状态已经变化，页面会在重新进入时自动刷新最新结果。</view>
       </view>
