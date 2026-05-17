@@ -1,67 +1,96 @@
-<view class="page-shell">
-  <view class="page-content list-gap driver-settings">
-    <view class="hero-card driver-settings-hero page-enter">
-      <view class="section-title">接单设置</view>
-      <view class="section-subtitle">听单、自动接单、轨迹模式与播报偏好</view>
-    </view>
-    <view class="panel-card setting-row row-between tap-scale" data-key="listenMode" bindtap="toggle">
-      <view>
-        <view class="section-title">听单模式</view>
-        <view class="section-subtitle">关闭后不再接收新订单</view>
+<view class="page-shell driver-settings-shell safe-bottom">
+  <view class="page-content driver-settings-page">
+    <view class="driver-settings-hero page-enter">
+      <view class="settings-hero__icon"></view>
+      <view class="settings-hero__copy">
+        <view class="settings-title">接单设置</view>
+        <view class="settings-desc">听单、自动接单、轨迹模式与播报偏好</view>
       </view>
-      <switch color="#ff7a00" checked="{{settings.listenMode}}"></switch>
-    </view>
-    <view class="panel-card setting-row row-between tap-scale" data-key="autoAccept" bindtap="toggle">
-      <view>
-        <view class="section-title">自动接单</view>
-        <view class="section-subtitle">听单后自动接取符合条件的即时打车订单</view>
+      <view class="settings-hero__badge">{{settings.listenMode ? '听单中' : '休息中'}}</view>
+      <view class="settings-city">
+        <view class="settings-building settings-building--1"></view>
+        <view class="settings-building settings-building--2"></view>
+        <view class="settings-building settings-building--3"></view>
       </view>
-      <switch color="#ff7a00" checked="{{settings.autoAccept}}"></switch>
     </view>
-    <view class="panel-card setting-row row-between tap-scale" data-key="voiceBroadcast" bindtap="toggle">
-      <view>
-        <view class="section-title">语音播报</view>
-        <view class="section-subtitle">播报接驾、上车、目的地提醒和订单变化</view>
-      </view>
-      <switch color="#ff7a00" checked="{{settings.voiceBroadcast}}"></switch>
-    </view>
-    <view class="panel-card">
-      <view class="section-title">轨迹模式</view>
-      <view class="section-subtitle">{{currentTrackModeDesc}}</view>
-      <view class="track-mode-list">
-        <view
-          wx:for="{{trackModeOptions}}"
-          wx:key="value"
-          class="track-mode-chip {{settings.trackMode === item.value ? 'track-mode-chip--active' : ''}}"
-          data-value="{{item.value}}"
-          bindtap="selectTrackMode"
-        >
-          <view class="track-mode-chip__title">{{item.label}}</view>
-          <view class="track-mode-chip__desc">{{item.desc}}</view>
+
+    <view class="settings-section">
+      <view class="settings-section-title">接单偏好</view>
+      <view class="settings-card">
+        <view class="setting-row tap-scale" data-key="listenMode" bindtap="toggle">
+          <view class="setting-icon setting-icon--listen"></view>
+          <view class="setting-copy">
+            <view class="setting-title">听单模式</view>
+            <view class="setting-desc">关闭后不再接收新订单</view>
+          </view>
+          <switch color="#ff7a00" checked="{{settings.listenMode}}"></switch>
+        </view>
+        <view class="setting-row tap-scale" data-key="autoAccept" bindtap="toggle">
+          <view class="setting-icon setting-icon--auto"></view>
+          <view class="setting-copy">
+            <view class="setting-title">自动接单</view>
+            <view class="setting-desc">听单后自动接取符合条件的即时打车订单</view>
+          </view>
+          <switch color="#ff7a00" checked="{{settings.autoAccept}}"></switch>
+        </view>
+        <view class="setting-row tap-scale" data-key="voiceBroadcast" bindtap="toggle">
+          <view class="setting-icon setting-icon--voice"></view>
+          <view class="setting-copy">
+            <view class="setting-title">语音播报</view>
+            <view class="setting-desc">播报接驾、上车、目的地提醒和订单变化</view>
+          </view>
+          <switch color="#ff7a00" checked="{{settings.voiceBroadcast}}"></switch>
         </view>
       </view>
-      <view class="voice-style-current">当前选择：{{currentTrackModeLabel}}轨迹</view>
     </view>
-    <view class="panel-card">
-      <view class="section-title">播报声音</view>
-      <view class="section-subtitle">默认、温柔女声、阳光活力女声、稳重女声使用真实中文播报；搞怪为特效音，播放时会按顺序排队</view>
-      <view class="voice-style-list">
-        <view
-          wx:for="{{voiceStyleOptions}}"
-          wx:key="value"
-          class="voice-style-chip {{settings.voiceStyle === item.value ? 'voice-style-chip--active' : ''}}"
-          data-value="{{item.value}}"
-          bindtap="selectVoiceStyle"
-        >
-          {{item.label}}
+
+    <view class="settings-section">
+      <view class="settings-section-title">轨迹模式</view>
+      <view class="settings-panel">
+        <view class="panel-desc">{{currentTrackModeDesc}}</view>
+        <view class="track-mode-list">
+          <view
+            wx:for="{{trackModeOptions}}"
+            wx:key="value"
+            class="track-mode-chip {{settings.trackMode === item.value ? 'track-mode-chip--active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectTrackMode"
+          >
+            <view class="track-mode-radio"></view>
+            <view class="track-mode-copy">
+              <view class="track-mode-chip__title">{{item.label}}</view>
+              <view class="track-mode-chip__desc">{{item.desc}}</view>
+            </view>
+          </view>
         </view>
+        <view class="settings-current">当前选择：{{currentTrackModeLabel}}轨迹</view>
       </view>
-      <view class="voice-style-current">当前选择：{{currentVoiceStyleLabel}}</view>
     </view>
-    <view class="panel-card setting-row row-between">
-      <view>
-        <view class="section-title">试听当前声音</view>
-        <view class="section-subtitle">立即播放一条测试语音，检查当前音色是否正常</view>
+
+    <view class="settings-section">
+      <view class="settings-section-title">播报声音</view>
+      <view class="settings-panel">
+        <view class="panel-desc">默认、温柔女声、阳光活力女声、稳重女声使用真实中文播报；搞怪为特效音，播放时会按顺序排队</view>
+        <view class="voice-style-list">
+          <view
+            wx:for="{{voiceStyleOptions}}"
+            wx:key="value"
+            class="voice-style-chip {{settings.voiceStyle === item.value ? 'voice-style-chip--active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectVoiceStyle"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <view class="settings-current">当前选择：{{currentVoiceStyleLabel}}</view>
+      </view>
+    </view>
+
+    <view class="settings-preview-card">
+      <view class="setting-icon setting-icon--preview"></view>
+      <view class="setting-copy">
+        <view class="setting-title">试听当前声音</view>
+        <view class="setting-desc">立即播放一条测试语音，检查当前音色是否正常</view>
       </view>
       <view class="voice-preview-btn tap-scale" bindtap="previewVoice">试听</view>
     </view>
