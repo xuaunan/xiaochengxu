@@ -1,7 +1,5 @@
 <view class="page-shell driver-profile-shell">
   <view class="driver-profile page-enter">
-    <view class="driver-profile-title">我的</view>
-
     <view class="driver-hero">
       <view class="driver-city">
         <view class="driver-city__block driver-city__block--1"></view>
