@@ -109,6 +109,11 @@ a {
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 
+.nav-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .nav-link:hover {
   transform: translateX(2px);
   background: rgba(255, 122, 24, 0.07);
@@ -147,6 +152,21 @@ a {
 .nav-link.router-link-active .nav-dot {
   background: var(--accent);
   box-shadow: 0 0 0 5px rgba(255, 122, 24, 0.13);
+}
+
+.nav-badge {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.22);
 }
 
 .main {
