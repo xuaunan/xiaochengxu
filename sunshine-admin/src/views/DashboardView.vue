@@ -20,21 +20,34 @@
 
     <div class="metrics-grid">
       <article
-        v-for="card in metricCards"
+        v-for="(card, index) in metricCards"
         :key="card.key"
         class="panel metric-card"
-        :style="{ '--metric-accent': card.accent, '--metric-bg': card.bg }"
+        :class="{ 'is-clickable': card.action }"
+        :style="{ '--metric-accent': card.accent, '--metric-bg': card.bg, '--metric-index': index }"
         @click="card.action && card.action()"
       >
-        <div class="metric-top">
-          <span class="metric-icon">{{ card.icon }}</span>
-          <span v-if="card.warn" class="pulse-dot"></span>
-        </div>
-        <div class="metric-value">{{ card.value }}</div>
-        <div class="metric-label">{{ card.label }}</div>
-        <div class="metric-meta">
-          <span>{{ card.metaLeft }}</span>
-          <span>{{ card.metaRight }}</span>
+        <div class="metric-shell">
+          <span class="metric-icon">
+            <el-icon>
+              <component :is="card.icon" />
+            </el-icon>
+          </span>
+          <div class="metric-copy">
+            <div class="metric-title-row">
+              <span class="metric-title-text">{{ card.title }}</span>
+              <div class="metric-title-tools">
+                <span v-if="card.warn" class="metric-warning-dot"></span>
+                <el-tooltip :content="card.tooltip" placement="top" :show-after="180">
+                  <el-icon class="metric-info-icon">
+                    <InfoFilled />
+                  </el-icon>
+                </el-tooltip>
+              </div>
+            </div>
+            <div class="metric-value">{{ card.value }}</div>
+            <div class="metric-label">{{ card.label }}</div>
+          </div>
         </div>
       </article>
     </div>
@@ -196,6 +209,15 @@
 <script setup>
 import * as echarts from 'echarts'
 import chinaJson from '../assets/china.json'
+import {
+  Avatar,
+  InfoFilled,
+  Money,
+  Tickets,
+  UserFilled,
+  WalletFilled,
+  WarningFilled
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -526,22 +548,26 @@ function aggregateRideRegionDistribution(orderList = []) {
 const metricCards = computed(() => [
   {
     key: 'userTotal',
-    icon: '客',
+    icon: UserFilled,
+    title: '客户总量',
     label: '累计用户总量',
     value: `${Math.round(animated.userTotal || 0)}`,
     metaLeft: `实名用户 ${dashboard.value.verifiedUserTotal || 0} 人`,
     metaRight: `昨日新增 ${dashboard.value.newUserDelta || 0} 人`,
+    tooltip: '包含乘客注册、实名与新增用户数据',
     accent: '#16a34a',
     bg: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 62%)',
     action: () => router.push('/users')
   },
   {
     key: 'driverTotal',
-    icon: '司',
+    icon: Avatar,
+    title: '司机总量',
     label: '累计司机总量',
     value: `${Math.round(animated.driverTotal || 0)}`,
     metaLeft: `已审核 ${dashboard.value.approvedDriverTotal || 0} 人`,
     metaRight: `待审核 ${dashboard.value.pendingDriverTotal || 0} 人`,
+    tooltip: '统计已注册司机、审核通过与待审核司机',
     accent: '#2563eb',
     bg: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 62%)',
     warn: Number(dashboard.value.pendingDriverTotal || 0) > 0,
@@ -549,42 +575,50 @@ const metricCards = computed(() => [
   },
   {
     key: 'orderTotal',
-    icon: '单',
-    label: '累计订单总量',
+    icon: Tickets,
+    title: '订单总量',
+    label: '累计订单',
     value: `${Math.round(animated.orderTotal || 0)}`,
     metaLeft: `打车 ${dashboard.value.taxiOrderTotal || 0} 单`,
-    metaRight: `顺风 ${dashboard.value.carpoolOrderTotal || 0} 单 / 国际 ${dashboard.value.internationalOrderTotal || 0} 单`,
+    metaRight: `顺风 ${dashboard.value.carpoolOrderTotal || 0} · 国际 ${dashboard.value.internationalOrderTotal || 0}`,
+    tooltip: '汇总打车、顺风车与国际出行订单',
     accent: '#f97316',
     bg: 'linear-gradient(135deg, #fff7ed 0%, #ffffff 62%)',
     action: () => router.push('/orders')
   },
   {
     key: 'turnoverTotal',
-    icon: '额',
+    icon: Money,
+    title: '交易总额',
     label: '累计交易总额',
     value: formatMoney(animated.turnoverTotal, 'CNY'),
     metaLeft: `昨日交易额 ${formatMoney(dashboard.value.yesterdayTurnover)}`,
     metaRight: `环比 ${formatPercent(dashboard.value.turnoverDeltaRate)}`,
+    tooltip: '所有已支付订单的交易金额汇总',
     accent: '#7c3aed',
     bg: 'linear-gradient(135deg, #f5f3ff 0%, #ffffff 62%)'
   },
   {
     key: 'commissionTotal',
-    icon: '佣',
+    icon: WalletFilled,
+    title: '平台累计佣金',
     label: '平台累计佣金',
     value: formatMoney(animated.commissionTotal, 'CNY'),
     metaLeft: `昨日佣金 ${formatMoney(dashboard.value.yesterdayCommission)}`,
     metaRight: `环比 ${formatPercent(dashboard.value.commissionDeltaRate)}`,
+    tooltip: '按平台抽佣规则实时汇总佣金收入',
     accent: '#d97706',
     bg: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 62%)'
   },
   {
     key: 'complaintResolveRate',
-    icon: '诉',
+    icon: WarningFilled,
+    title: '投诉解决率',
     label: '投诉解决率',
     value: formatPercent(animated.complaintResolveRate),
     metaLeft: `已处理 ${dashboard.value.resolvedComplaintTotal || 0} 单`,
     metaRight: `未解决 ${dashboard.value.unresolvedComplaintTotal || 0} 单`,
+    tooltip: '投诉处理完成量与投诉总量的实时比值',
     accent: '#dc2626',
     bg: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 62%)',
     warn: Number(dashboard.value.unresolvedComplaintTotal || 0) > 0,
@@ -907,66 +941,163 @@ onBeforeUnmount(() => {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(6, minmax(170px, 1fr));
+  gap: 12px;
 }
 
 .metric-card {
-  min-height: 182px;
+  min-height: 120px;
+  padding: 15px 12px;
   color: #172033;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.96), transparent 32%),
+    var(--metric-bg, #ffffff);
+  border-color: rgba(226, 232, 240, 0.92);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.052);
+  animation: metric-enter 0.34s cubic-bezier(0.2, 0.82, 0.2, 1) both;
+  animation-delay: calc(var(--metric-index, 0) * 34ms);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.metric-card.is-clickable {
   cursor: pointer;
-  background: var(--metric-bg, #ffffff);
-  border-color: rgba(226, 232, 240, 0.96);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .metric-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 122, 24, 0.28);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+  border-color: rgba(255, 122, 24, 0.24);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.085);
 }
 
-.metric-top {
+.metric-shell {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
 }
 
 .metric-icon {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(255, 122, 24, 0.08);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.96)),
+    var(--metric-bg, #ffffff);
   color: var(--metric-accent, #ff7a18);
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 21px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 9px 20px rgba(15, 23, 42, 0.055);
+}
+
+.metric-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.metric-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+}
+
+.metric-title-text {
+  min-width: 0;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-title-tools {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-info-icon {
+  flex: 0 0 auto;
+  color: #cbd5e1;
+  font-size: 14px;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.metric-card:hover .metric-info-icon {
+  color: var(--metric-accent, #ff7a18);
+  transform: scale(1.05);
+}
+
+.metric-warning-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.1);
 }
 
 .metric-value {
   color: #111827;
+  margin-top: 9px;
+  overflow: hidden;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-label {
-  margin: 8px 0 12px;
-  font-size: 16px;
+  margin-top: 9px;
+  color: #6b7280;
+  font-size: 13px;
   font-weight: 700;
-  color: #475569;
+  line-height: 1.25;
 }
 
-.metric-card .metric-meta {
-  color: #7b8495;
+@keyframes metric-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .chart-panel {
   min-height: 420px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)),
+    radial-gradient(circle at 100% 0%, rgba(255, 122, 24, 0.08), transparent 34%);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chart-panel:hover {
+  border-color: rgba(255, 122, 24, 0.18);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
 }
 
 .chart-box {
   height: 320px;
+  margin-top: 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.42), rgba(255, 255, 255, 0));
 }
 
 .chart-box-lg {
@@ -1031,9 +1162,17 @@ onBeforeUnmount(() => {
   gap: 14px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(248, 250, 252, 0.9);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 237, 0.68), rgba(248, 250, 252, 0.94));
   border: 1px solid rgba(226, 232, 240, 0.8);
   cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.live-summary:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 24, 0.28);
+  box-shadow: 0 12px 26px rgba(255, 122, 24, 0.08);
 }
 
 .live-summary strong {
@@ -1118,10 +1257,13 @@ onBeforeUnmount(() => {
 .ops-card {
   padding: 16px;
   border-radius: 16px;
-  background: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.84));
   border: 1px solid rgba(226, 232, 240, 0.92);
   display: grid;
   gap: 12px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .ops-card span {
@@ -1134,12 +1276,12 @@ onBeforeUnmount(() => {
 
 .ops-card.clickable {
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ops-card.clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+.ops-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 24, 0.2);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.065);
 }
 
 @media (max-width: 1400px) {
