@@ -76,8 +76,8 @@ function getDisplayFallback(activeRuntime = {}, fallback = {}) {
 function mergeRuntimeSnapshot(runtime = {}, cachedRuntime = null, fallback = {}, trackMode = TRACK_MODE.DEMO) {
   if (trackMode === TRACK_MODE.DEMO) {
     return {
-      ...(runtime || {}),
       ...stripRouteFields(fallback || {}),
+      ...stripRouteFields(runtime || {}),
       ...pickPlannedRoute(cachedRuntime),
       ...(runtime && runtime.routePlanned ? pickPlannedRoute(runtime) : {}),
       currentPoint: runtime && runtime.currentPoint && runtime.routeSource !== 'order_record'
@@ -153,10 +153,6 @@ function buildTripModel(order = {}, runtime = null) {
   const fallback = createSimulation(order)
   const cachedRuntime = getApp().getOrderRuntimeCache ? getApp().getOrderRuntimeCache(order.id) : null
   const trackMode = getCurrentTrackMode()
-  const activeRuntime = mergeRuntimeSnapshot(runtime, cachedRuntime, fallback, trackMode)
-  const routeCurrentPoint = trackMode === TRACK_MODE.DEMO
-    ? normalizePoint(getDemoRouteStart(runtime, fallback))
-    : normalizePoint(activeRuntime.currentPoint || fallback.currentPoint)
   const start = {
     latitude: toNumber(order.startLat),
     longitude: toNumber(order.startLng),
@@ -167,11 +163,16 @@ function buildTripModel(order = {}, runtime = null) {
     longitude: toNumber(order.endLng),
     name: order.endName
   }
-  const currentPoint = normalizePoint(activeRuntime.currentPoint || routeCurrentPoint || fallback.currentPoint)
+  const activeRuntime = mergeRuntimeSnapshot(runtime, cachedRuntime, fallback, trackMode)
+  const currentPoint = normalizePoint(activeRuntime.currentPoint || fallback.currentPoint)
   const remainingSeconds = toNumber(activeRuntime.remainingSeconds, fallback.remainingSeconds)
   const rawRemainMinutes = Math.max(0, Math.round(remainingSeconds / 60))
   const phase = getRuntimePhase(activeRuntime, order)
   const targetPoint = phase === 'trip' ? end : start
+  const routeStartPoint = trackMode === TRACK_MODE.DEMO
+    ? normalizePoint(phase === 'trip' ? start : (activeRuntime.driverStartPoint || fallback.driverStart || getDemoRouteStart(runtime, fallback)))
+    : normalizePoint(activeRuntime.currentPoint || fallback.currentPoint)
+  const routeEndPoint = targetPoint
   const rawPercent = activeRuntime.percent !== undefined ? activeRuntime.percent : fallback.percent
   const traveledDistanceKm = activeRuntime.traveledDistanceKm !== undefined
     ? activeRuntime.traveledDistanceKm
@@ -181,6 +182,8 @@ function buildTripModel(order = {}, runtime = null) {
     : fallback.usedSeconds
   const heading = toNumber(activeRuntime.heading, fallback.heading)
   const trafficText = getTrafficText(activeRuntime, fallback)
+  const rawSpeedKmh = toNumber(activeRuntime.speedKmh, fallback.speedKmh || 90)
+  const displaySpeedKmh = activeRuntime.waitingRedLight ? 0 : (rawSpeedKmh > 0 ? rawSpeedKmh : 90)
   const driverArrived = phase === 'approach' && isDriverArrived(activeRuntime, order)
   const remainMinutes = driverArrived ? 0 : Math.max(1, rawRemainMinutes)
   const percent = driverArrived || order.orderStatus === ORDER_STATUS.IN_TRIP || order.orderStatus === ORDER_STATUS.FINISHED
@@ -216,7 +219,7 @@ function buildTripModel(order = {}, runtime = null) {
     remainDistanceKm: toNumber(activeRuntime.remainDistanceKm, fallback.remainDistanceKm),
     durationText: formatDurationMinutes(elapsedSeconds),
     progressText: `${percent}%`,
-    speedText: `${toNumber(activeRuntime.speedKmh, 90)} km/h`,
+    speedText: `${Math.round(displaySpeedKmh)} km/h`,
     actionText: [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus)
       ? '查看司机操作'
       : '查看详情',
@@ -265,9 +268,9 @@ function buildTripModel(order = {}, runtime = null) {
     includePoints: [start, end, currentPoint],
     routePlan: {
       phase,
-      currentPoint: routeCurrentPoint || currentPoint,
-      from: routeCurrentPoint || currentPoint,
-      to: targetPoint,
+      currentPoint,
+      from: routeStartPoint,
+      to: routeEndPoint,
       fallback,
       activeRuntime
     }
@@ -363,17 +366,17 @@ Page({
       }
       delete orderView.routePlan
 
-      this.setData({
-        order: orderView
-      })
-      this.handleTripVoice(orderView, order)
-      this.syncPlannedRoute(orderView.id).then((planned) => {
-        if (planned === false) {
-          this.reportCurrentLocation(order).catch(() => {})
-        }
-      }).catch(() => {
-        this.reportCurrentLocation(order).catch(() => {})
-      })
+      let renderedOrderView = orderView
+      if (canReportTrack(order)) {
+        await this.syncPlannedRoute(orderView.id, { render: false }).catch(() => false)
+        renderedOrderView = await this.reportCurrentLocation(order, { force: true, returnView: true }).catch(() => null)
+          || orderView
+      } else {
+        this.setData({
+          order: orderView
+        })
+      }
+      this.handleTripVoice(renderedOrderView, order)
       await this.syncOrderList().catch(() => {})
 
       if ([ORDER_STATUS.FINISHED, ORDER_STATUS.CANCELLED].includes(order.orderStatus)) {
@@ -412,10 +415,17 @@ Page({
     }
   },
 
-  syncPlannedRoute(orderId) {
+  syncPlannedRoute(orderId, options = {}) {
     const plan = this.currentRoutePlan || {}
     if (!orderId || !plan.from || !plan.to || !plan.currentPoint) return Promise.resolve(false)
-    const routeKey = `${orderId}|${plan.phase}|${plan.currentPoint.latitude},${plan.currentPoint.longitude}`
+    const routeKey = [
+      orderId,
+      plan.phase,
+      Number(plan.from.latitude).toFixed(6),
+      Number(plan.from.longitude).toFixed(6),
+      Number(plan.to.latitude).toFixed(6),
+      Number(plan.to.longitude).toFixed(6)
+    ].join('|')
     this.latestRoutePlanKey = routeKey
     return requestRoute(plan.from, plan.to).then((routePoints) => {
       if (this.latestRoutePlanKey !== routeKey) return null
@@ -426,7 +436,7 @@ Page({
         [phaseRouteKey]: routePoints,
         routePoints,
         fullRoutePoints: routePoints,
-        remainPoints: routePoints,
+        points: routePoints,
         routePlanned: true
       }
       const app = getApp()
@@ -439,34 +449,34 @@ Page({
           ...(this.currentRoutePlan || {}),
           activeRuntime: runtime
         }
-        const orderView = {
-          ...tripModel
+        if (options.render !== false) {
+          const orderView = {
+            ...tripModel
+          }
+          delete orderView.routePlan
+          this.setData({
+            order: orderView
+          })
         }
-        delete orderView.routePlan
-        this.setData({
-          order: orderView
-        })
       } else {
         this.currentRoutePlan = {
           ...(this.currentRoutePlan || {}),
           activeRuntime: runtime
         }
-        this.setData({
-          'order.polyline': buildRoutePolylines({
-            runtime,
-            fallback: plan.fallback,
-            phase: plan.phase,
-            currentPoint: plan.currentPoint,
-            traveledColor: '#ff7a00',
-            traveledWidth: 10,
-            remainColor: '#9db5ff',
-            remainWidth: 6
+        if (options.render !== false) {
+          this.setData({
+            'order.polyline': buildRoutePolylines({
+              runtime,
+              fallback: plan.fallback,
+              phase: plan.phase,
+              currentPoint: plan.currentPoint,
+              traveledColor: '#ff7a00',
+              traveledWidth: 10,
+              remainColor: '#9db5ff',
+              remainWidth: 6
+            })
           })
-        })
-      }
-      const rawOrder = this.currentRawOrder
-      if (rawOrder && [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(rawOrder.orderStatus)) {
-        this.reportCurrentLocation(rawOrder, { force: true }).catch(() => {})
+        }
       }
       return true
     }).catch(() => false)
@@ -518,5 +528,6 @@ Page({
     this.setData({
       order: orderView
     })
+    return options.returnView ? orderView : undefined
   }
 })

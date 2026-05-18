@@ -163,16 +163,16 @@ function buildRoutePolylines(options = {}) {
   const fallback = options.fallback || {}
   const phase = options.phase || runtime.phase || fallback.phase || ''
   const currentPoint = options.currentPoint || runtime.currentPoint || fallback.currentPoint
-  const explicitPolylines = buildExplicitRoutePolylines(runtime, options)
-  if (explicitPolylines.length) return explicitPolylines
-
   const routePoints = pickFullRoute(runtime, fallback, phase)
-  const routeParts = splitRouteByCurrentPoint(routePoints, currentPoint)
+  if (routePoints.length >= MIN_ROUTE_POINT_COUNT) {
+    const routeParts = splitRouteByCurrentPoint(routePoints, currentPoint)
+    return [
+      ...buildPolyline(routeParts.traveledPoints, options.traveledColor || '#ff7a00', options.traveledWidth || 10),
+      ...buildPolyline(routeParts.remainPoints, options.remainColor || '#9db5ff', options.remainWidth || 6)
+    ]
+  }
 
-  return [
-    ...buildPolyline(routeParts.traveledPoints, options.traveledColor || '#ff7a00', options.traveledWidth || 10),
-    ...buildPolyline(routeParts.remainPoints, options.remainColor || '#9db5ff', options.remainWidth || 6)
-  ]
+  return buildExplicitRoutePolylines(runtime, options)
 }
 
 function hasUsableRoute(runtime = {}) {

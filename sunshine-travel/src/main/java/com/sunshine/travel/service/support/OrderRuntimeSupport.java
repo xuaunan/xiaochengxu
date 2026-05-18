@@ -127,10 +127,12 @@ public class OrderRuntimeSupport {
         runtime.put("lastReportedAt", traces.isEmpty() ? null : traces.get(traces.size() - 1).getReportedAt());
 
         if (includeTracePoints) {
-            List<Map<String, Object>> tracePoints = pointMapList(traces);
-            runtime.put("approachRoutePoints", OrderStatus.IN_TRIP.equals(status) || finished ? List.of() : tracePoints);
-            runtime.put("tripRoutePoints", OrderStatus.IN_TRIP.equals(status) || finished ? tracePoints : List.of());
-            runtime.put("traveledPoints", tracePoints);
+            // /runtime is polled by both miniapps every few seconds. Keep it as a small latest-state
+            // snapshot; full history belongs to /track/history. Returning all trace rows here made
+            // clients fall back to stale local runtime and caused driver/passenger progress drift.
+            runtime.put("approachRoutePoints", List.of());
+            runtime.put("tripRoutePoints", List.of());
+            runtime.put("traveledPoints", List.of());
             runtime.put("remainPoints", List.of());
         }
         return runtime;

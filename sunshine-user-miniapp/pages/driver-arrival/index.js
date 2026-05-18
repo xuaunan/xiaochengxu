@@ -54,24 +54,10 @@ function getDisplayFallback(activeRuntime = {}, fallback = {}) {
 }
 
 function mergeRuntimeSnapshot(runtime = {}, cachedRuntime = null, fallback = {}) {
-  if (runtime && runtime.routeSource === 'order_record') {
-    return {
-      ...(runtime || {}),
-      ...stripRouteFields(fallback || {}),
-      ...pickPlannedRoute(cachedRuntime),
-      ...(runtime && runtime.routePlanned ? pickPlannedRoute(runtime) : {}),
-      currentPoint: fallback.currentPoint,
-      heading: fallback.heading,
-      phase: runtime.phase || fallback.phase,
-      phaseText: runtime.phaseText || fallback.phaseText,
-      routeSource: 'demo_simulation',
-      routeReal: false
-    }
-  }
   if (runtime && runtime.routeSource === 'demo_trace') {
     return {
-      ...(runtime || {}),
       ...stripRouteFields(fallback || {}),
+      ...stripRouteFields(runtime || {}),
       ...pickPlannedRoute(cachedRuntime),
       ...(runtime && runtime.routePlanned ? pickPlannedRoute(runtime) : {}),
       currentPoint: runtime && runtime.currentPoint ? runtime.currentPoint : fallback.currentPoint,
@@ -81,6 +67,9 @@ function mergeRuntimeSnapshot(runtime = {}, cachedRuntime = null, fallback = {})
       routeSource: 'demo_trace',
       routeReal: false
     }
+  }
+  if (runtime && runtime.routeSource === 'travel_trace') {
+    return runtime
   }
   if (hasRuntimeRoute(runtime)) {
     return runtime
@@ -188,17 +177,21 @@ Page({
     const fallback = createSimulation(rawOrder)
     const cachedRuntime = app.getOrderRuntimeCache ? app.getOrderRuntimeCache(rawOrder.id) : null
     const activeRuntime = mergeRuntimeSnapshot(runtime, cachedRuntime, fallback)
-    const isBackendOrderRecord = runtime && runtime.routeSource === 'order_record'
-    const routeStartPoint = isBackendOrderRecord && fallback.driverStart ? fallback.driverStart : activeRuntime.currentPoint
+    const hasSyncedTrace = ['demo_trace', 'travel_trace'].includes(activeRuntime.routeSource)
     const driverPosition = normalizePoint(activeRuntime.currentPoint || fallback.currentPoint)
     const remainMinutes = Math.max(0, Math.round(Number(activeRuntime.remainingSeconds || fallback.remainingSeconds || 0) / 60))
     const driverArrived = isDriverArrived(activeRuntime, rawOrder)
     const displayRemainMinutes = driverArrived ? 0 : Math.max(1, remainMinutes)
-    const displayPercent = driverArrived
+    const displayPercent = !hasSyncedTrace
+      ? 0
+      : driverArrived
       ? 100
       : Math.min(98, Number(activeRuntime.percent !== undefined ? activeRuntime.percent : fallback.percent || 0))
     const phase = getRuntimePhase(activeRuntime, rawOrder)
     const targetPoint = phase === 'trip' ? order.end : order.start
+    const routeStartPoint = normalizePoint(phase === 'trip'
+      ? order.start
+      : (activeRuntime.driverStartPoint || fallback.driverStart || driverPosition))
     const markers = [
       {
         id: 1,
@@ -246,8 +239,8 @@ Page({
       order,
       progress: displayPercent / 100,
       driverPosition,
-      etaText: driverArrived ? '司机已到达，请确认上车' : `预计 ${displayRemainMinutes} 分钟到达起点`,
-      trafficText: getTrafficText(activeRuntime, fallback),
+      etaText: !hasSyncedTrace ? '等待司机位置同步' : (driverArrived ? '司机已到达，请确认上车' : `预计 ${displayRemainMinutes} 分钟到达起点`),
+      trafficText: hasSyncedTrace ? getTrafficText(activeRuntime, fallback) : '司机端同步中',
       progressText: `${displayPercent}%`,
       actionButtonText: driverArrived ? '我已上车' : '刷新接驾状态',
       markers,
@@ -269,13 +262,20 @@ Page({
       fallback,
       phase,
       currentPoint: driverPosition,
-      from: normalizePoint(routeStartPoint || driverPosition),
+      from: routeStartPoint,
       to: targetPoint
     })
   },
 
   syncPlannedRoute(options = {}) {
-    const routeKey = `${options.order.id}|${options.phase}|${options.currentPoint.latitude},${options.currentPoint.longitude}`
+    const routeKey = [
+      options.order.id,
+      options.phase,
+      Number(options.from.latitude).toFixed(6),
+      Number(options.from.longitude).toFixed(6),
+      Number(options.to.latitude).toFixed(6),
+      Number(options.to.longitude).toFixed(6)
+    ].join('|')
     this.latestRoutePlanKey = routeKey
     requestRoute(options.from, options.to).then((routePoints) => {
       if (this.latestRoutePlanKey !== routeKey || !routePoints.length) return
@@ -285,7 +285,7 @@ Page({
         [phaseRouteKey]: routePoints,
         routePoints,
         fullRoutePoints: routePoints,
-        remainPoints: routePoints,
+        points: routePoints,
         routePlanned: true
       }
       const app = getApp()

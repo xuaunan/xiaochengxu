@@ -68,8 +68,8 @@ function buildTelemetry(runtime = {}) {
     currentWaitSeconds: Number(runtime.currentWaitSeconds || runtime.currentRedLightSeconds || 0),
     trafficText: runtime.trafficText || '',
     waitingText: runtime.waitingText || '',
-    speedKmh: runtime.speedKmh || null,
-    heading: runtime.heading || null
+    speedKmh: runtime.speedKmh !== undefined && runtime.speedKmh !== null ? Number(runtime.speedKmh) : null,
+    heading: runtime.heading !== undefined && runtime.heading !== null ? Number(runtime.heading) : null
   }
 }
 
@@ -310,7 +310,7 @@ function buildDemoTrackReport(order = {}, plannedRuntime = {}) {
     ? buildRoadRuntime(buildDemoOrder(order), runtime, roadPoints)
     : {
         ...runtime,
-        speedKmh: DEMO_SPEED_KMH
+        speedKmh: runtime.waitingRedLight ? 0 : DEMO_SPEED_KMH
       }
   const currentPoint = nextRuntime.currentPoint || runtime.currentPoint || {}
   return {
