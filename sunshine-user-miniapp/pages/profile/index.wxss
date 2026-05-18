@@ -8,8 +8,8 @@
 .profile-page {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
-  padding: 14rpx 20rpx 28rpx;
+  gap: 18rpx;
+  padding: 16rpx 22rpx 32rpx;
 }
 
 .profile-title {
@@ -23,13 +23,13 @@
 
 .profile-hero {
   position: relative;
-  min-height: 132rpx;
+  min-height: 150rpx;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  padding: 22rpx 20rpx;
-  border-radius: 24rpx;
+  gap: 18rpx;
+  padding: 26rpx 24rpx;
+  border-radius: 26rpx;
   border: 1rpx solid rgba(255, 160, 74, 0.28);
   background:
     linear-gradient(115deg, rgba(255, 211, 157, 0.58) 0%, rgba(255, 250, 244, 0.9) 48%, rgba(255, 233, 209, 0.7) 100%),
@@ -212,7 +212,7 @@
 .profile-name {
   color: #172033;
   font-size: 31rpx;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.12;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -230,7 +230,7 @@
   padding: 6rpx 12rpx;
   border-radius: 999rpx;
   font-size: 21rpx;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.1;
 }
 
@@ -259,7 +259,7 @@
   background: rgba(255, 255, 255, 0.72);
   border: 2rpx solid rgba(255, 122, 0, 0.24);
   font-size: 22rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .profile-edit__icon {
@@ -272,14 +272,14 @@
 
 .profile-assets,
 .profile-menu-panel {
-  border-radius: 24rpx;
+  border-radius: 26rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
   box-shadow: 0 16rpx 38rpx rgba(24, 34, 56, 0.06);
 }
 
 .profile-assets {
-  padding: 20rpx;
+  padding: 24rpx;
 }
 
 .profile-card-head,
@@ -373,15 +373,15 @@
 .profile-section-title {
   color: #172033;
   font-size: 27rpx;
-  font-weight: 600;
-  line-height: 1.18;
+  font-weight: 500;
+  line-height: 1.24;
 }
 
 .profile-card-desc {
-  margin-top: 5rpx;
+  margin-top: 7rpx;
   color: #7a8396;
   font-size: 21rpx;
-  line-height: 1.35;
+  line-height: 1.42;
 }
 
 .sync-pill,
@@ -392,20 +392,20 @@
   color: #ff6f00;
   background: #fff1df;
   font-size: 22rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .profile-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10rpx;
-  margin-top: 16rpx;
+  gap: 14rpx;
+  margin-top: 20rpx;
 }
 
 .asset-card {
-  min-height: 116rpx;
-  padding: 14rpx 12rpx;
-  border-radius: 18rpx;
+  min-height: 132rpx;
+  padding: 18rpx 15rpx;
+  border-radius: 20rpx;
   background: linear-gradient(145deg, rgba(255, 251, 247, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   border: 1rpx solid rgba(255, 162, 74, 0.2);
 }
@@ -497,37 +497,37 @@
 }
 
 .asset-value {
-  margin-top: 12rpx;
+  margin-top: 14rpx;
   color: #172033;
-  font-size: 31rpx;
-  font-weight: 600;
+  font-size: 29rpx;
+  font-weight: 500;
   line-height: 1;
   white-space: nowrap;
 }
 
 .asset-label {
-  margin-top: 7rpx;
+  margin-top: 8rpx;
   color: #6f788b;
   font-size: 20rpx;
-  line-height: 1.25;
+  line-height: 1.32;
 }
 
 .profile-section-head {
-  padding: 4rpx 4rpx 0;
+  padding: 10rpx 4rpx 4rpx;
 }
 
 .profile-menu-panel {
   overflow: hidden;
-  padding: 0 18rpx;
+  padding: 0 22rpx;
 }
 
 .menu-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  min-height: 88rpx;
-  padding: 13rpx 32rpx 13rpx 0;
+  gap: 16rpx;
+  min-height: 104rpx;
+  padding: 18rpx 36rpx 18rpx 0;
   border-bottom: 1rpx solid rgba(31, 36, 50, 0.07);
 }
 
@@ -761,16 +761,16 @@
 
 .menu-title {
   color: #172033;
-  font-size: 26rpx;
-  font-weight: 600;
-  line-height: 1.18;
+  font-size: 25rpx;
+  font-weight: 400;
+  line-height: 1.28;
 }
 
 .menu-desc {
-  margin-top: 5rpx;
+  margin-top: 7rpx;
   color: #737d90;
   font-size: 21rpx;
-  line-height: 1.35;
+  line-height: 1.42;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -788,7 +788,7 @@
 }
 
 .profile-logout {
-  min-height: 72rpx;
+  min-height: 82rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -797,6 +797,6 @@
   background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid rgba(255, 91, 87, 0.1);
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
   box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.045);
 }
