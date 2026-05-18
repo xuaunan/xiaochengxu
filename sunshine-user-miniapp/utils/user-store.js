@@ -897,12 +897,24 @@ function buildInvoiceList(orders = []) {
   return orders
     .filter((item) => item.orderStatus === ORDER_STATUS.FINISHED && item.payStatus === PAY_STATUS.PAID)
     .map((item) => ({
-      id: item.orderNo,
+      id: item.id,
+      orderNo: item.orderNo,
       title: `${getServiceLabel(item.serviceType)}电子发票`,
       amountText: formatPrice(item.actualAmount || item.payableAmount, item.currencyCode),
       createdAt: formatDateTime(item.createdAt || new Date()),
-      status: '可申请'
+      status: getInvoiceStatusText(item.invoiceStatus),
+      canApply: !item.invoiceStatus || ['NONE', 'REJECTED'].includes(item.invoiceStatus)
     }))
+}
+
+function getInvoiceStatusText(status) {
+  const map = {
+    NONE: '可申请',
+    APPLIED: '申请中',
+    ISSUED: '已开票',
+    REJECTED: '重新申请'
+  }
+  return map[status] || '可申请'
 }
 
 function buildReviewRecord(order, score, content, tags, anonymous) {

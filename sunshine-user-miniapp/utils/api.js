@@ -221,6 +221,14 @@ function submitComplaint(data) {
   })
 }
 
+function applyInvoice(orderId, data = {}) {
+  return request({
+    url: `/orders/${orderId}/invoice`,
+    method: 'POST',
+    data
+  })
+}
+
 function reportTrack(orderId, data) {
   return request({
     url: `/orders/${orderId}/track/report`,
@@ -319,6 +327,7 @@ function fetchMyCarpool() {
 }
 
 module.exports = {
+  applyInvoice,
   applyCarpool,
   cancelOrder,
   cancelCarpoolApplication,
