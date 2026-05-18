@@ -1,21 +1,22 @@
 <view class="page-shell help-shell safe-bottom">
   <view class="page-content help-page page-enter">
-    <view class="help-header">
+    <view class="help-hero">
       <view>
-        <view class="section-title help-title">帮助中心</view>
+        <view class="help-title">帮助中心</view>
         <view class="help-subtitle">常见问题与服务说明</view>
       </view>
       <view class="help-count">{{list.length}} 项</view>
+      <view class="help-hero__icon"></view>
     </view>
 
     <view class="help-list">
-      <view class="help-card tap-scale" wx:for="{{list}}" wx:key="id" wx:for-index="index">
+      <view class="help-card tap-scale" wx:for="{{list}}" wx:key="id" wx:for-index="index" hover-class="pressable-hover" hover-stay-time="60">
         <view class="help-card__mark">{{index + 1}}</view>
         <view class="help-card__body">
           <view class="help-card__title">{{item.title}}</view>
           <view class="help-card__content">{{item.content}}</view>
         </view>
-        <view class="help-card__arrow">›</view>
+        <view class="help-card__arrow"></view>
       </view>
     </view>
   </view>

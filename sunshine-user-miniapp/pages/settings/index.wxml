@@ -1,36 +1,48 @@
 <view class="page-shell settings-shell safe-bottom">
   <view class="page-content settings-page page-enter">
-    <view class="panel-card settings-hero">
-      <view>
-        <view class="section-title settings-title">出行偏好</view>
+    <view class="settings-hero">
+      <view class="settings-hero__copy">
+        <view class="settings-title">出行偏好</view>
+        <view class="settings-desc">消息提醒、优惠匹配和显示偏好会保存在本地。</view>
       </view>
-      <view class="section-subtitle settings-desc">消息提醒、优惠匹配和显示偏好会保存在本地。</view>
+      <view class="settings-hero__icon"></view>
     </view>
 
-    <view class="panel-card setting-list">
-      <view class="setting-group-title">通知</view>
-      <view class="setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting">
-        <view class="setting-copy">
-          <view class="setting-title">消息推送</view>
-          <view class="setting-subtitle">订单、优惠券与公告提醒</view>
+    <view class="setting-list">
+      <view class="setting-group">
+        <view class="setting-group-title">通知</view>
+        <view class="setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="setting-icon setting-icon--push"></view>
+          <view class="setting-copy">
+            <view class="setting-title">消息推送</view>
+            <view class="setting-subtitle">订单、优惠券与公告提醒</view>
+          </view>
+          <switch color="#ff7a00" checked="{{settings.pushEnabled}}" data-key="pushEnabled" catchtap="noop" bindchange="changeSetting"></switch>
         </view>
-        <switch color="#ff7a00" checked="{{settings.pushEnabled}}" data-key="pushEnabled" catchtap="noop" bindchange="changeSetting"></switch>
       </view>
-      <view class="setting-group-title">优惠</view>
-      <view class="setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting">
-        <view class="setting-copy">
-          <view class="setting-title">自动匹配优惠券</view>
-          <view class="setting-subtitle">下单时优先推荐最优券</view>
+
+      <view class="setting-group">
+        <view class="setting-group-title">优惠</view>
+        <view class="setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="setting-icon setting-icon--coupon"></view>
+          <view class="setting-copy">
+            <view class="setting-title">自动匹配优惠券</view>
+            <view class="setting-subtitle">下单时优先推荐最优券</view>
+          </view>
+          <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}" data-key="autoUseCoupon" catchtap="noop" bindchange="changeSetting"></switch>
         </view>
-        <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}" data-key="autoUseCoupon" catchtap="noop" bindchange="changeSetting"></switch>
       </view>
-      <view class="setting-group-title">外观</view>
-      <view class="setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting">
-        <view class="setting-copy">
-          <view class="setting-title">深色外观</view>
-          <view class="setting-subtitle">跟随系统外观偏好</view>
+
+      <view class="setting-group">
+        <view class="setting-group-title">外观</view>
+        <view class="setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting" hover-class="pressable-hover" hover-stay-time="60">
+          <view class="setting-icon setting-icon--theme"></view>
+          <view class="setting-copy">
+            <view class="setting-title">深色外观</view>
+            <view class="setting-subtitle">跟随系统外观偏好</view>
+          </view>
+          <switch color="#ff7a00" checked="{{settings.darkMode}}" data-key="darkMode" catchtap="noop" bindchange="changeSetting"></switch>
         </view>
-        <switch color="#ff7a00" checked="{{settings.darkMode}}" data-key="darkMode" catchtap="noop" bindchange="changeSetting"></switch>
       </view>
     </view>
   </view>
