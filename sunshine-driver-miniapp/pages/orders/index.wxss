@@ -82,8 +82,8 @@
 
 .driver-orders-title {
   color: #172033;
-  font-size: 34rpx;
-  font-weight: 700;
+  font-size: 33rpx;
+  font-weight: 600;
   line-height: 1.15;
 }
 
@@ -91,7 +91,7 @@
   margin-top: 8rpx;
   color: #667085;
   font-size: 23rpx;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .driver-orders-count {
@@ -106,7 +106,7 @@
   border: 2rpx solid rgba(255, 122, 0, 0.42);
   text-align: center;
   font-size: 24rpx;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .driver-orders-city,
@@ -240,9 +240,15 @@
   padding: 0 4rpx;
 }
 
+.driver-filter-divider {
+  height: 1rpx;
+  margin: 16rpx 6rpx;
+  background: rgba(31, 36, 50, 0.08);
+}
+
 .driver-filter-chip {
   min-width: 104rpx;
-  height: 52rpx;
+  height: 50rpx;
   padding: 0 22rpx;
   display: inline-flex;
   align-items: center;
@@ -252,8 +258,13 @@
   background: #fbfcfe;
   border: 2rpx solid rgba(31, 36, 50, 0.08);
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
   transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.driver-filter-chip--type {
+  min-width: 116rpx;
+  height: 56rpx;
 }
 
 .driver-filter-chip--active {
@@ -306,7 +317,7 @@
 }
 
 .driver-order-type {
-  gap: 12rpx;
+  gap: 16rpx;
   min-width: 0;
 }
 
@@ -320,7 +331,7 @@
   background: #fff1df;
 }
 
-.driver-order-type__icon::before {
+.driver-order-type__icon--taxi::before {
   content: "";
   position: absolute;
   left: 9rpx;
@@ -331,7 +342,7 @@
   border: 3rpx solid currentColor;
 }
 
-.driver-order-type__icon::after {
+.driver-order-type__icon--taxi::after {
   content: "";
   position: absolute;
   left: 14rpx;
@@ -343,10 +354,59 @@
   box-shadow: 14rpx 0 0 currentColor, 5rpx -18rpx 0 -1rpx currentColor;
 }
 
+.driver-order-type__icon--carpool::before,
+.driver-order-type__icon--carpool::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.driver-order-type__icon--carpool::before {
+  left: 11rpx;
+  top: 10rpx;
+  width: 10rpx;
+  height: 10rpx;
+  box-shadow: 15rpx 0 0 currentColor;
+}
+
+.driver-order-type__icon--carpool::after {
+  left: 7rpx;
+  bottom: 10rpx;
+  width: 16rpx;
+  height: 12rpx;
+  border-radius: 12rpx 12rpx 4rpx 4rpx;
+  box-shadow: 17rpx 0 0 currentColor;
+}
+
+.driver-order-type__icon--international::before {
+  content: "";
+  position: absolute;
+  left: 8rpx;
+  top: 20rpx;
+  width: 30rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: rotate(-28deg);
+}
+
+.driver-order-type__icon--international::after {
+  content: "";
+  position: absolute;
+  left: 21rpx;
+  top: 12rpx;
+  width: 7rpx;
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: rotate(-28deg);
+}
+
 .driver-order-type__text {
   color: #ff6f00;
   font-size: 25rpx;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .driver-order-status {
@@ -356,7 +416,7 @@
   color: #ff6f00;
   background: #fff1df;
   font-size: 23rpx;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .driver-order-status--completed {
@@ -384,8 +444,8 @@
   z-index: 1;
   margin-top: 18rpx;
   color: #111827;
-  font-size: 28rpx;
-  font-weight: 700;
+  font-size: 27rpx;
+  font-weight: 600;
   line-height: 1.45;
 }
 
@@ -399,14 +459,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10rpx 16rpx;
+  gap: 12rpx 18rpx;
   color: #7a8396;
   font-size: 23rpx;
 }
 
 .driver-order-meta__item {
   min-width: 0;
-  gap: 9rpx;
+  gap: 12rpx;
   max-width: 100%;
 }
 
@@ -488,8 +548,8 @@
 .driver-order-price {
   flex-shrink: 0;
   color: #ff6f00;
-  font-size: 34rpx;
-  font-weight: 700;
+  font-size: 32rpx;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -539,7 +599,7 @@
 .driver-empty-title {
   color: #172033;
   font-size: 28rpx;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .driver-empty-desc {
