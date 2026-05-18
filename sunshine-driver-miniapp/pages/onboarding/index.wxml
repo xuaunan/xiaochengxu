@@ -29,15 +29,6 @@
       <view class="login-title">{{mode === 'register' ? '司机账号注册' : '司机账号登录'}}</view>
       <view class="login-desc">司机账号注册成功后即可登录小程序，添加车辆并提交审核。</view>
 
-      <view class="default-account">
-        <view class="default-icon"></view>
-        <view class="default-copy">
-          <view class="default-title">默认账号</view>
-          <view class="default-line">手机号：13900000001</view>
-          <view class="default-line">密码：123456</view>
-        </view>
-      </view>
-
       <view class="mode-switch">
         <view class="mode-item {{mode === 'login' ? 'mode-item--active' : ''}}" data-mode="login" bindtap="chooseMode">登录</view>
         <view class="mode-item {{mode === 'register' ? 'mode-item--active' : ''}}" data-mode="register" bindtap="chooseMode">注册</view>
