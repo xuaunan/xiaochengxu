@@ -515,13 +515,13 @@
 }
 
 .vehicle-page {
-  padding: 28rpx 24rpx 180rpx;
+  padding: 24rpx 22rpx 170rpx;
 }
 
 .vehicle-card,
 .vehicle-form {
-  padding: 28rpx;
-  border-radius: 30rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.05);
   box-shadow: 0 16rpx 38rpx rgba(24, 34, 56, 0.06);
@@ -540,25 +540,25 @@
 
 .section-title {
   color: #172033;
-  font-size: 35rpx;
-  font-weight: 900;
+  font-size: 31rpx;
+  font-weight: 700;
 }
 
 .section-subtitle {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   color: #667085;
-  font-size: 24rpx;
+  font-size: 22rpx;
   line-height: 1.6;
 }
 
 .status-chip {
   flex-shrink: 0;
-  min-width: 120rpx;
-  padding: 12rpx 20rpx;
+  min-width: 104rpx;
+  padding: 9rpx 16rpx;
   border-radius: 999rpx;
   text-align: center;
-  font-size: 24rpx;
-  font-weight: 900;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .status-chip.pending {
@@ -583,9 +583,9 @@
 }
 
 .summary-card {
-  margin-top: 24rpx;
-  padding: 24rpx;
-  border-radius: 24rpx;
+  margin-top: 20rpx;
+  padding: 20rpx;
+  border-radius: 20rpx;
   background: #fff8f0;
   border: 1rpx solid rgba(255, 122, 0, 0.14);
 }
@@ -599,8 +599,8 @@
 
 .summary-title {
   color: #172033;
-  font-size: 34rpx;
-  font-weight: 900;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .summary-subtitle {
@@ -610,24 +610,24 @@
 }
 
 .summary-right {
-  padding: 10rpx 18rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   color: #ff7a00;
   background: #fff1df;
-  font-size: 24rpx;
-  font-weight: 900;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16rpx;
-  margin-top: 20rpx;
+  gap: 12rpx;
+  margin-top: 16rpx;
 }
 
 .summary-item {
-  padding: 18rpx;
-  border-radius: 20rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
   background: #ffffff;
 }
 
@@ -639,8 +639,8 @@
 .summary-value {
   margin-top: 8rpx;
   color: #172033;
-  font-size: 26rpx;
-  font-weight: 900;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .empty-vehicle {
@@ -659,8 +659,8 @@
 
 .empty-vehicle-title {
   color: #172033;
-  font-size: 30rpx;
-  font-weight: 900;
+  font-size: 28rpx;
+  font-weight: 700;
 }
 
 .empty-vehicle-desc {
@@ -680,7 +680,7 @@
 .lock-title {
   color: #172033;
   font-size: 28rpx;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .lock-desc {
@@ -719,7 +719,7 @@
 .upload-title {
   color: #172033;
   font-size: 26rpx;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .upload-preview,
@@ -758,12 +758,12 @@
 }
 
 .vehicle-reference-page {
-  padding: 28rpx 24rpx 190rpx;
+  padding: 24rpx 22rpx 178rpx;
 }
 
 .vehicle-reference-card {
-  padding: 30rpx 28rpx;
-  border-radius: 32rpx;
+  padding: 24rpx 24rpx;
+  border-radius: 26rpx;
   background:
     linear-gradient(125deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 250, 244, 0.96) 56%, rgba(255, 236, 214, 0.6) 100%),
     #ffffff;
@@ -774,7 +774,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24rpx;
+  gap: 18rpx;
 }
 
 .vehicle-reference-copy {
@@ -784,22 +784,22 @@
 
 .vehicle-reference-title {
   color: #172033;
-  font-size: 42rpx;
-  font-weight: 900;
+  font-size: 34rpx;
+  font-weight: 700;
   line-height: 1.12;
 }
 
 .vehicle-reference-desc {
-  margin-top: 18rpx;
+  margin-top: 12rpx;
   color: #667085;
-  font-size: 25rpx;
+  font-size: 23rpx;
   line-height: 1.55;
 }
 
 .vehicle-summary-box {
-  margin-top: 26rpx;
-  padding: 24rpx;
-  border-radius: 26rpx;
+  margin-top: 20rpx;
+  padding: 20rpx;
+  border-radius: 22rpx;
   background:
     linear-gradient(135deg, rgba(255, 250, 244, 0.98) 0%, rgba(255, 244, 232, 0.78) 100%),
     #fff8f0;
@@ -807,16 +807,16 @@
 }
 
 .summary-grid--reference {
-  gap: 18rpx;
+  gap: 12rpx;
 }
 
 .summary-grid--reference .summary-item {
-  min-height: 96rpx;
+  min-height: 82rpx;
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  padding: 18rpx 16rpx;
-  border-radius: 18rpx;
+  gap: 12rpx;
+  padding: 14rpx 12rpx;
+  border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.92);
   border: 1rpx solid rgba(255, 122, 0, 0.08);
 }
@@ -949,22 +949,22 @@
 
 .permission-title {
   color: #172033;
-  font-size: 30rpx;
-  font-weight: 900;
+  font-size: 27rpx;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .permission-desc {
   margin-top: 8rpx;
   color: #667085;
-  font-size: 24rpx;
+  font-size: 22rpx;
   line-height: 1.4;
 }
 
 .vehicle-form-reference {
-  margin-top: 24rpx;
-  padding: 30rpx 28rpx;
-  border-radius: 32rpx;
+  margin-top: 20rpx;
+  padding: 24rpx 24rpx;
+  border-radius: 26rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
   box-shadow: 0 18rpx 42rpx rgba(24, 34, 56, 0.065);
@@ -974,30 +974,30 @@
   display: flex;
   align-items: baseline;
   gap: 22rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
 
 .vehicle-form-title {
   flex-shrink: 0;
   color: #172033;
-  font-size: 36rpx;
-  font-weight: 900;
+  font-size: 31rpx;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .vehicle-form-desc {
   color: #667085;
-  font-size: 24rpx;
+  font-size: 22rpx;
   line-height: 1.4;
 }
 
 .vehicle-form-row {
   display: grid;
-  grid-template-columns: 52rpx 130rpx minmax(0, 1fr) 34rpx;
+  grid-template-columns: 48rpx 118rpx minmax(0, 1fr) 32rpx;
   align-items: center;
-  gap: 14rpx;
-  min-height: 78rpx;
-  margin-top: 14rpx;
+  gap: 12rpx;
+  min-height: 68rpx;
+  margin-top: 12rpx;
 }
 
 .vehicle-field-icon {
@@ -1092,21 +1092,21 @@
 
 .vehicle-field-label {
   color: #172033;
-  font-size: 26rpx;
-  font-weight: 800;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .vehicle-input-reference {
   width: 100%;
-  height: 70rpx;
-  min-height: 70rpx;
+  height: 64rpx;
+  min-height: 64rpx;
   margin-top: 0;
   padding: 0 20rpx;
   border-radius: 16rpx;
   background: #f8fafc;
   border: 1rpx solid rgba(31, 36, 50, 0.08);
-  font-size: 27rpx;
-  line-height: 70rpx;
+  font-size: 25rpx;
+  line-height: 64rpx;
   box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.55);
 }
 
@@ -1118,21 +1118,21 @@
 }
 
 .upload-grid-reference {
-  margin-top: 26rpx;
-  gap: 20rpx;
+  margin-top: 22rpx;
+  gap: 16rpx;
   align-items: stretch;
 }
 
 .upload-card-reference {
   gap: 12rpx;
-  padding: 20rpx;
-  border-radius: 24rpx;
+  padding: 16rpx;
+  border-radius: 20rpx;
   background: #fbfcfe;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
 }
 
 .upload-card-reference .upload-title {
-  font-size: 27rpx;
+  font-size: 24rpx;
 }
 
 .upload-desc {
@@ -1143,14 +1143,14 @@
 
 .upload-card-reference .upload-preview,
 .upload-card-reference .upload-placeholder {
-  height: 220rpx;
-  border-radius: 20rpx;
+  height: 190rpx;
+  border-radius: 16rpx;
 }
 
 .upload-action {
   width: 100%;
-  height: 68rpx;
-  min-height: 68rpx;
+  height: 60rpx;
+  min-height: 60rpx;
   margin: 0;
   padding: 0;
   display: flex;
@@ -1160,8 +1160,8 @@
   color: #ff6f00;
   background: #fffaf4;
   border: 1rpx solid rgba(255, 122, 0, 0.38);
-  font-size: 27rpx;
-  font-weight: 800;
+  font-size: 25rpx;
+  font-weight: 700;
   line-height: 1;
   text-align: center;
 }
@@ -1175,19 +1175,19 @@
   right: 24rpx;
   bottom: calc(env(safe-area-inset-bottom) + 22rpx);
   grid-template-columns: 1fr 1.08fr;
-  padding: 22rpx 0;
-  border-radius: 30rpx;
+  padding: 18rpx 0;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 -10rpx 32rpx rgba(24, 34, 56, 0.08);
 }
 
 .vehicle-secondary-button,
 .vehicle-primary-button {
-  min-height: 86rpx;
-  border-radius: 24rpx;
-  font-size: 31rpx;
-  font-weight: 900;
-  line-height: 86rpx;
+  min-height: 74rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 74rpx;
 }
 
 .vehicle-secondary-button {

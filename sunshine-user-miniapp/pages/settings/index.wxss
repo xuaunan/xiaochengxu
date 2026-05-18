@@ -7,13 +7,13 @@
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding-top: 20rpx;
+  gap: 18rpx;
+  padding-top: 16rpx;
 }
 
 .settings-hero,
 .setting-list {
-  border-radius: 28rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(255, 122, 0, 0.1);
   box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
@@ -23,35 +23,35 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 150rpx;
-  padding: 30rpx 150rpx 30rpx 30rpx;
+  min-height: 126rpx;
+  padding: 24rpx 126rpx 24rpx 26rpx;
   overflow: hidden;
   background:
     linear-gradient(105deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 255, 255, 0.95) 56%, rgba(255, 231, 194, 0.7) 100%);
 }
 
 .settings-title {
-  font-size: 42rpx;
+  font-size: 34rpx;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: 700;
   color: #111827;
 }
 
 .settings-desc {
-  margin-top: 10rpx;
+  margin-top: 8rpx;
   max-width: 520rpx;
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #737c90;
   line-height: 1.4;
 }
 
 .settings-hero__icon {
   position: absolute;
-  right: 38rpx;
-  top: 42rpx;
-  width: 82rpx;
-  height: 82rpx;
-  border-radius: 26rpx;
+  right: 32rpx;
+  top: 34rpx;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 22rpx;
   background: linear-gradient(180deg, rgba(255, 183, 105, 0.9), rgba(255, 122, 0, 0.86));
   box-shadow: 0 18rpx 34rpx rgba(255, 122, 0, 0.18);
 }
@@ -82,7 +82,7 @@
 }
 
 .setting-list {
-  padding: 8rpx 24rpx 10rpx;
+  padding: 6rpx 22rpx 8rpx;
 }
 
 .setting-group + .setting-group {
@@ -90,9 +90,9 @@
 }
 
 .setting-group-title {
-  padding: 24rpx 0 8rpx;
+  padding: 20rpx 0 6rpx;
   font-size: 22rpx;
-  font-weight: 900;
+  font-weight: 700;
   color: #ff6b00;
 }
 
@@ -101,16 +101,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-  min-height: 112rpx;
-  padding-bottom: 18rpx;
+  min-height: 92rpx;
+  padding-bottom: 14rpx;
 }
 
 .setting-icon {
   position: relative;
-  width: 58rpx;
-  height: 58rpx;
+  width: 50rpx;
+  height: 50rpx;
   flex-shrink: 0;
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   background: rgba(255, 122, 0, 0.1);
 }
 
@@ -172,20 +172,20 @@
 }
 
 .setting-title {
-  font-size: 29rpx;
-  font-weight: 900;
+  font-size: 26rpx;
+  font-weight: 700;
   color: #111827;
 }
 
 .setting-subtitle {
-  margin-top: 8rpx;
-  font-size: 23rpx;
+  margin-top: 6rpx;
+  font-size: 21rpx;
   line-height: 1.45;
   color: #7a8396;
 }
 
 .setting-row switch {
   flex-shrink: 0;
-  transform: scale(0.92);
+  transform: scale(0.86);
   transform-origin: right center;
 }
