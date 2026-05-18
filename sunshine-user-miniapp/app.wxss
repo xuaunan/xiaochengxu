@@ -22,6 +22,8 @@ page {
   --shadow-soft: 0 10rpx 24rpx rgba(24, 34, 56, 0.07);
   --shadow-card: 0 14rpx 32rpx rgba(24, 34, 56, 0.08);
   --shadow-brand: 0 12rpx 26rpx rgba(255, 122, 0, 0.16);
+  --motion-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-press: cubic-bezier(0.18, 0.72, 0.24, 1);
   --radius-sm: 16rpx;
   --radius-md: 22rpx;
   --radius-lg: 28rpx;
@@ -272,7 +274,12 @@ input {
   font-weight: 600;
   line-height: 1;
   padding: 26rpx 28rpx;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.16s var(--motion-press),
+    opacity 0.16s var(--motion-press),
+    box-shadow 0.22s var(--motion-smooth),
+    background 0.22s var(--motion-smooth);
+  will-change: transform, opacity;
 }
 
 .primary-button::after,
@@ -302,8 +309,8 @@ input {
 .warn-button.button-hover,
 .tap-scale:active,
 .pressable-hover {
-  transform: translateY(2rpx) scale(0.99);
-  opacity: 0.97;
+  transform: translateY(2rpx) scale(0.985);
+  opacity: 0.96;
 }
 
 .field-card {
@@ -533,15 +540,15 @@ input {
   border-radius: 36rpx 36rpx 0 0;
   background: #ffffff;
   padding: 28rpx 24rpx calc(env(safe-area-inset-bottom) + 30rpx);
-  animation: slide-up 0.25s ease;
+  animation: slide-up 0.28s var(--motion-smooth);
 }
 
 .fade-in {
-  animation: fade-in 0.3s ease;
+  animation: fade-in 0.24s var(--motion-smooth);
 }
 
 .slide-in {
-  animation: slide-up 0.28s ease;
+  animation: slide-up 0.3s var(--motion-smooth);
 }
 
 .silky-page {
@@ -550,25 +557,37 @@ input {
 }
 
 .silky-page--enter {
-  animation: silky-page-enter 0.28s ease forwards;
+  animation: silky-page-enter 0.3s var(--motion-smooth) forwards;
 }
 
 .silky-page--leave {
-  animation: silky-page-leave 0.18s ease forwards;
+  animation: silky-page-leave 0.16s var(--motion-press) forwards;
 }
 
 .page-enter {
-  animation: page-enter 0.28s ease both;
+  animation: page-enter 0.32s var(--motion-smooth) both;
 }
 
 .card-hover,
 .tap-card {
-  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.16s var(--motion-press),
+    opacity 0.16s var(--motion-press),
+    box-shadow 0.22s var(--motion-smooth);
+  will-change: transform, opacity;
+}
+
+.tap-scale {
+  transition:
+    transform 0.16s var(--motion-press),
+    opacity 0.16s var(--motion-press),
+    box-shadow 0.22s var(--motion-smooth);
+  will-change: transform, opacity;
 }
 
 .tap-card:active,
 .card-hover:active {
-  transform: translateY(2rpx) scale(0.99);
+  transform: translateY(2rpx) scale(0.985);
   opacity: 0.96;
 }
 
@@ -622,8 +641,8 @@ input {
     transform: translateY(0);
   }
   to {
-    opacity: 0;
-    transform: translateY(0);
+    opacity: 0.84;
+    transform: translateY(5rpx) scale(0.998);
   }
 }
 
