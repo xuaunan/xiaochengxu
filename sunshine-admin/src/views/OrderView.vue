@@ -118,6 +118,13 @@
             <el-option label="已取消" value="CANCELLED" />
           </el-select>
         </el-form-item>
+        <el-form-item label="支付状态">
+          <el-select v-model="statusForm.payStatus" style="width: 100%">
+            <el-option label="待支付" value="UNPAID" />
+            <el-option label="已支付" value="PAID" />
+            <el-option label="已退款" value="REFUNDED" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="statusForm.remark" type="textarea" :rows="3" maxlength="120" show-word-limit />
         </el-form-item>
@@ -138,6 +145,10 @@
           <div class="stat-card">
             <span>支付状态</span>
             <strong>{{ getOrderPayStatusLabel(detail.order) }}</strong>
+          </div>
+          <div class="stat-card">
+            <span>发票状态</span>
+            <strong>{{ getInvoiceStatusLabel(detail.order.invoiceStatus) }}</strong>
           </div>
           <div class="stat-card">
             <span>行程时长</span>
@@ -161,6 +172,7 @@
           <el-descriptions-item label="剩余距离">{{ detail.runtime.remainingText }}</el-descriptions-item>
           <el-descriptions-item label="阶段">{{ detail.runtime.phaseText }}</el-descriptions-item>
           <el-descriptions-item label="轨迹模式">{{ detail.runtime.traceModeText }}</el-descriptions-item>
+          <el-descriptions-item label="发票状态">{{ getInvoiceStatusLabel(detail.order.invoiceStatus) }}</el-descriptions-item>
           <el-descriptions-item label="等待信息">{{ detail.runtime.waitingText }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ stripOrderMetaRemark(detail.order.remark) || '无' }}</el-descriptions-item>
         </el-descriptions>
@@ -324,6 +336,7 @@ const query = reactive({
 
 const statusForm = reactive({
   orderStatus: 'DISPATCHING',
+  payStatus: 'UNPAID',
   remark: ''
 })
 
@@ -448,6 +461,16 @@ function getOrderPayStatusType(order = {}) {
     }
   }
   return getPayStatusType(order.payStatus)
+}
+
+function getInvoiceStatusLabel(status) {
+  const map = {
+    NONE: '未申请',
+    APPLIED: '待处理',
+    ISSUED: '已开票',
+    REJECTED: '已驳回'
+  }
+  return map[status] || '未申请'
 }
 
 function hasRuntimeSnapshot(runtime = {}) {
@@ -606,6 +629,7 @@ function stripOrderMetaRemark(remark = '') {
   return `${remark || ''}`
     .replace(/\[CARPOOL_META\][\s\S]*?\[\/CARPOOL_META\]/g, '')
     .replace(/\[INTERNATIONAL_META\][\s\S]*?\[\/INTERNATIONAL_META\]/g, '')
+    .replace(/\[INVOICE_META\][\s\S]*?\[\/INVOICE_META\]/g, '')
     .trim()
 }
 
@@ -651,6 +675,7 @@ async function openDetail(orderId) {
 function openStatusDialog(row) {
   currentOrderId.value = row.id
   statusForm.orderStatus = row.orderStatus || row.status
+  statusForm.payStatus = row.payStatus || 'UNPAID'
   statusForm.remark = row.remark || ''
   statusVisible.value = true
 }
@@ -815,7 +840,7 @@ onUnmounted(stopDetailPolling)
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
