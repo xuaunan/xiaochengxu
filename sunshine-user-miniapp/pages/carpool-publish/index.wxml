@@ -1,17 +1,37 @@
 <view class="page-shell carpool-publish-shell safe-bottom">
-  <view class="page-content list-gap">
-    <view class="hero-card publish-hero page-enter">
-      <view class="section-title">发布顺风车行程</view>
-      <view class="section-subtitle">填写路线、座位和出发时间</view>
+  <view class="page-content publish-page page-enter">
+    <view class="publish-hero">
+      <view class="publish-hero__title">发布顺风车行程</view>
+      <view class="publish-hero__desc">填写路线、座位和出发时间</view>
+      <view class="publish-hero__scene"></view>
     </view>
 
-    <view class="panel-card publish-form list-gap">
-      <input class="search-input" data-key="startName" value="{{form.startName}}" bindinput="updateField" placeholder="出发地" />
-      <input class="search-input" data-key="endName" value="{{form.endName}}" bindinput="updateField" placeholder="目的地" />
+    <view class="publish-panel">
+      <view class="panel-title">
+        <view class="panel-title__mark"></view>
+        <view>路线信息</view>
+      </view>
+      <view class="route-inputs">
+        <view class="route-input route-input--start">
+          <view class="route-dot"></view>
+          <input class="publish-input" data-key="startName" value="{{form.startName}}" bindinput="updateField" placeholder="出发地" />
+        </view>
+        <view class="route-input route-input--end">
+          <view class="route-dot"></view>
+          <input class="publish-input" data-key="endName" value="{{form.endName}}" bindinput="updateField" placeholder="目的地" />
+        </view>
+      </view>
+    </view>
 
+    <view class="publish-panel">
+      <view class="panel-title">
+        <view class="panel-title__mark"></view>
+        <view>基础信息</view>
+      </view>
       <view class="publish-grid">
         <picker mode="date" value="{{form.departDate}}" bindchange="chooseDepartDate">
-          <view class="field-card tap-scale">
+          <view class="field-card publish-field tap-scale">
+            <view class="field-icon field-icon--date"></view>
             <view class="field-body">
               <view class="field-label">出发日期</view>
               <view class="field-value">{{form.departDate}}</view>
@@ -20,7 +40,8 @@
         </picker>
 
         <picker mode="time" value="{{form.departTime}}" bindchange="chooseDepartTime">
-          <view class="field-card tap-scale">
+          <view class="field-card publish-field tap-scale">
+            <view class="field-icon field-icon--time"></view>
             <view class="field-body">
               <view class="field-label">出发时间</view>
               <view class="field-value">{{form.departTime}}</view>
@@ -30,15 +51,27 @@
       </view>
 
       <view class="publish-grid">
-        <input class="search-input" data-key="seats" type="number" value="{{form.seats}}" bindinput="updateField" placeholder="可载人数" />
-        <input class="search-input" data-key="price" type="digit" value="{{form.price}}" bindinput="updateField" placeholder="每人分摊" />
+        <view class="number-field">
+          <view class="field-icon field-icon--seat"></view>
+          <input class="publish-input" data-key="seats" type="number" value="{{form.seats}}" bindinput="updateField" placeholder="可载人数" />
+        </view>
+        <view class="number-field">
+          <view class="field-icon field-icon--price"></view>
+          <input class="publish-input" data-key="price" type="digit" value="{{form.price}}" bindinput="updateField" placeholder="每人分摊" />
+        </view>
       </view>
+    </view>
 
-      <input class="search-input" data-key="baggageRule" value="{{form.baggageRule}}" bindinput="updateField" placeholder="行李规则" />
+    <view class="publish-panel">
+      <view class="panel-title">
+        <view class="panel-title__mark"></view>
+        <view>出行说明</view>
+      </view>
+      <input class="publish-input publish-input--full" data-key="baggageRule" value="{{form.baggageRule}}" bindinput="updateField" placeholder="行李规则" />
       <textarea class="publish-textarea" data-key="remark" bindinput="updateField" placeholder="补充上下车提醒、通勤频次或行程说明">{{form.remark}}</textarea>
     </view>
   </view>
-  <view class="floating-bar">
-    <button class="primary-button" hover-class="button-hover" bindtap="submitTrip">确认发布</button>
+  <view class="floating-bar publish-floating-bar">
+    <button class="primary-button publish-submit-button" hover-class="button-hover" bindtap="submitTrip">确认发布</button>
   </view>
 </view>
