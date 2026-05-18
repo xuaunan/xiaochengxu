@@ -8,28 +8,28 @@
 .profile-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding: 22rpx 24rpx 34rpx;
+  gap: 18rpx;
+  padding: 18rpx 22rpx 30rpx;
 }
 
 .profile-title {
-  padding: 32rpx 0 18rpx;
+  padding: 28rpx 0 14rpx;
   text-align: center;
   color: #1d2433;
-  font-size: 36rpx;
-  font-weight: 800;
+  font-size: 32rpx;
+  font-weight: 600;
   line-height: 1;
 }
 
 .profile-hero {
   position: relative;
-  min-height: 170rpx;
+  min-height: 150rpx;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 22rpx;
-  padding: 34rpx 28rpx;
-  border-radius: 34rpx;
+  gap: 18rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 30rpx;
   border: 1rpx solid rgba(255, 160, 74, 0.28);
   background:
     linear-gradient(115deg, rgba(255, 211, 157, 0.58) 0%, rgba(255, 250, 244, 0.9) 48%, rgba(255, 233, 209, 0.7) 100%),
@@ -185,8 +185,8 @@
 .profile-avatar-wrap {
   position: relative;
   z-index: 2;
-  width: 116rpx;
-  height: 116rpx;
+  width: 104rpx;
+  height: 104rpx;
   flex-shrink: 0;
   padding: 7rpx;
   border-radius: 999rpx;
@@ -195,8 +195,8 @@
 }
 
 .profile-avatar {
-  width: 102rpx;
-  height: 102rpx;
+  width: 90rpx;
+  height: 90rpx;
   display: block;
   border-radius: 999rpx;
   background: #fff4e8;
@@ -211,8 +211,8 @@
 
 .profile-name {
   color: #172033;
-  font-size: 42rpx;
-  font-weight: 900;
+  font-size: 36rpx;
+  font-weight: 700;
   line-height: 1.12;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -222,15 +222,15 @@
 .profile-subline {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
-  margin-top: 16rpx;
+  gap: 10rpx;
+  margin-top: 12rpx;
 }
 
 .profile-pill {
-  padding: 8rpx 16rpx;
+  padding: 7rpx 14rpx;
   border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 800;
+  font-size: 21rpx;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -252,14 +252,14 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10rpx;
-  padding: 14rpx 22rpx;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
   border-radius: 999rpx;
   color: #ff6f00;
   background: rgba(255, 255, 255, 0.72);
   border: 2rpx solid rgba(255, 122, 0, 0.24);
-  font-size: 24rpx;
-  font-weight: 800;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .profile-edit__icon {
@@ -272,14 +272,14 @@
 
 .profile-assets,
 .profile-menu-panel {
-  border-radius: 34rpx;
+  border-radius: 30rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 18rpx 44rpx rgba(24, 34, 56, 0.075);
+  box-shadow: 0 16rpx 38rpx rgba(24, 34, 56, 0.06);
 }
 
 .profile-assets {
-  padding: 28rpx;
+  padding: 24rpx;
 }
 
 .profile-card-head,
@@ -304,8 +304,8 @@
 
 .section-icon {
   position: relative;
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -372,48 +372,48 @@
 .profile-card-title,
 .profile-section-title {
   color: #172033;
-  font-size: 34rpx;
-  font-weight: 900;
+  font-size: 30rpx;
+  font-weight: 700;
   line-height: 1.18;
 }
 
 .profile-card-desc {
-  margin-top: 8rpx;
+  margin-top: 7rpx;
   color: #7a8396;
-  font-size: 24rpx;
+  font-size: 22rpx;
   line-height: 1.35;
 }
 
 .sync-pill,
 .soft-pill {
   flex-shrink: 0;
-  padding: 10rpx 18rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   color: #ff6f00;
   background: #fff1df;
   font-size: 22rpx;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .profile-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18rpx;
-  margin-top: 28rpx;
+  gap: 14rpx;
+  margin-top: 22rpx;
 }
 
 .asset-card {
-  min-height: 154rpx;
-  padding: 20rpx 18rpx;
-  border-radius: 24rpx;
+  min-height: 138rpx;
+  padding: 18rpx 16rpx;
+  border-radius: 22rpx;
   background: linear-gradient(145deg, rgba(255, 251, 247, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   border: 1rpx solid rgba(255, 162, 74, 0.2);
 }
 
 .asset-icon {
   position: relative;
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,18 +497,18 @@
 }
 
 .asset-value {
-  margin-top: 20rpx;
+  margin-top: 16rpx;
   color: #172033;
-  font-size: 43rpx;
-  font-weight: 900;
+  font-size: 36rpx;
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
 
 .asset-label {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   color: #6f788b;
-  font-size: 22rpx;
+  font-size: 21rpx;
   line-height: 1.25;
 }
 
@@ -518,16 +518,16 @@
 
 .profile-menu-panel {
   overflow: hidden;
-  padding: 0 26rpx;
+  padding: 0 22rpx;
 }
 
 .menu-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 22rpx;
-  min-height: 118rpx;
-  padding: 20rpx 36rpx 20rpx 0;
+  gap: 18rpx;
+  min-height: 104rpx;
+  padding: 16rpx 34rpx 16rpx 0;
   border-bottom: 1rpx solid rgba(31, 36, 50, 0.07);
 }
 
@@ -537,8 +537,8 @@
 
 .menu-icon {
   position: relative;
-  width: 58rpx;
-  height: 58rpx;
+  width: 54rpx;
+  height: 54rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -761,15 +761,15 @@
 
 .menu-title {
   color: #172033;
-  font-size: 31rpx;
-  font-weight: 900;
+  font-size: 29rpx;
+  font-weight: 700;
   line-height: 1.18;
 }
 
 .menu-desc {
-  margin-top: 9rpx;
+  margin-top: 7rpx;
   color: #737d90;
-  font-size: 23rpx;
+  font-size: 22rpx;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -788,15 +788,15 @@
 }
 
 .profile-logout {
-  min-height: 94rpx;
+  min-height: 84rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 28rpx;
+  border-radius: 24rpx;
   color: #ff5b57;
   background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid rgba(255, 91, 87, 0.1);
-  font-size: 28rpx;
-  font-weight: 800;
+  font-size: 26rpx;
+  font-weight: 700;
   box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.045);
 }
