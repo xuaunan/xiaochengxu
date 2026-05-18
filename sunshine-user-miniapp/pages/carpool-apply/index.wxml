@@ -1,31 +1,44 @@
 <view class="page-shell carpool-apply-shell safe-bottom" wx:if="{{trip}}">
-  <view class="page-content list-gap">
-    <view class="hero-card apply-hero page-enter">
-      <view class="section-title">{{trip.routeText}}</view>
-      <view class="section-subtitle">{{trip.departTimeText}} · {{trip.priceText}} / 人</view>
+  <view class="page-content apply-page page-enter">
+    <view class="apply-hero">
+      <view class="apply-hero__title">{{trip.routeText}}</view>
+      <view class="apply-hero__desc">{{trip.departTimeText}} · {{trip.priceText}} / 人</view>
+      <view class="apply-hero__badge">申请搭乘</view>
     </view>
 
-    <view class="panel-card apply-panel">
-      <view class="section-title">同行人数</view>
-      <view class="section-subtitle">请确认本次搭乘总人数，包含你自己。</view>
+    <view class="apply-panel">
+      <view class="panel-title">
+        <view class="panel-title__icon panel-title__icon--people"></view>
+        <view>同行人数</view>
+      </view>
+      <view class="panel-desc">请确认本次搭乘总人数，包含你自己。</view>
 
       <view class="counter-row">
-        <button class="ghost-button counter-button" hover-class="button-hover" bindtap="decreaseCompanions">-</button>
-        <view class="counter-value">{{companions}}</view>
-        <button class="ghost-button counter-button" hover-class="button-hover" bindtap="increaseCompanions">+</button>
+        <button class="counter-button counter-button--minus" hover-class="button-hover" bindtap="decreaseCompanions"></button>
+        <view class="counter-value">
+          <view class="counter-value__number">{{companions}}</view>
+          <view class="counter-value__label">人</view>
+        </view>
+        <button class="counter-button counter-button--plus" hover-class="button-hover" bindtap="increaseCompanions"></button>
       </view>
 
-      <view class="apply-summary">预估分摊：{{trip.priceText}} × {{companions}} = {{totalPriceText}}</view>
+      <view class="apply-summary">
+        <view class="apply-summary__label">预估分摊</view>
+        <view class="apply-summary__value">{{trip.priceText}} × {{companions}} = {{totalPriceText}}</view>
+      </view>
     </view>
 
-    <view class="panel-card apply-panel">
-      <view class="section-title">备注说明</view>
-      <view class="section-subtitle">可补充行李件数、是否携带儿童等信息，方便车主更快确认。</view>
+    <view class="apply-panel">
+      <view class="panel-title">
+        <view class="panel-title__icon panel-title__icon--note"></view>
+        <view>备注说明</view>
+      </view>
+      <view class="panel-desc">可补充行李件数、是否携带儿童等信息，方便车主更快确认。</view>
       <textarea class="apply-textarea" placeholder="例如：1 个 20 寸行李箱，准点到上车点" maxlength="80" bindinput="updateNote"></textarea>
     </view>
   </view>
 
-  <view class="floating-bar">
-    <button class="primary-button" hover-class="button-hover" bindtap="submitApply">提交搭乘申请</button>
+  <view class="floating-bar apply-floating-bar">
+    <button class="primary-button apply-submit-button" hover-class="button-hover" bindtap="submitApply">提交搭乘申请</button>
   </view>
 </view>

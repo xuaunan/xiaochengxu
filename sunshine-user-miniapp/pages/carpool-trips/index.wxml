@@ -1,45 +1,70 @@
 <view class="page-shell carpool-trips-shell safe-bottom">
-  <view class="page-content list-gap">
-    <view class="hero-card trips-hero page-enter">
-      <view class="section-title">我的顺风车</view>
-      <view class="section-subtitle">车主行程与乘客申请集中管理</view>
-
-      <view class="metric-grid trip-summary">
-        <view class="metric-item">
-          <view class="metric-value">{{summary.ownerTripTotal}}</view>
-          <view class="metric-label">车主行程</view>
-        </view>
-        <view class="metric-item">
-          <view class="metric-value">{{summary.passengerTripTotal}}</view>
-          <view class="metric-label">乘客申请</view>
-        </view>
-        <view class="metric-item">
-          <view class="metric-value">{{summary.pendingTotal}}</view>
-          <view class="metric-label">待处理</view>
-        </view>
+  <view class="page-content trips-page page-enter">
+    <view class="trips-hero">
+      <view class="trips-hero__copy">
+        <view class="trips-hero__title">我的顺风车</view>
+        <view class="trips-hero__desc">车主行程与乘客申请集中管理</view>
+      </view>
+      <view class="trips-hero__scene">
+        <view class="trips-hero__car"></view>
       </view>
     </view>
 
-    <view class="chip-row">
-      <view class="chip {{active === item.key ? 'chip-active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="chooseTab">{{item.label}}</view>
+    <view class="trip-summary">
+      <view class="summary-card summary-card--owner">
+        <view class="summary-card__icon"></view>
+        <view class="summary-card__value">{{summary.ownerTripTotal}}</view>
+        <view class="summary-card__label">车主行程</view>
+      </view>
+      <view class="summary-card summary-card--passenger">
+        <view class="summary-card__icon"></view>
+        <view class="summary-card__value">{{summary.passengerTripTotal}}</view>
+        <view class="summary-card__label">乘客申请</view>
+      </view>
+      <view class="summary-card summary-card--pending">
+        <view class="summary-card__icon"></view>
+        <view class="summary-card__value">{{summary.pendingTotal}}</view>
+        <view class="summary-card__label">待处理</view>
+      </view>
     </view>
 
-    <view wx:if="{{list.length}}" class="list-gap">
-      <view class="panel-card trip-record tap-scale" wx:for="{{list}}" wx:key="id" data-id="{{item.tripId}}" bindtap="openDetail">
-        <view class="row-between">
-          <view class="section-title record-title">{{item.routeText}}</view>
+    <scroll-view class="trip-tabs" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="trip-tabs__inner">
+        <view
+          class="trip-tab tap-scale {{active === item.key ? 'trip-tab--active' : ''}}"
+          wx:for="{{tabs}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          bindtap="chooseTab"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{list.length}}" class="trip-list">
+      <view class="trip-record tap-scale" wx:for="{{list}}" wx:key="id" data-id="{{item.tripId}}" bindtap="openDetail" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="trip-record__top">
+          <view class="service-badge"></view>
+          <view class="record-role">{{item.roleText}}</view>
           <view class="status-tag {{item.statusClassName}}">{{item.statusText}}</view>
         </view>
-        <view class="record-meta">{{item.roleText}} · {{item.departTimeText}}</view>
-        <view class="record-meta">{{item.seatText}} · {{item.priceText}}</view>
+        <view class="record-title">{{item.routeText}}</view>
+        <view class="record-meta">
+          <view class="record-meta__item record-meta__item--time">{{item.departTimeText}}</view>
+          <view class="record-meta__item record-meta__item--price">{{item.priceText}}</view>
+        </view>
         <view class="record-hint" wx:if="{{item.pendingApplicationCount > 0}}">当前有 {{item.pendingApplicationCount}} 条乘客申请待你处理</view>
-        <button class="ghost-button record-action" hover-class="button-hover" catchtap="handleAction" data-type="{{item.action.type}}" data-id="{{item.tripId}}" data-application-id="{{item.applicationId}}">{{item.action.text}}</button>
+        <button class="record-action" hover-class="button-hover" catchtap="handleAction" data-type="{{item.action.type}}" data-id="{{item.tripId}}" data-application-id="{{item.applicationId}}">
+          {{item.action.text}}
+        </button>
       </view>
     </view>
 
-    <view wx:else class="panel-card empty-card">
-      <view class="section-title empty-title">当前分类下还没有记录</view>
-      <view class="section-subtitle">可以返回顺风车首页继续搜索合适路线，或发布新的出发计划。</view>
+    <view wx:else class="empty-card">
+      <view class="empty-card__icon"></view>
+      <view class="empty-title">当前分类下还没有记录</view>
+      <view class="empty-desc">可以返回顺风车首页继续搜索合适路线，或发布新的出发计划。</view>
     </view>
   </view>
 </view>

@@ -1,58 +1,74 @@
 <view class="page-shell carpool-confirm-shell safe-bottom">
-  <view class="page-content confirm-page">
-    <view class="module-heading confirm-heading page-enter">
-      <view class="section-title list-title">行程确认</view>
-      <view class="section-subtitle">{{priceView.distanceText}}</view>
+  <view class="page-content confirm-page page-enter">
+    <view class="confirm-hero">
+      <view class="confirm-hero__icon"></view>
+      <view class="confirm-hero__copy">
+        <view class="confirm-hero__title">行程确认</view>
+        <view class="confirm-hero__desc">确认路线、人数与优惠后匹配顺路车主</view>
+      </view>
+      <view class="confirm-distance">{{priceView.distanceText}}</view>
     </view>
 
-    <view class="panel-card summary-card">
-      <view class="summary-route">
-        <view class="summary-route__dot summary-route__dot--start"></view>
-        <view class="summary-route__text">{{context.draft.start.name || '请选择出发地'}}</view>
-        <view class="summary-route__arrow">→</view>
-        <view class="summary-route__dot summary-route__dot--end"></view>
-        <view class="summary-route__text">{{context.draft.end.name || '请选择目的地'}}</view>
+    <view class="confirm-panel route-panel">
+      <view class="route-card">
+        <view class="route-point route-point--start">
+          <view class="route-dot"></view>
+          <view class="route-copy">
+            <view class="route-label">从哪里出发</view>
+            <view class="route-value">{{context.draft.start.name || '请选择出发地'}}</view>
+          </view>
+        </view>
+        <view class="route-divider">
+          <view class="route-swap"></view>
+        </view>
+        <view class="route-point route-point--end">
+          <view class="route-dot"></view>
+          <view class="route-copy">
+            <view class="route-label">去哪里</view>
+            <view class="route-value">{{context.draft.end.name || '请选择目的地'}}</view>
+          </view>
+        </view>
       </view>
 
       <view class="summary-grid">
-        <view class="summary-item">
+        <view class="summary-item summary-item--date">
+          <view class="summary-icon"></view>
           <view class="summary-item__label">出发日期</view>
           <view class="summary-item__value">{{context.departDate}}</view>
         </view>
-        <view class="summary-item">
+        <view class="summary-item summary-item--time">
+          <view class="summary-icon"></view>
           <view class="summary-item__label">时间段</view>
           <view class="summary-item__value">{{context.selectedTimeRangeLabel}}</view>
         </view>
-        <view class="summary-item">
+        <view class="summary-item summary-item--people">
+          <view class="summary-icon"></view>
           <view class="summary-item__label">乘车人数</view>
           <view class="summary-item__value">{{context.selectedPassengerLabel}}</view>
         </view>
-        <view class="summary-item">
-          <view class="summary-item__label">行李</view>
-          <view class="summary-item__value">{{context.luggageLabel}}</view>
-        </view>
-        <view class="summary-item summary-item--wide">
-          <view class="summary-item__label">高速费</view>
-          <view class="summary-item__value">{{context.tollLabel}}</view>
-        </view>
+      </view>
+
+      <view class="preference-summary">
+        <view class="preference-chip">{{context.luggageLabel}}</view>
+        <view class="preference-chip">{{context.tollLabel}}</view>
       </view>
     </view>
 
-    <view class="panel-card price-panel">
-      <view class="module-heading price-heading">
+    <view class="confirm-panel price-panel">
+      <view class="section-row">
         <view>
-          <view class="section-title price-title">确认价格</view>
-          <view class="section-subtitle">{{priceView.couponText}}</view>
+          <view class="section-title compact-title">确认价格</view>
+          <view class="section-subtitle compact-subtitle">{{priceView.couponText}}</view>
         </view>
       </view>
 
       <view class="coupon-entry tap-scale" bindtap="openCouponPicker" hover-class="pressable-hover" hover-stay-time="60">
-        <view class="coupon-entry__main">
-          <view class="coupon-entry__icon">券</view>
+        <view class="coupon-entry__icon"></view>
+        <view class="coupon-entry__body">
           <view class="coupon-entry__label">优惠券</view>
+          <view class="coupon-entry__summary {{selectedCoupon ? 'coupon-entry__summary--active' : ''}}">{{priceView.couponText}}</view>
         </view>
-        <view class="coupon-entry__summary {{selectedCoupon ? 'coupon-entry__summary--active' : ''}}">{{priceView.couponText}}</view>
-        <view class="coupon-entry__action">去选择 ></view>
+        <view class="coupon-entry__action">去选择</view>
       </view>
 
       <view class="price-summary">
@@ -85,8 +101,11 @@
     <view class="mask-panel coupon-picker-mask" bindtap="closeCouponPicker"></view>
     <view class="coupon-picker slide-in">
       <view class="coupon-picker__header">
-        <view class="coupon-picker__title">选择优惠券</view>
-        <view class="coupon-picker__close tap-scale" bindtap="closeCouponPicker">×</view>
+        <view>
+          <view class="coupon-picker__title">选择优惠券</view>
+          <view class="coupon-picker__subtitle">优先展示当前订单可用优惠</view>
+        </view>
+        <view class="coupon-picker__close tap-scale" bindtap="closeCouponPicker"></view>
       </view>
 
       <view class="coupon-tabs">
@@ -132,7 +151,7 @@
           </view>
         </view>
 
-        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'available'}}">当前暂无可用优惠券</view>
+        <view class="coupon-empty" wx:elif="{{activeCouponTab === 'available'}}">当前暂无可用优惠券</view>
 
         <view class="coupon-list" wx:if="{{activeCouponTab === 'unavailable' && unavailableCoupons.length}}">
           <view class="coupon-card coupon-card--disabled" wx:for="{{unavailableCoupons}}" wx:key="userCouponIdText">
@@ -149,7 +168,7 @@
           </view>
         </view>
 
-        <view class="coupon-empty panel-card" wx:elif="{{activeCouponTab === 'unavailable'}}">暂无不可用优惠券</view>
+        <view class="coupon-empty" wx:elif="{{activeCouponTab === 'unavailable'}}">暂无不可用优惠券</view>
       </scroll-view>
 
       <view class="coupon-picker__footer">
