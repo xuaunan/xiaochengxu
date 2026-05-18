@@ -5,14 +5,14 @@
 }
 
 .wallet-content {
-  padding: 28rpx 28rpx 36rpx;
+  padding: 24rpx 24rpx 32rpx;
 }
 
 .wallet-hero {
   position: relative;
   overflow: hidden;
-  padding: 34rpx 30rpx 34rpx;
-  border-radius: 30rpx;
+  padding: 26rpx 24rpx 28rpx;
+  border-radius: 24rpx;
   background:
     radial-gradient(circle at 100% 0%, rgba(255, 188, 95, 0.26), transparent 38%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 244, 0.96) 100%);
@@ -38,14 +38,14 @@
 }
 
 .wallet-title-row {
-  gap: 18rpx;
+  gap: 14rpx;
 }
 
 .wallet-title,
 .bill-title {
   color: #172033;
-  font-size: 36rpx;
-  font-weight: 900;
+  font-size: 30rpx;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -80,8 +80,8 @@
 .detail-link {
   gap: 8rpx;
   color: #8d8490;
-  font-size: 25rpx;
-  font-weight: 700;
+  font-size: 23rpx;
+  font-weight: 500;
 }
 
 .link-arrow,
@@ -96,16 +96,16 @@
 .income-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18rpx;
-  margin-top: 34rpx;
+  gap: 12rpx;
+  margin-top: 24rpx;
 }
 
 .income-card {
   position: relative;
-  min-height: 166rpx;
+  min-height: 126rpx;
   overflow: hidden;
-  padding: 28rpx 18rpx 18rpx;
-  border-radius: 22rpx;
+  padding: 20rpx 14rpx 14rpx;
+  border-radius: 18rpx;
   border: 1rpx solid rgba(31, 36, 50, 0.06);
 }
 
@@ -128,8 +128,8 @@
   position: relative;
   z-index: 2;
   color: #ff6f00;
-  font-size: 40rpx;
-  font-weight: 900;
+  font-size: 33rpx;
+  font-weight: 700;
   line-height: 1.1;
   white-space: nowrap;
 }
@@ -145,10 +145,10 @@
 .income-label {
   position: relative;
   z-index: 2;
-  margin-top: 28rpx;
+  margin-top: 18rpx;
   color: #6b7280;
-  font-size: 25rpx;
-  font-weight: 700;
+  font-size: 22rpx;
+  font-weight: 500;
 }
 
 .info-dot {
@@ -209,19 +209,19 @@
 }
 
 .withdraw-button {
-  width: 430rpx;
-  min-height: 84rpx;
-  margin: 34rpx auto 0;
+  width: 380rpx;
+  min-height: 72rpx;
+  margin: 26rpx auto 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 22rpx;
+  border-radius: 18rpx;
   color: #ffffff;
   background: linear-gradient(135deg, #ff7a00 0%, #ff9326 100%);
   box-shadow: 0 18rpx 34rpx rgba(255, 122, 0, 0.24);
-  font-size: 31rpx;
-  font-weight: 900;
+  font-size: 28rpx;
+  font-weight: 700;
 }
 
 .withdraw-button::after {
@@ -229,9 +229,9 @@
 }
 
 .bill-panel {
-  margin-top: 28rpx;
-  padding: 30rpx 26rpx 28rpx;
-  border-radius: 30rpx;
+  margin-top: 24rpx;
+  padding: 24rpx 22rpx 22rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.04);
   box-shadow: 0 18rpx 44rpx rgba(24, 34, 56, 0.065);
@@ -274,12 +274,12 @@
 
 .bill-summary {
   flex-shrink: 0;
-  padding: 10rpx 18rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   color: #667085;
   background: #fff8ef;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: 22rpx;
+  font-weight: 500;
 }
 
 .bill-summary text {
@@ -287,21 +287,21 @@
 }
 
 .bill-list {
-  margin-top: 22rpx;
+  margin-top: 18rpx;
   border-top: 1rpx solid rgba(31, 36, 50, 0.06);
 }
 
 .bill-row {
-  min-height: 112rpx;
-  gap: 18rpx;
-  padding: 22rpx 0;
+  min-height: 92rpx;
+  gap: 14rpx;
+  padding: 18rpx 0;
   border-bottom: 1rpx solid rgba(31, 36, 50, 0.06);
 }
 
 .bill-car-icon {
   position: relative;
-  width: 58rpx;
-  height: 58rpx;
+  width: 50rpx;
+  height: 50rpx;
   flex-shrink: 0;
   border-radius: 50%;
   color: #ff6f00;
@@ -339,24 +339,24 @@
 .bill-name {
   overflow: hidden;
   color: #172033;
-  font-size: 27rpx;
-  font-weight: 800;
+  font-size: 24rpx;
+  font-weight: 600;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .bill-time {
-  margin-top: 8rpx;
+  margin-top: 6rpx;
   color: #7a8396;
-  font-size: 24rpx;
+  font-size: 22rpx;
 }
 
 .bill-amount {
   flex-shrink: 0;
   color: #13885e;
-  font-size: 29rpx;
-  font-weight: 900;
+  font-size: 26rpx;
+  font-weight: 700;
 }
 
 .bill-arrow {
@@ -366,9 +366,9 @@
 .bill-finished {
   justify-content: center;
   gap: 12rpx;
-  padding-top: 28rpx;
+  padding-top: 22rpx;
   color: #7a8396;
-  font-size: 25rpx;
+  font-size: 23rpx;
 }
 
 .finished-check {
