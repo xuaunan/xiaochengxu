@@ -4,6 +4,7 @@ import com.sunshine.travel.common.PageResult;
 import com.sunshine.travel.dto.AdminCouponStatusRequest;
 import com.sunshine.travel.dto.AdminComplaintHandleRequest;
 import com.sunshine.travel.dto.AdminDriverUpdateRequest;
+import com.sunshine.travel.dto.AdminInvoiceHandleRequest;
 import com.sunshine.travel.dto.AdminOrderStatusRequest;
 import com.sunshine.travel.dto.AdminRefundRequest;
 import com.sunshine.travel.dto.AdminResetPasswordRequest;
@@ -22,6 +23,8 @@ import java.util.Map;
 public interface AdminService {
 
     DashboardVO dashboard(String range);
+
+    List<Map<String, Object>> importantMessages();
 
     PageResult<Map<String, Object>> users(long current, long size, String keyword, String roleCode);
 
@@ -60,6 +63,8 @@ public interface AdminService {
     PageResult<Map<String, Object>> couponOperationRecords(long current, long size, Long couponId, Long userId);
 
     void handleComplaint(Long complaintId, AdminComplaintHandleRequest request);
+
+    void handleInvoice(Long orderId, AdminInvoiceHandleRequest request);
 
     PageResult<Map<String, Object>> logs(long current, long size, String module);
 
