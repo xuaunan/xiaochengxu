@@ -8,24 +8,15 @@
 .driver-profile {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding: 18rpx 22rpx calc(env(safe-area-inset-bottom) + 30rpx);
-}
-
-.driver-profile-title {
-  padding: 28rpx 0 14rpx;
-  text-align: center;
-  color: #172033;
-  font-size: 32rpx;
-  font-weight: 600;
-  line-height: 1;
+  gap: 14rpx;
+  padding: 14rpx 20rpx calc(env(safe-area-inset-bottom) + 28rpx);
 }
 
 .driver-hero {
   position: relative;
   overflow: hidden;
-  padding: 30rpx 24rpx 22rpx;
-  border-radius: 30rpx;
+  padding: 24rpx 20rpx 18rpx;
+  border-radius: 24rpx;
   border: 1rpx solid rgba(255, 160, 74, 0.28);
   background:
     linear-gradient(115deg, rgba(255, 213, 160, 0.62) 0%, rgba(255, 251, 246, 0.92) 54%, rgba(255, 231, 203, 0.72) 100%),
@@ -150,16 +141,16 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  min-height: 120rpx;
+  gap: 16rpx;
+  min-height: 102rpx;
 }
 
 .driver-avatar-wrap {
   position: relative;
-  width: 104rpx;
-  height: 104rpx;
+  width: 88rpx;
+  height: 88rpx;
   flex-shrink: 0;
-  padding: 7rpx;
+  padding: 6rpx;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 12rpx 26rpx rgba(210, 104, 18, 0.12);
@@ -167,8 +158,8 @@
 
 .profile-avatar {
   display: block;
-  width: 90rpx;
-  height: 90rpx;
+  width: 76rpx;
+  height: 76rpx;
   border-radius: 999rpx;
   background: #fff4e8;
 }
@@ -177,8 +168,8 @@
   position: absolute;
   right: -4rpx;
   bottom: -2rpx;
-  width: 38rpx;
-  height: 38rpx;
+  width: 32rpx;
+  height: 32rpx;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff9a31 0%, #ff7a00 100%);
   border: 4rpx solid rgba(255, 255, 255, 0.94);
@@ -215,8 +206,8 @@
 
 .profile-name {
   color: #172033;
-  font-size: 36rpx;
-  font-weight: 700;
+  font-size: 31rpx;
+  font-weight: 600;
   line-height: 1.12;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -224,9 +215,9 @@
 }
 
 .profile-desc {
-  margin-top: 10rpx;
+  margin-top: 7rpx;
   color: #4d5b70;
-  font-size: 23rpx;
+  font-size: 21rpx;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,9 +229,9 @@
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 22rpx;
-  padding: 18rpx 0;
-  border-radius: 24rpx;
+  margin-top: 16rpx;
+  padding: 14rpx 0;
+  border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.74);
   border: 1rpx solid rgba(255, 255, 255, 0.72);
 }
@@ -257,13 +248,13 @@
 
 .driver-metric__value {
   color: #172033;
-  font-size: 36rpx;
-  font-weight: 700;
+  font-size: 31rpx;
+  font-weight: 600;
   line-height: 1.1;
 }
 
 .driver-metric__value--text {
-  font-size: 29rpx;
+  font-size: 25rpx;
 }
 
 .driver-metric__label {
@@ -285,18 +276,18 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  min-height: 102rpx;
-  padding: 20rpx 68rpx 20rpx 22rpx;
-  border-radius: 26rpx;
+  gap: 14rpx;
+  min-height: 88rpx;
+  padding: 16rpx 62rpx 16rpx 18rpx;
+  border-radius: 22rpx;
 }
 
 .permission-icon {
   position: relative;
-  width: 58rpx;
-  height: 58rpx;
+  width: 48rpx;
+  height: 48rpx;
   flex-shrink: 0;
-  border-radius: 20rpx;
+  border-radius: 16rpx;
   background: linear-gradient(135deg, #ffb34d 0%, #ff7a00 100%);
   box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.18);
 }
@@ -331,15 +322,15 @@
 
 .permission-title {
   color: #172033;
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 26rpx;
+  font-weight: 600;
   line-height: 1.18;
 }
 
 .permission-desc {
-  margin-top: 7rpx;
+  margin-top: 5rpx;
   color: #6f788b;
-  font-size: 22rpx;
+  font-size: 21rpx;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -352,11 +343,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 94rpx;
-  padding: 8rpx 16rpx;
+  min-width: 82rpx;
+  padding: 7rpx 14rpx;
   border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 700;
+  font-size: 21rpx;
+  font-weight: 600;
   line-height: 1.1;
 }
 
@@ -384,15 +375,15 @@
 .group-block {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 8rpx;
 }
 
 .group-title {
   position: relative;
   padding-left: 18rpx;
   color: #172033;
-  font-size: 29rpx;
-  font-weight: 700;
+  font-size: 26rpx;
+  font-weight: 600;
   line-height: 1.25;
 }
 
@@ -409,17 +400,17 @@
 
 .group-card {
   overflow: hidden;
-  padding: 0 22rpx;
-  border-radius: 26rpx;
+  padding: 0 18rpx;
+  border-radius: 22rpx;
 }
 
 .menu-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  min-height: 104rpx;
-  padding: 16rpx 42rpx 16rpx 0;
+  gap: 14rpx;
+  min-height: 88rpx;
+  padding: 13rpx 38rpx 13rpx 0;
   border-bottom: 1rpx solid rgba(31, 36, 50, 0.07);
 }
 
@@ -429,10 +420,10 @@
 
 .menu-icon {
   position: relative;
-  width: 56rpx;
-  height: 56rpx;
+  width: 48rpx;
+  height: 48rpx;
   flex-shrink: 0;
-  border-radius: 19rpx;
+  border-radius: 16rpx;
   background: #fff0df;
 }
 
@@ -576,15 +567,15 @@
 
 .menu-title {
   color: #172033;
-  font-size: 29rpx;
-  font-weight: 700;
+  font-size: 26rpx;
+  font-weight: 600;
   line-height: 1.18;
 }
 
 .menu-desc {
-  margin-top: 7rpx;
+  margin-top: 5rpx;
   color: #6f788b;
-  font-size: 22rpx;
+  font-size: 21rpx;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -612,12 +603,12 @@
 }
 
 .profile-logout-card {
-  min-height: 84rpx;
+  min-height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   color: #ff5b57;
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 24rpx;
+  font-weight: 600;
 }
