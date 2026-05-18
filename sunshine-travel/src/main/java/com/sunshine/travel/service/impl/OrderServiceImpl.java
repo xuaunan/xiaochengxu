@@ -7,6 +7,7 @@ import com.sunshine.travel.common.CouponStatus;
 import com.sunshine.travel.common.CouponType;
 import com.sunshine.travel.common.DriverServiceStatus;
 import com.sunshine.travel.common.ErrorCode;
+import com.sunshine.travel.common.InvoiceStatus;
 import com.sunshine.travel.common.OrderStatus;
 import com.sunshine.travel.common.PayStatus;
 import com.sunshine.travel.common.RoleCode;
@@ -14,6 +15,7 @@ import com.sunshine.travel.common.ServiceType;
 import com.sunshine.travel.common.UserContext;
 import com.sunshine.travel.dto.ComplaintRequest;
 import com.sunshine.travel.dto.EvaluationRequest;
+import com.sunshine.travel.dto.InvoiceApplyRequest;
 import com.sunshine.travel.dto.MockPayRequest;
 import com.sunshine.travel.dto.OrderCreateRequest;
 import com.sunshine.travel.dto.OrderFinishRequest;
@@ -414,6 +416,31 @@ public class OrderServiceImpl implements OrderService {
         complaintMapper.insert(complaint);
         order.setComplaintStatus("PENDING");
         rideOrderMapper.updateById(order);
+    }
+
+    @Override
+    @Transactional
+    public RideOrder applyInvoice(Long orderId, InvoiceApplyRequest request) {
+        RideOrder order = requireOrder(orderId);
+        assertOrderReadable(order);
+        if (!Objects.equals(order.getUserId(), UserContext.userId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只能为自己的订单申请发票");
+        }
+        if (!OrderStatus.FINISHED.equals(order.getOrderStatus()) || !PayStatus.PAID.equals(order.getPayStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "仅已完成且已支付订单可以申请发票");
+        }
+        if (InvoiceStatus.APPLIED.equals(order.getInvoiceStatus())) {
+            return order;
+        }
+        if (InvoiceStatus.ISSUED.equals(order.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "该订单已开票");
+        }
+        order.setInvoiceStatus(InvoiceStatus.APPLIED);
+        InvoiceApplyRequest safeRequest = request == null ? new InvoiceApplyRequest() : request;
+        order.setRemark(rewriteInvoiceMeta(order.getRemark(), safeRequest));
+        rideOrderMapper.updateById(order);
+        messagePushSupport.push(order.getUserId(), "INVOICE", "INVOICE_APPLIED", "发票申请已提交", "后台会尽快处理您的电子发票申请。", order.getLanguageCode());
+        return order;
     }
 
     @Override
@@ -908,6 +935,31 @@ public class OrderServiceImpl implements OrderService {
         operationLog.setOperationType(operationType);
         operationLog.setContent(content);
         couponOperationLogMapper.insert(operationLog);
+    }
+
+    private String rewriteInvoiceMeta(String remark, InvoiceApplyRequest request) {
+        String cleanRemark = stripInvoiceMeta(remark);
+        String title = StringUtils.hasText(request.getInvoiceTitle()) ? request.getInvoiceTitle().trim() : "个人";
+        String taxNo = StringUtils.hasText(request.getTaxNo()) ? request.getTaxNo().trim() : "";
+        String invoiceRemark = StringUtils.hasText(request.getRemark()) ? request.getRemark().trim() : "";
+        String meta = "[INVOICE_META]"
+                + "title=" + sanitizeMetaValue(title)
+                + ";taxNo=" + sanitizeMetaValue(taxNo)
+                + ";remark=" + sanitizeMetaValue(invoiceRemark)
+                + ";appliedAt=" + LocalDateTime.now()
+                + "[/INVOICE_META]";
+        return StringUtils.hasText(cleanRemark) ? cleanRemark + " " + meta : meta;
+    }
+
+    private String stripInvoiceMeta(String remark) {
+        if (!StringUtils.hasText(remark)) {
+            return "";
+        }
+        return remark.replaceAll("\\[INVOICE_META\\][\\s\\S]*?\\[/INVOICE_META\\]", "").trim();
+    }
+
+    private String sanitizeMetaValue(String value) {
+        return (value == null ? "" : value).replace(";", "，").replace("[", "").replace("]", "").trim();
     }
 
     private String buildDispatchRemark(String dispatchMode, String originalRemark) {

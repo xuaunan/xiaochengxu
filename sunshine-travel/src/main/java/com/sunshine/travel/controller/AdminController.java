@@ -6,6 +6,7 @@ import com.sunshine.travel.common.RoleCode;
 import com.sunshine.travel.dto.AdminCouponStatusRequest;
 import com.sunshine.travel.dto.AdminComplaintHandleRequest;
 import com.sunshine.travel.dto.AdminDriverUpdateRequest;
+import com.sunshine.travel.dto.AdminInvoiceHandleRequest;
 import com.sunshine.travel.dto.AdminOrderStatusRequest;
 import com.sunshine.travel.dto.AdminRefundRequest;
 import com.sunshine.travel.dto.AdminResetPasswordRequest;
@@ -50,6 +51,12 @@ public class AdminController {
     @GetMapping("/dashboard")
     public ApiResponse<?> dashboard(@RequestParam(defaultValue = "day") String range) {
         return ApiResponse.success(adminService.dashboard(range));
+    }
+
+    @Operation(summary = "管理员重要消息")
+    @GetMapping("/important-messages")
+    public ApiResponse<?> importantMessages() {
+        return ApiResponse.success(adminService.importantMessages());
     }
 
     @Operation(summary = "用户分页查询")
@@ -143,6 +150,13 @@ public class AdminController {
     public ApiResponse<?> refundOrder(@PathVariable Long orderId, @Valid @RequestBody AdminRefundRequest request) {
         adminService.refundOrder(orderId, request);
         return ApiResponse.success("订单退款成功");
+    }
+
+    @Operation(summary = "管理员处理发票")
+    @PostMapping("/orders/{orderId}/invoice")
+    public ApiResponse<?> handleInvoice(@PathVariable Long orderId, @Valid @RequestBody AdminInvoiceHandleRequest request) {
+        adminService.handleInvoice(orderId, request);
+        return ApiResponse.success("发票状态已更新");
     }
 
     @Operation(summary = "提现申请分页查询")

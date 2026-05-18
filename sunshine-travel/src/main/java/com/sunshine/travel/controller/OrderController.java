@@ -6,6 +6,7 @@ import com.sunshine.travel.common.RoleCode;
 import com.sunshine.travel.common.UserContext;
 import com.sunshine.travel.dto.ComplaintRequest;
 import com.sunshine.travel.dto.EvaluationRequest;
+import com.sunshine.travel.dto.InvoiceApplyRequest;
 import com.sunshine.travel.dto.MockPayRequest;
 import com.sunshine.travel.dto.OrderCancelRequest;
 import com.sunshine.travel.dto.OrderCreateRequest;
@@ -137,6 +138,13 @@ public class OrderController {
     public ApiResponse<?> complaint(@Valid @RequestBody ComplaintRequest request) {
         orderService.submitComplaint(request);
         return ApiResponse.success("投诉已提交");
+    }
+
+    @Operation(summary = "申请订单发票")
+    @RequireRole(RoleCode.USER)
+    @PostMapping("/{orderId}/invoice")
+    public ApiResponse<?> applyInvoice(@PathVariable Long orderId, @RequestBody InvoiceApplyRequest request) {
+        return ApiResponse.success("发票申请已提交", orderService.applyInvoice(orderId, request));
     }
 
     @Operation(summary = "上报订单轨迹点")

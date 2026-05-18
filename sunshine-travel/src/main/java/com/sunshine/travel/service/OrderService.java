@@ -2,6 +2,7 @@ package com.sunshine.travel.service;
 
 import com.sunshine.travel.dto.ComplaintRequest;
 import com.sunshine.travel.dto.EvaluationRequest;
+import com.sunshine.travel.dto.InvoiceApplyRequest;
 import com.sunshine.travel.dto.MockPayRequest;
 import com.sunshine.travel.dto.OrderCreateRequest;
 import com.sunshine.travel.dto.OrderFinishRequest;
@@ -43,6 +44,8 @@ public interface OrderService {
     void submitEvaluation(EvaluationRequest request);
 
     void submitComplaint(ComplaintRequest request);
+
+    RideOrder applyInvoice(Long orderId, InvoiceApplyRequest request);
 
     List<Map<String, Object>> homeBanners();
 

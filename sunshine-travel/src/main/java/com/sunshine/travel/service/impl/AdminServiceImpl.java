@@ -1,5 +1,6 @@
 package com.sunshine.travel.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sunshine.travel.common.AuthStatus;
@@ -7,6 +8,7 @@ import com.sunshine.travel.common.BusinessException;
 import com.sunshine.travel.common.CouponStatus;
 import com.sunshine.travel.common.DriverServiceStatus;
 import com.sunshine.travel.common.ErrorCode;
+import com.sunshine.travel.common.InvoiceStatus;
 import com.sunshine.travel.common.OrderStatus;
 import com.sunshine.travel.common.PageResult;
 import com.sunshine.travel.common.PayStatus;
@@ -17,6 +19,7 @@ import com.sunshine.travel.common.WithdrawStatus;
 import com.sunshine.travel.dto.AdminCouponStatusRequest;
 import com.sunshine.travel.dto.AdminComplaintHandleRequest;
 import com.sunshine.travel.dto.AdminDriverUpdateRequest;
+import com.sunshine.travel.dto.AdminInvoiceHandleRequest;
 import com.sunshine.travel.dto.AdminOrderStatusRequest;
 import com.sunshine.travel.dto.AdminRefundRequest;
 import com.sunshine.travel.dto.AdminResetPasswordRequest;
@@ -238,6 +241,121 @@ public class AdminServiceImpl implements AdminService {
                 .driverScoreDistribution(buildDriverScoreDistribution(drivers))
                 .generatedAt(now.toString())
                 .build();
+    }
+
+    @Override
+    public List<Map<String, Object>> importantMessages() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+
+        complaintMapper.selectList(new LambdaQueryWrapper<Complaint>()
+                        .orderByDesc(Complaint::getCreatedAt))
+                .stream()
+                .filter(item -> !"DONE".equalsIgnoreCase(item.getHandleStatus()))
+                .limit(10)
+                .forEach(item -> rows.add(adminMessage(
+                        "complaint-" + item.getId(),
+                        "COMPLAINT",
+                        "投诉待处理",
+                        buildComplaintMessage(item),
+                        "HIGH",
+                        90,
+                        "/orders",
+                        "去处理投诉",
+                        item.getCreatedAt()
+                )));
+
+        driverProfileMapper.selectList(new LambdaQueryWrapper<DriverProfile>()
+                        .orderByDesc(DriverProfile::getUpdatedAt))
+                .stream()
+                .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
+                .limit(10)
+                .forEach(item -> rows.add(adminMessage(
+                        "driver-audit-" + item.getUserId(),
+                        "DRIVER_AUDIT",
+                        "司机资料待审核",
+                        buildDriverAuditMessage(item),
+                        "MEDIUM",
+                        70,
+                        "/drivers",
+                        "去审核司机",
+                        item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
+                )));
+
+        vehicleMapper.selectList(new LambdaQueryWrapper<Vehicle>()
+                        .orderByDesc(Vehicle::getUpdatedAt))
+                .stream()
+                .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
+                .limit(10)
+                .forEach(item -> rows.add(adminMessage(
+                        "vehicle-audit-" + item.getId(),
+                        "VEHICLE_AUDIT",
+                        "车辆资料待审核",
+                        buildVehicleAuditMessage(item),
+                        "MEDIUM",
+                        68,
+                        "/drivers",
+                        "去审核车辆",
+                        item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
+                )));
+
+        withdrawApplicationMapper.selectList(new LambdaQueryWrapper<WithdrawApplication>()
+                        .eq(WithdrawApplication::getStatus, WithdrawStatus.PENDING)
+                        .orderByDesc(WithdrawApplication::getCreatedAt))
+                .stream()
+                .limit(10)
+                .forEach(item -> rows.add(adminMessage(
+                        "withdraw-" + item.getId(),
+                        "WITHDRAW",
+                        "提现申请待审核",
+                        "司机ID " + item.getDriverId() + " 申请提现 " + safeDecimal(item.getApplyAmount()) + " 元",
+                        "NORMAL",
+                        50,
+                        "/drivers",
+                        "去处理提现",
+                        item.getCreatedAt()
+                )));
+
+        rideOrderMapper.selectList(new LambdaQueryWrapper<RideOrder>()
+                        .eq(RideOrder::getInvoiceStatus, InvoiceStatus.APPLIED)
+                        .orderByDesc(RideOrder::getUpdatedAt))
+                .stream()
+                .limit(10)
+                .forEach(item -> {
+                    Map<String, Object> row = adminMessage(
+                            "invoice-" + item.getId(),
+                            "INVOICE",
+                            "发票申请待处理",
+                            buildInvoiceMessage(item),
+                            "MEDIUM",
+                            75,
+                            "/messages",
+                            "处理发票",
+                            item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
+                    );
+                    row.put("orderId", item.getId());
+                    row.put("orderNo", item.getOrderNo());
+                    rows.add(row);
+                });
+
+        rows.sort((left, right) -> {
+            int priorityCompare = Integer.compare((Integer) right.get("priority"), (Integer) left.get("priority"));
+            if (priorityCompare != 0) {
+                return priorityCompare;
+            }
+            LocalDateTime leftTime = (LocalDateTime) left.get("createdAt");
+            LocalDateTime rightTime = (LocalDateTime) right.get("createdAt");
+            if (leftTime == null && rightTime == null) {
+                return 0;
+            }
+            if (leftTime == null) {
+                return 1;
+            }
+            if (rightTime == null) {
+                return -1;
+            }
+            return rightTime.compareTo(leftTime);
+        });
+        return rows.stream().limit(30).toList();
     }
 
     @Override
@@ -467,6 +585,9 @@ public class AdminServiceImpl implements AdminService {
         if (!OrderStatus.isValid(request.getOrderStatus())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "订单状态不合法");
         }
+        if (StringUtils.hasText(request.getPayStatus()) && !PayStatus.isValid(request.getPayStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "支付状态不合法");
+        }
         order.setOrderStatus(request.getOrderStatus());
         if (OrderStatus.ACCEPTED.equals(request.getOrderStatus()) && order.getAcceptedAt() == null) {
             order.setAcceptedAt(LocalDateTime.now());
@@ -490,12 +611,33 @@ public class AdminServiceImpl implements AdminService {
             order.setCancelByRole(RoleCode.ADMIN);
             order.setSettlementStatus("CANCELLED");
         }
+        if (StringUtils.hasText(request.getPayStatus())) {
+            applyAdminPayStatus(order, request.getPayStatus(), request.getRemark());
+        }
         if (StringUtils.hasText(request.getRemark())) {
-            order.setRemark(request.getRemark());
+            order.setRemark(appendAdminRemark(order.getRemark(), request.getRemark()));
         }
         rideOrderMapper.updateById(order);
         releaseDriverIfOrderClosed(order);
-        operationLogSupport.log("ORDER", "UPDATE_STATUS", "ORDER", orderId, "管理员修改订单状态为：" + request.getOrderStatus());
+        operationLogSupport.log("ORDER", "UPDATE_STATUS", "ORDER", orderId,
+                "管理员修改订单状态为：" + request.getOrderStatus()
+                        + (StringUtils.hasText(request.getPayStatus()) ? "，支付状态为：" + request.getPayStatus() : ""));
+    }
+
+    @Override
+    @Transactional
+    public void handleInvoice(Long orderId, AdminInvoiceHandleRequest request) {
+        RideOrder order = requireOrder(orderId);
+        if (!InvoiceStatus.ISSUED.equals(request.getInvoiceStatus())
+                && !InvoiceStatus.REJECTED.equals(request.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "发票处理状态不合法");
+        }
+        order.setInvoiceStatus(request.getInvoiceStatus());
+        String actionText = InvoiceStatus.ISSUED.equals(request.getInvoiceStatus()) ? "已开票" : "已驳回";
+        String remark = StringUtils.hasText(request.getRemark()) ? request.getRemark().trim() : "管理员处理发票：" + actionText;
+        order.setRemark(appendAdminRemark(order.getRemark(), "发票处理：" + actionText + "，" + remark));
+        rideOrderMapper.updateById(order);
+        operationLogSupport.log("ORDER", "INVOICE", "ORDER", orderId, "管理员处理发票：" + actionText);
     }
 
     @Override
@@ -907,6 +1049,7 @@ public class AdminServiceImpl implements AdminService {
         row.put("serviceType", item.getServiceType());
         row.put("status", item.getOrderStatus());
         row.put("payStatus", item.getPayStatus());
+        row.put("invoiceStatus", item.getInvoiceStatus());
         row.put("amount", item.getPayableAmount());
         row.put("startName", item.getStartName());
         row.put("endName", item.getEndName());
@@ -1363,6 +1506,170 @@ public class AdminServiceImpl implements AdminService {
         row.put("handleTime", item.getHandleTime());
         row.put("createdAt", item.getCreatedAt());
         return row;
+    }
+
+    private Map<String, Object> adminMessage(String id,
+                                             String type,
+                                             String title,
+                                             String content,
+                                             String level,
+                                             int priority,
+                                             String actionPath,
+                                             String actionText,
+                                             LocalDateTime createdAt) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", id);
+        row.put("type", type);
+        row.put("title", title);
+        row.put("content", content);
+        row.put("level", level);
+        row.put("priority", priority);
+        row.put("actionPath", actionPath);
+        row.put("actionText", actionText);
+        row.put("createdAt", createdAt);
+        return row;
+    }
+
+    private String buildComplaintMessage(Complaint item) {
+        String type = StringUtils.hasText(item.getComplaintType()) ? item.getComplaintType() : "未分类投诉";
+        String content = StringUtils.hasText(item.getContent()) ? truncateText(item.getContent(), 46) : "用户提交了投诉，需要后台核实处理";
+        return "订单ID " + item.getOrderId() + "，" + type + "：" + content;
+    }
+
+    private String buildDriverAuditMessage(DriverProfile profile) {
+        PlatformUser user = platformUserMapper.selectById(profile.getUserId());
+        String name = user == null || !StringUtils.hasText(user.getRealName())
+                ? (user == null || !StringUtils.hasText(user.getNickname()) ? "司机用户" : user.getNickname())
+                : user.getRealName();
+        String phone = user == null || !StringUtils.hasText(user.getPhone()) ? "未留手机号" : user.getPhone();
+        return name + "（" + phone + "）提交了司机资料，当前状态：" + auditStatusText(profile.getAuditStatus());
+    }
+
+    private String buildVehicleAuditMessage(Vehicle vehicle) {
+        String plateNo = StringUtils.hasText(vehicle.getPlateNo()) ? vehicle.getPlateNo() : "未填写车牌";
+        String model = StringUtils.hasText(vehicle.getModelName()) ? vehicle.getModelName() : "未填写车型";
+        return plateNo + " / " + model + " 车辆资料需要审核，当前状态：" + auditStatusText(vehicle.getAuditStatus());
+    }
+
+    private String buildInvoiceMessage(RideOrder order) {
+        String title = readInvoiceMeta(order.getRemark(), "title");
+        String taxNo = readInvoiceMeta(order.getRemark(), "taxNo");
+        String displayTitle = StringUtils.hasText(title) ? title : "个人";
+        String displayTaxNo = StringUtils.hasText(taxNo) ? "，税号 " + taxNo : "";
+        return "订单 " + order.getOrderNo() + " 申请电子发票，抬头 " + displayTitle + displayTaxNo
+                + "，金额 " + safeDecimal(order.getPayableAmount()) + " " + (StringUtils.hasText(order.getCurrencyCode()) ? order.getCurrencyCode() : "CNY");
+    }
+
+    private void applyAdminPayStatus(RideOrder order, String targetPayStatus, String remark) {
+        LocalDateTime now = LocalDateTime.now();
+        order.setPayStatus(targetPayStatus);
+        if (PayStatus.PAID.equals(targetPayStatus)) {
+            order.setPaidAt(order.getPaidAt() == null ? now : order.getPaidAt());
+            if (OrderStatus.FINISHED.equals(order.getOrderStatus())) {
+                order.setSettlementStatus("DONE");
+            }
+            ensureAdminPaymentRecord(order);
+            return;
+        }
+        if (PayStatus.REFUNDED.equals(targetPayStatus)) {
+            order.setRefundedAt(order.getRefundedAt() == null ? now : order.getRefundedAt());
+            order.setRefundAmount(safeDecimal(order.getPayableAmount()));
+            order.setRefundReason(StringUtils.hasText(remark) ? remark : "管理员调整支付状态为已退款");
+            order.setSettlementStatus("REFUNDED");
+            paymentRecordMapper.selectList(new LambdaQueryWrapper<PaymentRecord>().eq(PaymentRecord::getOrderId, order.getId()))
+                    .forEach(item -> {
+                        item.setPayStatus(PayStatus.REFUNDED);
+                        item.setRefundAmount(safeDecimal(item.getPayAmount()));
+                        item.setRefundReason(order.getRefundReason());
+                        item.setRefundedAt(order.getRefundedAt());
+                        paymentRecordMapper.updateById(item);
+                    });
+            return;
+        }
+        order.setSettlementStatus(OrderStatus.CANCELLED.equals(order.getOrderStatus()) ? "CANCELLED" : "PENDING");
+        paymentRecordMapper.selectList(new LambdaQueryWrapper<PaymentRecord>().eq(PaymentRecord::getOrderId, order.getId()))
+                .forEach(item -> {
+                    item.setPayStatus(PayStatus.UNPAID);
+                    paymentRecordMapper.updateById(item);
+                });
+    }
+
+    private void ensureAdminPaymentRecord(RideOrder order) {
+        List<PaymentRecord> records = paymentRecordMapper.selectList(new LambdaQueryWrapper<PaymentRecord>()
+                .eq(PaymentRecord::getOrderId, order.getId())
+                .orderByDesc(PaymentRecord::getId));
+        if (!records.isEmpty()) {
+            records.forEach(item -> {
+                item.setPayStatus(PayStatus.PAID);
+                item.setPaidAt(item.getPaidAt() == null ? order.getPaidAt() : item.getPaidAt());
+                item.setPayAmount(safeDecimal(order.getPayableAmount()));
+                item.setCurrencyCode(order.getCurrencyCode());
+                paymentRecordMapper.updateById(item);
+            });
+            return;
+        }
+        PaymentRecord paymentRecord = new PaymentRecord();
+        paymentRecord.setOrderId(order.getId());
+        paymentRecord.setPayNo("PAY" + IdUtil.getSnowflakeNextIdStr());
+        paymentRecord.setPayChannel("ADMIN");
+        paymentRecord.setPayStatus(PayStatus.PAID);
+        paymentRecord.setPayAmount(safeDecimal(order.getPayableAmount()));
+        paymentRecord.setCurrencyCode(order.getCurrencyCode());
+        paymentRecord.setMockTransactionNo("ADMIN-" + IdUtil.fastSimpleUUID());
+        paymentRecord.setPaidAt(order.getPaidAt());
+        paymentRecordMapper.insert(paymentRecord);
+    }
+
+    private String appendAdminRemark(String source, String addition) {
+        if (!StringUtils.hasText(addition)) {
+            return source;
+        }
+        if (!StringUtils.hasText(source)) {
+            return addition.trim();
+        }
+        if (source.contains(addition.trim())) {
+            return source;
+        }
+        return source + " | " + addition.trim();
+    }
+
+    private String readInvoiceMeta(String remark, String key) {
+        if (!StringUtils.hasText(remark) || !StringUtils.hasText(key)) {
+            return "";
+        }
+        int start = remark.indexOf("[INVOICE_META]");
+        int end = remark.indexOf("[/INVOICE_META]");
+        if (start < 0 || end <= start) {
+            return "";
+        }
+        String meta = remark.substring(start + "[INVOICE_META]".length(), end);
+        for (String part : meta.split(";")) {
+            String[] pair = part.split("=", 2);
+            if (pair.length == 2 && key.equals(pair[0].trim())) {
+                return pair[1].trim();
+            }
+        }
+        return "";
+    }
+
+    private String auditStatusText(Integer status) {
+        if (Objects.equals(status, AuthStatus.PENDING)) {
+            return "待审核";
+        }
+        if (Objects.equals(status, AuthStatus.REJECTED)) {
+            return "已驳回待补充";
+        }
+        if (Objects.equals(status, AuthStatus.UNVERIFIED)) {
+            return "未完善";
+        }
+        return "待处理";
+    }
+
+    private String truncateText(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
     }
 
     private boolean isRefundAllowed(RideOrder order) {

@@ -16,6 +16,7 @@ import com.sunshine.travel.common.WithdrawStatus;
 import com.sunshine.travel.dto.AdminComplaintHandleRequest;
 import com.sunshine.travel.dto.AdminCouponStatusRequest;
 import com.sunshine.travel.dto.AdminDriverUpdateRequest;
+import com.sunshine.travel.dto.AdminInvoiceHandleRequest;
 import com.sunshine.travel.dto.AdminOrderStatusRequest;
 import com.sunshine.travel.dto.AdminRefundRequest;
 import com.sunshine.travel.dto.AdminResetPasswordRequest;
@@ -203,6 +204,11 @@ public class AdminServiceFacade implements AdminService {
                 .driverScoreDistribution(buildDriverScoreDistribution(drivers))
                 .generatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
                 .build();
+    }
+
+    @Override
+    public List<Map<String, Object>> importantMessages() {
+        return delegate.importantMessages();
     }
 
     @Override
@@ -428,6 +434,11 @@ public class AdminServiceFacade implements AdminService {
             rideOrderMapper.updateById(order);
         }
         operationLogSupport.log("COMPLAINT", "HANDLE", "COMPLAINT", complaintId, "管理员处理投诉");
+    }
+
+    @Override
+    public void handleInvoice(Long orderId, AdminInvoiceHandleRequest request) {
+        delegate.handleInvoice(orderId, request);
     }
 
     @Override
@@ -705,6 +716,7 @@ public class AdminServiceFacade implements AdminService {
         row.put("status", item.getOrderStatus());
         row.put("displayStatus", PayStatus.REFUNDED.equals(item.getPayStatus()) ? "REFUNDED" : item.getOrderStatus());
         row.put("payStatus", item.getPayStatus());
+        row.put("invoiceStatus", item.getInvoiceStatus());
         row.put("amount", item.getPayableAmount());
         row.put("actualAmount", item.getActualAmount());
         row.put("refundAmount", item.getRefundAmount());
