@@ -19,9 +19,47 @@ function hasRuntimeRoute(runtime) {
   return hasUsableRoute(runtime)
 }
 
+function pickPlannedRoute(runtime = {}) {
+  if (!hasRuntimeRoute(runtime)) return {}
+  return {
+    approachRoutePoints: runtime.approachRoutePoints,
+    tripRoutePoints: runtime.tripRoutePoints,
+    routePoints: runtime.routePoints,
+    fullRoutePoints: runtime.fullRoutePoints,
+    points: runtime.points,
+    routePlanned: runtime.routePlanned
+  }
+}
+
+function stripRouteFields(runtime = {}) {
+  const {
+    approachRoute,
+    tripRoute,
+    activeRoute,
+    approachRoutePoints,
+    tripRoutePoints,
+    routePoints,
+    fullRoutePoints,
+    points,
+    traveledPoints,
+    remainPoints,
+    ...rest
+  } = runtime || {}
+  return rest
+}
+
 function mergeRuntimeSnapshot(runtime = {}, cachedRuntime = null, fallback = {}) {
-  if (hasRuntimeRoute(runtime)) {
-    return runtime
+  if (runtime && (runtime.routeSource === 'demo_trace' || runtime.routeSource === 'travel_trace')) {
+    return {
+      ...(fallback || {}),
+      ...stripRouteFields(runtime || {}),
+      ...pickPlannedRoute(cachedRuntime),
+      ...(runtime && runtime.routePlanned ? pickPlannedRoute(runtime) : {}),
+      currentPoint: runtime.currentPoint || fallback.currentPoint,
+      heading: runtime.heading !== undefined ? runtime.heading : fallback.heading,
+      routeSource: runtime.routeSource,
+      routeReal: runtime.routeSource === 'travel_trace'
+    }
   }
   if (hasRuntimeRoute(cachedRuntime)) {
     return {
@@ -103,17 +141,21 @@ Page({
     this.currentRuntimeSnapshot = activeRuntime
     const currentPoint = normalizePoint(activeRuntime.currentPoint || fallback.currentPoint)
     const phase = activeRuntime.phase || fallback.phase || 'trip'
+    const routeStartPoint = phase === 'trip'
+      ? order.start
+      : normalizePoint(activeRuntime.driverStartPoint || fallback.driverStart || currentPoint)
+    const routeEndPoint = phase === 'trip' ? order.end : order.start
     const remainMinutes = Math.max(0, Math.round(Number(activeRuntime.remainingSeconds || fallback.remainingSeconds || 0) / 60))
 
     this.setData({
       order,
       progress: Number(activeRuntime.progress || fallback.progress || 0),
       currentPoint,
-      etaText: remainMinutes > 0 ? `${remainMinutes} 分钟后到达` : '即将到达终点',
+      etaText: activeRuntime.routeSource === 'order_record' ? '等待司机位置同步' : (remainMinutes > 0 ? `${remainMinutes} 分钟后到达` : '即将到达终点'),
       trafficText: getTrafficText(activeRuntime, fallback),
       mileageText: formatDistance(Number(activeRuntime.traveledDistanceKm || fallback.traveledDistanceKm || 0)),
       durationText: formatDuration(Number(activeRuntime.elapsedSeconds || fallback.usedSeconds || 0) / 60),
-      progressText: `${activeRuntime.percent !== undefined ? activeRuntime.percent : fallback.percent}%`,
+      progressText: `${activeRuntime.routeSource === 'order_record' ? 0 : (activeRuntime.percent !== undefined ? activeRuntime.percent : fallback.percent)}%`,
       markers: [
         {
           id: 1,
@@ -178,13 +220,20 @@ Page({
       fallback,
       phase,
       currentPoint,
-      from: currentPoint,
-      to: order.end
+      from: routeStartPoint,
+      to: routeEndPoint
     })
   },
 
   syncPlannedRoute(options = {}) {
-    const routeKey = `${options.order.id}|${options.phase}|${options.currentPoint.latitude},${options.currentPoint.longitude}`
+    const routeKey = [
+      options.order.id,
+      options.phase,
+      Number(options.from.latitude).toFixed(6),
+      Number(options.from.longitude).toFixed(6),
+      Number(options.to.latitude).toFixed(6),
+      Number(options.to.longitude).toFixed(6)
+    ].join('|')
     this.latestRoutePlanKey = routeKey
     requestRoute(options.from, options.to).then((routePoints) => {
       if (this.latestRoutePlanKey !== routeKey || !routePoints.length) return
@@ -192,7 +241,10 @@ Page({
       const runtime = {
         ...options.activeRuntime,
         [phaseRouteKey]: routePoints,
-        remainPoints: routePoints
+        routePoints,
+        fullRoutePoints: routePoints,
+        points: routePoints,
+        routePlanned: true
       }
       const app = getApp()
       if (app.setOrderRuntimeCache) {
