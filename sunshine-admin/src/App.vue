@@ -15,10 +15,13 @@
           class="nav-link"
         >
           <span class="nav-dot"></span>
-          <div>
+          <div class="nav-copy">
             <strong>{{ item.label }}</strong>
             <small>{{ item.desc }}</small>
           </div>
+          <span v-if="item.badge && importantMessageCount" class="nav-badge">
+            {{ importantMessageCount > 99 ? '99+' : importantMessageCount }}
+          </span>
         </RouterLink>
       </nav>
     </aside>
@@ -53,14 +56,17 @@
 
 <script setup>
 import { ElMessage } from 'element-plus'
-import { onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { adminLogin } from './api/http'
+import http, { adminLogin } from './api/http'
 
 const route = useRoute()
+const importantMessageCount = ref(0)
+let importantMessageTimer
 
 const navItems = [
   { path: '/dashboard', label: '数据大盘', desc: '实时运营洞察' },
+  { path: '/messages', label: '消息列表', desc: '投诉、审核、提现', badge: true },
   { path: '/users', label: '用户管理', desc: '用户、实名、密码' },
   { path: '/drivers', label: '司机管理', desc: '审核、启禁、接单' },
   { path: '/orders', label: '订单管理', desc: '详情、退款、投诉' },
@@ -83,6 +89,16 @@ async function handleAdminLogin() {
   }
 }
 
+async function loadImportantMessageCount() {
+  if (!localStorage.getItem('sunshine_admin_token')) return
+  try {
+    const list = await http.get('/admin/important-messages')
+    importantMessageCount.value = Array.isArray(list) ? list.length : 0
+  } catch (error) {
+    importantMessageCount.value = 0
+  }
+}
+
 onMounted(() => {
   localStorage.removeItem('sunshine_admin_use_mock_api')
   localStorage.removeItem('sunshine_admin_mock_db_v1')
@@ -91,6 +107,13 @@ onMounted(() => {
   }
   if (!localStorage.getItem('sunshine_admin_token')) {
     handleAdminLogin()
+  } else {
+    loadImportantMessageCount()
+    importantMessageTimer = setInterval(loadImportantMessageCount, 30000)
   }
+})
+
+onBeforeUnmount(() => {
+  clearInterval(importantMessageTimer)
 })
 </script>

@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
+import ImportantMessagesView from '../views/ImportantMessagesView.vue'
 import UserView from '../views/UserView.vue'
 import DriverView from '../views/DriverView.vue'
 import OrderView from '../views/OrderView.vue'
@@ -18,6 +19,14 @@ const routes = [
     meta: {
       title: '运营数据大盘',
       group: '首页'
+    }
+  },
+  {
+    path: '/messages',
+    component: ImportantMessagesView,
+    meta: {
+      title: '重要消息',
+      group: '运营管理'
     }
   },
   {
