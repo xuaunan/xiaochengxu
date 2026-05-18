@@ -2,8 +2,7 @@
   <section class="page messages-page">
     <article class="panel toolbar">
       <div>
-        <span class="panel-kicker">消息列表</span>
-        <h3 class="panel-title">重要事项中心</h3>
+        <span class="panel-kicker">待办工作台</span>
         <p class="panel-subtitle">只展示需要后台介入的事项：投诉、发票申请、司机/车辆资料审核、提现申请；普通打车消息不进入这里。</p>
       </div>
       <div class="toolbar-actions">
@@ -35,8 +34,8 @@
     <article class="panel message-panel">
       <div class="panel-head">
         <div>
-          <span class="panel-kicker">待办流</span>
-          <h3 class="panel-title">后台重要消息</h3>
+          <span class="panel-kicker">当前列表</span>
+          <h3 class="panel-title">待处理事项</h3>
         </div>
         <el-tag type="info" effect="plain">已过滤普通订单聊天与行程通知</el-tag>
       </div>
@@ -62,7 +61,60 @@
             <p>{{ item.content }}</p>
             <span>{{ formatDateTime(item.createdAt) }}</span>
           </div>
-          <el-button text type="primary" @click="handleMessageAction(item)">{{ item.actionText || '查看' }}</el-button>
+          <div class="message-actions">
+            <template v-if="item.type === 'COMPLAINT'">
+              <el-button
+                :loading="isActionLoading(item, 'complaint')"
+                type="danger"
+                plain
+                @click="handleComplaint(item)"
+              >
+                处理投诉
+              </el-button>
+            </template>
+            <template v-else-if="item.type === 'WITHDRAW'">
+              <el-button
+                :loading="isActionLoading(item, 'withdraw-approve')"
+                type="success"
+                plain
+                @click="auditWithdraw(item, 'APPROVE')"
+              >
+                通过
+              </el-button>
+              <el-button
+                :loading="isActionLoading(item, 'withdraw-reject')"
+                type="danger"
+                plain
+                @click="auditWithdraw(item, 'REJECT')"
+              >
+                驳回
+              </el-button>
+            </template>
+            <template v-else-if="item.type === 'DRIVER_AUDIT' || item.type === 'VEHICLE_AUDIT'">
+              <el-button
+                :loading="isActionLoading(item, 'audit-pass')"
+                type="success"
+                plain
+                @click="auditDriver(item, 2)"
+              >
+                通过
+              </el-button>
+              <el-button
+                :loading="isActionLoading(item, 'audit-reject')"
+                type="danger"
+                plain
+                @click="auditDriver(item, 3)"
+              >
+                驳回
+              </el-button>
+            </template>
+            <template v-else-if="item.type === 'INVOICE'">
+              <el-button type="primary" plain @click="openInvoiceDialog(item)">处理发票</el-button>
+            </template>
+            <el-button v-else text type="primary" @click="handleMessageAction(item)">
+              {{ item.actionText || '查看' }}
+            </el-button>
+          </div>
         </div>
 
         <el-empty v-if="!filteredMessages.length && !loading" description="暂无重要待办消息" />
@@ -108,16 +160,15 @@ import {
   Van,
   WarningFilled
 } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import http from '../api/http'
 import { formatDateTime } from '../utils/admin'
 
-const router = useRouter()
 const loading = ref(false)
 const messages = ref([])
 const levelFilter = ref('ALL')
+const actionLoadingId = ref('')
 const invoiceVisible = ref(false)
 const invoiceSubmitting = ref(false)
 const invoiceForm = ref({
@@ -196,6 +247,32 @@ function typeMeta(item = {}) {
   return map[item.type] || { label: '事项', tagType: 'info', icon: BellFilled, accent: '#64748b', bg: 'linear-gradient(135deg, #f8fafc, #ffffff)' }
 }
 
+function isActionLoading(item, action) {
+  return actionLoadingId.value === `${item.id}:${action}`
+}
+
+function parseTargetId(item, prefix) {
+  if (!item?.id || !prefix) return null
+  const value = String(item.id).replace(prefix, '')
+  const numeric = Number(value)
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null
+}
+
+function resolveTargetId(item, field, fallbackPrefix) {
+  const direct = Number(item?.[field])
+  if (Number.isFinite(direct) && direct > 0) return direct
+  return parseTargetId(item, fallbackPrefix)
+}
+
+function withActionLoading(item, action, task) {
+  actionLoadingId.value = `${item.id}:${action}`
+  return Promise.resolve()
+    .then(task)
+    .finally(() => {
+      actionLoadingId.value = ''
+    })
+}
+
 async function loadMessages() {
   loading.value = true
   try {
@@ -208,22 +285,114 @@ async function loadMessages() {
   }
 }
 
+function openInvoiceDialog(item) {
+  if (!item.orderId) {
+    ElMessage.warning('当前发票消息缺少订单ID，无法直接处理')
+    return
+  }
+  invoiceForm.value = {
+    orderId: item.orderId,
+    orderNo: item.orderNo || '',
+    invoiceStatus: 'ISSUED',
+    remark: '电子发票已处理'
+  }
+  invoiceVisible.value = true
+}
+
 function handleMessageAction(item) {
-  if (item.type === 'INVOICE' && item.orderId) {
-    invoiceForm.value = {
-      orderId: item.orderId,
-      orderNo: item.orderNo || '',
-      invoiceStatus: 'ISSUED',
-      remark: '电子发票已处理'
+  ElMessage.info(`${item.actionText || '该事项'}已在当前页展示，可直接处理`)
+}
+
+async function handleComplaint(item) {
+  const complaintId = resolveTargetId(item, 'complaintId', 'complaint-')
+  if (!complaintId) {
+    ElMessage.warning('当前投诉消息缺少投诉ID，无法直接处理')
+    return
+  }
+  const prompt = await ElMessageBox.prompt('请输入投诉处理结果，提交后会同步订单详情和消息待办。', '处理投诉', {
+    confirmButtonText: '确认处理',
+    cancelButtonText: '取消',
+    inputType: 'textarea',
+    inputPlaceholder: '例如：已联系乘客核实并完成补偿/解释处理',
+    inputValidator: (value) => (value && value.trim() ? true : '请输入处理结果')
+  })
+  await withActionLoading(item, 'complaint', async () => {
+    await http.post(`/admin/complaints/${complaintId}/handle`, {
+      handleResult: prompt.value.trim()
+    })
+    ElMessage.success('投诉已处理并从待办移除')
+    await loadMessages()
+  })
+}
+
+async function auditWithdraw(item, action) {
+  const withdrawId = resolveTargetId(item, 'withdrawId', 'withdraw-')
+  if (!withdrawId) {
+    ElMessage.warning('当前提现消息缺少提现ID，无法直接审核')
+    return
+  }
+
+  let rejectReason = ''
+  if (action === 'APPROVE') {
+    await ElMessageBox.confirm(`确认通过这笔提现申请吗？${item.applyAmount ? ` 金额：${item.applyAmount} 元` : ''}`, '提现审核', {
+      type: 'warning'
+    })
+  } else {
+    const result = await ElMessageBox.prompt('请输入驳回原因，提交后司机端会同步看到审核结果。', '驳回提现', {
+      confirmButtonText: '提交驳回',
+      cancelButtonText: '取消',
+      inputType: 'textarea',
+      inputPlaceholder: '例如：银行卡信息不完整，请重新提交',
+      inputValidator: (value) => (value && value.trim() ? true : '请输入驳回原因')
+    })
+    rejectReason = result.value.trim()
+  }
+
+  await withActionLoading(item, action === 'APPROVE' ? 'withdraw-approve' : 'withdraw-reject', async () => {
+    await http.post(`/admin/withdraws/${withdrawId}/audit`, {
+      action,
+      rejectReason
+    })
+    ElMessage.success(action === 'APPROVE' ? '提现已通过' : '提现已驳回')
+    await loadMessages()
+  })
+}
+
+async function auditDriver(item, authStatus) {
+  const driverId = resolveTargetId(item, 'driverId', 'driver-audit-')
+  if (!driverId) {
+    ElMessage.warning('当前审核消息缺少司机ID，无法直接审核')
+    return
+  }
+
+  const targetName = item.type === 'VEHICLE_AUDIT' ? '车辆资料' : '司机资料'
+  let remark = `${targetName}审核通过`
+  if (authStatus === 2) {
+    await ElMessageBox.confirm(`确认通过该${targetName}吗？`, `${targetName}审核`, {
+      type: 'warning'
+    })
+    if (item.type === 'VEHICLE_AUDIT') {
+      remark = '车辆资料审核通过，司机可正常接单'
     }
-    invoiceVisible.value = true
-    return
+  } else {
+    const result = await ElMessageBox.prompt(`请输入${targetName}驳回原因。`, `驳回${targetName}`, {
+      confirmButtonText: '提交驳回',
+      cancelButtonText: '取消',
+      inputType: 'textarea',
+      inputPlaceholder: '例如：证件照片不清晰，请重新上传',
+      inputValidator: (value) => (value && value.trim() ? true : '请输入驳回原因')
+    })
+    remark = result.value.trim()
   }
-  if (item.actionPath && item.actionPath !== '/messages') {
-    router.push(item.actionPath)
-    return
-  }
-  ElMessage.info('该事项已在当前消息列表中展示')
+
+  await withActionLoading(item, authStatus === 2 ? 'audit-pass' : 'audit-reject', async () => {
+    await http.post(`/admin/drivers/${driverId}/audit`, {
+      authStatus,
+      remark
+    })
+    ElMessage.success(authStatus === 2 ? `${targetName}已通过` : `${targetName}已驳回`)
+    await loadMessages()
+  })
 }
 
 async function submitInvoice() {
@@ -324,7 +493,7 @@ onMounted(loadMessages)
 
 .message-item {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(168px, auto);
   align-items: center;
   gap: 14px;
   padding: 16px;
@@ -397,6 +566,19 @@ onMounted(loadMessages)
   font-size: 13px;
 }
 
+.message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.message-actions :deep(.el-button) {
+  min-width: 76px;
+  margin-left: 0;
+  border-radius: 10px;
+}
+
 @media (max-width: 960px) {
   .message-summary,
   .message-item {
@@ -405,6 +587,10 @@ onMounted(loadMessages)
 
   .message-item {
     align-items: start;
+  }
+
+  .message-actions {
+    justify-content: flex-start;
   }
 }
 </style>
