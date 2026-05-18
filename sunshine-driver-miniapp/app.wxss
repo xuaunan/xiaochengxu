@@ -1,4 +1,6 @@
 page {
+  --motion-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-press: cubic-bezier(0.18, 0.72, 0.24, 1);
   background:
     radial-gradient(circle at top right, rgba(255, 177, 74, 0.18), transparent 32%),
     linear-gradient(180deg, #fff7ef 0%, #f7f8fc 34%, #f7f8fc 100%);
@@ -76,6 +78,12 @@ input {
   font-weight: 600;
   line-height: 1;
   padding: 24rpx 28rpx;
+  transition:
+    transform 0.16s var(--motion-press),
+    opacity 0.16s var(--motion-press),
+    box-shadow 0.22s var(--motion-smooth),
+    background 0.22s var(--motion-smooth);
+  will-change: transform, opacity;
 }
 
 .primary-button::after,
@@ -95,8 +103,16 @@ input {
 
 .button-hover,
 .tap-scale:active {
-  transform: scale(0.98);
+  transform: translateY(2rpx) scale(0.985);
   opacity: 0.96;
+}
+
+.tap-scale {
+  transition:
+    transform 0.16s var(--motion-press),
+    opacity 0.16s var(--motion-press),
+    box-shadow 0.22s var(--motion-smooth);
+  will-change: transform, opacity;
 }
 
 .row-between {
@@ -194,4 +210,47 @@ input {
   right: 24rpx;
   bottom: calc(env(safe-area-inset-bottom) + 24rpx);
   z-index: 30;
+}
+
+.page-enter {
+  animation: page-enter 0.32s var(--motion-smooth) both;
+}
+
+.fade-in {
+  animation: fade-in 0.24s var(--motion-smooth) both;
+}
+
+.slide-in {
+  animation: slide-up 0.3s var(--motion-smooth) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(28rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
