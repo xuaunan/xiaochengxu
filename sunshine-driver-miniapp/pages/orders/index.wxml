@@ -26,13 +26,29 @@
 
     <view class="driver-filter-card">
       <scroll-view scroll-x enable-flex show-scrollbar="{{false}}" class="driver-tabs-scroll">
-        <view class="driver-tabs-row">
+        <view class="driver-tabs-row driver-tabs-row--type">
           <view
-            class="driver-filter-chip {{active === item.key ? 'driver-filter-chip--active' : ''}}"
-            wx:for="{{tabs}}"
+            class="driver-filter-chip driver-filter-chip--type {{activeType === item.key ? 'driver-filter-chip--active' : ''}}"
+            wx:for="{{typeTabs}}"
             wx:key="key"
             data-key="{{item.key}}"
-            bindtap="chooseTab"
+            bindtap="chooseType"
+            hover-class="pressable-hover"
+            hover-stay-time="60"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </scroll-view>
+      <view class="driver-filter-divider"></view>
+      <scroll-view scroll-x enable-flex show-scrollbar="{{false}}" class="driver-tabs-scroll">
+        <view class="driver-tabs-row">
+          <view
+            class="driver-filter-chip {{activeStatus === item.key ? 'driver-filter-chip--active' : ''}}"
+            wx:for="{{statusTabs}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="chooseStatus"
             hover-class="pressable-hover"
             hover-stay-time="60"
           >
@@ -54,7 +70,7 @@
       >
         <view class="driver-order-card__top">
           <view class="driver-order-type">
-            <view class="driver-order-type__icon"></view>
+            <view class="driver-order-type__icon driver-order-type__icon--{{item.serviceTypeKey}}"></view>
             <view class="driver-order-type__text">{{item.serviceTypeLabel}}</view>
           </view>
           <view class="driver-order-status driver-order-status--{{item.status}}">{{item.statusText}}</view>
