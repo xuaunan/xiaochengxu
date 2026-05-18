@@ -7,14 +7,14 @@
 
 .driver-landing {
   min-height: 100vh;
-  padding: 34rpx 30rpx calc(env(safe-area-inset-bottom) + 38rpx);
+  padding: 28rpx 30rpx calc(env(safe-area-inset-bottom) + 38rpx);
 }
 
 .driver-hero {
   position: relative;
-  height: 338rpx;
+  height: 306rpx;
   overflow: hidden;
-  border-radius: 34rpx 34rpx 0 0;
+  border-radius: 34rpx 34rpx 26rpx 26rpx;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 245, 230, 0.82) 100%),
     #fff4e7;
@@ -23,7 +23,7 @@
 .brand-block {
   position: absolute;
   left: 56rpx;
-  top: 86rpx;
+  top: 70rpx;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -52,18 +52,18 @@
 
 .brand-title {
   color: #ff6f00;
-  font-size: 44rpx;
-  font-weight: 900;
-  line-height: 1.08;
-  letter-spacing: 3rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: 1rpx;
 }
 
 .brand-subtitle {
-  margin-top: 18rpx;
+  margin-top: 16rpx;
   color: #3a312d;
-  font-size: 23rpx;
-  font-weight: 600;
-  letter-spacing: 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  letter-spacing: 14rpx;
 }
 
 .hero-city,
@@ -76,7 +76,7 @@
 .hero-city {
   position: absolute;
   right: 18rpx;
-  bottom: 68rpx;
+  bottom: 54rpx;
   width: 360rpx;
   height: 190rpx;
   opacity: 0.28;
@@ -113,7 +113,7 @@
 .hero-sun {
   position: absolute;
   right: 246rpx;
-  top: 68rpx;
+  top: 56rpx;
   width: 58rpx;
   height: 58rpx;
   border-radius: 50%;
@@ -143,7 +143,7 @@
 .hero-car {
   position: absolute;
   right: 74rpx;
-  bottom: 52rpx;
+  bottom: 42rpx;
   width: 224rpx;
   height: 120rpx;
   z-index: 3;
@@ -181,7 +181,7 @@
   color: #ffffff;
   background: #ff7a00;
   font-size: 16rpx;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .hero-car__wheel {
@@ -205,8 +205,8 @@
 .login-card {
   position: relative;
   z-index: 4;
-  margin-top: -8rpx;
-  padding: 38rpx 36rpx 36rpx;
+  margin-top: 20rpx;
+  padding: 34rpx 34rpx 34rpx;
   border-radius: 30rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
@@ -215,83 +215,26 @@
 
 .login-title {
   color: #172033;
-  font-size: 43rpx;
-  font-weight: 900;
-  line-height: 1.2;
+  font-size: 36rpx;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .login-desc {
-  margin-top: 20rpx;
+  margin-top: 14rpx;
   color: #667085;
-  font-size: 26rpx;
-  line-height: 1.55;
-}
-
-.default-account {
-  display: flex;
-  align-items: center;
-  gap: 22rpx;
-  margin-top: 28rpx;
-  padding: 22rpx 26rpx;
-  border-radius: 20rpx;
-  background: linear-gradient(135deg, #fff8ef 0%, #fff1df 100%);
-  border: 1rpx solid rgba(255, 122, 0, 0.24);
-}
-
-.default-icon {
-  position: relative;
-  width: 70rpx;
-  height: 70rpx;
-  flex-shrink: 0;
-  border-radius: 18rpx 18rpx 28rpx 28rpx;
-  background: linear-gradient(135deg, #ffac4b 0%, #ff7a00 100%);
-  box-shadow: 0 12rpx 22rpx rgba(255, 122, 0, 0.18);
-}
-
-.default-icon::before,
-.default-icon::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  background: #ffffff;
-}
-
-.default-icon::before {
-  left: 26rpx;
-  top: 16rpx;
-  width: 18rpx;
-  height: 18rpx;
-}
-
-.default-icon::after {
-  left: 18rpx;
-  bottom: 14rpx;
-  width: 34rpx;
-  height: 20rpx;
-  border-radius: 18rpx 18rpx 7rpx 7rpx;
-}
-
-.default-title {
-  color: #172033;
-  font-size: 30rpx;
-  font-weight: 900;
-}
-
-.default-line {
-  margin-top: 8rpx;
-  color: #566176;
-  font-size: 25rpx;
-  line-height: 1.25;
+  font-size: 24rpx;
+  line-height: 1.6;
 }
 
 .mode-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  height: 72rpx;
-  margin-top: 34rpx;
+  height: 70rpx;
+  margin-top: 28rpx;
   border-radius: 999rpx;
-  background: #ffffff;
-  border: 2rpx solid rgba(31, 36, 50, 0.08);
+  background: #f7f8fc;
+  border: 1rpx solid rgba(31, 36, 50, 0.07);
   overflow: hidden;
 }
 
@@ -300,8 +243,8 @@
   align-items: center;
   justify-content: center;
   color: #172033;
-  font-size: 29rpx;
-  font-weight: 900;
+  font-size: 27rpx;
+  font-weight: 500;
 }
 
 .mode-item--active {
@@ -309,37 +252,38 @@
   background: #fff4e8;
   border: 2rpx solid rgba(255, 122, 0, 0.46);
   border-radius: 999rpx;
+  font-weight: 600;
 }
 
 .input-wrap {
   position: relative;
-  min-height: 78rpx;
-  margin-top: 24rpx;
+  min-height: 82rpx;
+  margin-top: 22rpx;
   display: flex;
   align-items: center;
-  border-radius: 18rpx;
-  background: #ffffff;
-  border: 2rpx solid rgba(31, 36, 50, 0.09);
+  border-radius: 22rpx;
+  background: #fbfcfe;
+  border: 1rpx solid rgba(31, 36, 50, 0.08);
 }
 
 .driver-input,
 .vehicle-input {
   flex: 1;
   min-width: 0;
-  height: 78rpx;
-  min-height: 78rpx;
-  padding: 0 20rpx 0 0;
+  height: 82rpx;
+  min-height: 82rpx;
+  padding: 0 22rpx 0 0;
   color: #172033;
   background: transparent;
   border: none;
-  font-size: 31rpx;
-  line-height: 78rpx;
+  font-size: 29rpx;
+  line-height: 82rpx;
 }
 
 .input-icon {
   position: relative;
-  width: 78rpx;
-  height: 78rpx;
+  width: 82rpx;
+  height: 82rpx;
   flex-shrink: 0;
   color: #6b7280;
 }
@@ -412,7 +356,7 @@
   color: #ffffff;
   background: #8c929d;
   font-size: 28rpx;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .input-eye {
@@ -453,25 +397,25 @@
 .forgot-row {
   display: flex;
   justify-content: space-between;
-  margin-top: 24rpx;
+  margin-top: 22rpx;
 }
 
 .forgot {
   color: #667085;
-  font-size: 25rpx;
+  font-size: 24rpx;
 }
 
 .driver-login-button {
   width: 100%;
-  min-height: 94rpx;
-  margin-top: 32rpx;
+  min-height: 88rpx;
+  margin-top: 30rpx;
   border: none;
   border-radius: 999rpx;
   color: #ffffff;
   background: linear-gradient(135deg, #ff7a00 0%, #ff9d32 100%);
   box-shadow: 0 18rpx 34rpx rgba(255, 122, 0, 0.25);
-  font-size: 32rpx;
-  font-weight: 900;
+  font-size: 30rpx;
+  font-weight: 600;
 }
 
 .driver-login-button::after {
@@ -482,10 +426,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14rpx;
-  margin-top: 34rpx;
+  gap: 16rpx;
+  margin-top: 30rpx;
   color: #7a8396;
-  font-size: 23rpx;
+  font-size: 22rpx;
 }
 
 .login-note__line {
