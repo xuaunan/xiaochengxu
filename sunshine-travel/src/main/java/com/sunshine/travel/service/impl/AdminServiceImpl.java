@@ -252,68 +252,88 @@ public class AdminServiceImpl implements AdminService {
                 .stream()
                 .filter(item -> !"DONE".equalsIgnoreCase(item.getHandleStatus()))
                 .limit(10)
-                .forEach(item -> rows.add(adminMessage(
-                        "complaint-" + item.getId(),
-                        "COMPLAINT",
-                        "投诉待处理",
-                        buildComplaintMessage(item),
-                        "HIGH",
-                        90,
-                        "/orders",
-                        "去处理投诉",
-                        item.getCreatedAt()
-                )));
+                .forEach(item -> {
+                    Map<String, Object> row = adminMessage(
+                            "complaint-" + item.getId(),
+                            "COMPLAINT",
+                            "投诉待处理",
+                            buildComplaintMessage(item),
+                            "HIGH",
+                            90,
+                            "/messages",
+                            "处理投诉",
+                            item.getCreatedAt()
+                    );
+                    row.put("complaintId", item.getId());
+                    row.put("orderId", item.getOrderId());
+                    rows.add(row);
+                });
 
         driverProfileMapper.selectList(new LambdaQueryWrapper<DriverProfile>()
                         .orderByDesc(DriverProfile::getUpdatedAt))
                 .stream()
                 .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
                 .limit(10)
-                .forEach(item -> rows.add(adminMessage(
-                        "driver-audit-" + item.getUserId(),
-                        "DRIVER_AUDIT",
-                        "司机资料待审核",
-                        buildDriverAuditMessage(item),
-                        "MEDIUM",
-                        70,
-                        "/drivers",
-                        "去审核司机",
-                        item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
-                )));
+                .forEach(item -> {
+                    Map<String, Object> row = adminMessage(
+                            "driver-audit-" + item.getUserId(),
+                            "DRIVER_AUDIT",
+                            "司机资料待审核",
+                            buildDriverAuditMessage(item),
+                            "MEDIUM",
+                            70,
+                            "/messages",
+                            "审核司机",
+                            item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
+                    );
+                    row.put("driverId", item.getUserId());
+                    rows.add(row);
+                });
 
         vehicleMapper.selectList(new LambdaQueryWrapper<Vehicle>()
                         .orderByDesc(Vehicle::getUpdatedAt))
                 .stream()
                 .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
                 .limit(10)
-                .forEach(item -> rows.add(adminMessage(
-                        "vehicle-audit-" + item.getId(),
-                        "VEHICLE_AUDIT",
-                        "车辆资料待审核",
-                        buildVehicleAuditMessage(item),
-                        "MEDIUM",
-                        68,
-                        "/drivers",
-                        "去审核车辆",
-                        item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
-                )));
+                .forEach(item -> {
+                    Map<String, Object> row = adminMessage(
+                            "vehicle-audit-" + item.getId(),
+                            "VEHICLE_AUDIT",
+                            "车辆资料待审核",
+                            buildVehicleAuditMessage(item),
+                            "MEDIUM",
+                            68,
+                            "/messages",
+                            "审核车辆",
+                            item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
+                    );
+                    row.put("vehicleId", item.getId());
+                    row.put("driverId", item.getDriverId());
+                    rows.add(row);
+                });
 
         withdrawApplicationMapper.selectList(new LambdaQueryWrapper<WithdrawApplication>()
                         .eq(WithdrawApplication::getStatus, WithdrawStatus.PENDING)
                         .orderByDesc(WithdrawApplication::getCreatedAt))
                 .stream()
                 .limit(10)
-                .forEach(item -> rows.add(adminMessage(
-                        "withdraw-" + item.getId(),
-                        "WITHDRAW",
-                        "提现申请待审核",
-                        "司机ID " + item.getDriverId() + " 申请提现 " + safeDecimal(item.getApplyAmount()) + " 元",
-                        "NORMAL",
-                        50,
-                        "/drivers",
-                        "去处理提现",
-                        item.getCreatedAt()
-                )));
+                .forEach(item -> {
+                    Map<String, Object> row = adminMessage(
+                            "withdraw-" + item.getId(),
+                            "WITHDRAW",
+                            "提现申请待审核",
+                            "司机ID " + item.getDriverId() + " 申请提现 " + safeDecimal(item.getApplyAmount()) + " 元",
+                            "NORMAL",
+                            50,
+                            "/messages",
+                            "审核提现",
+                            item.getCreatedAt()
+                    );
+                    row.put("withdrawId", item.getId());
+                    row.put("driverId", item.getDriverId());
+                    row.put("applyAmount", item.getApplyAmount());
+                    rows.add(row);
+                });
 
         rideOrderMapper.selectList(new LambdaQueryWrapper<RideOrder>()
                         .eq(RideOrder::getInvoiceStatus, InvoiceStatus.APPLIED)
