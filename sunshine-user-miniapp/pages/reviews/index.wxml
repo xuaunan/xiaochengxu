@@ -1,21 +1,23 @@
 <view class="page-shell reviews-shell safe-bottom">
   <view class="page-content reviews-page page-enter" wx:if="{{list.length}}">
-    <view class="reviews-header">
+    <view class="reviews-hero">
       <view>
-        <view class="section-title reviews-title">评价记录</view>
+        <view class="reviews-title">评价记录</view>
         <view class="reviews-subtitle">历史服务反馈与评分</view>
       </view>
       <view class="reviews-count">{{list.length}} 条</view>
+      <view class="reviews-hero__icon"></view>
     </view>
 
     <view class="reviews-list">
-      <view class="review-card tap-scale" wx:for="{{list}}" wx:key="id">
-        <view class="row-between">
-          <view>
+      <view class="review-card tap-scale" wx:for="{{list}}" wx:key="id" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="review-card__top">
+          <view class="review-icon"></view>
+          <view class="review-card__main">
             <view class="review-card__title">订单 {{item.orderNo}}</view>
             <view class="review-card__meta">{{item.serviceTypeText}}</view>
           </view>
-          <view class="brand-text">{{item.score}} 分</view>
+          <view class="review-score">{{item.score}} 分</view>
         </view>
         <view class="review-content">{{item.content}}</view>
         <view class="review-card__time">{{item.createdAt}}</view>
@@ -24,7 +26,7 @@
   </view>
 
   <view class="page-content page-enter" wx:else>
-    <view class="panel-card">
+    <view class="reviews-empty">
       <sun-empty title="暂时还没有评价" description="完成订单并支付后，就可以在这里查看你的历史评价。" buttonText="去订单中心" bindaction="jumpToOrders"></sun-empty>
     </view>
   </view>
