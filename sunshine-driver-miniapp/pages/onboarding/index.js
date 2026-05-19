@@ -386,7 +386,7 @@ Page({
       title: this.data.mode === 'register' ? '注册并登录成功' : '登录成功',
       icon: 'success'
     })
-    await this.loadDriverData()
+    this.goDashboard()
   },
 
   async loadDriverData() {

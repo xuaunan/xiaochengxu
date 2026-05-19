@@ -1115,23 +1115,24 @@
 }
 
 .floating-actions-reference {
-  left: 24rpx;
-  right: 24rpx;
-  bottom: calc(env(safe-area-inset-bottom) + 22rpx);
-  grid-template-columns: 1fr 1.08fr;
-  padding: 18rpx 0;
-  border-radius: 24rpx;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 18rpx);
+  grid-template-columns: 1fr 1.05fr;
+  gap: 14rpx;
+  padding: 14rpx 0;
+  border-radius: 22rpx;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 -10rpx 32rpx rgba(24, 34, 56, 0.08);
+  box-shadow: 0 -8rpx 26rpx rgba(24, 34, 56, 0.07);
 }
 
 .vehicle-secondary-button,
 .vehicle-primary-button {
-  min-height: 74rpx;
-  border-radius: 20rpx;
-  font-size: 28rpx;
-  font-weight: 700;
-  line-height: 74rpx;
+  min-height: 64rpx;
+  border-radius: 18rpx;
+  font-size: 25rpx;
+  font-weight: 600;
+  line-height: 64rpx;
 }
 
 .vehicle-secondary-button {
@@ -1143,7 +1144,7 @@
 .vehicle-primary-button {
   color: #ffffff;
   background: linear-gradient(135deg, #ff7300 0%, #ff9d32 100%);
-  box-shadow: 0 14rpx 26rpx rgba(255, 122, 0, 0.24);
+  box-shadow: 0 10rpx 20rpx rgba(255, 122, 0, 0.2);
 }
 
 .vehicle-secondary-button::after,
