@@ -74,82 +74,24 @@
     <block wx:else>
       <view class="invoice-issued-list" wx:if="{{issuedList.length}}">
         <view
-          class="invoice-issued-chip {{selectedInvoiceId === '' + item.id ? 'invoice-issued-chip--active' : ''}}"
+          class="invoice-issued-row tap-scale {{selectedInvoiceId === '' + item.id ? 'invoice-issued-row--active' : ''}}"
           wx:for="{{issuedList}}"
           wx:key="id"
           data-id="{{item.id}}"
           bindtap="viewInvoice"
         >
-          <text>{{item.serviceTag}}</text>
-          <strong>{{item.amountText}}</strong>
-        </view>
-      </view>
-
-      <view wx:if="{{selectedInvoice}}" class="invoice-preview">
-        <view class="invoice-preview__brand">
-          <view>
-            <view class="invoice-preview__logo">阳光出行</view>
-            <view class="invoice-preview__company">{{selectedInvoice.detail.sellerName}}</view>
+          <view class="invoice-issued-row__badge invoice-issued-row__badge--{{item.iconClass}}">
+            <view class="invoice-service-icon__shape"></view>
           </view>
-          <view class="invoice-preview__type">电子发票（打车出行）</view>
-        </view>
-
-        <view class="invoice-preview__base">
-          <view class="invoice-preview__base-item" wx:for="{{selectedInvoice.baseRows}}" wx:key="label">
-            <text>{{item.label}}</text>
-            <strong>{{item.value}}</strong>
-          </view>
-        </view>
-
-        <view class="invoice-info-grid">
-          <view class="invoice-info-box">
-            <view class="invoice-section-title">购买方信息</view>
-            <view class="invoice-info-row" wx:for="{{selectedInvoice.buyerRows}}" wx:key="label">
-              <text>{{item.label}}</text>
-              <strong>{{item.value}}</strong>
+          <view class="invoice-issued-row__main">
+            <view class="invoice-issued-row__top">
+              <text class="invoice-issued-row__tag">{{item.serviceTag}}</text>
+              <text class="invoice-issued-row__amount">{{item.amountText}}</text>
             </view>
+            <view class="invoice-issued-row__title">{{item.title}}</view>
+            <view class="invoice-issued-row__meta">订单 {{item.orderNo}} · {{item.issueTime || item.displayTime}}</view>
           </view>
-          <view class="invoice-info-box">
-            <view class="invoice-section-title">销售方信息</view>
-            <view class="invoice-info-row" wx:for="{{selectedInvoice.sellerRows}}" wx:key="label">
-              <text>{{item.label}}</text>
-              <strong>{{item.value}}</strong>
-            </view>
-          </view>
-        </view>
-
-        <view class="invoice-detail-box">
-          <view class="invoice-section-title">行程信息</view>
-          <view class="invoice-detail-grid">
-            <view class="invoice-detail-cell" wx:for="{{selectedInvoice.tripRows}}" wx:key="label">
-              <text>{{item.label}}</text>
-              <strong>{{item.value}}</strong>
-            </view>
-          </view>
-        </view>
-
-        <view class="invoice-detail-box">
-          <view class="invoice-section-title">费用明细</view>
-          <view class="invoice-fee-row" wx:for="{{selectedInvoice.feeRows}}" wx:key="label">
-            <text>{{item.label}}</text>
-            <strong>{{item.value}}</strong>
-          </view>
-          <view class="invoice-total-box">
-            <view>
-              <text>价税合计（小写）</text>
-              <strong>{{selectedInvoice.detail.totalAmountText}}</strong>
-            </view>
-            <view>
-              <text>价税合计（大写）</text>
-              <strong>{{selectedInvoice.detail.amountUpper}}</strong>
-            </view>
-          </view>
-        </view>
-
-        <view class="invoice-remark">
-          <text>备注</text>
-          <strong>{{selectedInvoice.detail.remark}}</strong>
-          <view class="invoice-stamp">北京阳光出行有限公司 · 发票专用章</view>
+          <view class="invoice-issued-row__arrow">›</view>
         </view>
       </view>
 
@@ -159,5 +101,32 @@
         <view class="invoice-empty__desc">后台审核通过后，会同步出现在我的发票里。</view>
       </view>
     </block>
+
+    <view wx:if="{{invoiceViewerVisible}}" class="invoice-viewer-mask" catchtouchmove="noop">
+      <view class="invoice-viewer">
+        <view class="invoice-viewer__head">
+          <view>
+            <view class="invoice-viewer__title">电子发票</view>
+            <view class="invoice-viewer__sub">{{viewerInvoice.orderNo}}</view>
+          </view>
+          <view class="invoice-viewer__close" bindtap="closeInvoiceViewer">×</view>
+        </view>
+        <scroll-view class="invoice-viewer__scroll" scroll-x enhanced show-scrollbar="{{false}}">
+          <view wx:if="{{invoiceImageLoading}}" class="invoice-viewer__loading">发票图片生成中...</view>
+          <image
+            wx:elif="{{invoiceImagePath}}"
+            class="invoice-viewer__image"
+            src="{{invoiceImagePath}}"
+            mode="widthFix"
+            bindtap="previewInvoiceImage"
+          ></image>
+          <view wx:else class="invoice-viewer__loading">发票图片暂不可用</view>
+        </scroll-view>
+        <view class="invoice-viewer__actions">
+          <button class="invoice-viewer__button" bindtap="previewInvoiceImage" disabled="{{!invoiceImagePath}}">查看大图</button>
+          <button class="invoice-viewer__button invoice-viewer__button--primary" bindtap="saveInvoiceImage" disabled="{{!invoiceImagePath}}">保存相册</button>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

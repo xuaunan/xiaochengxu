@@ -1,4 +1,4 @@
-const { applyInvoice, fetchOrders } = require('../../utils/api')
+const { applyInvoice, downloadInvoiceImage, fetchOrders } = require('../../utils/api')
 const { buildInvoiceList, syncOrdersToCache } = require('../../utils/user-store')
 const { runExclusive } = require('../../utils/page')
 
@@ -86,7 +86,11 @@ Page({
     applyList: [],
     issuedList: [],
     selectedInvoiceId: '',
-    selectedInvoice: null
+    selectedInvoice: null,
+    invoiceViewerVisible: false,
+    invoiceImageLoading: false,
+    invoiceImagePath: '',
+    viewerInvoice: null
   },
 
   async onShow() {
@@ -94,24 +98,18 @@ Page({
     await this.refreshInvoices()
   },
 
+  noop() {},
+
   renderCachedInvoices() {
     const list = buildInvoiceList(getApp().globalData.userStore.orders || []).map(mapInvoiceView)
     const applyList = list.filter((item) => !item.isIssued)
     const issuedList = list.filter((item) => item.isIssued)
-    let selectedInvoice = null
-    let selectedInvoiceId = this.data.selectedInvoiceId
-
-    if (this.data.activeTab === 'issued') {
-      selectedInvoice = issuedList.find((item) => `${item.id}` === `${selectedInvoiceId}`) || issuedList[0] || null
-      selectedInvoiceId = selectedInvoice ? `${selectedInvoice.id}` : ''
-    }
-
     this.setData({
       list,
       applyList,
       issuedList,
-      selectedInvoiceId,
-      selectedInvoice
+      selectedInvoiceId: this.data.selectedInvoiceId,
+      selectedInvoice: this.data.selectedInvoice
     })
   },
 
@@ -125,24 +123,73 @@ Page({
 
   switchInvoiceTab(e) {
     const activeTab = e.currentTarget.dataset.tab || 'apply'
-    const issuedList = this.data.issuedList || []
-    const selectedInvoice = activeTab === 'issued'
-      ? (issuedList.find((item) => `${item.id}` === `${this.data.selectedInvoiceId}`) || issuedList[0] || null)
-      : null
     this.setData({
       activeTab,
-      selectedInvoice,
-      selectedInvoiceId: selectedInvoice ? `${selectedInvoice.id}` : this.data.selectedInvoiceId
+      selectedInvoice: null,
+      selectedInvoiceId: ''
     })
   },
 
-  viewInvoice(e) {
+  async viewInvoice(e) {
     const invoiceId = e.currentTarget.dataset.id
     const selectedInvoice = (this.data.issuedList || []).find((item) => `${item.id}` === `${invoiceId}`) || null
     if (!selectedInvoice) return
     this.setData({
       selectedInvoice,
-      selectedInvoiceId: `${selectedInvoice.id}`
+      selectedInvoiceId: `${selectedInvoice.id}`,
+      viewerInvoice: selectedInvoice,
+      invoiceViewerVisible: true,
+      invoiceImageLoading: true,
+      invoiceImagePath: ''
+    })
+    try {
+      const invoiceImagePath = await downloadInvoiceImage(selectedInvoice.id)
+      this.setData({
+        invoiceImagePath,
+        invoiceImageLoading: false
+      })
+    } catch (error) {
+      this.setData({ invoiceImageLoading: false })
+      wx.showToast({
+        title: error.message || '发票图片加载失败',
+        icon: 'none'
+      })
+    }
+  },
+
+  closeInvoiceViewer() {
+    this.setData({
+      invoiceViewerVisible: false,
+      invoiceImageLoading: false
+    })
+  },
+
+  previewInvoiceImage() {
+    if (!this.data.invoiceImagePath) return
+    wx.previewImage({
+      urls: [this.data.invoiceImagePath],
+      current: this.data.invoiceImagePath
+    })
+  },
+
+  saveInvoiceImage() {
+    if (!this.data.invoiceImagePath) return
+    wx.saveImageToPhotosAlbum({
+      filePath: this.data.invoiceImagePath,
+      success: () => {
+        wx.showToast({
+          title: '已保存到相册',
+          icon: 'success'
+        })
+      },
+      fail: () => {
+        wx.showModal({
+          title: '保存失败',
+          content: '请在微信设置中允许保存到相册后重试。',
+          confirmText: '知道了',
+          showCancel: false
+        })
+      }
     })
   },
 
