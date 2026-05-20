@@ -16,6 +16,7 @@ const {
 const PAYMENT_SYNC_GUARD_MS = 15000
 const CARPOOL_META_TAG = 'CARPOOL_META'
 const INTERNATIONAL_META_TAG = 'INTERNATIONAL_META'
+const INVOICE_META_TAG = 'INVOICE_META'
 
 function toNumber(value, fallback = 0) {
   const next = Number(value)
@@ -153,6 +154,97 @@ function getInternationalMetaFromOrder(order = {}) {
     riskNotice: rawMeta.riskNotice || '请提前确认通关证件、航班时间与目的地政策。',
     remarkText: stripEmbeddedMeta(remarkText, CARPOOL_META_TAG)
   }
+}
+
+function getInvoiceMetaFromOrder(order = {}) {
+  const source = `${order.remark || ''}`
+  const matcher = new RegExp(`\\[${INVOICE_META_TAG}\\]([\\s\\S]*?)\\[\\/${INVOICE_META_TAG}\\]`)
+  const matched = source.match(matcher)
+  if (!matched || !matched[1]) return {}
+
+  const raw = matched[1].trim()
+  if (!raw) return {}
+
+  if (raw.startsWith('{')) {
+    try {
+      return JSON.parse(raw)
+    } catch (error) {
+      return {}
+    }
+  }
+
+  return raw.split(';').reduce((result, part) => {
+    const pair = part.split('=')
+    if (pair.length >= 2) {
+      result[pair[0].trim()] = pair.slice(1).join('=').trim()
+    }
+    return result
+  }, {})
+}
+
+const CN_NUMBERS = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
+const CN_INTEGER_UNITS = ['', '拾', '佰', '仟']
+const CN_SECTION_UNITS = ['', '万', '亿']
+
+function integerToChinese(value) {
+  const integer = Math.floor(Math.abs(Number(value || 0)))
+  if (!integer) return '零'
+  const sections = []
+  let current = integer
+  while (current > 0) {
+    sections.push(current % 10000)
+    current = Math.floor(current / 10000)
+  }
+
+  let result = ''
+  let needZero = false
+  for (let i = sections.length - 1; i >= 0; i -= 1) {
+    const section = sections[i]
+    if (section === 0) {
+      needZero = true
+      continue
+    }
+    if (needZero) {
+      result += '零'
+      needZero = false
+    }
+    let sectionText = ''
+    let unitPosition = 0
+    let zero = true
+    let sectionValue = section
+    while (sectionValue > 0) {
+      const digit = sectionValue % 10
+      if (digit === 0) {
+        if (!zero) {
+          zero = true
+          sectionText = CN_NUMBERS[0] + sectionText
+        }
+      } else {
+        zero = false
+        sectionText = CN_NUMBERS[digit] + CN_INTEGER_UNITS[unitPosition] + sectionText
+      }
+      unitPosition += 1
+      sectionValue = Math.floor(sectionValue / 10)
+    }
+    result += sectionText + CN_SECTION_UNITS[i]
+  }
+  return result.replace(/零+/g, '零').replace(/零$/g, '')
+}
+
+function amountToChinese(value, currency = 'CNY') {
+  const amount = Math.max(0, Number(value || 0))
+  if (currency && currency !== 'CNY') {
+    return `${currency} ${amount.toFixed(2)}`
+  }
+  const integer = Math.floor(amount)
+  const cents = Math.round((amount - integer) * 100)
+  const jiao = Math.floor(cents / 10)
+  const fen = cents % 10
+  let result = `人民币${integerToChinese(integer)}元`
+  if (!jiao && !fen) return `${result}整`
+  if (jiao) result += `${CN_NUMBERS[jiao]}角`
+  if (fen) result += `${CN_NUMBERS[fen]}分`
+  return result
 }
 
 function normalizePoint(source) {
@@ -896,22 +988,94 @@ function buildWalletView(profile = {}, coupons = [], orders = []) {
 function buildInvoiceList(orders = []) {
   return orders
     .filter((item) => item.orderStatus === ORDER_STATUS.FINISHED && item.payStatus === PAY_STATUS.PAID)
-    .map((item) => ({
-      id: item.id,
-      orderNo: item.orderNo,
-      title: `${getServiceLabel(item.serviceType)}电子发票`,
-      amountText: formatPrice(item.actualAmount || item.payableAmount, item.currencyCode),
-      createdAt: formatDateTime(item.createdAt || new Date()),
-      status: getInvoiceStatusText(item.invoiceStatus),
-      canApply: !item.invoiceStatus || ['NONE', 'REJECTED'].includes(item.invoiceStatus)
-    }))
+    .map((item) => {
+      const meta = getInvoiceMetaFromOrder(item)
+      const amount = toNumber(firstPresent(meta.totalAmount, item.actualAmount, item.payableAmount, item.estimatedAmount), 0)
+      const currencyCode = firstPresent(meta.currencyCode, item.currencyCode, 'CNY')
+      const invoiceStatus = item.invoiceStatus || meta.invoiceStatus || meta.status || 'NONE'
+      const detail = buildInvoiceDetail(item, meta, amount, currencyCode, invoiceStatus)
+      const serviceName = firstPresent(meta.serviceName, getServiceLabel(item.serviceType))
+      return {
+        id: item.id,
+        orderNo: item.orderNo,
+        invoiceStatus,
+        title: `${serviceName}电子发票`,
+        amount,
+        amountText: formatPrice(amount, currencyCode),
+        createdAt: formatDateTime(item.createdAt || new Date()),
+        issuedAt: detail.issueAt || detail.handledAt || detail.invoiceDate,
+        status: getInvoiceStatusText(invoiceStatus),
+        rejectReason: detail.rejectReason,
+        canApply: !invoiceStatus || ['NONE', 'REJECTED'].includes(invoiceStatus),
+        isIssued: invoiceStatus === 'ISSUED',
+        detail
+      }
+    })
+}
+
+function buildInvoiceDetail(order = {}, meta = {}, amount = 0, currencyCode = 'CNY', invoiceStatus = 'NONE') {
+  const serviceName = firstPresent(meta.serviceName, getServiceLabel(order.serviceType))
+  const tripTime = firstPresent(meta.tripTime, order.finishedAt, order.startedAt, order.createdAt)
+  const invoiceDate = firstPresent(meta.invoiceDate, meta.issueAt, tripTime)
+  const distanceKm = toNumber(firstPresent(meta.distanceKm, order.actualDistanceKm, order.estimatedDistanceKm), 0)
+  const durationMin = toNumber(firstPresent(meta.durationMin, order.actualDurationMin, order.estimatedDurationMin), 0)
+  const itemAmount = toNumber(firstPresent(meta.itemAmount, meta.totalAmount, amount), 0)
+  return {
+    status: invoiceStatus,
+    invoiceCode: firstPresent(meta.invoiceCode, buildLocalInvoiceCode(order)),
+    invoiceNo: firstPresent(meta.invoiceNo, buildLocalInvoiceNo(order)),
+    invoiceDate: formatDateTime(invoiceDate, { fallback: formatDate(new Date()) }),
+    issueAt: firstPresent(meta.issueAt, ''),
+    handledAt: firstPresent(meta.handledAt, ''),
+    orderNo: firstPresent(meta.orderNo, order.orderNo),
+    invoiceType: firstPresent(meta.invoiceType, '电子普通发票'),
+    buyerName: firstPresent(meta.buyerName, meta.title, '个人'),
+    buyerTaxNo: firstPresent(meta.buyerTaxNo, meta.taxNo, '个人无需填写'),
+    buyerPhone: firstPresent(meta.buyerPhone, '13800000000'),
+    sellerName: firstPresent(meta.sellerName, '北京阳光出行有限公司'),
+    sellerTaxNo: firstPresent(meta.sellerTaxNo, '91110105MA01SUN8X9'),
+    sellerPhone: firstPresent(meta.sellerPhone, '400-100-0101'),
+    passengerName: firstPresent(meta.passengerName, '阳光乘客'),
+    tripTime: formatDateTime(tripTime, { fallback: '--' }),
+    startName: firstPresent(meta.startName, order.startName, '未记录上车点'),
+    endName: firstPresent(meta.endName, order.endName, '未记录下车点'),
+    serviceName,
+    carTypeName: firstPresent(meta.carTypeName, serviceName),
+    distanceText: `${distanceKm.toFixed(1)} 公里`,
+    durationText: `${Math.max(0, Math.round(durationMin))} 分钟`,
+    payChannel: firstPresent(meta.payChannel, '模拟支付'),
+    itemName: firstPresent(meta.itemName, `${serviceName}出行服务费`),
+    itemUnit: firstPresent(meta.itemUnit, '次'),
+    itemQuantity: firstPresent(meta.itemQuantity, '1'),
+    itemUnitPrice: toNumber(firstPresent(meta.itemUnitPrice, itemAmount), 0).toFixed(2),
+    itemAmount: itemAmount.toFixed(2),
+    totalAmount: amount.toFixed(2),
+    totalAmountText: formatPrice(amount, currencyCode),
+    amountUpper: amountToChinese(amount, currencyCode),
+    remark: firstPresent(meta.remark, '本发票为打车出行电子发票。'),
+    rejectReason: firstPresent(meta.rejectReason, '')
+  }
+}
+
+function buildLocalInvoiceCode(order = {}) {
+  const seed = Math.abs(hashText(`${order.id || ''}${order.orderNo || ''}`)) % 100000
+  return `0310024${String(seed).padStart(5, '0')}`
+}
+
+function buildLocalInvoiceNo(order = {}) {
+  const seed = Math.abs(hashText(`${order.orderNo || ''}${order.id || ''}${order.userId || ''}`)) % 100000000
+  return String(seed).padStart(8, '0')
+}
+
+function hashText(text = '') {
+  return `${text || ''}`.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0)
 }
 
 function getInvoiceStatusText(status) {
   const map = {
     NONE: '可申请',
     APPLIED: '申请中',
-    ISSUED: '已开票',
+    ISSUED: '查看发票',
     REJECTED: '重新申请'
   }
   return map[status] || '可申请'

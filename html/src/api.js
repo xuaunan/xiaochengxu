@@ -17,6 +17,7 @@ const API_BASE_KEY = 'sunshine-web-api-base'
 const DEMO_DB_KEY = 'sunshine-web-demo-db-v2'
 const DEFAULT_API_BASE = 'http://127.0.0.1:8080'
 let backendBackoffUntil = 0
+let activeRequestCount = 0
 
 export function getApiBase() {
   return localStorage.getItem(API_BASE_KEY) || DEFAULT_API_BASE
@@ -29,6 +30,15 @@ export function setApiBase(baseUrl) {
 
 function emitApiMode(mode, message = '') {
   window.dispatchEvent(new CustomEvent('sunshine-api-mode', { detail: { mode, message } }))
+}
+
+function emitApiLoading() {
+  window.dispatchEvent(new CustomEvent('sunshine-api-loading', { detail: { count: activeRequestCount, active: activeRequestCount > 0 } }))
+}
+
+function bumpApiLoading(delta) {
+  activeRequestCount = Math.max(0, activeRequestCount + delta)
+  emitApiLoading()
 }
 
 class ApiError extends Error {
@@ -49,9 +59,15 @@ async function request(path, options = {}) {
     timeout = 1200
   } = options
 
+  bumpApiLoading(1)
+
   if (Date.now() < backendBackoffUntil) {
     emitApiMode('demo', '后端刚刚不可达，当前操作直接使用网页本地演示数据')
-    return demoRequest(path, { method, data, token, demoRole })
+    try {
+      return demoRequest(path, { method, data, token, demoRole })
+    } finally {
+      bumpApiLoading(-1)
+    }
   }
 
   const controller = new AbortController()
@@ -90,6 +106,7 @@ async function request(path, options = {}) {
     return demoRequest(path, { method, data, token, demoRole })
   } finally {
     window.clearTimeout(timer)
+    bumpApiLoading(-1)
   }
 }
 
@@ -136,6 +153,7 @@ export const api = {
   myCoupons: (token) => request('/coupons/mine', { token }),
   receiveCoupon: (token, id) => request(`/coupons/${id}/receive`, { method: 'POST', token }),
   messages: (token) => request('/messages', { token }),
+  markMessageRead: (token, id) => request(`/messages/${id}/read`, { method: 'POST', token }),
   carpoolSearch: (keyword = '') => request(`/carpool/search${toQuery({ keyword })}`, { skipAuth: true }),
   carpoolDetail: (id) => request(`/carpool/${id}`, { skipAuth: true }),
   carpoolMine: (token) => request('/carpool/mine', { token }),
@@ -174,8 +192,11 @@ function demoRequest(path, options) {
 
   if (url.pathname === '/auth/login' && method === 'POST') {
     const role = body.roleCode
-    const account = demoAccounts[role]
-    if (!account || body.phone !== account.phone || body.password !== account.password) {
+    const account = role === ROLE.DRIVER ? db.driverUser : db.passengerUser
+    const fallback = demoAccounts[role]
+    const password = account?.password || fallback?.password
+    const phone = account?.phone || fallback?.phone
+    if (!account || body.phone !== phone || body.password !== password) {
       throw new ApiError('演示账号或密码不正确', { code: 4000 })
     }
     return createDemoSession(role)
@@ -185,7 +206,12 @@ function demoRequest(path, options) {
     const role = body.roleCode || ROLE.USER
     const target = role === ROLE.DRIVER ? db.driverUser : db.passengerUser
     target.phone = body.phone || target.phone
+    target.password = body.password || target.password || '123456'
     target.nickname = body.nickname || target.nickname
+    target.defaultLanguage = body.defaultLanguage || target.defaultLanguage || 'zh-CN'
+    target.roleCode = role
+    target.authStatus = target.authStatus ?? 0
+    target.enabled = 1
     saveDemoDb(db)
     return createDemoSession(role)
   }
@@ -257,6 +283,19 @@ function demoRequest(path, options) {
 
   if (url.pathname === '/messages') {
     return db.messages.filter((item) => item.roleCode === actor.roleCode)
+  }
+
+  const messageReadMatch = url.pathname.match(/^\/messages\/(.+)\/read$/)
+  if (messageReadMatch && method === 'POST') {
+    const messageId = Number(messageReadMatch[1])
+    const target = db.messages.find((item) => Number(item.id) === messageId && item.roleCode === actor.roleCode)
+    if (!target) throw new ApiError('消息不存在', { code: 4004 })
+    target.unread = false
+    target.read = true
+    target.isRead = true
+    target.readStatus = 'READ'
+    saveDemoDb(db)
+    return target
   }
 
   if (url.pathname === '/coupons/mine') {
@@ -672,6 +711,7 @@ function seedDemoDb() {
     passengerUser: {
       id: 1,
       phone: demoAccounts.USER.phone,
+      password: demoAccounts.USER.password,
       nickname: demoAccounts.USER.nickname,
       roleCode: ROLE.USER,
       authStatus: 2,
@@ -682,6 +722,7 @@ function seedDemoDb() {
     driverUser: {
       id: 2,
       phone: demoAccounts.DRIVER.phone,
+      password: demoAccounts.DRIVER.password,
       nickname: demoAccounts.DRIVER.nickname,
       roleCode: ROLE.DRIVER,
       authStatus: 2,

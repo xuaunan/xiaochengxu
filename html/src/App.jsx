@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
   BadgeCheck,
@@ -58,6 +59,7 @@ import {
 
 const passengerSessionKey = 'sunshine-web-passenger-session'
 const driverSessionKey = 'sunshine-web-driver-session'
+const DEFAULT_TENCENT_MAP_KEY = 'NHNBZ-F5FW3-Z4C3Q-R4WUM-ODTPE-DRFDV'
 
 const roleMeta = {
   USER: {
@@ -76,6 +78,7 @@ const roleMeta = {
 
 function App() {
   usePointerVars()
+  const topLoader = useTopLoadBar()
   const [apiMode, setMode] = useState({ mode: 'checking', message: '正在连接后端' })
   const [baseUrl, setBaseUrlState] = useState(getApiBase())
   const [home, setHome] = useState({ carTypes: fallbackCarTypes, couponCenter: [], notices: [], fleet: defaultFleetStats() })
@@ -130,6 +133,11 @@ function App() {
     setLoginRole(null)
   }
 
+  const handleRegister = async ({ roleCode, phone, password, nickname, defaultLanguage = 'zh-CN' }) => {
+    await api.register({ roleCode, phone, password, nickname, defaultLanguage })
+    await handleLogin({ roleCode, phone, password })
+  }
+
   const logout = (role) => {
     if (role === 'DRIVER') setDriverSession(null)
     if (role === 'USER') setPassengerSession(null)
@@ -138,6 +146,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <TopLoadBar {...topLoader} />
       <SvgFilters />
       {view === 'portal' && <CityRoadBackdrop onlineCount={home.fleet?.serviceDriverCount || home.fleet?.busyDriverCount || home.fleet?.onlineDriverCount} />}
       {view === 'portal' && <CursorTaxi />}
@@ -184,6 +193,7 @@ function App() {
           onClose={() => setLoginRole(null)}
           onSwitch={(role) => setLoginRole(role)}
           onLogin={handleLogin}
+          onRegister={handleRegister}
         />
       )}
     </div>
@@ -229,12 +239,12 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
 
       <section className="hero-grid">
         <div className="hero-copy">
-          <div className="eyebrow"><Sparkles size={16} /> live taxi dispatch portal</div>
+          <AnimatedKicker icon={Sparkles} text="live taxi dispatch portal" />
           <AnimatedHeadline text="橙色城市调度舱。" />
           <p>
             打开就是叫车现场：3D 城市道路在背景中流动，车辆沿路线靠近。乘客下单、司机听单、接驾、完单、支付、评价、优惠券、顺风车、实名和提现全部优先对齐项目现有接口。
           </p>
-          <div className="dispatch-rail glass-panel">
+          <div className="dispatch-rail glass-panel interactive-border">
             <span><Radio size={15} /> 智能派单</span>
             <span><Route size={15} /> 实时路线</span>
             <span><Ticket size={15} /> 优惠券抵扣</span>
@@ -251,7 +261,7 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
           <div className="metric-row">
             <Metric value="3" label="端口角色" />
             <Metric value="15+" label="业务接口" />
-            <Metric value="60fps" label="丝滑动效" />
+            <Metric value="稳定" label="交互反馈" />
           </div>
         </div>
 
@@ -268,7 +278,7 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
             onPrimary={() => onLogin('USER')}
             primaryText="登录乘客并下单"
           />
-          <div className="fleet-feed glass-panel">
+          <div className="fleet-feed glass-panel interactive-border">
             <span className="section-kicker">fleet pulse</span>
             <strong>{home.fleet?.serviceDriverCount ?? home.fleet?.busyDriverCount ?? 0} 辆车服务中</strong>
             <p>空闲 {home.fleet?.idleDriverCount ?? 0} 辆 · 在线合计 {home.fleet?.onlineDriverCount ?? 0} 辆</p>
@@ -277,9 +287,9 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
       </section>
 
       <section className="portal-strip">
-        <FeatureCard icon={Zap} title="真实同步" text="后端启动时直接连接 127.0.0.1:8080，同小程序共用订单、优惠券、司机状态、顺风车和鉴权。" />
-        <FeatureCard icon={ShieldCheck} title="功能补齐" text="乘客端覆盖叫车、国际出行、钱包实名、评价投诉、优惠券、消息、帮助设置；司机端覆盖听单、行程、提现、资质、资料设置。" />
-        <FeatureCard icon={Sparkles} title="高级动效" text="吸附式名片、3D 城市道路背景、文本入场动画、鼠标小车本体撞击和云块尾气。" />
+        <FeatureCard icon={Zap} title="数据同步" text="网页端接入现有后端服务，与小程序共用登录态、订单、优惠券、司机状态和顺风车数据。" />
+        <FeatureCard icon={ShieldCheck} title="业务覆盖" text="乘客端支持叫车、订单、支付、优惠券、消息、实名与客服；司机端支持听单、行程、提现、资质和资料管理。" />
+        <FeatureCard icon={Sparkles} title="交互体验" text="重点场景保持轻量动效和清晰反馈，兼顾页面质感、操作效率与实际使用稳定性。" />
       </section>
 
       <PortalFeatureMenu
@@ -289,11 +299,11 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
         onDriver={() => (hasDriver ? onEnter('driver') : onLogin('DRIVER'))}
       />
 
-      <section className="quick-entry glass-panel">
+      <section className="quick-entry glass-panel interactive-border">
         <div>
           <span className="section-kicker">Local backend</span>
           <h2>后端连接地址</h2>
-          <p>默认对齐小程序配置。后端没启动也能用本地演示模式先看完整交互。</p>
+          <p>默认使用当前服务地址；未连接后端时页面会显示本地数据，保证基础操作可继续使用。</p>
         </div>
         <div className="api-box">
           <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
@@ -321,11 +331,93 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
   )
 }
 
-function AnimatedHeadline({ text }) {
+function AnimatedKicker({ icon: Icon, text }) {
+  const words = text.split(' ')
   return (
-    <h1 className="animated-headline" aria-label={text} data-text={text}>
-      {Array.from(text).map((char, index) => (
-        <span key={`${char}-${index}`} style={{ '--d': `${index * 36}ms` }}>{char}</span>
+    <div className="eyebrow animated-kicker" aria-label={text}>
+      {Icon && <Icon size={16} />}
+      <span className="kicker-words" aria-hidden="true">
+        {words.map((word, index) => (
+          <span key={`${word}-${index}`} style={{ '--d': `${index * 82}ms` }}>{word}</span>
+        ))}
+      </span>
+    </div>
+  )
+}
+
+const headlineScatter = [
+  { x: -14, y: -19, z: 30, scale: 1.07, rotate: -3.2 },
+  { x: 12, y: -13, z: 24, scale: 1.055, rotate: 2.5 },
+  { x: -8, y: 8, z: 18, scale: 1.035, rotate: -1.8 },
+  { x: 18, y: -7, z: 28, scale: 1.06, rotate: 3.4 },
+  { x: -18, y: -10, z: 22, scale: 1.045, rotate: -2.2 },
+  { x: 7, y: 10, z: 18, scale: 1.035, rotate: 1.6 },
+  { x: 16, y: -20, z: 32, scale: 1.075, rotate: 3.1 },
+  { x: -10, y: -5, z: 20, scale: 1.045, rotate: -2.8 }
+]
+
+function AnimatedHeadline({ text }) {
+  const ref = useRef(null)
+  const lines = text === '橙色城市调度舱。' ? ['橙色城市', '调度舱。'] : [text]
+  const handlePointerMove = useCallback((event) => {
+    const root = ref.current
+    if (!root) return
+    const rect = root.getBoundingClientRect()
+    const px = rect.width ? (event.clientX - rect.left) / rect.width : 0.5
+    const py = rect.height ? (event.clientY - rect.top) / rect.height : 0.5
+    root.style.setProperty('--headline-hot-x', `${(px * 100).toFixed(1)}%`)
+    root.style.setProperty('--headline-hot-y', `${(py * 100).toFixed(1)}%`)
+    root.style.setProperty('--headline-ry', `${((px - 0.5) * 12).toFixed(2)}deg`)
+    root.style.setProperty('--headline-rx', `${((0.5 - py) * 8).toFixed(2)}deg`)
+    root.classList.add('is-hovering')
+  }, [])
+  const handlePointerLeave = useCallback(() => {
+    const root = ref.current
+    if (!root) return
+    root.style.setProperty('--headline-hot-x', '50%')
+    root.style.setProperty('--headline-hot-y', '50%')
+    root.style.setProperty('--headline-ry', '0deg')
+    root.style.setProperty('--headline-rx', '0deg')
+    root.classList.remove('is-hovering')
+  }, [])
+
+  return (
+    <h1
+      ref={ref}
+      className="animated-headline split-headline"
+      aria-label={text}
+      data-text={text}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
+      {lines.map((line, lineIndex) => (
+        <span className="headline-line" key={`${line}-${lineIndex}`} aria-hidden="true">
+          {Array.from(line).map((char, charIndex) => {
+            const order = lines.slice(0, lineIndex).join('').length + charIndex
+            const isAccent = text === '橙色城市调度舱。' && ((lineIndex === 0 && charIndex < 2) || (lineIndex === 1 && charIndex < 2))
+            const scatter = headlineScatter[order % headlineScatter.length]
+            const activeY = scatter.y + (scatter.y < 0 ? -9 : 7)
+            return (
+              <span
+                className={`headline-char ${isAccent ? 'is-accent' : ''}`}
+                key={`${char}-${lineIndex}-${charIndex}`}
+                style={{
+                  '--d': `${order * 52}ms`,
+                  '--float-x': `${scatter.x}px`,
+                  '--float-y': `${scatter.y}px`,
+                  '--float-z': `${scatter.z}px`,
+                  '--float-scale': scatter.scale,
+                  '--float-rotate': `${scatter.rotate}deg`,
+                  '--active-x': `${Math.round(scatter.x * 1.4)}px`,
+                  '--active-y': `${activeY}px`,
+                  '--active-rotate': `${(scatter.rotate * 1.45).toFixed(1)}deg`
+                }}
+              >
+                <span className="headline-glyph">{char}</span>
+              </span>
+            )
+          })}
+        </span>
       ))}
     </h1>
   )
@@ -335,19 +427,19 @@ const portalMenus = {
   passenger: {
     icon: User,
     title: '乘客功能',
-    text: '小程序乘客端页面已拆成网页工作台：叫车、国际出行、订单、支付、评价、投诉、优惠券、钱包实名、顺风车、消息、帮助设置。',
+    text: '乘客端提供叫车、国际出行、订单、支付、评价、投诉、优惠券、实名与帮助设置等常用功能。',
     chips: ['叫车', '国际出行', '支付评价', '发票入口', '实名资料', '帮助设置']
   },
   driver: {
     icon: CarTaxiFront,
     title: '司机功能',
-    text: '司机端同步听单、抢单、拒单、接驾、上车、完单、提现、资质提交、资料设置、消息与行程管理。',
+    text: '司机端支持听单、接单、接驾、行程处理、提现、资质提交、资料维护和消息管理。',
     chips: ['听单大厅', '抢单拒单', '行程流转', '提现资质', '资料设置', '消息中心']
   },
   backend: {
     icon: ShieldCheck,
     title: '后台同步',
-    text: '网页优先走 Spring Boot 后端：/auth、/orders、/coupons、/carpool、/driver、/messages；后端不可达时才进入本地演示。',
+    text: '网页端优先连接现有业务服务，登录、订单、优惠券、顺风车、司机与消息数据保持统一。',
     chips: ['/auth/login', '/orders', '/coupons', '/carpool', '/driver', '/messages']
   }
 }
@@ -396,8 +488,10 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   const [messages, setMessages] = useState([])
   const [profile, setProfile] = useState(null)
   const [carpool, setCarpool] = useState({ list: [], mine: null })
+  const [activeRuntime, setActiveRuntime] = useState(null)
   const [toast, setToast] = useState('')
   const token = session?.token
+  const activeRideOrder = useMemo(() => pickActiveRideOrder(orders), [orders])
 
   const load = useCallback(async () => {
     if (!token) return
@@ -422,6 +516,49 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (!token || !activeRideOrder?.id) {
+      setActiveRuntime(null)
+      return undefined
+    }
+
+    let cancelled = false
+    const syncActiveRide = async () => {
+      const [orderData, runtimeData] = await Promise.allSettled([
+        api.orders(token),
+        api.orderRuntime(token, activeRideOrder.id)
+      ])
+      if (cancelled) return
+      if (orderData.status === 'fulfilled') setOrders(normalizeList(orderData.value))
+      if (runtimeData.status === 'fulfilled') setActiveRuntime(runtimeData.value)
+    }
+
+    syncActiveRide()
+    const timer = window.setInterval(syncActiveRide, 3500)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [activeRideOrder?.id, token])
+
+  useEffect(() => {
+    let cancelled = false
+    const route = calcRoute(booking.startId, booking.endId)
+    api.estimate({
+      carTypeId: booking.carTypeId,
+      serviceType: booking.serviceType,
+      distanceKm: route.distanceKm,
+      durationMin: route.durationMin
+    })
+      .catch(() => estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin))
+      .then((data) => {
+        if (!cancelled) setEstimate(data)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [booking.carTypeId, booking.endId, booking.serviceType, booking.startId])
 
   const run = async (task, successText = '操作成功') => {
     try {
@@ -452,8 +589,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     const priced = estimate || await estimateRide()
     const order = await api.createOrder(token, createOrderPayload(booking, priced))
     setOrders((items) => [order, ...items])
-    setTab('orders')
-  }, '订单已提交，司机端听单大厅会同步出现')
+    setTab('ride')
+  }, '订单已提交，地图已切换到实时派单状态')
 
   const createInternationalRide = () => run(async () => {
     const route = calcRoute(booking.startId, booking.endId)
@@ -498,17 +635,26 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       {toast && <Toast text={toast} />}
       {tab === 'ride' && (
         <div className="dashboard-grid ride-workbench real-ride">
-          <BookingPanel
-            title="乘客叫车"
-            booking={booking}
-            setBooking={setBooking}
-            estimate={estimate}
-            carTypes={home.carTypes}
-            onEstimate={estimateRide}
-            onPrimary={createRide}
-            primaryText="提交订单"
-          />
-          <CityMap booking={booking} estimate={estimate} compact operational />
+          {activeRideOrder ? (
+            <ActiveRidePanel
+              order={activeRideOrder}
+              runtime={activeRuntime}
+              onRefresh={load}
+              onAction={(action) => run(() => passengerOrderAction(action, activeRideOrder, token), actionText(action))}
+            />
+          ) : (
+            <BookingPanel
+              title="乘客叫车"
+              booking={booking}
+              setBooking={setBooking}
+              estimate={estimate}
+              carTypes={home.carTypes}
+              onEstimate={estimateRide}
+              onPrimary={createRide}
+              primaryText="提交订单"
+            />
+          )}
+          <CityMap booking={booking} estimate={estimate} compact operational activeOrder={activeRideOrder} runtime={activeRuntime} />
         </div>
       )}
 
@@ -541,7 +687,19 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         />
       )}
 
-      {tab === 'messages' && <MessageBoard messages={messages} onRefresh={load} />}
+      {tab === 'messages' && (
+        <MessageBoard
+          messages={messages}
+          orders={orders}
+          onRefresh={load}
+          onReadMessage={async (message) => {
+            setMessages((list) => list.map((item) => item.id === message.id ? { ...item, unread: false, read: true, isRead: true, readStatus: 'READ' } : item))
+            try {
+              await api.markMessageRead(token, message.id)
+            } catch (error) {}
+          }}
+        />
+      )}
       {tab === 'international' && <InternationalBoard booking={booking} setBooking={setBooking} estimate={estimate} carTypes={home.carTypes} onSubmit={createInternationalRide} />}
       {tab === 'wallet' && (
         <PassengerWalletBoard
@@ -558,7 +716,13 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           onEvaluate={(order) => run(() => api.evaluate(token, { orderId: order.id, score: 5, content: '网页端评价：服务顺滑，接驾及时。' }), '评价已提交')}
         />
       )}
-      {tab === 'profile' && <ProfileBoard profile={profile || session} mode="USER" />}
+      {tab === 'profile' && (
+        <ProfileBoard
+          profile={profile || session}
+          mode="USER"
+          onProfile={(form) => run(() => api.updateProfile(token, form), '资料已保存')}
+        />
+      )}
     </DashboardShell>
   )
 }
@@ -633,7 +797,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
           <section className="glass-panel work-card wide">
             <div className="card-head">
               <div>
-                <span className="section-kicker">Driver cockpit</span>
+                <span className="section-kicker">司机服务</span>
                 <h2>听单大厅</h2>
               </div>
               <StatusBadge value={profile.serviceStatus || DRIVER_STATUS.OFFLINE} />
@@ -662,7 +826,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
           <section className="glass-panel work-card wide">
             <div className="card-head">
               <div>
-                <span className="section-kicker">Waiting orders</span>
+                <span className="section-kicker">待接订单</span>
                 <h2>待抢订单</h2>
               </div>
               <button className="icon-button" onClick={load}><RefreshCw size={17} /></button>
@@ -710,7 +874,19 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
         />
       )}
 
-      {tab === 'messages' && <MessageBoard messages={messages} onRefresh={load} />}
+      {tab === 'messages' && (
+        <MessageBoard
+          messages={messages}
+          orders={orders}
+          onRefresh={load}
+          onReadMessage={async (message) => {
+            setMessages((list) => list.map((item) => item.id === message.id ? { ...item, unread: false, read: true, isRead: true, readStatus: 'READ' } : item))
+            try {
+              await api.markMessageRead(token, message.id)
+            } catch (error) {}
+          }}
+        />
+      )}
     </DashboardShell>
   )
 }
@@ -795,14 +971,190 @@ function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstima
   )
 }
 
-function CityMap({ booking, estimate, compact = false, operational = false }) {
+function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
+  const copy = getRideStatusCopy(order)
+  const timeline = normalizeTimeline(order)
+  const canCancel = [ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus)
+  const canPickup = order.orderStatus === ORDER_STATUS.PICKING_UP
+  const canPay = order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID
+
+  return (
+    <section className="active-ride-card glass-panel refract">
+      <div className="active-ride-head">
+        <div>
+          <span className="section-kicker">行程状态</span>
+          <h2>{copy.title}</h2>
+          <p>{copy.desc}</p>
+        </div>
+        <StatusBadge value={order.orderStatus} />
+      </div>
+      <div className="active-route-line">
+        <div><span className="address-dot start" /><small>上车点</small><strong>{order.startName}</strong></div>
+        <div><span className="address-dot end" /><small>目的地</small><strong>{order.endName}</strong></div>
+      </div>
+      <div className="active-ride-metrics">
+        <MiniStat label="预计接驾" value={`${runtime?.etaMinutes || order.estimatedDurationMin || 8} min`} />
+        <MiniStat label="行程距离" value={`${runtime?.distanceKm || order.estimatedDistanceKm || '-'} km`} />
+        <MiniStat label="订单金额" value={formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)} />
+      </div>
+      <div className="active-driver-card">
+        <CarTaxiFront size={20} />
+        <div>
+          <strong>{order.driverId ? '李师傅已同步接单' : '正在同步附近司机'}</strong>
+          <span>{order.driverId ? '车辆位置会从订单 runtime 接口刷新' : '司机端听单大厅接单后这里会自动变化'}</span>
+        </div>
+      </div>
+      <div className="active-timeline">
+        {timeline.slice(0, 4).map((item, index) => (
+          <span key={`${item.label}-${index}`} className={item.tone || 'waiting'}>{item.label}</span>
+        ))}
+      </div>
+      <div className="active-ride-actions">
+        <button className="ghost-button" onClick={onRefresh}><RefreshCw size={16} />刷新同步</button>
+        {canCancel && <button className="ghost-button" onClick={() => onAction('cancel')}><XCircle size={16} />取消订单</button>}
+        {canPickup && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />我已上车</button>}
+        {canPay && <button className="solid-button" onClick={() => onAction('pay')}><CreditCard size={16} />支付</button>}
+      </div>
+    </section>
+  )
+}
+
+function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }) {
+  const copy = getRideStatusCopy(order)
+  const timeline = normalizeTimeline(order)
+  return (
+    <>
+      <div className="active-map-sheet">
+        <div className="active-map-sheet__head">
+          <div>
+            <span className="section-kicker">订单同步</span>
+            <h3>{copy.title}</h3>
+            <p>{copy.desc}</p>
+          </div>
+          <StatusBadge value={order.orderStatus} />
+        </div>
+        <div className="active-map-sheet__grid">
+          <MiniStat label="订单号" value={order.orderNo || `#${order.id}`} />
+          <MiniStat label="司机" value={order.driverId ? '已接单' : '待接单'} />
+          <MiniStat label="预估费用" value={formatMoney(amount, currency)} />
+          <MiniStat label="ETA" value={`${runtime?.etaMinutes || duration || 8} min`} />
+        </div>
+        <div className="active-map-sheet__line">
+          <div><span className="address-dot start" /><small>从哪里出发</small><strong>{order.startName}</strong></div>
+          <div><span className="address-dot end" /><small>去哪里</small><strong>{order.endName}</strong></div>
+        </div>
+        <div className="active-map-sheet__foot">
+          <span><Clock size={14} />{order.updatedAt || order.createdAt || '-'}</span>
+          <span><Route size={14} />{distance} km</span>
+        </div>
+      </div>
+      <div className="active-map-timeline">
+        {timeline.slice(0, 5).map((item, index) => <span key={`${item.label}-${index}`} className={item.tone || 'waiting'}>{item.label}</span>)}
+      </div>
+    </>
+  )
+}
+
+function pickActiveRideOrder(orders = []) {
+  const candidates = normalizeList(orders)
+    .filter((order) => {
+      if (!order) return false
+      if (order.serviceType === SERVICE_TYPE.CARPOOL) return false
+      return [ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus) ||
+        (order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID)
+    })
+    .sort((left, right) => {
+      const rightTime = Date.parse(String(right.updatedAt || right.createdAt || '').replace(' ', 'T')) || Number(right.id || 0)
+      const leftTime = Date.parse(String(left.updatedAt || left.createdAt || '').replace(' ', 'T')) || Number(left.id || 0)
+      return rightTime - leftTime
+    })
+  return candidates[0] || null
+}
+
+function buildRouteFromOrder(order = {}) {
+  const start = {
+    name: order.startName || '上车点',
+    latitude: Number(order.startLat || order.startLatitude || order.latitude || 0),
+    longitude: Number(order.startLng || order.startLongitude || order.longitude || 0)
+  }
+  const end = {
+    name: order.endName || '目的地',
+    latitude: Number(order.endLat || order.endLatitude || 0),
+    longitude: Number(order.endLng || order.endLongitude || 0)
+  }
+  return {
+    start,
+    end,
+    distanceKm: Number(order.actualDistanceKm || order.estimatedDistanceKm || 1.2),
+    durationMin: Number(order.actualDurationMin || order.estimatedDurationMin || 8)
+  }
+}
+
+function buildEstimateFromOrder(order = {}, route = {}) {
+  return {
+    distanceKm: Number(order.actualDistanceKm || order.estimatedDistanceKm || route.distanceKm || 1.2),
+    durationMin: Number(order.actualDurationMin || order.estimatedDurationMin || route.durationMin || 8),
+    amount: Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0),
+    currencyCode: order.currencyCode || 'CNY'
+  }
+}
+
+function getRideStatusCopy(order = {}) {
+  const map = {
+    [ORDER_STATUS.DISPATCHING]: {
+      title: '正在为你呼叫附近司机',
+      desc: '订单已写入后台，司机端听单大厅可实时接单。',
+      mapLabel: '智能派单中'
+    },
+    [ORDER_STATUS.ACCEPTED]: {
+      title: '司机已接单',
+      desc: '司机车辆位置将通过订单 runtime 接口持续同步。',
+      mapLabel: '司机已接单'
+    },
+    [ORDER_STATUS.PICKING_UP]: {
+      title: '司机接驾中',
+      desc: '请在上车点等待，确认上车后行程会进入进行中。',
+      mapLabel: '司机接驾中'
+    },
+    [ORDER_STATUS.IN_TRIP]: {
+      title: '行程进行中',
+      desc: '路线和预计到达时间会跟随后台状态刷新。',
+      mapLabel: '行程进行中'
+    },
+    [ORDER_STATUS.FINISHED]: {
+      title: '行程已结束',
+      desc: '请完成支付，订单状态会同步到小程序和后台。',
+      mapLabel: '待支付'
+    }
+  }
+  return map[order.orderStatus] || {
+    title: statusLabel[order.orderStatus] || '订单同步中',
+    desc: '正在读取订单状态。',
+    mapLabel: statusLabel[order.orderStatus] || '订单同步'
+  }
+}
+
+function normalizeTimeline(order = {}) {
+  const source = Array.isArray(order.timeline) && order.timeline.length
+    ? order.timeline
+    : [{ label: getRideStatusCopy(order).mapLabel, tone: statusTone[order.orderStatus] || 'waiting' }]
+  return source.map((item) => ({
+    label: item.label || item.title || '-',
+    tone: item.tone || statusTone[order.orderStatus] || 'waiting'
+  }))
+}
+
+function CityMap({ booking, estimate, compact = false, operational = false, activeOrder = null, runtime = null }) {
   const tilt = useTiltCard({ maxX: 6, maxY: 9 })
-  const route = calcRoute(booking.startId, booking.endId)
-  const fallback = estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
-  const amount = estimate?.amount || fallback.amount
-  const duration = estimate?.durationMin || route.durationMin
-  const distance = estimate?.distanceKm || route.distanceKm
-  const currency = estimate?.currencyCode || fallback.currencyCode
+  const route = activeOrder ? buildRouteFromOrder(activeOrder) : calcRoute(booking.startId, booking.endId)
+  const fallback = activeOrder
+    ? buildEstimateFromOrder(activeOrder, route)
+    : estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
+  const amount = activeOrder ? fallback.amount : (estimate?.amount || fallback.amount)
+  const duration = runtime?.etaMinutes || (activeOrder ? fallback.durationMin : (estimate?.durationMin || route.durationMin))
+  const distance = runtime?.distanceKm || (activeOrder ? fallback.distanceKm : (estimate?.distanceKm || route.distanceKm))
+  const currency = activeOrder?.currencyCode || estimate?.currencyCode || fallback.currencyCode
+  const mapStateText = activeOrder ? getRideStatusCopy(activeOrder).mapLabel : '等待提交订单'
   const trees = Array.from({ length: 8 }, (_, index) => ({
     left: `${index * 15 - 8}%`,
     scale: 0.78 + (index % 3) * 0.08,
@@ -814,8 +1166,17 @@ function CityMap({ booking, estimate, compact = false, operational = false }) {
     delay: `${index * -0.38}s`,
     variant: index % 6
   }))
+  const mapCardClassName = `city-map map-card-v2 glass-panel ${operational ? '' : 'tilt-card'} ${compact ? 'compact' : ''} ${operational ? 'operational-map' : ''}`.replace(/\s+/g, ' ').trim()
+  const tiltProps = operational
+    ? {}
+    : {
+        ref: tilt.ref,
+        onPointerMove: tilt.onPointerMove,
+        onPointerLeave: tilt.onPointerLeave
+      }
+
   return (
-    <section className={`city-map map-card-v2 glass-panel tilt-card ${compact ? 'compact' : ''} ${operational ? 'operational-map' : ''}`} ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave}>
+    <section className={mapCardClassName} {...tiltProps}>
       <div className="map-topline map-header-v2">
         <div>
           <span><MapPin size={15} />{route.start.name}</span>
@@ -824,7 +1185,7 @@ function CityMap({ booking, estimate, compact = false, operational = false }) {
         <strong>{formatMoney(amount, currency)}</strong>
       </div>
       {operational ? (
-        <TencentRouteMap route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={booking.serviceType} />
+        <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} />
       ) : (
       <div className="map-canvas map-canvas-v2">
         <div className="map-road-net" aria-hidden="true">
@@ -881,7 +1242,7 @@ function CityMap({ booking, estimate, compact = false, operational = false }) {
           <span>{operational ? '预计行程' : '司机靠近中'}</span>
         </div>
         <div className="map-route-sheet glass-panel">
-          <span><Navigation size={15} />{operational ? '等待提交订单' : '智能派单'}</span>
+          <span><Navigation size={15} />{operational ? mapStateText : '智能派单'}</span>
           <strong>{distance} km</strong>
           <small>{statusLabel[booking.serviceType]} · {currency}</small>
         </div>
@@ -892,6 +1253,187 @@ function CityMap({ booking, estimate, compact = false, operational = false }) {
         <span><Route size={15} />{distance} km</span>
       </div>
     </section>
+  )
+}
+
+function TencentRouteMapV2({ route, amount, currency, duration, distance, serviceType, order = null, runtime = null }) {
+  const mapRef = useRef(null)
+  const mapInstanceRef = useRef(null)
+  const [scriptReady, setScriptReady] = useState(false)
+  const [scriptFailed, setScriptFailed] = useState(false)
+  const [routePoints, setRoutePoints] = useState([])
+  const start = route.start
+  const end = route.end
+  const mapKey = getTencentMapKey()
+
+  useEffect(() => {
+    if (!mapKey) return
+    if (window.TMap?.Map) {
+      setScriptReady(true)
+      return
+    }
+    const existing = document.querySelector('script[data-sunshine-tencent-map]')
+    if (existing) {
+      existing.addEventListener('load', () => setScriptReady(true), { once: true })
+      return
+    }
+    const script = document.createElement('script')
+    script.dataset.sunshineTencentMap = 'true'
+    script.src = `https://map.qq.com/api/gljs?v=1.exp&key=${encodeURIComponent(mapKey)}`
+    script.async = true
+    script.onload = () => setScriptReady(true)
+    script.onerror = () => setScriptFailed(true)
+    document.head.appendChild(script)
+  }, [mapKey])
+
+  useEffect(() => {
+    let cancelled = false
+    const syncRoute = async () => {
+      const points = await fetchTencentDrivingRoute(start, end, mapKey)
+      if (!cancelled) setRoutePoints(points)
+    }
+    if (mapKey) syncRoute()
+    else setRoutePoints([])
+    return () => {
+      cancelled = true
+    }
+  }, [start, end, mapKey])
+
+  useEffect(() => {
+    if (!scriptReady || !mapRef.current || !window.TMap?.Map) return
+    const TMap = window.TMap
+    const startPoint = new TMap.LatLng(start.latitude, start.longitude)
+    const endPoint = new TMap.LatLng(end.latitude, end.longitude)
+    const center = new TMap.LatLng((start.latitude + end.latitude) / 2, (start.longitude + end.longitude) / 2)
+    mapRef.current.innerHTML = ''
+    const map = new TMap.Map(mapRef.current, {
+      center,
+      zoom: 14,
+      pitch: 0,
+      rotation: 0,
+      showControl: false,
+      baseMap: {
+        type: 'vector',
+        features: ['base', 'building2d', 'label']
+      }
+    })
+    mapInstanceRef.current = map
+
+    const renderRouteSource = mergeRouteEndpoints(
+      routePoints.length ? routePoints : (runtime?.route?.length ? runtime.route : [start, end]),
+      start,
+      end
+    )
+    const renderRoute = renderRouteSource
+      .map((point) => new TMap.LatLng(Number(point.latitude), Number(point.longitude)))
+
+    new TMap.MultiPolyline({
+      map,
+      styles: {
+        route: new TMap.PolylineStyle({
+          color: '#1596c7',
+          width: 6,
+          borderWidth: 4,
+          borderColor: '#ffffff',
+          lineCap: 'round'
+        })
+      },
+      geometries: [{
+        id: 'route',
+        styleId: 'route',
+        paths: renderRoute
+      }]
+    })
+
+    const geometries = [{
+      id: 'start',
+      styleId: 'start',
+      position: startPoint
+    }, {
+      id: 'end',
+      styleId: 'end',
+      position: endPoint
+    }]
+    if (runtime?.driverLocation) {
+      geometries.push({
+        id: 'driver',
+        styleId: 'driver',
+        position: new TMap.LatLng(runtime.driverLocation.latitude, runtime.driverLocation.longitude)
+      })
+    }
+    new TMap.MultiMarker({
+      map,
+      styles: {
+        start: new TMap.MarkerStyle({
+          width: 28,
+          height: 36,
+          anchor: { x: 14, y: 32 },
+          src: '/assets/map-start.png'
+        }),
+        end: new TMap.MarkerStyle({
+          width: 28,
+          height: 36,
+          anchor: { x: 14, y: 32 },
+          src: '/assets/map-end.png'
+        }),
+        driver: new TMap.MarkerStyle({
+          width: 30,
+          height: 30,
+          anchor: { x: 15, y: 15 },
+          src: '/assets/map-driver.png'
+        })
+      },
+      geometries
+    })
+
+    if (TMap.LatLngBounds) {
+      const source = renderRouteSource
+      const latitudes = source.map((point) => Number(point.latitude))
+      const longitudes = source.map((point) => Number(point.longitude))
+      const southWest = new TMap.LatLng(Math.min(...latitudes), Math.min(...longitudes))
+      const northEast = new TMap.LatLng(Math.max(...latitudes), Math.max(...longitudes))
+      const bounds = new TMap.LatLngBounds(southWest, northEast)
+      if (typeof map.fitBounds === 'function') {
+        map.fitBounds(bounds)
+      }
+    }
+  }, [scriptReady, start, end, runtime?.driverLocation, runtime?.route, routePoints])
+
+  const useNativeMap = Boolean(mapKey && scriptReady && !scriptFailed && window.TMap?.Map)
+
+  return (
+    <div className="miniapp-sync-shell">
+      <div className="miniapp-sync-map">
+        {!useNativeMap && <RealTileRouteMap route={route} runtime={runtime} order={order} routePoints={routePoints} />}
+        {mapKey && <div className={`tencent-map-canvas miniapp-map-native ${useNativeMap ? 'is-ready' : ''}`} ref={mapRef} />}
+        <div className="miniapp-sync-brand">
+          <strong>阳光出行</strong>
+          <span>{useNativeMap ? '腾讯地图' : '地图加载中'}</span>
+        </div>
+      </div>
+      <div className="miniapp-sync-panel">
+        {order ? (
+          <ActiveMapSheet order={order} runtime={runtime} amount={amount} currency={currency} duration={duration} distance={distance} />
+        ) : (
+          <>
+            <div className="miniapp-sync-tabs">
+              <button className={serviceType === SERVICE_TYPE.TAXI ? 'active' : ''}>打车</button>
+              <button className={serviceType === SERVICE_TYPE.CARPOOL ? 'active' : ''}>顺风车</button>
+              <button className={serviceType === SERVICE_TYPE.INTERNATIONAL ? 'active' : ''}>国际出行</button>
+            </div>
+            <div className="miniapp-sync-addresses">
+              <div><span className="address-dot start" /><small>从哪里出发</small><strong>{start.name}</strong></div>
+              <div><span className="address-dot end" /><small>去哪里</small><strong>{end.name}</strong></div>
+            </div>
+            <div className="miniapp-sync-metrics">
+              <MiniStat label="预估" value={formatMoney(amount, currency)} />
+              <MiniStat label="距离" value={`${distance} km`} />
+              <MiniStat label="时间" value={`${duration} min`} />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -972,30 +1514,259 @@ function TencentRouteMap({ route, amount, currency, duration, distance, serviceT
 }
 
 function MiniappRouteMap({ route }) {
+  return <RealTileRouteMap route={route} />
+}
+
+function RealTileRouteMap({ route, runtime = null, order = null, routePoints = [] }) {
   const start = route.start
   const end = route.end
+  const geometry = buildTileMapGeometry(start, end, routePoints)
+  const driver = runtime?.driverLocation ? projectPointIntoGeometry(runtime.driverLocation, geometry) : null
   return (
-    <div className="miniapp-map-fallback">
-      <div className="miniapp-map-grid" />
-      <div className="miniapp-map-water" />
-      <div className="miniapp-map-road main"><span>迎宾路</span></div>
-      <div className="miniapp-map-road cross"><span>学院大街</span></div>
-      <div className="miniapp-map-road slim one" />
-      <div className="miniapp-map-road slim two" />
-      <div className="miniapp-map-poi hospital">三河妇幼</div>
-      <div className="miniapp-map-poi mall">天洋广场</div>
-      <svg className="miniapp-route-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M28 60 L44 60 L44 48 L60 48 L72 40" />
+    <div className="miniapp-map-fallback real-map-fallback">
+      <div className="real-map-tiles" aria-hidden="true">
+        {geometry.tiles.map((tile) => (
+          <MapTileImage
+            key={`${tile.x}-${tile.y}`}
+            tile={tile}
+          />
+        ))}
+      </div>
+      <div className="real-map-soften" />
+      <svg className="real-map-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path className="real-map-route-shadow" d={geometry.routePath} />
+        <path className="real-map-route-line" d={geometry.routePath} />
       </svg>
-      <div className="miniapp-map-pin start"><span>起</span><strong>{start.name}</strong></div>
-      <div className="miniapp-map-pin end"><span>终</span><strong>{end.name}</strong></div>
-      <div className="miniapp-map-scale">100 米</div>
+      <div className="real-map-label school-road">学院大街</div>
+      <div className="real-map-label sanhe-road">三河妇幼</div>
+      <div className="real-map-pin start" style={{ left: `${geometry.start.x}%`, top: `${geometry.start.y}%` }}>
+        <span>起</span><strong>{start.name}</strong>
+      </div>
+      <div className="real-map-pin end" style={{ left: `${geometry.end.x}%`, top: `${geometry.end.y}%` }}>
+        <span>终</span><strong>{end.name}</strong>
+      </div>
+      {driver && (
+        <div className="real-map-driver" style={{ left: `${driver.x}%`, top: `${driver.y}%` }}>
+          <span><CarTaxiFront size={14} /></span>
+          <strong>{order?.driverId ? '司机位置' : '附近司机'}</strong>
+        </div>
+      )}
+      <div className="real-map-scale"><i />100 米</div>
     </div>
   )
 }
 
+function MapTileImage({ tile }) {
+  const [sourceIndex, setSourceIndex] = useState(0)
+  const [exhausted, setExhausted] = useState(false)
+  const style = {
+    left: `${tile.left}%`,
+    top: `${tile.top}%`,
+    width: `${tile.size}%`,
+    height: `${tile.height}%`
+  }
+
+  if (exhausted) return <span className="real-map-tile-fallback" style={style} aria-hidden="true" />
+
+  return (
+    <img
+      src={tile.urls[sourceIndex]}
+      alt=""
+      draggable="false"
+      decoding="async"
+      loading="eager"
+      referrerPolicy="no-referrer"
+      style={style}
+      onError={() => {
+        if (sourceIndex < tile.urls.length - 1) {
+          setSourceIndex((value) => value + 1)
+        } else {
+          setExhausted(true)
+        }
+      }}
+    />
+  )
+}
+
+function buildTileMapGeometry(start, end, routePoints = []) {
+  const effectiveRoute = Array.isArray(routePoints) && routePoints.length ? routePoints : [start, end]
+  const distance = haversineForMap(start.latitude, start.longitude, end.latitude, end.longitude)
+  const zoom = distance > 12 ? 12 : distance > 5 ? 13 : distance > 2 ? 14 : 16
+  const width = 920
+  const height = 390
+  const projectedRoute = effectiveRoute.map((point) => projectMapPoint(point.latitude, point.longitude, zoom))
+  const startPixel = projectMapPoint(start.latitude, start.longitude, zoom)
+  const endPixel = projectMapPoint(end.latitude, end.longitude, zoom)
+  const center = {
+    x: projectedRoute.reduce((sum, point) => sum + point.x, 0) / projectedRoute.length,
+    y: projectedRoute.reduce((sum, point) => sum + point.y, 0) / projectedRoute.length
+  }
+  const left = center.x - width / 2
+  const top = center.y - height / 2
+  const right = left + width
+  const bottom = top + height
+  const startTileX = Math.floor(left / 256) - 1
+  const endTileX = Math.floor(right / 256) + 1
+  const startTileY = Math.floor(top / 256) - 1
+  const endTileY = Math.floor(bottom / 256) + 1
+  const maxTile = 2 ** zoom
+  const tiles = []
+
+  for (let x = startTileX; x <= endTileX; x += 1) {
+    for (let y = startTileY; y <= endTileY; y += 1) {
+      if (y < 0 || y >= maxTile) continue
+      const wrappedX = ((x % maxTile) + maxTile) % maxTile
+      tiles.push({
+        x: wrappedX,
+        y,
+        urls: buildTileUrls(zoom, wrappedX, y),
+        left: ((x * 256 - left) / width) * 100,
+        top: ((y * 256 - top) / height) * 100,
+        size: (256 / width) * 100,
+        height: (256 / height) * 100
+      })
+    }
+  }
+
+  const startPct = pixelToMapPct(startPixel, left, top, width, height)
+  const endPct = pixelToMapPct(endPixel, left, top, width, height)
+  const routePct = projectedRoute.map((point) => pixelToMapPct(point, left, top, width, height))
+  const routePath = routePct.reduce((path, point, index) => {
+    const prefix = index === 0 ? 'M' : 'L'
+    return `${path}${index ? ' ' : ''}${prefix} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
+  }, '')
+
+  return {
+    zoom,
+    left,
+    top,
+    width,
+    height,
+    tiles,
+    start: startPct,
+    end: endPct,
+    routePath
+  }
+}
+
+function buildTileUrls(zoom, x, y) {
+  return [
+    `https://a.tile.openstreetmap.org/${zoom}/${x}/${y}.png`,
+    `https://b.tile.openstreetmap.org/${zoom}/${x}/${y}.png`,
+    `https://c.tile.openstreetmap.org/${zoom}/${x}/${y}.png`,
+    `https://a.basemaps.cartocdn.com/light_all/${zoom}/${x}/${y}.png`,
+    `https://b.basemaps.cartocdn.com/light_all/${zoom}/${x}/${y}.png`,
+    `https://c.basemaps.cartocdn.com/light_all/${zoom}/${x}/${y}.png`
+  ]
+}
+
+async function fetchTencentDrivingRoute(start, end, mapKey) {
+  if (!mapKey || !start || !end) return []
+  try {
+    const from = `${Number(start.latitude)},${Number(start.longitude)}`
+    const to = `${Number(end.latitude)},${Number(end.longitude)}`
+    const response = await fetch(`/__tencent_map__/ws/direction/v1/driving/?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&key=${encodeURIComponent(mapKey)}&output=json`)
+    if (!response.ok) return []
+    const payload = await response.json()
+    const route = payload?.result?.routes?.[0]
+    if (!route?.polyline?.length) return []
+    return decodeTencentPolyline(route.polyline)
+  } catch (error) {
+    return []
+  }
+}
+
+function mergeRouteEndpoints(points = [], start, end) {
+  const source = Array.isArray(points) ? points
+    .map((point) => ({
+      latitude: Number(point.latitude),
+      longitude: Number(point.longitude)
+    }))
+    .filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude))
+    : []
+
+  const startPoint = {
+    latitude: Number(start?.latitude),
+    longitude: Number(start?.longitude)
+  }
+  const endPoint = {
+    latitude: Number(end?.latitude),
+    longitude: Number(end?.longitude)
+  }
+
+  if (!Number.isFinite(startPoint.latitude) || !Number.isFinite(startPoint.longitude) || !Number.isFinite(endPoint.latitude) || !Number.isFinite(endPoint.longitude)) {
+    return source
+  }
+
+  if (!source.length) return [startPoint, endPoint]
+
+  const merged = source.slice()
+  if (!sameLatLng(merged[0], startPoint)) merged.unshift(startPoint)
+  if (!sameLatLng(merged[merged.length - 1], endPoint)) merged.push(endPoint)
+  return merged
+}
+
+function sameLatLng(a, b, threshold = 0.00008) {
+  if (!a || !b) return false
+  return Math.abs(Number(a.latitude) - Number(b.latitude)) <= threshold &&
+    Math.abs(Number(a.longitude) - Number(b.longitude)) <= threshold
+}
+
+function decodeTencentPolyline(polyline = []) {
+  const values = Array.isArray(polyline) ? polyline.slice() : []
+  if (values.length < 4) return []
+  for (let index = 2; index < values.length; index += 1) {
+    values[index] = Number(values[index - 2]) + Number(values[index]) / 1000000
+  }
+  const points = []
+  for (let index = 0; index < values.length - 1; index += 2) {
+    points.push({
+      latitude: values[index],
+      longitude: values[index + 1]
+    })
+  }
+  return points
+}
+
+function projectPointIntoGeometry(point, geometry) {
+  if (!point || !geometry) return null
+  const projected = projectMapPoint(point.latitude, point.longitude, geometry.zoom)
+  return pixelToMapPct(projected, geometry.left, geometry.top, geometry.width, geometry.height)
+}
+
+function pixelToMapPct(point, left, top, width, height) {
+  return {
+    x: Math.max(8, Math.min(92, ((point.x - left) / width) * 100)),
+    y: Math.max(14, Math.min(82, ((point.y - top) / height) * 100))
+  }
+}
+
+function projectMapPoint(latitude, longitude, zoom) {
+  const size = 256 * 2 ** zoom
+  const sinLat = Math.sin((Number(latitude) * Math.PI) / 180)
+  return {
+    x: ((Number(longitude) + 180) / 360) * size,
+    y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * size
+  }
+}
+
+function haversineForMap(lat1, lon1, lat2, lon2) {
+  const toRad = (value) => (Number(value) * Math.PI) / 180
+  const radius = 6371
+  const dLat = toRad(lat2) - toRad(lat1)
+  const dLon = toRad(lon2) - toRad(lon1)
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) ** 2
+  return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 function getTencentMapKey() {
-  return import.meta.env?.VITE_TENCENT_MAP_KEY || localStorage.getItem('sunshine-tencent-map-key') || ''
+  try {
+    return import.meta.env?.VITE_TENCENT_MAP_KEY || localStorage.getItem('sunshine-tencent-map-key') || DEFAULT_TENCENT_MAP_KEY
+  } catch (error) {
+    return import.meta.env?.VITE_TENCENT_MAP_KEY || DEFAULT_TENCENT_MAP_KEY
+  }
 }
 
 function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, onLogout, onBack, children }) {
@@ -1004,7 +1775,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
       <aside className="side-nav glass-panel">
         <button className="brand-mark" onClick={onBack}>
           <span className="brand-icon"><Icon size={24} /></span>
-          <span><strong>{role}</strong><small>Sunshine Web</small></span>
+          <span><strong>{role}</strong><small>业务页面</small></span>
         </button>
         <div className="nav-tabs">
           {tabs.map(([key, TabIcon, label]) => (
@@ -1018,7 +1789,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
       <section className="dashboard-main">
         <header className="dashboard-header glass-panel">
           <div>
-            <span className="section-kicker">Live workspace</span>
+            <span className="section-kicker">当前账号</span>
             <h1>{profile?.nickname || profile?.phone || role}</h1>
           </div>
           <div className="header-right">
@@ -1039,7 +1810,7 @@ function OrderBoard({ orders, role, onAction, onRefresh }) {
     <section className="glass-panel work-card order-board-card">
       <div className="card-head">
         <div>
-          <span className="section-kicker">Orders</span>
+          <span className="section-kicker">订单</span>
           <h2>{role === 'DRIVER' ? '司机订单' : '我的订单'} <small>{orders?.length || 0}</small></h2>
         </div>
         <div className="order-board-actions">
@@ -1063,6 +1834,19 @@ function OrderBoard({ orders, role, onAction, onRefresh }) {
   )
 }
 
+function formatOrderDisplayTime(order = {}) {
+  const raw = order.createdAt || order.createdTime || order.createTime || order.orderTime || order.submitTime || order.updatedAt || order.updateTime
+  if (!raw) return '-'
+  if (Array.isArray(raw)) {
+    const [year, month, day, hour = 0, minute = 0] = raw
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  }
+  const value = String(raw).replace('T', ' ').replace(/\.\d+Z?$/, '')
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/)
+  if (match) return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`
+  return value.slice(0, 16)
+}
+
 function OrderList({ orders, footer, empty, limit }) {
   if (!orders?.length) return <EmptyState text={empty} />
   const visibleOrders = Number.isFinite(limit) ? orders.slice(0, limit) : orders
@@ -1070,11 +1854,13 @@ function OrderList({ orders, footer, empty, limit }) {
     <div className="order-list compact-order-list">
       {visibleOrders.map((order, index) => {
         const key = order.id || order.orderNo || index
+        const orderTime = formatOrderDisplayTime(order)
         return (
         <article className="order-card glass-panel compact slim" key={key}>
           <div className="order-line">
             <div>
               <h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3>
+              <p className="order-subline"><span>{order.orderNo || `#${order.id}`}</span><span>{statusLabel[order.serviceType] || order.serviceType}</span><span className="order-time">下单 {orderTime}</span></p>
               <p>{order.orderNo || `#${order.id}`} · {statusLabel[order.serviceType] || order.serviceType} · {order.createdTime || order.createTime || '-'}</p>
             </div>
             <div className="order-badges">
@@ -1184,7 +1970,8 @@ function CouponTicket({ coupon, owned = false, onReceive }) {
   const discount = getCouponValue(coupon)
   const threshold = coupon.thresholdAmount || coupon.minAmount || coupon.conditionAmount || 0
   const status = coupon.couponStatus || coupon.status || 'UNUSED'
-  const scope = statusLabel[coupon.serviceType] || coupon.scope || coupon.serviceScope || '全场通用'
+  const rawScope = coupon.serviceType || coupon.scope || coupon.serviceScope
+  const scope = statusLabel[rawScope] || rawScope || '全场通用'
   const validity = coupon.validEndTime || coupon.expireTime || coupon.endTime || coupon.validTo || ''
   return (
     <article className={`coupon-ticket ${owned ? 'owned' : ''} ${discount.type === 'rate' ? 'rate' : ''}`}>
@@ -1220,6 +2007,16 @@ function getCouponValue(coupon = {}) {
   }
   const match = `${coupon.couponName || ''}${coupon.ruleDesc || ''}`.match(/(\d+(?:\.\d+)?)\s*折/)
   return { type: 'rate', text: match ? `${match[1]}折` : '折扣' }
+}
+
+function formatOrderTime(order = {}) {
+  const value = order.createdTime || order.createTime || order.orderTime || order.departTime || order.updatedAt
+  if (!value) return '时间未记录'
+  if (Array.isArray(value)) {
+    const [year, month, day, hour = 0, minute = 0] = value
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  }
+  return String(value).replace('T', ' ').slice(0, 16)
 }
 
 function CarpoolBoard({ data, onSearch, onPublish, onApply }) {
@@ -1258,10 +2055,10 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply }) {
   }
   return (
     <div className="dashboard-grid carpool-board">
-      <section className="glass-panel work-card wide">
-        <div className="card-head">
-          <div><span className="section-kicker">Carpool</span><h2>顺风车</h2></div>
-          <div className="search-line">
+      <section className="glass-panel work-card wide carpool-main-card">
+        <div className="card-head carpool-head">
+          <div className="carpool-title-block"><span className="section-kicker">Carpool</span><h2>顺风车</h2></div>
+          <div className="search-line carpool-search-line">
             <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索起点或终点" />
             <button onClick={() => onSearch(keyword)}><RefreshCw size={16} />搜索</button>
           </div>
@@ -1391,6 +2188,8 @@ function InternationalBoard({ booking, setBooking, estimate, carTypes, onSubmit 
 }
 
 function PassengerWalletBoard({ profile, onProfile, onRealName }) {
+  const [editingRealName, setEditingRealName] = useState(false)
+  const [editingProfile, setEditingProfile] = useState(false)
   const [form, setForm] = useState({
     nickname: profile?.nickname || '',
     emergencyContact: profile?.emergencyContact || '',
@@ -1400,28 +2199,91 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
     realName: profile?.realName || '阳光乘客',
     idCard: profile?.idCard || '110101199901010011'
   })
+
+  useEffect(() => {
+    setForm({
+      nickname: profile?.nickname || '',
+      emergencyContact: profile?.emergencyContact || '',
+      emergencyPhone: profile?.emergencyPhone || ''
+    })
+    setRealName({
+      realName: profile?.realName || '阳光乘客',
+      idCard: profile?.idCard || '110101199901010011'
+    })
+  }, [profile])
+
+  const saveRealName = async () => {
+    await onRealName(realName)
+    setEditingRealName(false)
+  }
+
+  const saveProfile = async () => {
+    await onProfile(form)
+    setEditingProfile(false)
+  }
+
   return (
     <div className="dashboard-grid">
-      <section className="glass-panel work-card">
-        <div className="card-head"><h2>钱包与实名</h2><Wallet size={21} /></div>
-        <div className="stat-grid">
+      <section className="glass-panel work-card wallet-board-card">
+        <div className="card-head">
+          <h2>钱包与实名</h2>
+          {editingRealName ? (
+            <button className="ghost-button compact-action" onClick={() => setEditingRealName(false)}>取消</button>
+          ) : (
+            <button className="ghost-button compact-action" onClick={() => setEditingRealName(true)}><BadgeCheck size={14} />编辑实名</button>
+          )}
+        </div>
+        <div className="stat-grid dashboard-stat-grid compact-stats">
           <Metric value={formatMoney(profile?.walletBalance || 0)} label="钱包余额" />
           <Metric value={profile?.authStatus === 2 ? '已认证' : '待认证'} label="实名状态" />
           <Metric value="WEB" label="支付渠道" />
         </div>
-        {Object.keys(realName).map((key) => (
-          <Field key={key} label={fieldLabel(key)} value={realName[key]} onChange={(value) => setRealName((draft) => ({ ...draft, [key]: value }))} />
-        ))}
-        <button className="solid-button fill" onClick={() => onRealName(realName)}><BadgeCheck size={16} />提交实名</button>
+        {editingRealName ? (
+          <>
+            {Object.keys(realName).map((key) => (
+              <Field key={key} label={fieldLabel(key)} value={realName[key]} onChange={(value) => setRealName((draft) => ({ ...draft, [key]: value }))} />
+            ))}
+            <button className="solid-button fill profile-save-button" onClick={saveRealName}><BadgeCheck size={15} />提交实名</button>
+          </>
+        ) : (
+          <div className="profile-view-list wallet-readonly-list">
+            {Object.keys(realName).map((key) => (
+              <div className="thin-row profile-view-row" key={key}>
+                <span>{fieldLabel(key)}</span>
+                <strong>{realName[key] || '-'}</strong>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
-      <section className="glass-panel work-card wide">
-        <div className="card-head"><h2>资料编辑与发票入口</h2><Settings size={21} /></div>
-        <div className="form-grid">
-          {Object.keys(form).map((key) => (
-            <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
-          ))}
+      <section className="glass-panel work-card wide profile-edit-card">
+        <div className="card-head">
+          <h2>资料与发票入口</h2>
+          {editingProfile ? (
+            <button className="ghost-button compact-action" onClick={() => setEditingProfile(false)}>取消</button>
+          ) : (
+            <button className="ghost-button compact-action" onClick={() => setEditingProfile(true)}><Settings size={14} />编辑资料</button>
+          )}
         </div>
-        <button className="solid-button" onClick={() => onProfile(form)}><ShieldCheck size={16} />同步资料</button>
+        {editingProfile ? (
+          <>
+            <div className="form-grid wallet-profile-form">
+              {Object.keys(form).map((key) => (
+                <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
+              ))}
+            </div>
+            <button className="solid-button profile-save-button" onClick={saveProfile}><ShieldCheck size={15} />同步资料</button>
+          </>
+        ) : (
+          <div className="profile-view-list wallet-readonly-list">
+            {Object.keys(form).map((key) => (
+              <div className="thin-row profile-view-row" key={key}>
+                <span>{fieldLabel(key)}</span>
+                <strong>{form[key] || '-'}</strong>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="invoice-panel">
           <CreditCard size={18} />
           <div><strong>发票抬头</strong><p>小程序发票页无独立后端接口，网页保留入口与本地表单，订单支付数据仍走订单接口。</p></div>
@@ -1436,13 +2298,17 @@ function SupportBoard({ orders, profile, onComplaint, onEvaluate }) {
   return (
     <div className="dashboard-grid">
       <section className="glass-panel work-card wide">
-        <div className="card-head"><div><span className="section-kicker">reviews / complaint</span><h2>评价投诉</h2></div><MessageSquare size={21} /></div>
+        <div className="card-head"><div><span className="section-kicker">服务反馈</span><h2>评价投诉</h2></div><MessageSquare size={21} /></div>
         {candidates.length ? (
-          <div className="order-list">
+          <div className="order-list support-order-list">
             {candidates.slice(0, 4).map((order) => (
-              <article className="order-card glass-panel" key={order.id || order.orderNo}>
+              <article className="order-card glass-panel support-order-card" key={order.id || order.orderNo}>
                 <div className="order-line">
-                  <div><h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3><p>{order.orderNo || `#${order.id}`}</p></div>
+                  <div>
+                    <h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3>
+                    <p>{order.orderNo || `#${order.id}`}</p>
+                    <p className="order-time-line"><Clock size={13} />{formatOrderTime(order)}</p>
+                  </div>
                   <StatusBadge value={order.orderStatus} />
                 </div>
                 <div className="order-actions">
@@ -1489,7 +2355,7 @@ function DriverWallet({ dashboard, onWithdraw, onCertify }) {
     <div className="dashboard-grid">
       <section className="glass-panel work-card">
         <div className="card-head"><h2>钱包提现</h2><DollarSign size={21} /></div>
-        <div className="stat-grid">
+        <div className="stat-grid dashboard-stat-grid compact-stats">
           <Metric value={formatMoney(dashboard?.profile?.withdrawableIncome || 0)} label="可提现余额" />
           <Metric value={dashboard?.pendingWithdraw?.length || 0} label="待审核提现" />
         </div>
@@ -1542,38 +2408,278 @@ function DriverProfileBoard({ dashboard, user, onProfile }) {
   )
 }
 
-function MessageBoard({ messages, onRefresh }) {
+function messageTypeLabel(type) {
+  const labels = {
+    ORDER: '订单',
+    PAYMENT: '支付',
+    COUPON: '优惠券',
+    SYSTEM: '系统',
+    DRIVER: '司机'
+  }
+  return labels[type] || type || '通知'
+}
+
+function dateLikeToMs(value) {
+  if (!value) return null
+  if (Array.isArray(value)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = value
+    return new Date(year, Number(month) - 1, day, hour, minute, second).getTime()
+  }
+  const parsed = new Date(String(value).replace(' ', 'T')).getTime()
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function messageEventTime(item) {
+  return dateLikeToMs(item.createdAt || item.createdTime || item.createTime)
+}
+
+function orderEventTime(order, templateCode = '') {
+  const eventMap = {
+    ORDER_CREATED: ['createdAt', 'createdTime', 'createTime'],
+    DRIVER_ACCEPTED: ['acceptedAt', 'updatedAt', 'createdAt'],
+    DRIVER_ON_THE_WAY: ['acceptedAt', 'updatedAt', 'createdAt'],
+    TRIP_STARTED: ['startedAt', 'updatedAt', 'createdAt'],
+    TRIP_FINISHED: ['finishedAt', 'updatedAt', 'createdAt'],
+    PAY_SUCCESS: ['paidAt', 'updatedAt', 'createdAt'],
+    ORDER_CANCELLED: ['cancelledAt', 'canceledAt', 'updatedAt', 'createdAt']
+  }
+  const keys = eventMap[templateCode] || ['updatedAt', 'createdAt', 'createdTime', 'createTime']
+  for (const key of keys) {
+    const time = dateLikeToMs(order[key])
+    if (time) return time
+  }
+  return null
+}
+
+function matchMessageOrder(item, orders = []) {
+  if (!['ORDER', 'PAYMENT'].includes(item.type) && !String(item.title || '').includes('订单') && !String(item.title || '').includes('行程')) {
+    return null
+  }
+  const messageMs = messageEventTime(item)
+  const template = item.templateCode || ''
+  if (template === 'ORDER_CANCELLED') {
+    return [...orders]
+      .filter((order) => order.orderStatus === ORDER_STATUS.CANCELLED)
+      .sort((a, b) => (dateLikeToMs(b.createdAt || b.createdTime || b.createTime) || 0) - (dateLikeToMs(a.createdAt || a.createdTime || a.createTime) || 0))[0] || null
+  }
+  let best = null
+  let bestDelta = Number.POSITIVE_INFINITY
+  for (const order of orders) {
+    const orderMs = orderEventTime(order, template)
+    if (!messageMs || !orderMs) continue
+    const delta = Math.abs(messageMs - orderMs)
+    if (delta < bestDelta) {
+      best = order
+      bestDelta = delta
+    }
+  }
+  return bestDelta <= 1000 * 60 * 90 ? best : null
+}
+
+function enrichMessagesWithOrders(messages, orders) {
+  return messages.map((item) => ({ ...item, order: matchMessageOrder(item, orders) }))
+}
+
+function isMessageRead(item, index) {
+  if (item?.unread === true) return false
+  if (item?.unread === false) return true
+  if (item?.isRead === true || item?.read === true) return true
+  if (item?.isRead === false || item?.read === false) return false
+  const state = String(item?.readStatus || item?.messageStatus || item?.status || '').toUpperCase()
+  if (['READ', 'READED', 'DONE', 'PROCESSED'].includes(state)) return true
+  if (['UNREAD', 'NEW', 'PENDING'].includes(state)) return false
+  return index > 1
+}
+
+function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
+  const [expanded, setExpanded] = useState(false)
+  const [readFilter, setReadFilter] = useState('UNREAD')
+  const [selectedMessage, setSelectedMessage] = useState(null)
+  const [readOverrides, setReadOverrides] = useState({})
+  const list = useMemo(
+    () => enrichMessagesWithOrders(messages || [], orders || []).map((item, index) => ({
+      ...item,
+      __isRead: readOverrides[item.id] ?? isMessageRead(item, index)
+    })),
+    [messages, orders, readOverrides]
+  )
+  const filteredList = useMemo(() => {
+    if (readFilter === 'READ') return list.filter((item) => item.__isRead)
+    if (readFilter === 'UNREAD') return list.filter((item) => !item.__isRead)
+    return list
+  }, [list, readFilter])
+  const limit = 4
+  const hasMore = filteredList.length > limit
+  const visibleMessages = expanded || !hasMore ? filteredList : filteredList.slice(0, limit)
+  const messageDetailModal = selectedMessage && typeof document !== 'undefined'
+    ? createPortal(
+      <div className="modal-layer" onMouseDown={() => setSelectedMessage(null)}>
+        <div className="center-screen">
+          <section className="glass-panel login-modal message-detail-modal" onMouseDown={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setSelectedMessage(null)}><XCircle size={20} /></button>
+            <span className="section-kicker">消息详情</span>
+            <h2>{selectedMessage.title}</h2>
+            <div className="message-detail-meta">
+              <span className={selectedMessage.__isRead ? 'read' : 'unread'}>{selectedMessage.__isRead ? '已读' : '未读'}</span>
+              <span>{messageTypeLabel(selectedMessage.type)}</span>
+              <span>{selectedMessage.time || selectedMessage.createdTime || selectedMessage.createTime || '-'}</span>
+            </div>
+            <div className="message-detail-body">
+              <p>{selectedMessage.content}</p>
+              {selectedMessage.order && (
+                <div className="message-detail-order">
+                  <strong>{selectedMessage.order.startName} <ChevronRight size={14} /> {selectedMessage.order.endName}</strong>
+                  <span>{selectedMessage.order.orderNo || `#${selectedMessage.order.id}`}</span>
+                  <span>{formatOrderDisplayTime(selectedMessage.order)}</span>
+                  <span>{formatMoney(selectedMessage.order.payableAmount || selectedMessage.order.actualAmount || selectedMessage.order.estimatedAmount, selectedMessage.order.currencyCode)}</span>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>,
+      document.body
+    )
+    : null
+
+  const openMessage = async (item) => {
+    const nextItem = item.__isRead ? item : { ...item, __isRead: true, unread: false, read: true, isRead: true, readStatus: 'READ' }
+    setSelectedMessage(nextItem)
+    if (!item.__isRead) {
+      setReadOverrides((value) => ({ ...value, [item.id]: true }))
+      try {
+        await onReadMessage?.(item)
+      } catch (error) {}
+    }
+  }
+
   return (
-    <section className="glass-panel work-card">
+    <section className="glass-panel work-card message-board-card">
       <div className="card-head">
-        <div><span className="section-kicker">Messages</span><h2>消息中心</h2></div>
-        <button className="icon-button" onClick={onRefresh}><RefreshCw size={17} /></button>
+        <div><span className="section-kicker">消息</span><h2>消息中心</h2></div>
+        <div className="message-head-actions">
+          <div className="message-read-tabs">
+            <button className={readFilter === 'UNREAD' ? 'active is-unread' : 'is-unread'} type="button" onClick={() => setReadFilter('UNREAD')}>未读</button>
+            <button className={readFilter === 'READ' ? 'active is-read' : 'is-read'} type="button" onClick={() => setReadFilter('READ')}>已读</button>
+          </div>
+          {hasMore && (
+            <button className="message-list-toggle head-toggle" type="button" onClick={() => setExpanded((value) => !value)}>
+              {expanded ? '收起' : `展开 ${filteredList.length} 条`}
+              <ChevronRight size={12} className={expanded ? 'rotated' : ''} />
+            </button>
+          )}
+          <button className="icon-button" onClick={onRefresh}><RefreshCw size={15} /></button>
+        </div>
       </div>
-      {messages?.length ? messages.map((item) => (
-        <article className="message-card" key={item.id}>
-          <Bell size={18} />
-          <div><strong>{item.title}</strong><p>{item.content}</p><small>{item.time}</small></div>
-        </article>
-      )) : <EmptyState text="暂无消息。" />}
+      {filteredList.length ? (
+        <>
+          <div className="message-list compact-message-list">
+            {visibleMessages.map((item, index) => (
+              <article
+                className={`message-card compact-message-card ${item.__isRead ? 'is-read' : 'is-unread'}`}
+                key={item.id || `${item.title}-${item.time}-${index}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => openMessage(item)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    openMessage(item)
+                  }
+                }}
+              >
+                <span className="message-icon"><Bell size={15} /></span>
+                <div className="message-body">
+                  <strong>{item.title}</strong>
+                  <p>{item.content}</p>
+                  {item.order ? (
+                    <div className="message-order-link">
+                      <span>{item.order.startName} <ChevronRight size={11} /> {item.order.endName}</span>
+                      <small>{item.order.orderNo || `#${item.order.id}`} · {formatOrderDisplayTime(item.order)} · {formatMoney(item.order.payableAmount || item.order.actualAmount || item.order.estimatedAmount, item.order.currencyCode)}</small>
+                    </div>
+                  ) : (
+                    <small>{messageTypeLabel(item.type)} · {item.time || item.createdTime || item.createTime || '-'}</small>
+                  )}
+                  {item.order && <small>{messageTypeLabel(item.type)} · {item.time || item.createdTime || item.createTime || '-'}</small>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      ) : <EmptyState text="暂无消息。" />}
+      {messageDetailModal}
     </section>
   )
 }
 
-function ProfileBoard({ profile, mode }) {
+function ProfileBoard({ profile, mode, onProfile }) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({
+    nickname: profile?.nickname || '',
+    realName: profile?.realName || '',
+    emergencyContact: profile?.emergencyContact || '',
+    emergencyPhone: profile?.emergencyPhone || ''
+  })
+
+  useEffect(() => {
+    setForm({
+      nickname: profile?.nickname || '',
+      realName: profile?.realName || '',
+      emergencyContact: profile?.emergencyContact || '',
+      emergencyPhone: profile?.emergencyPhone || ''
+    })
+  }, [profile])
+
+  const saveProfile = async () => {
+    if (!onProfile) return
+    await onProfile(form)
+    setEditing(false)
+  }
+
   return (
-    <div className="dashboard-grid">
-      <section className="glass-panel work-card">
-        <div className="card-head"><h2>资料</h2><User size={21} /></div>
-        <InfoPanel title={mode === 'USER' ? '乘客信息' : '司机信息'} items={[
-          ['昵称', profile?.nickname || '-'],
-          ['手机号', profile?.phone || '-'],
-          ['角色', profile?.roleCode || mode],
-          ['认证状态', statusLabel[profile?.authStatus] || profile?.authStatus || '已认证']
-        ]} />
+    <div className="dashboard-grid profile-edit-grid">
+      <section className="glass-panel work-card profile-edit-card">
+        <div className="card-head">
+          <h2>资料</h2>
+          {editing ? (
+            <button className="ghost-button compact-action" onClick={() => setEditing(false)}>取消</button>
+          ) : (
+            <button className="ghost-button compact-action" onClick={() => setEditing(true)}><Settings size={14} />编辑资料</button>
+          )}
+        </div>
+        <div className="profile-readonly-row">
+          <span>手机号</span>
+          <strong>{profile?.phone || '-'}</strong>
+          <span>语言</span>
+          <strong>{profile?.defaultLanguage || 'zh-CN'}</strong>
+        </div>
+        {editing ? (
+          <>
+            <div className="profile-form-grid">
+              {Object.keys(form).map((key) => (
+                <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
+              ))}
+            </div>
+            {onProfile && (
+              <button className="solid-button fill profile-save-button" onClick={saveProfile}>
+                <ShieldCheck size={15} />保存资料
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="profile-view-list">
+            {Object.keys(form).map((key) => (
+              <div className="thin-row profile-view-row" key={key}>
+                <span>{fieldLabel(key)}</span>
+                <strong>{form[key] || '-'}</strong>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
-      <section className="glass-panel work-card wide">
+      <section className="glass-panel work-card wide profile-account-card">
         <div className="card-head"><h2>账户状态</h2><ShieldCheck size={21} /></div>
-        <div className="stat-grid profile-status-grid">
+        <div className="stat-grid profile-status-grid dashboard-stat-grid compact-stats">
           <Metric value={formatMoney(profile?.walletBalance || profile?.withdrawableIncome || 0)} label={mode === 'USER' ? '钱包余额' : '可提现'} />
           <Metric value={profile?.authStatus === 2 ? '已认证' : '待完善'} label="实名状态" />
           <Metric value={profile?.cityCode || '默认'} label="服务城市" />
@@ -1593,25 +2699,52 @@ function InfoPanel({ title, items }) {
   )
 }
 
-function LoginModal({ roleCode, onClose, onSwitch, onLogin }) {
-  const [form, setForm] = useState({ phone: roleMeta[roleCode].phone, password: '123456' })
+function buildAuthForm(roleCode, mode) {
+  return {
+    phone: mode === 'login' ? roleMeta[roleCode].phone : '',
+    nickname: '',
+    password: mode === 'login' ? '123456' : '',
+    confirmPassword: ''
+  }
+}
+
+function LoginModal({ roleCode, onClose, onSwitch, onLogin, onRegister }) {
+  const [mode, setMode] = useState('login')
+  const [form, setForm] = useState(() => buildAuthForm(roleCode, 'login'))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const Icon = roleMeta[roleCode].icon
+  const roleName = roleCode === 'DRIVER' ? '司机' : '乘客'
 
   useEffect(() => {
-    setForm({ phone: roleMeta[roleCode].phone, password: '123456' })
+    setForm(buildAuthForm(roleCode, mode))
     setError('')
-  }, [roleCode])
+  }, [roleCode, mode])
 
   const submit = async (event) => {
     event.preventDefault()
     setBusy(true)
     setError('')
     try {
-      await onLogin({ roleCode, ...form })
+      const phone = form.phone.trim()
+      const password = form.password
+      if (!/^1\d{10}$/.test(phone)) {
+        throw new Error('请输入正确的 11 位手机号')
+      }
+      if (!password || password.length < 6 || password.length > 20) {
+        throw new Error('密码长度需要 6-20 位')
+      }
+      if (mode === 'register') {
+        const nickname = form.nickname.trim()
+        if (!nickname) throw new Error('请输入昵称')
+        if (nickname.length > 20) throw new Error('昵称不能超过 20 个字')
+        if (password !== form.confirmPassword) throw new Error('两次输入的密码不一致')
+        await onRegister({ roleCode, phone, password, nickname, defaultLanguage: 'zh-CN' })
+      } else {
+        await onLogin({ roleCode, phone, password })
+      }
     } catch (err) {
-      setError(err.message || '登录失败')
+      setError(err.message || (mode === 'register' ? '注册失败' : '登录失败'))
     } finally {
       setBusy(false)
     }
@@ -1622,20 +2755,34 @@ function LoginModal({ roleCode, onClose, onSwitch, onLogin }) {
       <form className="login-modal glass-panel refract" onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose}><XCircle size={20} /></button>
         <div className="login-orb"><Icon size={34} /></div>
-        <span className="section-kicker">Sunshine account</span>
-        <h2>{roleMeta[roleCode].label}</h2>
+        <span className="section-kicker">{mode === 'register' ? 'CREATE ACCOUNT' : 'ACCOUNT LOGIN'}</span>
+        <h2>{roleName}{mode === 'register' ? '注册' : '登录'}</h2>
+        <div className="auth-mode-tabs">
+          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>登录</button>
+          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>注册</button>
+        </div>
         <div className="role-switch">
           {Object.keys(roleMeta).map((role) => (
             <button type="button" key={role} className={roleCode === role ? 'active' : ''} onClick={() => onSwitch(role)}>
-              {roleMeta[role].label.replace('登录', '')}
+              {role === 'DRIVER' ? '司机端' : '乘客端'}
             </button>
           ))}
         </div>
-        <label className="input-field"><Phone size={17} /><input value={form.phone} onChange={(event) => setForm((value) => ({ ...value, phone: event.target.value }))} /></label>
-        <label className="input-field"><Lock size={17} /><input type="password" value={form.password} onChange={(event) => setForm((value) => ({ ...value, password: event.target.value }))} /></label>
+        <label className="input-field"><Phone size={17} /><input placeholder="手机号" value={form.phone} onChange={(event) => setForm((value) => ({ ...value, phone: event.target.value }))} /></label>
+        {mode === 'register' && (
+          <label className="input-field"><User size={17} /><input placeholder="昵称" value={form.nickname} onChange={(event) => setForm((value) => ({ ...value, nickname: event.target.value }))} /></label>
+        )}
+        <label className="input-field"><Lock size={17} /><input placeholder="密码" type="password" value={form.password} onChange={(event) => setForm((value) => ({ ...value, password: event.target.value }))} /></label>
+        {mode === 'register' && (
+          <label className="input-field"><ShieldCheck size={17} /><input placeholder="确认密码" type="password" value={form.confirmPassword} onChange={(event) => setForm((value) => ({ ...value, confirmPassword: event.target.value }))} /></label>
+        )}
         {error && <p className="form-error">{error}</p>}
-        <button className="solid-button fill" disabled={busy}>{busy ? '登录中...' : '进入工作台'}</button>
-        <p className="modal-note">默认演示账号：{roleMeta[roleCode].phone} / 123456</p>
+        <button className="solid-button fill" disabled={busy}>
+          {busy ? (mode === 'register' ? '注册中...' : '登录中...') : (mode === 'register' ? '注册并进入' : '进入工作台')}
+        </button>
+        <p className="modal-note">
+          {mode === 'register' ? '注册成功后会自动进入对应端。' : '已有账号可直接登录，新用户请切换到注册。'}
+        </p>
       </form>
     </div>
   )
@@ -1647,7 +2794,7 @@ function LoginRequired({ role, onLogin, onBack }) {
       <section className="glass-panel work-card">
         <Sparkles size={32} />
         <h1>需要先登录</h1>
-        <p>请选择对应身份进入完整网页工作台。</p>
+        <p>请选择身份进入对应页面。</p>
         <div className="hero-actions">
           <button className="solid-button" onClick={onLogin}>去登录</button>
           <button className="ghost-button" onClick={onBack}>返回门户</button>
@@ -2125,12 +3272,17 @@ function CursorTaxi() {
       y += dy * 0.2
       if (speed > 0.2) angle = Math.atan2(dy, dx) * 180 / Math.PI
       const now = performance.now()
-      if (speed > 10 && now - lastSmoke > 52) {
+      if (speed > 8 && now - lastSmoke > (speed > 42 ? 34 : 48)) {
         lastSmoke = now
         spawnSmoke(speed)
       }
       if (ref.current) {
-        ref.current.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${angle}deg)`
+        const movingLeft = Math.cos(angle * Math.PI / 180) < -0.08
+        const facingAngle = movingLeft ? angle - 180 : angle
+        ref.current.classList.toggle('is-driving', speed > 7)
+        ref.current.classList.toggle('is-fast', speed > 34)
+        ref.current.style.setProperty('--cursor-speed', `${Math.min(1, speed / 70).toFixed(3)}`)
+        ref.current.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${facingAngle}deg) scaleX(${movingLeft ? -1 : 1})`
       }
       raf = requestAnimationFrame(tick)
     }
@@ -2167,6 +3319,19 @@ function SvgFilters() {
         <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" xChannelSelector="R" yChannelSelector="G" />
       </filter>
     </svg>
+  )
+}
+
+function TopLoadBar({ visible, progress, active }) {
+  return (
+    <div className={`top-load-bar ${visible ? 'is-visible' : ''} ${active ? 'is-active' : 'is-idle'}`} aria-hidden="true">
+      <div className="top-load-bar__trail" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+      <div className="top-load-bar__car" style={{ left: `calc(${Math.max(0, Math.min(100, progress))}% - 11px)` }}>
+        <span className="top-load-bar__car-body" />
+        <span className="top-load-bar__wheel top-load-bar__wheel--a" />
+        <span className="top-load-bar__wheel top-load-bar__wheel--b" />
+      </div>
+    </div>
   )
 }
 
@@ -2225,13 +3390,13 @@ function MiniStat({ label, value }) {
 }
 
 function FeatureCard({ icon: Icon, title, text }) {
-  return <article className="feature-card glass-panel"><Icon size={22} /><h3>{title}</h3><p>{text}</p></article>
+  return <article className="feature-card glass-panel interactive-border"><Icon size={22} /><h3>{title}</h3><p>{text}</p></article>
 }
 
 function RoleCard({ icon: Icon, title, text, active, onClick }) {
   const tilt = useTiltCard({ maxX: 8, maxY: 10 })
   return (
-    <button className="role-card glass-panel tilt-card" ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave} onClick={onClick}>
+    <button className="role-card glass-panel tilt-card interactive-border" ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave} onClick={onClick}>
       <Icon size={28} />
       <div><h3>{title}</h3><p>{text}</p></div>
       <span>{active ? '进入' : '登录'} <ChevronRight size={16} /></span>
@@ -2262,6 +3427,51 @@ function usePointerVars() {
     window.addEventListener('pointermove', move)
     return () => window.removeEventListener('pointermove', move)
   }, [])
+}
+
+function useTopLoadBar() {
+  const [state, setState] = useState({ visible: false, progress: 0, active: false })
+  const hideTimerRef = useRef(0)
+
+  useEffect(() => {
+    const handleLoading = (event) => {
+      const isActive = Boolean(event.detail?.active)
+      window.clearTimeout(hideTimerRef.current)
+      if (isActive) {
+        setState((current) => ({
+          visible: true,
+          active: true,
+          progress: current.visible ? Math.max(current.progress, 14) : 14
+        }))
+        return
+      }
+      setState((current) => current.visible ? { ...current, active: false, progress: 100 } : current)
+      hideTimerRef.current = window.setTimeout(() => {
+        setState({ visible: false, progress: 0, active: false })
+      }, 320)
+    }
+
+    window.addEventListener('sunshine-api-loading', handleLoading)
+    return () => {
+      window.clearTimeout(hideTimerRef.current)
+      window.removeEventListener('sunshine-api-loading', handleLoading)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!state.active) return undefined
+    const timer = window.setInterval(() => {
+      setState((current) => {
+        const next = current.progress >= 88
+          ? current.progress
+          : current.progress + Math.max(1.4, (92 - current.progress) * 0.08)
+        return { ...current, progress: Math.min(88, next) }
+      })
+    }, 120)
+    return () => window.clearInterval(timer)
+  }, [state.active])
+
+  return state
 }
 
 function useTiltCard({ maxX = 10, maxY = 12 } = {}) {
@@ -2405,6 +3615,7 @@ function fieldLabel(key) {
     nickname: '昵称',
     emergencyContact: '紧急联系人',
     emergencyPhone: '紧急电话',
+    defaultLanguage: '语言',
     cityCode: '服务城市',
     applyAmount: '提现金额',
     bankName: '开户行',

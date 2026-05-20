@@ -45,6 +45,10 @@ export const statusLabel = {
   OFFLINE: '离线',
   ONLINE: '在线听单',
   BUSY: '服务中',
+  UNUSED: '可用',
+  USED: '已用',
+  EXPIRED: '失效',
+  ALL: '全场通用',
   TAXI: '即时打车',
   CARPOOL: '顺风车',
   INTERNATIONAL: '国际出行'
@@ -63,13 +67,16 @@ export const statusTone = {
   REFUNDED: 'danger',
   OFFLINE: 'muted',
   ONLINE: 'success',
-  BUSY: 'active'
+  BUSY: 'active',
+  UNUSED: 'success',
+  USED: 'muted',
+  EXPIRED: 'danger'
 }
 
 export const poiLibrary = [
-  { id: 'poi101', name: '燕京理工学院-南门', address: '河北省廊坊市三河市燕郊经济技术开发区迎宾北路45号', latitude: 39.9825, longitude: 117.0782, tags: ['高校', '校园'] },
-  { id: 'poi102', name: '天洋广场', address: '河北省廊坊市三河市燕郊开发区迎宾路东侧天洋广场', latitude: 39.9848, longitude: 117.0831, tags: ['商场', '商圈'] },
-  { id: 'poi103', name: '海底捞火锅(天洋广场店)', address: '河北省廊坊市三河市燕郊开发区天洋广场4层', latitude: 39.9844, longitude: 117.0836, tags: ['美食', '火锅'] },
+  { id: 'poi101', name: '燕京理工学院-南门', address: '河北省廊坊市三河市迎宾路808号燕京理工学院', latitude: 39.997632, longitude: 116.802754, tags: ['高校', '校园'] },
+  { id: 'poi102', name: '天洋广场', address: '河北省廊坊市三河市亚泰大街与汉王路交叉路口向西400米', latitude: 39.965118, longitude: 116.821212, tags: ['商场', '商圈'] },
+  { id: 'poi103', name: '海底捞火锅(天洋广场店)', address: '河北省廊坊市三河市燕郊开发区规划路南侧天洋广场天洋城天洋广场A馆四层FA4-01号', latitude: 39.96565, longitude: 116.82043, tags: ['美食', '火锅'] },
   { id: 'poi104', name: '三河市政府', address: '河北省廊坊市三河市府东路5号', latitude: 39.981, longitude: 117.0786, tags: ['政务', '地标'] },
   { id: 'poi001', name: '上海虹桥机场T2', address: '闵行区申贵路1500号', latitude: 31.20066, longitude: 121.32756, tags: ['交通枢纽', '机场'] },
   { id: 'poi002', name: '上海迪士尼度假区', address: '浦东新区川沙新镇黄赵路310号', latitude: 31.14337, longitude: 121.65717, tags: ['景点', '度假区'] },
@@ -81,7 +88,8 @@ export const poiLibrary = [
   { id: 'poi008', name: '香港国际机场，中国香港', address: '中国香港大屿山', latitude: 22.308, longitude: 113.9185, tags: ['机场', '国际'] },
   { id: 'poi009', name: '澳门渔人码头，中国澳门', address: '中国澳门外港新填海区', latitude: 22.1959, longitude: 113.5582, tags: ['国际', '景点'] },
   { id: 'poi011', name: '苏州工业园区', address: '江苏省苏州市工业园区', latitude: 31.324, longitude: 120.7219, tags: ['跨城', '商务'] },
-  { id: 'poi112', name: '燕京理工学院-图书馆', address: '河北省廊坊市三河市燕郊经济技术开发区燕京理工学院校内', latitude: 39.98162, longitude: 117.07932, tags: ['高校', '图书馆'] }
+  { id: 'poi111', name: '燕京理工学院', address: '河北省廊坊市三河市燕郊国家高新技术产业开发区迎宾路808号', latitude: 40.00052, longitude: 116.805618, tags: ['高校', '校园'] },
+  { id: 'poi112', name: '燕京理工学院-图书馆', address: '河北省廊坊市三河市燕京理工学院校内', latitude: 39.998892, longitude: 116.804342, tags: ['高校', '图书馆'] }
 ]
 
 export const fallbackCarTypes = [

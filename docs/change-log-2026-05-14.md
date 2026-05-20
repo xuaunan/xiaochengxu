@@ -78,6 +78,9 @@
 - 地图小车图标代表当前虚拟车辆位置，车头方向跟随当前道路段方向变化。
 - 乘客端、司机端、后端数据库和管理后台看到的是同一条演示轨迹。
 - 不使用司机手机真实定位，不暴露真实位置。
+- 本次修复后，司机端不再每次用“当前位置 -> 目标点”重新规划短路线；每个订单每个阶段固定使用同一条完整路线：接驾阶段为“随机司机起点 -> 上车点”，行程阶段为“上车点 -> 终点”。
+- 司机端行程页和接单大厅都会每 3 秒推进并上报一次演示车辆位置；即使司机停留在接单大厅，也会继续同步小车位置、已行驶距离、耗时和进度。
+- 速度上报允许 `0km/h` 作为红灯等待的合法值；绿灯通行时按演示规则恢复为 `90km/h`，避免绿灯状态仍显示 `0km/h`。
 
 相关文件：
 
@@ -189,3 +192,30 @@ $env:JAVA_HOME='C:\Program Files\Java\jdk-17'
 结果：后端编译通过。
 
 说明：后端 `package` 如果提示无法重命名 `target/sunshine-travel-1.0.0.jar`，通常是本地后端服务正在运行并占用 jar 文件，先停止服务后再打包即可。
+
+## 8. 管理后台大盘与重要消息
+
+- 数据大盘顶部 KPI 行改为更紧凑的运营指标条，订单类型显示改成“打车 / 顺风 / 国际”的清晰拆分，避免原先大卡片占位过多、文案挤在一起。
+- 左侧菜单新增“消息列表”，只展示需要后台处理的重要事项：投诉、发票申请、司机资料审核、车辆资料审核、提现申请。
+- 新增后端接口 `GET /admin/important-messages`，消息来源直接汇总后端业务表，不展示普通打车消息、行程通知或聊天消息。
+- 发票闭环补齐：乘客端发票中心提交申请后，订单 `invoiceStatus` 会进入 `APPLIED`；后台消息列表出现“发票申请待处理”，管理员可处理为“已开票”或“已驳回”。
+- 订单管理“改状态”弹窗新增支付状态同步修改，支持待支付、已支付、已退款，并会同步订单支付记录与结算状态。
+
+相关文件：
+
+- `sunshine-admin/src/App.vue`
+- `sunshine-admin/src/router/index.js`
+- `sunshine-admin/src/views/DashboardView.vue`
+- `sunshine-admin/src/views/ImportantMessagesView.vue`
+- `sunshine-admin/src/views/OrderView.vue`
+- `sunshine-user-miniapp/pages/invoice/index.js`
+- `sunshine-user-miniapp/utils/api.js`
+- `sunshine-user-miniapp/utils/user-store.js`
+- `sunshine-travel/src/main/java/com/sunshine/travel/common/InvoiceStatus.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/controller/AdminController.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/controller/OrderController.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/service/AdminService.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/service/OrderService.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/service/impl/AdminServiceFacade.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/service/impl/AdminServiceImpl.java`
+- `sunshine-travel/src/main/java/com/sunshine/travel/service/impl/OrderServiceImpl.java`

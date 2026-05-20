@@ -7,6 +7,7 @@ import com.sunshine.travel.common.BusinessException;
 import com.sunshine.travel.common.CouponType;
 import com.sunshine.travel.common.DriverServiceStatus;
 import com.sunshine.travel.common.ErrorCode;
+import com.sunshine.travel.common.InvoiceStatus;
 import com.sunshine.travel.common.OrderStatus;
 import com.sunshine.travel.common.PageResult;
 import com.sunshine.travel.common.PayStatus;
@@ -51,6 +52,7 @@ import com.sunshine.travel.mapper.WithdrawApplicationMapper;
 import com.sunshine.travel.service.AdminService;
 import com.sunshine.travel.service.OrderService;
 import com.sunshine.travel.service.support.OperationLogSupport;
+import com.sunshine.travel.util.InvoiceMetaUtil;
 import com.sunshine.travel.vo.DashboardVO;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -717,6 +719,9 @@ public class AdminServiceFacade implements AdminService {
         row.put("displayStatus", PayStatus.REFUNDED.equals(item.getPayStatus()) ? "REFUNDED" : item.getOrderStatus());
         row.put("payStatus", item.getPayStatus());
         row.put("invoiceStatus", item.getInvoiceStatus());
+        row.put("invoiceProcessAllowed", OrderStatus.FINISHED.equals(item.getOrderStatus()));
+        row.put("invoiceActionText", invoiceActionText(item.getInvoiceStatus()));
+        row.put("invoiceMeta", InvoiceMetaUtil.parse(item.getRemark()));
         row.put("amount", item.getPayableAmount());
         row.put("actualAmount", item.getActualAmount());
         row.put("refundAmount", item.getRefundAmount());
@@ -735,6 +740,19 @@ public class AdminServiceFacade implements AdminService {
         row.put("remark", item.getRemark());
         row.put("refundAllowed", isRefundAllowed(item));
         return row;
+    }
+
+    private String invoiceActionText(String status) {
+        if (InvoiceStatus.APPLIED.equals(status)) {
+            return "处理发票";
+        }
+        if (InvoiceStatus.ISSUED.equals(status)) {
+            return "查看发票";
+        }
+        if (InvoiceStatus.REJECTED.equals(status)) {
+            return "重新处理";
+        }
+        return "生成发票";
     }
 
     private Map<String, Object> mapUserRow(PlatformUser item) {

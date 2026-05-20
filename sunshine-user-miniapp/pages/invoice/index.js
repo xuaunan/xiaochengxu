@@ -28,18 +28,65 @@ function formatInvoiceTime(value = '') {
   return matched ? `${matched[1]} ${matched[2]}` : text
 }
 
+function buildInvoiceViewRows(detail = {}) {
+  return {
+    baseRows: [
+      { label: '发票代码', value: detail.invoiceCode || '--' },
+      { label: '发票号码', value: detail.invoiceNo || '--' },
+      { label: '开票日期', value: formatInvoiceTime(detail.issueAt || detail.invoiceDate) || '--' },
+      { label: '订单编号', value: detail.orderNo || '--' },
+      { label: '发票类型', value: detail.invoiceType || '电子普通发票' }
+    ],
+    buyerRows: [
+      { label: '名称', value: detail.buyerName || '个人' },
+      { label: '纳税人识别号', value: detail.buyerTaxNo || '个人无需填写' },
+      { label: '联系电话', value: detail.buyerPhone || '13800000000' }
+    ],
+    sellerRows: [
+      { label: '名称', value: detail.sellerName || '北京阳光出行有限公司' },
+      { label: '纳税人识别号', value: detail.sellerTaxNo || '91110105MA01SUN8X9' },
+      { label: '联系电话', value: detail.sellerPhone || '400-100-0101' }
+    ],
+    tripRows: [
+      { label: '乘车人', value: detail.passengerName || '阳光乘客' },
+      { label: '用车时间', value: formatInvoiceTime(detail.tripTime) || '--' },
+      { label: '上车地点', value: detail.startName || '--' },
+      { label: '下车地点', value: detail.endName || '--' },
+      { label: '车型', value: detail.carTypeName || detail.serviceName || '--' },
+      { label: '行程里程', value: detail.distanceText || '--' },
+      { label: '行程时长', value: detail.durationText || '--' },
+      { label: '支付方式', value: detail.payChannel || '模拟支付' }
+    ],
+    feeRows: [
+      { label: '项目', value: detail.itemName || '出行服务费' },
+      { label: '单位', value: detail.itemUnit || '次' },
+      { label: '数量', value: detail.itemQuantity || '1' },
+      { label: '单价', value: detail.itemUnitPrice || detail.itemAmount || '0.00' },
+      { label: '金额', value: detail.itemAmount || detail.totalAmount || '0.00' }
+    ]
+  }
+}
+
 function mapInvoiceView(invoice = {}) {
   const meta = inferInvoiceMeta(invoice)
+  const rows = buildInvoiceViewRows(invoice.detail || {})
   return {
     ...invoice,
     ...meta,
-    displayTime: formatInvoiceTime(invoice.createdAt)
+    ...rows,
+    displayTime: formatInvoiceTime(invoice.createdAt),
+    issueTime: formatInvoiceTime(invoice.issuedAt || invoice.detail?.issueAt || invoice.detail?.invoiceDate)
   }
 }
 
 Page({
   data: {
-    list: []
+    activeTab: 'apply',
+    list: [],
+    applyList: [],
+    issuedList: [],
+    selectedInvoiceId: '',
+    selectedInvoice: null
   },
 
   async onShow() {
@@ -48,8 +95,23 @@ Page({
   },
 
   renderCachedInvoices() {
+    const list = buildInvoiceList(getApp().globalData.userStore.orders || []).map(mapInvoiceView)
+    const applyList = list.filter((item) => !item.isIssued)
+    const issuedList = list.filter((item) => item.isIssued)
+    let selectedInvoice = null
+    let selectedInvoiceId = this.data.selectedInvoiceId
+
+    if (this.data.activeTab === 'issued') {
+      selectedInvoice = issuedList.find((item) => `${item.id}` === `${selectedInvoiceId}`) || issuedList[0] || null
+      selectedInvoiceId = selectedInvoice ? `${selectedInvoice.id}` : ''
+    }
+
     this.setData({
-      list: buildInvoiceList(getApp().globalData.userStore.orders || []).map(mapInvoiceView)
+      list,
+      applyList,
+      issuedList,
+      selectedInvoiceId,
+      selectedInvoice
     })
   },
 
@@ -61,9 +123,32 @@ Page({
     })
   },
 
+  switchInvoiceTab(e) {
+    const activeTab = e.currentTarget.dataset.tab || 'apply'
+    const issuedList = this.data.issuedList || []
+    const selectedInvoice = activeTab === 'issued'
+      ? (issuedList.find((item) => `${item.id}` === `${this.data.selectedInvoiceId}`) || issuedList[0] || null)
+      : null
+    this.setData({
+      activeTab,
+      selectedInvoice,
+      selectedInvoiceId: selectedInvoice ? `${selectedInvoice.id}` : this.data.selectedInvoiceId
+    })
+  },
+
+  viewInvoice(e) {
+    const invoiceId = e.currentTarget.dataset.id
+    const selectedInvoice = (this.data.issuedList || []).find((item) => `${item.id}` === `${invoiceId}`) || null
+    if (!selectedInvoice) return
+    this.setData({
+      selectedInvoice,
+      selectedInvoiceId: `${selectedInvoice.id}`
+    })
+  },
+
   async applyInvoice(e) {
     const orderId = e.currentTarget.dataset.id
-    const invoice = (this.data.list || []).find((item) => `${item.id}` === `${orderId}`)
+    const invoice = (this.data.applyList || this.data.list || []).find((item) => `${item.id}` === `${orderId}`)
     if (!invoice || !invoice.canApply) {
       wx.showToast({
         title: invoice?.status || '当前不可申请',
@@ -85,6 +170,7 @@ Page({
     if (!modal.confirm) return
     await applyInvoice(orderId, {
       invoiceTitle: modal.content || '个人',
+      buyerPhone: getApp().globalData.userStore.profile?.phone || '13800000000',
       remark: '乘客端提交电子发票申请'
     })
     wx.showToast({
