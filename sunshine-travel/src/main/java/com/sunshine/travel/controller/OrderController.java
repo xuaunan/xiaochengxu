@@ -12,10 +12,15 @@ import com.sunshine.travel.dto.OrderCancelRequest;
 import com.sunshine.travel.dto.OrderCreateRequest;
 import com.sunshine.travel.dto.OrderFinishRequest;
 import com.sunshine.travel.dto.TrackReportRequest;
+import com.sunshine.travel.service.InvoiceImageService;
 import com.sunshine.travel.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,9 +34,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orderService;
+    private final InvoiceImageService invoiceImageService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, InvoiceImageService invoiceImageService) {
         this.orderService = orderService;
+        this.invoiceImageService = invoiceImageService;
     }
 
     @Operation(summary = "创建订单")
@@ -145,6 +152,18 @@ public class OrderController {
     @PostMapping("/{orderId}/invoice")
     public ApiResponse<?> applyInvoice(@PathVariable Long orderId, @RequestBody InvoiceApplyRequest request) {
         return ApiResponse.success("发票申请已提交", orderService.applyInvoice(orderId, request));
+    }
+
+    @Operation(summary = "查看订单发票图片")
+    @RequireRole(RoleCode.USER)
+    @GetMapping(value = "/{orderId}/invoice/image", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> invoiceImage(@PathVariable Long orderId) {
+        byte[] image = invoiceImageService.render(orderId, false);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=invoice-" + orderId + ".png")
+                .contentType(MediaType.IMAGE_PNG)
+                .body(image);
     }
 
     @Operation(summary = "上报订单轨迹点")

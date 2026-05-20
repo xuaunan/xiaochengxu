@@ -229,6 +229,29 @@ function applyInvoice(orderId, data = {}) {
   })
 }
 
+function downloadInvoiceImage(orderId) {
+  const app = getApp()
+  const baseUrl = `${app.globalData.baseUrl || ''}`.replace(/\/$/, '')
+  return new Promise((resolve, reject) => {
+    wx.downloadFile({
+      url: `${baseUrl}/orders/${orderId}/invoice/image`,
+      header: {
+        Authorization: app.globalData.token ? `Bearer ${app.globalData.token}` : ''
+      },
+      success(response) {
+        if (response.statusCode >= 200 && response.statusCode < 300 && response.tempFilePath) {
+          resolve(response.tempFilePath)
+          return
+        }
+        reject(new Error('发票图片加载失败'))
+      },
+      fail(error) {
+        reject(error)
+      }
+    })
+  })
+}
+
 function reportTrack(orderId, data) {
   return request({
     url: `/orders/${orderId}/track/report`,
@@ -328,6 +351,7 @@ function fetchMyCarpool() {
 
 module.exports = {
   applyInvoice,
+  downloadInvoiceImage,
   applyCarpool,
   cancelOrder,
   cancelCarpoolApplication,

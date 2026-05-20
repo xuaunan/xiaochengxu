@@ -172,6 +172,22 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="invoicePreviewVisible" title="查看发票" width="1080px" class="invoice-image-dialog" destroy-on-close>
+      <div v-loading="invoicePreviewLoading" class="invoice-image-stage">
+        <img
+          v-if="invoicePreviewUrl"
+          class="invoice-image"
+          :src="invoicePreviewUrl"
+          :alt="invoicePreviewTitle"
+        />
+        <el-empty v-else description="暂无发票图片" />
+      </div>
+      <template #footer>
+        <el-button @click="invoicePreviewVisible = false">关闭</el-button>
+        <el-button type="primary" :disabled="!invoicePreviewUrl" @click="downloadInvoicePreview">下载发票图片</el-button>
+      </template>
+    </el-dialog>
+
     <el-drawer v-model="detailVisible" title="订单详情" size="860px" destroy-on-close>
       <div v-if="detail.order" class="drawer-stack">
         <div class="stat-grid">
@@ -341,7 +357,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import http from '../api/http'
+import http, { baseURL } from '../api/http'
 import {
   formatDateTime,
   formatMoney,
@@ -362,6 +378,11 @@ const detail = ref({})
 const detailVisible = ref(false)
 const statusVisible = ref(false)
 const invoiceVisible = ref(false)
+const invoicePreviewVisible = ref(false)
+const invoicePreviewLoading = ref(false)
+const invoicePreviewUrl = ref('')
+const invoicePreviewTitle = ref('电子发票')
+const invoicePreviewOrderNo = ref('')
 const currentOrderId = ref(null)
 let detailTimer = null
 
@@ -762,6 +783,10 @@ async function refundOrder(row) {
 }
 
 function openInvoiceDialog(row) {
+  if (row.invoiceStatus === 'ISSUED') {
+    openInvoicePreview(row)
+    return
+  }
   const meta = row.invoiceMeta || {}
   invoiceForm.orderId = row.id
   invoiceForm.orderNo = row.orderNo || ''
@@ -773,6 +798,44 @@ function openInvoiceDialog(row) {
     ? (meta.rejectReason || '')
     : (meta.handleRemark || '电子发票已生成，可在用户端我的发票查看')
   invoiceVisible.value = true
+}
+
+async function openInvoicePreview(row) {
+  invoicePreviewVisible.value = true
+  invoicePreviewLoading.value = true
+  invoicePreviewTitle.value = `电子发票 ${row.orderNo || row.id}`
+  invoicePreviewOrderNo.value = row.orderNo || `${row.id}`
+  if (invoicePreviewUrl.value) {
+    URL.revokeObjectURL(invoicePreviewUrl.value)
+    invoicePreviewUrl.value = ''
+  }
+  try {
+    const response = await fetch(`${baseURL}/admin/orders/${row.id}/invoice/image`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('sunshine_admin_token') || ''}`
+      }
+    })
+    if (!response.ok) {
+      throw new Error('发票图片加载失败')
+    }
+    const blob = await response.blob()
+    invoicePreviewUrl.value = URL.createObjectURL(blob)
+  } catch (error) {
+    ElMessage.error(error.message || '发票图片加载失败')
+    invoicePreviewVisible.value = false
+  } finally {
+    invoicePreviewLoading.value = false
+  }
+}
+
+function downloadInvoicePreview() {
+  if (!invoicePreviewUrl.value) return
+  const link = document.createElement('a')
+  link.href = invoicePreviewUrl.value
+  link.download = `电子发票-${invoicePreviewOrderNo.value || 'invoice'}.png`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 async function submitInvoice() {
@@ -856,7 +919,12 @@ watch(detailVisible, (visible) => {
 })
 
 onMounted(loadOrders)
-onUnmounted(stopDetailPolling)
+onUnmounted(() => {
+  stopDetailPolling()
+  if (invoicePreviewUrl.value) {
+    URL.revokeObjectURL(invoicePreviewUrl.value)
+  }
+})
 </script>
 
 <style scoped>
@@ -959,5 +1027,21 @@ onUnmounted(stopDetailPolling)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.invoice-image-stage {
+  min-height: 360px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff8ef 0%, #f8fafc 100%);
+  overflow: auto;
+}
+
+.invoice-image {
+  display: block;
+  width: 100%;
+  min-width: 960px;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(31, 36, 50, 0.14);
 }
 </style>

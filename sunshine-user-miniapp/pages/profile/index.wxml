@@ -1,7 +1,5 @@
 <view class="page-shell profile-page-shell safe-bottom">
   <view class="profile-page page-enter">
-    <view class="profile-title">我的</view>
-
     <view class="profile-hero">
       <view class="hero-cloud hero-cloud--left"></view>
       <view class="hero-city">

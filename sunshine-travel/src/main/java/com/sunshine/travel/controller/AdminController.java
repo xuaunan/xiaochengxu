@@ -21,9 +21,14 @@ import com.sunshine.travel.dto.UserEnableRequest;
 import com.sunshine.travel.dto.WithdrawAuditRequest;
 import com.sunshine.travel.service.AdminService;
 import com.sunshine.travel.service.CouponService;
+import com.sunshine.travel.service.InvoiceImageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,10 +46,12 @@ public class AdminController {
 
     private final AdminService adminService;
     private final CouponService couponService;
+    private final InvoiceImageService invoiceImageService;
 
-    public AdminController(AdminService adminService, CouponService couponService) {
+    public AdminController(AdminService adminService, CouponService couponService, InvoiceImageService invoiceImageService) {
         this.adminService = adminService;
         this.couponService = couponService;
+        this.invoiceImageService = invoiceImageService;
     }
 
     @Operation(summary = "管理后台大盘")
@@ -157,6 +164,17 @@ public class AdminController {
     public ApiResponse<?> handleInvoice(@PathVariable Long orderId, @Valid @RequestBody AdminInvoiceHandleRequest request) {
         adminService.handleInvoice(orderId, request);
         return ApiResponse.success("发票状态已更新");
+    }
+
+    @Operation(summary = "管理员查看发票图片")
+    @GetMapping(value = "/orders/{orderId}/invoice/image", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> invoiceImage(@PathVariable Long orderId) {
+        byte[] image = invoiceImageService.render(orderId, true);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=invoice-" + orderId + ".png")
+                .contentType(MediaType.IMAGE_PNG)
+                .body(image);
     }
 
     @Operation(summary = "提现申请分页查询")
