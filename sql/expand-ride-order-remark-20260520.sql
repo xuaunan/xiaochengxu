@@ -1,0 +1,2 @@
+ALTER TABLE t_ride_order
+    MODIFY COLUMN remark TEXT DEFAULT NULL COMMENT '备注';

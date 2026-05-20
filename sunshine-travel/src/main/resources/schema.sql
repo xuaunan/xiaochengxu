@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS t_ride_order (
     complaint_status VARCHAR(20) NOT NULL COMMENT '投诉状态',
     settlement_status VARCHAR(20) NOT NULL COMMENT '结算状态',
     language_code VARCHAR(20) DEFAULT 'zh-CN' COMMENT '语言编码',
-    remark VARCHAR(255) DEFAULT NULL COMMENT '备注',
+    remark TEXT DEFAULT NULL COMMENT '备注',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_ride_order_no (order_no),
