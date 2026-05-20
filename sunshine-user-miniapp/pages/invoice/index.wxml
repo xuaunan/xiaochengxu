@@ -7,9 +7,9 @@
       </view>
       <view class="invoice-hero__copy">
         <view class="invoice-hero__title">发票中心</view>
-        <view class="invoice-hero__desc">可开票订单与申请状态</view>
+        <view class="invoice-hero__desc">订单开票申请与已开具发票</view>
       </view>
-      <view class="invoice-count">{{list.length}} 张</view>
+      <view class="invoice-count">{{issuedList.length}} 张</view>
       <view class="invoice-paper">
         <view class="invoice-paper__sheet"></view>
         <view class="invoice-paper__leaf invoice-paper__leaf--one"></view>
@@ -17,38 +17,147 @@
       </view>
     </view>
 
-    <view class="invoice-list" wx:if="{{list.length}}">
-      <view class="invoice-card tap-scale" wx:for="{{list}}" wx:key="id">
-        <view class="invoice-card__top">
-          <view class="invoice-service-icon invoice-service-icon--{{item.iconClass}}">
-            <view class="invoice-service-icon__shape"></view>
-          </view>
-          <view class="invoice-card__main">
-            <view class="invoice-tag invoice-tag--{{item.iconClass}}">{{item.serviceTag}}</view>
-            <view class="invoice-card__title">{{item.title}}</view>
-            <view class="invoice-card__time">
-              <view class="invoice-time-icon"></view>
-              <text>{{item.displayTime}}</text>
-            </view>
-          </view>
-          <view class="invoice-amount">{{item.amountText}}</view>
-        </view>
-        <button
-          class="invoice-button {{item.canApply ? '' : 'invoice-button--disabled'}}"
-          hover-class="button-hover"
-          data-id="{{item.id}}"
-          bindtap="applyInvoice"
-        >
-          <text>{{item.status}}</text>
-          <text class="invoice-button__arrow">›</text>
-        </button>
+    <view class="invoice-tabs">
+      <view
+        class="invoice-tab {{activeTab === 'apply' ? 'invoice-tab--active' : ''}}"
+        data-tab="apply"
+        bindtap="switchInvoiceTab"
+      >
+        可申请
+      </view>
+      <view
+        class="invoice-tab {{activeTab === 'issued' ? 'invoice-tab--active' : ''}}"
+        data-tab="issued"
+        bindtap="switchInvoiceTab"
+      >
+        我的发票
       </view>
     </view>
 
-    <view class="invoice-empty" wx:else>
-      <view class="invoice-empty__icon"></view>
-      <view class="invoice-empty__title">暂无可开票订单</view>
-      <view class="invoice-empty__desc">完成行程后，可在这里申请电子发票。</view>
-    </view>
+    <block wx:if="{{activeTab === 'apply'}}">
+      <view class="invoice-list" wx:if="{{applyList.length}}">
+        <view class="invoice-card tap-scale" wx:for="{{applyList}}" wx:key="id">
+          <view class="invoice-card__top">
+            <view class="invoice-service-icon invoice-service-icon--{{item.iconClass}}">
+              <view class="invoice-service-icon__shape"></view>
+            </view>
+            <view class="invoice-card__main">
+              <view class="invoice-tag invoice-tag--{{item.iconClass}}">{{item.serviceTag}}</view>
+              <view class="invoice-card__title">{{item.title}}</view>
+              <view class="invoice-card__time">
+                <view class="invoice-time-icon"></view>
+                <text>{{item.displayTime}}</text>
+              </view>
+              <view wx:if="{{item.rejectReason}}" class="invoice-card__reason">驳回原因：{{item.rejectReason}}</view>
+            </view>
+            <view class="invoice-amount">{{item.amountText}}</view>
+          </view>
+          <button
+            class="invoice-button {{item.canApply ? '' : 'invoice-button--disabled'}}"
+            hover-class="button-hover"
+            data-id="{{item.id}}"
+            bindtap="applyInvoice"
+          >
+            <text>{{item.status}}</text>
+            <text class="invoice-button__arrow">›</text>
+          </button>
+        </view>
+      </view>
+
+      <view class="invoice-empty" wx:else>
+        <view class="invoice-empty__icon"></view>
+        <view class="invoice-empty__title">暂无可申请发票</view>
+        <view class="invoice-empty__desc">完成并支付的订单会自动出现在这里。</view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="invoice-issued-list" wx:if="{{issuedList.length}}">
+        <view
+          class="invoice-issued-chip {{selectedInvoiceId === '' + item.id ? 'invoice-issued-chip--active' : ''}}"
+          wx:for="{{issuedList}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="viewInvoice"
+        >
+          <text>{{item.serviceTag}}</text>
+          <strong>{{item.amountText}}</strong>
+        </view>
+      </view>
+
+      <view wx:if="{{selectedInvoice}}" class="invoice-preview">
+        <view class="invoice-preview__brand">
+          <view>
+            <view class="invoice-preview__logo">阳光出行</view>
+            <view class="invoice-preview__company">{{selectedInvoice.detail.sellerName}}</view>
+          </view>
+          <view class="invoice-preview__type">电子发票（打车出行）</view>
+        </view>
+
+        <view class="invoice-preview__base">
+          <view class="invoice-preview__base-item" wx:for="{{selectedInvoice.baseRows}}" wx:key="label">
+            <text>{{item.label}}</text>
+            <strong>{{item.value}}</strong>
+          </view>
+        </view>
+
+        <view class="invoice-info-grid">
+          <view class="invoice-info-box">
+            <view class="invoice-section-title">购买方信息</view>
+            <view class="invoice-info-row" wx:for="{{selectedInvoice.buyerRows}}" wx:key="label">
+              <text>{{item.label}}</text>
+              <strong>{{item.value}}</strong>
+            </view>
+          </view>
+          <view class="invoice-info-box">
+            <view class="invoice-section-title">销售方信息</view>
+            <view class="invoice-info-row" wx:for="{{selectedInvoice.sellerRows}}" wx:key="label">
+              <text>{{item.label}}</text>
+              <strong>{{item.value}}</strong>
+            </view>
+          </view>
+        </view>
+
+        <view class="invoice-detail-box">
+          <view class="invoice-section-title">行程信息</view>
+          <view class="invoice-detail-grid">
+            <view class="invoice-detail-cell" wx:for="{{selectedInvoice.tripRows}}" wx:key="label">
+              <text>{{item.label}}</text>
+              <strong>{{item.value}}</strong>
+            </view>
+          </view>
+        </view>
+
+        <view class="invoice-detail-box">
+          <view class="invoice-section-title">费用明细</view>
+          <view class="invoice-fee-row" wx:for="{{selectedInvoice.feeRows}}" wx:key="label">
+            <text>{{item.label}}</text>
+            <strong>{{item.value}}</strong>
+          </view>
+          <view class="invoice-total-box">
+            <view>
+              <text>价税合计（小写）</text>
+              <strong>{{selectedInvoice.detail.totalAmountText}}</strong>
+            </view>
+            <view>
+              <text>价税合计（大写）</text>
+              <strong>{{selectedInvoice.detail.amountUpper}}</strong>
+            </view>
+          </view>
+        </view>
+
+        <view class="invoice-remark">
+          <text>备注</text>
+          <strong>{{selectedInvoice.detail.remark}}</strong>
+          <view class="invoice-stamp">北京阳光出行有限公司 · 发票专用章</view>
+        </view>
+      </view>
+
+      <view class="invoice-empty" wx:else>
+        <view class="invoice-empty__icon"></view>
+        <view class="invoice-empty__title">暂无已开具发票</view>
+        <view class="invoice-empty__desc">后台审核通过后，会同步出现在我的发票里。</view>
+      </view>
+    </block>
   </view>
 </view>

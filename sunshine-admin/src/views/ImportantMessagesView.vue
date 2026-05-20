@@ -121,8 +121,8 @@
       </div>
     </article>
 
-    <el-dialog v-model="invoiceVisible" title="处理发票申请" width="460px">
-      <el-form label-width="86px">
+    <el-dialog v-model="invoiceVisible" title="处理发票申请" width="520px">
+      <el-form label-width="96px">
         <el-form-item label="订单号">
           <span>{{ invoiceForm.orderNo }}</span>
         </el-form-item>
@@ -132,14 +132,23 @@
             <el-option label="驳回申请" value="REJECTED" />
           </el-select>
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item label="发票抬头">
+          <el-input v-model="invoiceForm.invoiceTitle" maxlength="40" placeholder="个人或企业名称" />
+        </el-form-item>
+        <el-form-item label="税号">
+          <el-input v-model="invoiceForm.taxNo" maxlength="32" placeholder="个人可填写：个人无需填写" />
+        </el-form-item>
+        <el-form-item label="联系电话">
+          <el-input v-model="invoiceForm.buyerPhone" maxlength="20" placeholder="购买方联系电话" />
+        </el-form-item>
+        <el-form-item :label="invoiceForm.invoiceStatus === 'REJECTED' ? '驳回原因' : '处理备注'">
           <el-input
             v-model="invoiceForm.remark"
             type="textarea"
             :rows="3"
-            maxlength="120"
+            maxlength="160"
             show-word-limit
-            placeholder="例如：电子发票已发送至乘客预留邮箱"
+            :placeholder="invoiceForm.invoiceStatus === 'REJECTED' ? '请输入驳回原因，会同步到用户消息' : '例如：电子发票已生成，可在用户端我的发票查看'"
           />
         </el-form-item>
       </el-form>
@@ -175,6 +184,9 @@ const invoiceForm = ref({
   orderId: null,
   orderNo: '',
   invoiceStatus: 'ISSUED',
+  invoiceTitle: '个人',
+  taxNo: '个人无需填写',
+  buyerPhone: '13800000000',
   remark: ''
 })
 
@@ -294,7 +306,10 @@ function openInvoiceDialog(item) {
     orderId: item.orderId,
     orderNo: item.orderNo || '',
     invoiceStatus: 'ISSUED',
-    remark: '电子发票已处理'
+    invoiceTitle: item.invoiceTitle || item.buyerName || '个人',
+    taxNo: item.taxNo || item.buyerTaxNo || '个人无需填写',
+    buyerPhone: item.buyerPhone || '13800000000',
+    remark: '电子发票已生成，可在用户端我的发票查看'
   }
   invoiceVisible.value = true
 }
@@ -397,13 +412,21 @@ async function auditDriver(item, authStatus) {
 
 async function submitInvoice() {
   if (!invoiceForm.value.orderId) return
+  const remark = `${invoiceForm.value.remark || ''}`.trim()
+  if (invoiceForm.value.invoiceStatus === 'REJECTED' && !remark) {
+    ElMessage.warning('驳回发票申请必须填写原因')
+    return
+  }
   invoiceSubmitting.value = true
   try {
     await http.post(`/admin/orders/${invoiceForm.value.orderId}/invoice`, {
       invoiceStatus: invoiceForm.value.invoiceStatus,
-      remark: invoiceForm.value.remark
+      invoiceTitle: invoiceForm.value.invoiceTitle || '个人',
+      taxNo: invoiceForm.value.taxNo || '个人无需填写',
+      buyerPhone: invoiceForm.value.buyerPhone || '13800000000',
+      remark: remark || '电子发票已生成，可在用户端我的发票查看'
     })
-    ElMessage.success('发票处理已同步')
+    ElMessage.success(invoiceForm.value.invoiceStatus === 'REJECTED' ? '发票申请已驳回并通知用户' : '电子发票已生成并同步用户端')
     invoiceVisible.value = false
     await loadMessages()
   } catch (error) {
@@ -425,15 +448,16 @@ onMounted(loadMessages)
 .message-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .summary-card {
-  min-height: 118px;
+  min-height: 82px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  border-radius: 18px;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
   background:
     radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.94), transparent 34%),
     var(--summary-bg, #ffffff);
@@ -450,14 +474,14 @@ onMounted(loadMessages)
 
 .summary-icon {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
+  border-radius: 12px;
   color: var(--summary-accent, #ff7a18);
-  font-size: 24px;
+  font-size: 18px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.96)),
     var(--summary-bg, #ffffff);
@@ -467,73 +491,86 @@ onMounted(loadMessages)
 .summary-card span {
   color: #64748b;
   font-weight: 700;
+  font-size: 13px;
 }
 
 .summary-card strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 4px;
   color: #111827;
-  font-size: 34px;
+  font-size: 26px;
   line-height: 1;
 }
 
 .summary-card small {
   color: #94a3b8;
+  font-size: 12px;
 }
 
 .message-panel {
-  min-height: 460px;
+  min-height: 0;
+}
+
+.message-panel .panel-head {
+  margin-bottom: 14px;
 }
 
 .message-list {
   display: grid;
-  gap: 12px;
-  min-height: 300px;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
 }
 
 .message-item {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) minmax(168px, auto);
+  grid-template-columns: 40px minmax(0, 1fr) max-content;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  min-height: 86px;
+  padding: 14px 16px;
   border-radius: 16px;
   background:
-    radial-gradient(circle at 4% 10%, rgba(255, 255, 255, 0.94), transparent 36%),
+    linear-gradient(90deg, color-mix(in srgb, var(--message-accent, #f97316) 7%, transparent), transparent 22%),
+    radial-gradient(circle at 5% 18%, rgba(255, 255, 255, 0.98), transparent 34%),
     var(--message-bg, #ffffff);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  border: 1px solid color-mix(in srgb, var(--message-accent, #f97316) 22%, rgba(226, 232, 240, 0.9));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .message-item:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 122, 24, 0.28);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--message-accent, #f97316) 42%, #e2e8f0);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.075);
 }
 
 .message-item.high {
-  border-left: 4px solid #ef4444;
+  border-left: 3px solid #ef4444;
 }
 
 .message-item.medium {
-  border-left: 4px solid #f59e0b;
+  border-left: 3px solid #f59e0b;
 }
 
 .message-item.normal {
-  border-left: 4px solid #2563eb;
+  border-left: 3px solid #2563eb;
 }
 
 .message-mark {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.76)),
+    color-mix(in srgb, var(--message-accent, #f97316) 12%, white);
   color: var(--message-accent, #f97316);
-  font-size: 22px;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.055);
+  font-size: 18px;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.055);
 }
 
 .message-copy {
@@ -543,40 +580,46 @@ onMounted(loadMessages)
 .message-title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .message-title-row strong {
   min-width: 0;
   overflow: hidden;
   color: #172033;
-  font-size: 16px;
+  font-size: 15px;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .message-copy p {
-  margin: 7px 0;
+  margin: 5px 0;
   color: #475569;
+  font-size: 13px;
   line-height: 1.45;
 }
 
 .message-copy span {
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .message-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
 }
 
 .message-actions :deep(.el-button) {
   min-width: 76px;
+  min-height: 32px;
+  padding: 7px 12px;
   margin-left: 0;
   border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 @media (max-width: 960px) {

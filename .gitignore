@@ -13,5 +13,10 @@ backend.live.log
 
 **/project.private.config.json
 
+html/output/playwright/*.png
+html/*-font-check.png
+sunshine-admin/*-check.png
+sunshine-admin/*-optimized.png
+
 .DS_Store
 Thumbs.db

@@ -36,6 +36,7 @@ import com.sunshine.travel.entity.Complaint;
 import com.sunshine.travel.entity.Coupon;
 import com.sunshine.travel.entity.CouponOperationLog;
 import com.sunshine.travel.entity.DriverProfile;
+import com.sunshine.travel.entity.CarType;
 import com.sunshine.travel.entity.OperationLog;
 import com.sunshine.travel.entity.PaymentRecord;
 import com.sunshine.travel.entity.PlatformUser;
@@ -48,6 +49,7 @@ import com.sunshine.travel.entity.UserCoupon;
 import com.sunshine.travel.entity.Vehicle;
 import com.sunshine.travel.entity.WithdrawApplication;
 import com.sunshine.travel.mapper.ComplaintMapper;
+import com.sunshine.travel.mapper.CarTypeMapper;
 import com.sunshine.travel.mapper.CouponMapper;
 import com.sunshine.travel.mapper.CouponOperationLogMapper;
 import com.sunshine.travel.mapper.DriverProfileMapper;
@@ -65,7 +67,9 @@ import com.sunshine.travel.mapper.WithdrawApplicationMapper;
 import com.sunshine.travel.service.AdminService;
 import com.sunshine.travel.service.CouponService;
 import com.sunshine.travel.service.OrderService;
+import com.sunshine.travel.service.support.MessagePushSupport;
 import com.sunshine.travel.service.support.OperationLogSupport;
+import com.sunshine.travel.util.InvoiceMetaUtil;
 import com.sunshine.travel.util.PasswordUtil;
 import com.sunshine.travel.vo.DashboardVO;
 import java.math.BigDecimal;
@@ -87,6 +91,12 @@ import org.springframework.util.StringUtils;
 @Service
 public class AdminServiceImpl implements AdminService {
 
+    private static final String INVOICE_SELLER_NAME = "北京阳光出行有限公司";
+    private static final String INVOICE_SELLER_TAX_NO = "91110105MA01SUN8X9";
+    private static final String INVOICE_SELLER_PHONE = "400-100-0101";
+    private static final DateTimeFormatter INVOICE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter INVOICE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     private final PlatformUserMapper platformUserMapper;
     private final DriverProfileMapper driverProfileMapper;
     private final RideOrderMapper rideOrderMapper;
@@ -95,6 +105,7 @@ public class AdminServiceImpl implements AdminService {
     private final WithdrawApplicationMapper withdrawApplicationMapper;
     private final OperationLogMapper operationLogMapper;
     private final VehicleMapper vehicleMapper;
+    private final CarTypeMapper carTypeMapper;
     private final PaymentRecordMapper paymentRecordMapper;
     private final TravelTraceMapper travelTraceMapper;
     private final UserCouponMapper userCouponMapper;
@@ -103,6 +114,7 @@ public class AdminServiceImpl implements AdminService {
     private final SystemNoticeMapper systemNoticeMapper;
     private final SystemVersionMapper systemVersionMapper;
     private final OperationLogSupport operationLogSupport;
+    private final MessagePushSupport messagePushSupport;
     private final CouponService couponService;
     private final OrderService orderService;
 
@@ -114,6 +126,7 @@ public class AdminServiceImpl implements AdminService {
                             WithdrawApplicationMapper withdrawApplicationMapper,
                             OperationLogMapper operationLogMapper,
                             VehicleMapper vehicleMapper,
+                            CarTypeMapper carTypeMapper,
                             PaymentRecordMapper paymentRecordMapper,
                             TravelTraceMapper travelTraceMapper,
                             UserCouponMapper userCouponMapper,
@@ -122,6 +135,7 @@ public class AdminServiceImpl implements AdminService {
                             SystemNoticeMapper systemNoticeMapper,
                             SystemVersionMapper systemVersionMapper,
                             OperationLogSupport operationLogSupport,
+                            MessagePushSupport messagePushSupport,
                             CouponService couponService,
                             OrderService orderService) {
         this.platformUserMapper = platformUserMapper;
@@ -132,6 +146,7 @@ public class AdminServiceImpl implements AdminService {
         this.withdrawApplicationMapper = withdrawApplicationMapper;
         this.operationLogMapper = operationLogMapper;
         this.vehicleMapper = vehicleMapper;
+        this.carTypeMapper = carTypeMapper;
         this.paymentRecordMapper = paymentRecordMapper;
         this.travelTraceMapper = travelTraceMapper;
         this.userCouponMapper = userCouponMapper;
@@ -140,6 +155,7 @@ public class AdminServiceImpl implements AdminService {
         this.systemNoticeMapper = systemNoticeMapper;
         this.systemVersionMapper = systemVersionMapper;
         this.operationLogSupport = operationLogSupport;
+        this.messagePushSupport = messagePushSupport;
         this.couponService = couponService;
         this.orderService = orderService;
     }
@@ -352,8 +368,12 @@ public class AdminServiceImpl implements AdminService {
                             "处理发票",
                             item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
                     );
+                    Map<String, Object> invoiceMeta = InvoiceMetaUtil.parse(item.getRemark());
                     row.put("orderId", item.getId());
                     row.put("orderNo", item.getOrderNo());
+                    row.put("invoiceTitle", InvoiceMetaUtil.firstText(invoiceMeta, "buyerName", "title"));
+                    row.put("taxNo", InvoiceMetaUtil.firstText(invoiceMeta, "buyerTaxNo", "taxNo"));
+                    row.put("buyerPhone", InvoiceMetaUtil.text(invoiceMeta, "buyerPhone"));
                     rows.add(row);
                 });
 
@@ -648,15 +668,26 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public void handleInvoice(Long orderId, AdminInvoiceHandleRequest request) {
         RideOrder order = requireOrder(orderId);
-        if (!InvoiceStatus.ISSUED.equals(request.getInvoiceStatus())
-                && !InvoiceStatus.REJECTED.equals(request.getInvoiceStatus())) {
+        AdminInvoiceHandleRequest safeRequest = request == null ? new AdminInvoiceHandleRequest() : request;
+        if (!OrderStatus.FINISHED.equals(order.getOrderStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "仅已完成订单可以处理发票");
+        }
+        if (!InvoiceStatus.ISSUED.equals(safeRequest.getInvoiceStatus())
+                && !InvoiceStatus.REJECTED.equals(safeRequest.getInvoiceStatus())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "发票处理状态不合法");
         }
-        order.setInvoiceStatus(request.getInvoiceStatus());
-        String actionText = InvoiceStatus.ISSUED.equals(request.getInvoiceStatus()) ? "已开票" : "已驳回";
-        String remark = StringUtils.hasText(request.getRemark()) ? request.getRemark().trim() : "管理员处理发票：" + actionText;
-        order.setRemark(appendAdminRemark(order.getRemark(), "发票处理：" + actionText + "，" + remark));
+        boolean rejected = InvoiceStatus.REJECTED.equals(safeRequest.getInvoiceStatus());
+        String handleRemark = StringUtils.hasText(safeRequest.getRemark()) ? safeRequest.getRemark().trim() : "";
+        if (rejected && !StringUtils.hasText(handleRemark)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "驳回发票申请时必须填写原因");
+        }
+
+        String actionText = rejected ? "已驳回" : "已开票";
+        String fallbackRemark = rejected ? handleRemark : firstNonBlank(handleRemark, "电子发票已开具，可在发票中心查看");
+        order.setInvoiceStatus(safeRequest.getInvoiceStatus());
+        order.setRemark(InvoiceMetaUtil.rewrite(order.getRemark(), buildInvoiceMeta(order, safeRequest, safeRequest.getInvoiceStatus(), fallbackRemark)));
         rideOrderMapper.updateById(order);
+        pushInvoiceResultMessage(order, safeRequest.getInvoiceStatus(), fallbackRemark);
         operationLogSupport.log("ORDER", "INVOICE", "ORDER", orderId, "管理员处理发票：" + actionText);
     }
 
@@ -1070,6 +1101,9 @@ public class AdminServiceImpl implements AdminService {
         row.put("status", item.getOrderStatus());
         row.put("payStatus", item.getPayStatus());
         row.put("invoiceStatus", item.getInvoiceStatus());
+        row.put("invoiceProcessAllowed", OrderStatus.FINISHED.equals(item.getOrderStatus()));
+        row.put("invoiceActionText", invoiceActionText(item.getInvoiceStatus()));
+        row.put("invoiceMeta", InvoiceMetaUtil.parse(item.getRemark()));
         row.put("amount", item.getPayableAmount());
         row.put("startName", item.getStartName());
         row.put("endName", item.getEndName());
@@ -1571,13 +1605,188 @@ public class AdminServiceImpl implements AdminService {
         return plateNo + " / " + model + " 车辆资料需要审核，当前状态：" + auditStatusText(vehicle.getAuditStatus());
     }
 
+    private Map<String, Object> buildInvoiceMeta(RideOrder order, AdminInvoiceHandleRequest request, String status, String handleRemark) {
+        Map<String, Object> previous = InvoiceMetaUtil.parse(order.getRemark());
+        PlatformUser user = platformUserMapper.selectById(order.getUserId());
+        CarType carType = order.getCarTypeId() == null ? null : carTypeMapper.selectById(order.getCarTypeId());
+        PaymentRecord paymentRecord = latestPaymentRecord(order.getId());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime tripTime = firstTime(order.getFinishedAt(), order.getStartedAt(), order.getPaidAt(), order.getCreatedAt(), now);
+        BigDecimal totalAmount = firstPositive(order.getActualAmount(), order.getPayableAmount(), order.getEstimatedAmount()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal distanceKm = firstPositive(order.getActualDistanceKm(), order.getEstimatedDistanceKm()).setScale(1, RoundingMode.HALF_UP);
+        BigDecimal durationMin = firstPositive(order.getActualDurationMin(), order.getEstimatedDurationMin()).setScale(0, RoundingMode.HALF_UP);
+        String buyerName = firstNonBlank(
+                request.getInvoiceTitle(),
+                InvoiceMetaUtil.firstText(previous, "buyerName", "title"),
+                user == null ? "" : user.getRealName(),
+                user == null ? "" : user.getNickname(),
+                "个人");
+        String buyerTaxNo = firstNonBlank(request.getTaxNo(), InvoiceMetaUtil.firstText(previous, "buyerTaxNo", "taxNo"), "个人无需填写");
+        String buyerPhone = firstNonBlank(request.getBuyerPhone(), InvoiceMetaUtil.text(previous, "buyerPhone"), user == null ? "" : user.getPhone(), "13800000000");
+        String invoiceNo = firstNonBlank(InvoiceMetaUtil.text(previous, "invoiceNo"), buildInvoiceNo(order));
+        String invoiceCode = firstNonBlank(InvoiceMetaUtil.text(previous, "invoiceCode"), buildInvoiceCode(order));
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("version", "2");
+        meta.put("status", status);
+        meta.put("invoiceStatus", status);
+        meta.put("invoiceType", "电子普通发票");
+        meta.put("invoiceCode", invoiceCode);
+        meta.put("invoiceNo", invoiceNo);
+        meta.put("invoiceDate", InvoiceStatus.ISSUED.equals(status) ? formatInvoiceDate(now) : firstNonBlank(InvoiceMetaUtil.text(previous, "invoiceDate"), formatInvoiceDate(tripTime)));
+        meta.put("issueAt", InvoiceStatus.ISSUED.equals(status) ? formatInvoiceTime(now) : firstNonBlank(InvoiceMetaUtil.text(previous, "issueAt"), ""));
+        meta.put("appliedAt", firstNonBlank(InvoiceMetaUtil.text(previous, "appliedAt"), formatInvoiceTime(now)));
+        meta.put("handledAt", formatInvoiceTime(now));
+        meta.put("orderId", order.getId());
+        meta.put("orderNo", order.getOrderNo());
+        meta.put("title", buyerName);
+        meta.put("buyerName", buyerName);
+        meta.put("taxNo", buyerTaxNo);
+        meta.put("buyerTaxNo", buyerTaxNo);
+        meta.put("buyerPhone", buyerPhone);
+        meta.put("sellerName", INVOICE_SELLER_NAME);
+        meta.put("sellerTaxNo", INVOICE_SELLER_TAX_NO);
+        meta.put("sellerPhone", INVOICE_SELLER_PHONE);
+        meta.put("passengerName", firstNonBlank(user == null ? "" : user.getRealName(), user == null ? "" : user.getNickname(), "阳光乘客"));
+        meta.put("tripTime", formatInvoiceTime(tripTime));
+        meta.put("startName", firstNonBlank(order.getStartName(), "未记录上车点"));
+        meta.put("endName", firstNonBlank(order.getEndName(), "未记录下车点"));
+        meta.put("serviceType", firstNonBlank(order.getServiceType(), ServiceType.TAXI));
+        meta.put("serviceName", serviceTypeLabel(order.getServiceType()));
+        meta.put("carTypeName", carType == null || !StringUtils.hasText(carType.getName()) ? serviceTypeLabel(order.getServiceType()) : carType.getName());
+        meta.put("distanceKm", distanceKm.toPlainString());
+        meta.put("durationMin", durationMin.toPlainString());
+        meta.put("payChannel", paymentRecord == null || !StringUtils.hasText(paymentRecord.getPayChannel()) ? "模拟支付" : paymentRecord.getPayChannel());
+        meta.put("currencyCode", firstNonBlank(order.getCurrencyCode(), "CNY"));
+        meta.put("itemName", serviceTypeLabel(order.getServiceType()) + "出行服务费");
+        meta.put("itemUnit", "次");
+        meta.put("itemQuantity", "1");
+        meta.put("itemUnitPrice", totalAmount.toPlainString());
+        meta.put("itemAmount", totalAmount.toPlainString());
+        meta.put("totalAmount", totalAmount.toPlainString());
+        meta.put("couponDiscount", safeDecimal(order.getCouponDiscount()).setScale(2, RoundingMode.HALF_UP).toPlainString());
+        meta.put("remark", firstNonBlank(InvoiceMetaUtil.text(previous, "remark"), "本发票为打车出行电子发票。"));
+        meta.put("handleRemark", handleRemark);
+        meta.put("rejectReason", InvoiceStatus.REJECTED.equals(status) ? firstNonBlank(handleRemark, "发票信息不完整，请补充后重新申请。") : "");
+        return meta;
+    }
+
     private String buildInvoiceMessage(RideOrder order) {
-        String title = readInvoiceMeta(order.getRemark(), "title");
-        String taxNo = readInvoiceMeta(order.getRemark(), "taxNo");
+        Map<String, Object> meta = InvoiceMetaUtil.parse(order.getRemark());
+        String title = InvoiceMetaUtil.firstText(meta, "buyerName", "title");
+        String taxNo = InvoiceMetaUtil.firstText(meta, "buyerTaxNo", "taxNo");
         String displayTitle = StringUtils.hasText(title) ? title : "个人";
         String displayTaxNo = StringUtils.hasText(taxNo) ? "，税号 " + taxNo : "";
         return "订单 " + order.getOrderNo() + " 申请电子发票，抬头 " + displayTitle + displayTaxNo
                 + "，金额 " + safeDecimal(order.getPayableAmount()) + " " + (StringUtils.hasText(order.getCurrencyCode()) ? order.getCurrencyCode() : "CNY");
+    }
+
+    private void pushInvoiceResultMessage(RideOrder order, String status, String remark) {
+        Map<String, Object> meta = InvoiceMetaUtil.parse(order.getRemark());
+        String invoiceNo = InvoiceMetaUtil.text(meta, "invoiceNo");
+        BigDecimal amount = firstPositive(order.getActualAmount(), order.getPayableAmount(), order.getEstimatedAmount()).setScale(2, RoundingMode.HALF_UP);
+        if (InvoiceStatus.ISSUED.equals(status)) {
+            messagePushSupport.push(
+                    order.getUserId(),
+                    "INVOICE",
+                    "INVOICE_ISSUED",
+                    "电子发票已开具",
+                    "订单 " + order.getOrderNo() + " 的电子发票已开具，发票号码 " + invoiceNo + "，金额 " + amount + " 元，可在发票中心-我的发票查看。",
+                    order.getLanguageCode());
+            return;
+        }
+        messagePushSupport.push(
+                order.getUserId(),
+                "INVOICE",
+                "INVOICE_REJECTED",
+                "发票申请未通过",
+                "订单 " + order.getOrderNo() + " 的发票申请未通过，原因：" + firstNonBlank(remark, "发票信息不完整，请补充后重新申请。"),
+                order.getLanguageCode());
+    }
+
+    private PaymentRecord latestPaymentRecord(Long orderId) {
+        if (orderId == null) {
+            return null;
+        }
+        return paymentRecordMapper.selectOne(new LambdaQueryWrapper<PaymentRecord>()
+                .eq(PaymentRecord::getOrderId, orderId)
+                .orderByDesc(PaymentRecord::getId)
+                .last("limit 1"));
+    }
+
+    private String buildInvoiceCode(RideOrder order) {
+        long suffix = Math.abs(Objects.hash(order.getId(), order.getOrderNo())) % 100000L;
+        return "0310024" + String.format("%05d", suffix);
+    }
+
+    private String buildInvoiceNo(RideOrder order) {
+        long suffix = Math.abs(Objects.hash(order.getOrderNo(), order.getId(), order.getUserId())) % 100000000L;
+        return String.format("%08d", suffix);
+    }
+
+    private String invoiceActionText(String status) {
+        if (InvoiceStatus.APPLIED.equals(status)) {
+            return "处理发票";
+        }
+        if (InvoiceStatus.ISSUED.equals(status)) {
+            return "查看发票";
+        }
+        if (InvoiceStatus.REJECTED.equals(status)) {
+            return "重新处理";
+        }
+        return "生成发票";
+    }
+
+    private BigDecimal firstPositive(BigDecimal... values) {
+        if (values != null) {
+            for (BigDecimal value : values) {
+                BigDecimal decimal = safeDecimal(value);
+                if (decimal.compareTo(BigDecimal.ZERO) > 0) {
+                    return decimal;
+                }
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private LocalDateTime firstTime(LocalDateTime... values) {
+        if (values != null) {
+            for (LocalDateTime value : values) {
+                if (value != null) {
+                    return value;
+                }
+            }
+        }
+        return LocalDateTime.now();
+    }
+
+    private String formatInvoiceTime(LocalDateTime value) {
+        return (value == null ? LocalDateTime.now() : value).format(INVOICE_DATE_TIME_FORMATTER);
+    }
+
+    private String formatInvoiceDate(LocalDateTime value) {
+        return (value == null ? LocalDateTime.now() : value).format(INVOICE_DATE_FORMATTER);
+    }
+
+    private String serviceTypeLabel(String serviceType) {
+        if (ServiceType.CARPOOL.equals(serviceType)) {
+            return "顺风车";
+        }
+        if (ServiceType.INTERNATIONAL.equals(serviceType)) {
+            return "国际出行";
+        }
+        return "即时打车";
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values != null) {
+            for (String value : values) {
+                if (StringUtils.hasText(value)) {
+                    return value.trim();
+                }
+            }
+        }
+        return "";
     }
 
     private void applyAdminPayStatus(RideOrder order, String targetPayStatus, String remark) {
@@ -1654,22 +1863,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private String readInvoiceMeta(String remark, String key) {
-        if (!StringUtils.hasText(remark) || !StringUtils.hasText(key)) {
-            return "";
-        }
-        int start = remark.indexOf("[INVOICE_META]");
-        int end = remark.indexOf("[/INVOICE_META]");
-        if (start < 0 || end <= start) {
-            return "";
-        }
-        String meta = remark.substring(start + "[INVOICE_META]".length(), end);
-        for (String part : meta.split(";")) {
-            String[] pair = part.split("=", 2);
-            if (pair.length == 2 && key.equals(pair[0].trim())) {
-                return pair[1].trim();
-            }
-        }
-        return "";
+        return InvoiceMetaUtil.read(remark, key);
     }
 
     private String auditStatusText(Integer status) {

@@ -73,6 +73,20 @@ public class AppController {
         return ApiResponse.success(data);
     }
 
+    @Operation(summary = "系统连接状态")
+    @GetMapping("/health")
+    public ApiResponse<?> health() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("backend", true);
+        try {
+            systemConfigMapper.selectCount(null);
+            data.put("database", true);
+        } catch (Exception exception) {
+            data.put("database", false);
+        }
+        return ApiResponse.success(data);
+    }
+
     private Map<String, Object> fleetSummary() {
         Long idle = driverProfileMapper.selectCount(new LambdaQueryWrapper<DriverProfile>()
                 .eq(DriverProfile::getServiceStatus, DriverServiceStatus.ONLINE));

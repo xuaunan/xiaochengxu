@@ -2,6 +2,17 @@
   <div class="layout-shell">
     <aside class="sidebar">
       <div class="brand-card">
+        <div
+          class="system-health"
+          :class="{ online: allSystemsOnline, offline: !allSystemsOnline }"
+          :aria-label="connectionTooltip"
+          tabindex="0"
+        >
+          <span class="system-health-dot"></span>
+          <span v-if="!allSystemsOnline" class="system-health-tooltip">
+            {{ connectionTooltip }}
+          </span>
+        </div>
         <span class="brand-kicker">运营后台</span>
         <h1>阳光出行</h1>
         <p>后台管理平台</p>
@@ -27,28 +38,6 @@
     </aside>
 
     <main class="main">
-      <header class="topbar">
-        <div class="topbar-left">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item>阳光出行</el-breadcrumb-item>
-            <el-breadcrumb-item>{{ route.meta.group || '后台管理' }}</el-breadcrumb-item>
-            <el-breadcrumb-item>{{ route.meta.title || '工作台' }}</el-breadcrumb-item>
-          </el-breadcrumb>
-          <div class="topbar-title">
-            <h2>{{ route.meta.title || '后台管理平台' }}</h2>
-            <p>{{ statusDescription }}</p>
-          </div>
-        </div>
-
-        <div class="topbar-actions">
-          <div class="status-pill">
-            <span class="status-dot"></span>
-            <span>{{ statusText }}</span>
-          </div>
-          <el-button type="primary" @click="handleAdminLogin">一键登录管理员</el-button>
-        </div>
-      </header>
-
       <RouterView />
     </main>
   </div>
@@ -56,13 +45,13 @@
 
 <script setup>
 import { ElMessage } from 'element-plus'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
-import http, { adminLogin } from './api/http'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { RouterLink, RouterView } from 'vue-router'
+import http, { adminLogin, baseURL } from './api/http'
 
-const route = useRoute()
 const importantMessageCount = ref(0)
 let importantMessageTimer
+let healthTimer
 
 const navItems = [
   { path: '/dashboard', label: '数据大盘', desc: '实时运营洞察' },
@@ -75,8 +64,29 @@ const navItems = [
   { path: '/system', label: '系统配置', desc: '公告、版本、参数' }
 ]
 
-const statusText = '后端接口在线'
-const statusDescription = '管理员账号 13700000001 已拥有全部演示权限，所有页面均连接真实后端数据。'
+const webClientUrl = import.meta.env.VITE_SUNSHINE_WEB_URL || 'http://127.0.0.1:5174/'
+const connectionLabels = {
+  frontend: '小程序前端',
+  backend: '后端服务',
+  admin: '管理后台',
+  database: '数据库',
+  web: '网页端'
+}
+const connectionStatus = ref({
+  frontend: true,
+  backend: false,
+  admin: true,
+  database: false,
+  web: false
+})
+
+const allSystemsOnline = computed(() => Object.values(connectionStatus.value).every(Boolean))
+const connectionTooltip = computed(() => {
+  const offline = Object.entries(connectionStatus.value)
+    .filter(([, online]) => !online)
+    .map(([key]) => connectionLabels[key])
+  return offline.length ? `未连接：${offline.join('、')}` : '全部连接正常'
+})
 
 async function handleAdminLogin() {
   try {
@@ -99,9 +109,39 @@ async function loadImportantMessageCount() {
   }
 }
 
+async function checkBackendAndDatabase() {
+  try {
+    const response = await fetch(`${baseURL}/app/health`, { cache: 'no-store' })
+    const result = await response.json()
+    const data = result?.data || {}
+    connectionStatus.value.backend = response.ok && result?.code === 0 && data.backend === true
+    connectionStatus.value.database = data.database === true
+  } catch (error) {
+    connectionStatus.value.backend = false
+    connectionStatus.value.database = false
+  }
+}
+
+async function checkWebClient() {
+  try {
+    await fetch(webClientUrl, { mode: 'no-cors', cache: 'no-store' })
+    connectionStatus.value.web = true
+  } catch (error) {
+    connectionStatus.value.web = false
+  }
+}
+
+async function checkConnections() {
+  connectionStatus.value.frontend = true
+  connectionStatus.value.admin = true
+  await Promise.all([checkBackendAndDatabase(), checkWebClient()])
+}
+
 onMounted(() => {
   localStorage.removeItem('sunshine_admin_use_mock_api')
   localStorage.removeItem('sunshine_admin_mock_db_v1')
+  checkConnections()
+  healthTimer = setInterval(checkConnections, 15000)
   if (localStorage.getItem('sunshine_admin_token') === 'mock-admin-token') {
     localStorage.removeItem('sunshine_admin_token')
   }
@@ -115,5 +155,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   clearInterval(importantMessageTimer)
+  clearInterval(healthTimer)
 })
 </script>

@@ -63,19 +63,11 @@
         <el-table-column label="创建时间" min-width="180">
           <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="320" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <div class="table-actions">
               <el-button link type="primary" @click="openDetail(row.id)">详情</el-button>
               <el-button link type="warning" @click="openStatusDialog(row)">改状态</el-button>
-              <el-button
-                v-if="row.displayStatus !== 'REFUNDED' && row.orderStatus !== 'CANCELLED' && row.status !== 'CANCELLED'"
-                link
-                type="danger"
-                @click="cancelOrder(row)"
-              >
-                取消
-              </el-button>
               <el-button
                 v-if="row.refundAllowed"
                 link
@@ -83,6 +75,14 @@
                 @click="refundOrder(row)"
               >
                 退款
+              </el-button>
+              <el-button
+                v-if="row.invoiceProcessAllowed"
+                link
+                type="primary"
+                @click="openInvoiceDialog(row)"
+              >
+                {{ row.invoiceActionText || getInvoiceActionText(row) }}
               </el-button>
             </div>
           </template>
@@ -132,6 +132,43 @@
       <template #footer>
         <el-button @click="statusVisible = false">关闭</el-button>
         <el-button :loading="statusSubmitting" type="primary" @click="submitStatus">确认</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="invoiceVisible" title="发票处理" width="560px" destroy-on-close>
+      <el-form label-width="96px">
+        <el-form-item label="订单号">
+          <span>{{ invoiceForm.orderNo }}</span>
+        </el-form-item>
+        <el-form-item label="处理结果">
+          <el-select v-model="invoiceForm.invoiceStatus" style="width: 100%">
+            <el-option label="审核通过并生成发票" value="ISSUED" />
+            <el-option label="驳回申请" value="REJECTED" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="发票抬头">
+          <el-input v-model="invoiceForm.invoiceTitle" maxlength="40" placeholder="个人或企业名称" />
+        </el-form-item>
+        <el-form-item label="税号">
+          <el-input v-model="invoiceForm.taxNo" maxlength="32" placeholder="个人可填写：个人无需填写" />
+        </el-form-item>
+        <el-form-item label="联系电话">
+          <el-input v-model="invoiceForm.buyerPhone" maxlength="20" placeholder="购买方联系电话" />
+        </el-form-item>
+        <el-form-item :label="invoiceForm.invoiceStatus === 'REJECTED' ? '驳回原因' : '处理备注'">
+          <el-input
+            v-model="invoiceForm.remark"
+            type="textarea"
+            :rows="3"
+            maxlength="160"
+            show-word-limit
+            :placeholder="invoiceForm.invoiceStatus === 'REJECTED' ? '请输入驳回原因，会同步给用户消息' : '例如：电子发票已生成，可在用户端我的发票查看'"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="invoiceVisible = false">关闭</el-button>
+        <el-button :loading="invoiceSubmitting" type="primary" @click="submitInvoice">确认处理</el-button>
       </template>
     </el-dialog>
 
@@ -318,11 +355,13 @@ import {
 
 const loading = ref(false)
 const statusSubmitting = ref(false)
+const invoiceSubmitting = ref(false)
 const total = ref(0)
 const list = ref([])
 const detail = ref({})
 const detailVisible = ref(false)
 const statusVisible = ref(false)
+const invoiceVisible = ref(false)
 const currentOrderId = ref(null)
 let detailTimer = null
 
@@ -338,6 +377,16 @@ const statusForm = reactive({
   orderStatus: 'DISPATCHING',
   payStatus: 'UNPAID',
   remark: ''
+})
+
+const invoiceForm = reactive({
+  orderId: null,
+  orderNo: '',
+  invoiceStatus: 'ISSUED',
+  invoiceTitle: '个人',
+  taxNo: '个人无需填写',
+  buyerPhone: '13800000000',
+  remark: '电子发票已生成，可在用户端我的发票查看'
 })
 
 const pendingComplaintCount = computed(() => (detail.value.complaints || []).filter((item) => item.handleStatus !== 'DONE').length)
@@ -471,6 +520,15 @@ function getInvoiceStatusLabel(status) {
     REJECTED: '已驳回'
   }
   return map[status] || '未申请'
+}
+
+function getInvoiceActionText(row = {}) {
+  const map = {
+    APPLIED: '发票处理',
+    ISSUED: '查看发票',
+    REJECTED: '重新处理'
+  }
+  return map[row.invoiceStatus] || '生成发票'
 }
 
 function hasRuntimeSnapshot(runtime = {}) {
@@ -692,17 +750,6 @@ async function submitStatus() {
   }
 }
 
-async function cancelOrder(row) {
-  await ElMessageBox.confirm(
-    `确认取消订单 ${row.orderNo} 吗？`,
-    '取消订单',
-    { type: 'warning' }
-  )
-  await http.post(`/admin/orders/${row.id}/cancel`, { reason: '管理员取消订单' })
-  ElMessage.success('订单已取消')
-  await refreshPageData(row.id)
-}
-
 async function refundOrder(row) {
   await ElMessageBox.confirm(
     `确认退款订单 ${row.orderNo} 吗？`,
@@ -712,6 +759,46 @@ async function refundOrder(row) {
   await http.post(`/admin/orders/${row.id}/refund`, { reason: '管理员发起退款' })
   ElMessage.success('订单已退款')
   await refreshPageData(row.id)
+}
+
+function openInvoiceDialog(row) {
+  const meta = row.invoiceMeta || {}
+  invoiceForm.orderId = row.id
+  invoiceForm.orderNo = row.orderNo || ''
+  invoiceForm.invoiceStatus = row.invoiceStatus === 'REJECTED' ? 'REJECTED' : 'ISSUED'
+  invoiceForm.invoiceTitle = meta.buyerName || meta.title || '个人'
+  invoiceForm.taxNo = meta.buyerTaxNo || meta.taxNo || '个人无需填写'
+  invoiceForm.buyerPhone = meta.buyerPhone || '13800000000'
+  invoiceForm.remark = row.invoiceStatus === 'REJECTED'
+    ? (meta.rejectReason || '')
+    : (meta.handleRemark || '电子发票已生成，可在用户端我的发票查看')
+  invoiceVisible.value = true
+}
+
+async function submitInvoice() {
+  if (!invoiceForm.orderId) return
+  const remark = `${invoiceForm.remark || ''}`.trim()
+  if (invoiceForm.invoiceStatus === 'REJECTED' && !remark) {
+    ElMessage.warning('驳回发票申请必须填写原因')
+    return
+  }
+  invoiceSubmitting.value = true
+  try {
+    await http.post(`/admin/orders/${invoiceForm.orderId}/invoice`, {
+      invoiceStatus: invoiceForm.invoiceStatus,
+      invoiceTitle: invoiceForm.invoiceTitle || '个人',
+      taxNo: invoiceForm.taxNo || '个人无需填写',
+      buyerPhone: invoiceForm.buyerPhone || '13800000000',
+      remark: remark || '电子发票已生成，可在用户端我的发票查看'
+    })
+    ElMessage.success(invoiceForm.invoiceStatus === 'REJECTED' ? '发票申请已驳回并通知用户' : '电子发票已生成并同步用户端')
+    invoiceVisible.value = false
+    await refreshPageData(invoiceForm.orderId)
+  } catch (error) {
+    ElMessage.error(error.message || '发票处理失败')
+  } finally {
+    invoiceSubmitting.value = false
+  }
 }
 
 async function handleComplaint(row) {

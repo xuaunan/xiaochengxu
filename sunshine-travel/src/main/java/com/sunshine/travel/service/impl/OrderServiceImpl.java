@@ -48,11 +48,13 @@ import com.sunshine.travel.service.OrderService;
 import com.sunshine.travel.service.support.CacheSupport;
 import com.sunshine.travel.service.support.MessagePushSupport;
 import com.sunshine.travel.service.support.OrderRuntimeSupport;
+import com.sunshine.travel.util.InvoiceMetaUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,11 @@ public class OrderServiceImpl implements OrderService {
     private static final int DEFAULT_FREE_CANCEL_MINUTES = 3;
     private static final int CANCEL_FEE_STEP_MINUTES = 5;
     private static final String DEFAULT_NIGHT_TIME_RANGE = "23:00-06:00";
+    private static final String INVOICE_SELLER_NAME = "北京阳光出行有限公司";
+    private static final String INVOICE_SELLER_TAX_NO = "91110105MA01SUN8X9";
+    private static final String INVOICE_SELLER_PHONE = "400-100-0101";
+    private static final DateTimeFormatter INVOICE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter INVOICE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final RideOrderMapper rideOrderMapper;
     private final CarTypeMapper carTypeMapper;
@@ -437,9 +444,15 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setInvoiceStatus(InvoiceStatus.APPLIED);
         InvoiceApplyRequest safeRequest = request == null ? new InvoiceApplyRequest() : request;
-        order.setRemark(rewriteInvoiceMeta(order.getRemark(), safeRequest));
+        order.setRemark(rewriteInvoiceMeta(order, safeRequest, InvoiceStatus.APPLIED, "乘客端提交电子发票申请"));
         rideOrderMapper.updateById(order);
-        messagePushSupport.push(order.getUserId(), "INVOICE", "INVOICE_APPLIED", "发票申请已提交", "后台会尽快处理您的电子发票申请。", order.getLanguageCode());
+        messagePushSupport.push(
+                order.getUserId(),
+                "INVOICE",
+                "INVOICE_APPLIED",
+                "发票申请已提交",
+                "订单 " + order.getOrderNo() + " 的电子发票申请已提交，后台处理后会同步到发票中心。",
+                order.getLanguageCode());
         return order;
     }
 
@@ -937,29 +950,150 @@ public class OrderServiceImpl implements OrderService {
         couponOperationLogMapper.insert(operationLog);
     }
 
-    private String rewriteInvoiceMeta(String remark, InvoiceApplyRequest request) {
-        String cleanRemark = stripInvoiceMeta(remark);
-        String title = StringUtils.hasText(request.getInvoiceTitle()) ? request.getInvoiceTitle().trim() : "个人";
-        String taxNo = StringUtils.hasText(request.getTaxNo()) ? request.getTaxNo().trim() : "";
-        String invoiceRemark = StringUtils.hasText(request.getRemark()) ? request.getRemark().trim() : "";
-        String meta = "[INVOICE_META]"
-                + "title=" + sanitizeMetaValue(title)
-                + ";taxNo=" + sanitizeMetaValue(taxNo)
-                + ";remark=" + sanitizeMetaValue(invoiceRemark)
-                + ";appliedAt=" + LocalDateTime.now()
-                + "[/INVOICE_META]";
-        return StringUtils.hasText(cleanRemark) ? cleanRemark + " " + meta : meta;
+    private String rewriteInvoiceMeta(RideOrder order, InvoiceApplyRequest request, String status, String handleRemark) {
+        return InvoiceMetaUtil.rewrite(order.getRemark(), buildInvoiceMeta(order, request, status, handleRemark));
     }
 
-    private String stripInvoiceMeta(String remark) {
-        if (!StringUtils.hasText(remark)) {
-            return "";
+    private Map<String, Object> buildInvoiceMeta(RideOrder order, InvoiceApplyRequest request, String status, String handleRemark) {
+        Map<String, Object> previous = InvoiceMetaUtil.parse(order.getRemark());
+        PlatformUser user = platformUserMapper.selectById(order.getUserId());
+        CarType carType = order.getCarTypeId() == null ? null : carTypeMapper.selectById(order.getCarTypeId());
+        PaymentRecord paymentRecord = latestPaymentRecord(order.getId());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime tripTime = firstTime(order.getFinishedAt(), order.getStartedAt(), order.getPaidAt(), order.getCreatedAt(), now);
+        BigDecimal totalAmount = firstPositive(order.getActualAmount(), order.getPayableAmount(), order.getEstimatedAmount()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal distanceKm = firstPositive(order.getActualDistanceKm(), order.getEstimatedDistanceKm()).setScale(1, RoundingMode.HALF_UP);
+        BigDecimal durationMin = firstPositive(order.getActualDurationMin(), order.getEstimatedDurationMin()).setScale(0, RoundingMode.HALF_UP);
+        String buyerName = firstNonBlank(
+                request.getInvoiceTitle(),
+                InvoiceMetaUtil.firstText(previous, "buyerName", "title"),
+                user == null ? "" : user.getRealName(),
+                user == null ? "" : user.getNickname(),
+                "个人");
+        String buyerTaxNo = firstNonBlank(request.getTaxNo(), InvoiceMetaUtil.firstText(previous, "buyerTaxNo", "taxNo"), "个人无需填写");
+        String buyerPhone = firstNonBlank(request.getBuyerPhone(), InvoiceMetaUtil.text(previous, "buyerPhone"), user == null ? "" : user.getPhone(), "13800000000");
+        String invoiceNo = firstNonBlank(InvoiceMetaUtil.text(previous, "invoiceNo"), buildInvoiceNo(order));
+        String invoiceCode = firstNonBlank(InvoiceMetaUtil.text(previous, "invoiceCode"), buildInvoiceCode(order));
+        String issueAt = InvoiceStatus.ISSUED.equals(status)
+                ? formatInvoiceTime(now)
+                : firstNonBlank(InvoiceMetaUtil.text(previous, "issueAt"), "");
+        String appliedAt = firstNonBlank(InvoiceMetaUtil.text(previous, "appliedAt"), formatInvoiceTime(now));
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("version", "2");
+        meta.put("status", status);
+        meta.put("invoiceStatus", status);
+        meta.put("invoiceType", "电子普通发票");
+        meta.put("invoiceCode", invoiceCode);
+        meta.put("invoiceNo", invoiceNo);
+        meta.put("invoiceDate", InvoiceStatus.ISSUED.equals(status) ? formatInvoiceDate(now) : formatInvoiceDate(tripTime));
+        meta.put("issueAt", issueAt);
+        meta.put("appliedAt", appliedAt);
+        meta.put("handledAt", InvoiceStatus.APPLIED.equals(status) ? "" : formatInvoiceTime(now));
+        meta.put("orderId", order.getId());
+        meta.put("orderNo", order.getOrderNo());
+        meta.put("title", buyerName);
+        meta.put("buyerName", buyerName);
+        meta.put("taxNo", buyerTaxNo);
+        meta.put("buyerTaxNo", buyerTaxNo);
+        meta.put("buyerPhone", buyerPhone);
+        meta.put("sellerName", INVOICE_SELLER_NAME);
+        meta.put("sellerTaxNo", INVOICE_SELLER_TAX_NO);
+        meta.put("sellerPhone", INVOICE_SELLER_PHONE);
+        meta.put("passengerName", firstNonBlank(user == null ? "" : user.getRealName(), user == null ? "" : user.getNickname(), "阳光乘客"));
+        meta.put("tripTime", formatInvoiceTime(tripTime));
+        meta.put("startName", firstNonBlank(order.getStartName(), "未记录上车点"));
+        meta.put("endName", firstNonBlank(order.getEndName(), "未记录下车点"));
+        meta.put("serviceType", firstNonBlank(order.getServiceType(), ServiceType.TAXI));
+        meta.put("serviceName", serviceTypeLabel(order.getServiceType()));
+        meta.put("carTypeName", carType == null || !StringUtils.hasText(carType.getName()) ? serviceTypeLabel(order.getServiceType()) : carType.getName());
+        meta.put("distanceKm", distanceKm.toPlainString());
+        meta.put("durationMin", durationMin.toPlainString());
+        meta.put("payChannel", paymentRecord == null || !StringUtils.hasText(paymentRecord.getPayChannel()) ? "模拟支付" : paymentRecord.getPayChannel());
+        meta.put("currencyCode", firstNonBlank(order.getCurrencyCode(), "CNY"));
+        meta.put("itemName", serviceTypeLabel(order.getServiceType()) + "出行服务费");
+        meta.put("itemUnit", "次");
+        meta.put("itemQuantity", "1");
+        meta.put("itemUnitPrice", totalAmount.toPlainString());
+        meta.put("itemAmount", totalAmount.toPlainString());
+        meta.put("totalAmount", totalAmount.toPlainString());
+        meta.put("couponDiscount", safeDecimal(order.getCouponDiscount()).setScale(2, RoundingMode.HALF_UP).toPlainString());
+        meta.put("remark", firstNonBlank(request.getRemark(), InvoiceMetaUtil.text(previous, "remark"), "本发票为打车出行电子发票。"));
+        meta.put("handleRemark", firstNonBlank(handleRemark, InvoiceMetaUtil.text(previous, "handleRemark"), ""));
+        meta.put("rejectReason", InvoiceStatus.REJECTED.equals(status) ? firstNonBlank(handleRemark, request.getRemark(), "发票信息不完整，请补充后重新申请。") : "");
+        return meta;
+    }
+
+    private PaymentRecord latestPaymentRecord(Long orderId) {
+        if (orderId == null) {
+            return null;
         }
-        return remark.replaceAll("\\[INVOICE_META\\][\\s\\S]*?\\[/INVOICE_META\\]", "").trim();
+        return paymentRecordMapper.selectOne(new LambdaQueryWrapper<PaymentRecord>()
+                .eq(PaymentRecord::getOrderId, orderId)
+                .orderByDesc(PaymentRecord::getId)
+                .last("limit 1"));
     }
 
-    private String sanitizeMetaValue(String value) {
-        return (value == null ? "" : value).replace(";", "，").replace("[", "").replace("]", "").trim();
+    private String buildInvoiceCode(RideOrder order) {
+        long suffix = Math.abs(Objects.hash(order.getId(), order.getOrderNo())) % 100000L;
+        return "0310024" + String.format("%05d", suffix);
+    }
+
+    private String buildInvoiceNo(RideOrder order) {
+        long suffix = Math.abs(Objects.hash(order.getOrderNo(), order.getId(), order.getUserId())) % 100000000L;
+        return String.format("%08d", suffix);
+    }
+
+    private BigDecimal firstPositive(BigDecimal... values) {
+        if (values != null) {
+            for (BigDecimal value : values) {
+                BigDecimal decimal = safeDecimal(value);
+                if (decimal.compareTo(BigDecimal.ZERO) > 0) {
+                    return decimal;
+                }
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private LocalDateTime firstTime(LocalDateTime... values) {
+        if (values != null) {
+            for (LocalDateTime value : values) {
+                if (value != null) {
+                    return value;
+                }
+            }
+        }
+        return LocalDateTime.now();
+    }
+
+    private String formatInvoiceTime(LocalDateTime value) {
+        return (value == null ? LocalDateTime.now() : value).format(INVOICE_DATE_TIME_FORMATTER);
+    }
+
+    private String formatInvoiceDate(LocalDateTime value) {
+        return (value == null ? LocalDateTime.now() : value).format(INVOICE_DATE_FORMATTER);
+    }
+
+    private String serviceTypeLabel(String serviceType) {
+        if (ServiceType.CARPOOL.equals(serviceType)) {
+            return "顺风车";
+        }
+        if (ServiceType.INTERNATIONAL.equals(serviceType)) {
+            return "国际出行";
+        }
+        return "即时打车";
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values != null) {
+            for (String value : values) {
+                if (StringUtils.hasText(value)) {
+                    return value.trim();
+                }
+            }
+        }
+        return "";
     }
 
     private String buildDispatchRemark(String dispatchMode, String originalRemark) {

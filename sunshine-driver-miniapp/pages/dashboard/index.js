@@ -12,6 +12,10 @@ function hasActiveTrip(orders = []) {
   return orders.some((item) => [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(item.orderStatus))
 }
 
+function canReportActiveTrack(order = {}) {
+  return [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus)
+}
+
 function getActiveTrip(orders = []) {
   return orders.find((item) => [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(item.orderStatus)) || null
 }
@@ -238,6 +242,10 @@ Page({
       activeTripCard: buildActiveTripCard(activeTrip),
       vehicleView
     })
+
+    if (activeTrip && canReportActiveTrack(activeTrip)) {
+      this.reportActiveTripTrack(activeTrip).catch(() => {})
+    }
 
     if (!silent || availableOrders.some((item) => item.isNew)) {
       this.scheduleNewOrderReset()
@@ -563,6 +571,46 @@ Page({
         : {
             currentPoint: simulation.driverStart
           }
+    })
+    await reportTrack(order.id, report.payload)
+  },
+
+  async reportActiveTripTrack(order = {}) {
+    if (!order || !order.id || !canReportActiveTrack(order)) return
+    const now = Date.now()
+    this.activeTrackReportAt = this.activeTrackReportAt || {}
+    const lastReportedAt = Number(this.activeTrackReportAt[order.id] || 0)
+    if (now - lastReportedAt < DASHBOARD_POLL_INTERVAL - 200) return
+    this.activeTrackReportAt[order.id] = now
+
+    const simulation = createSimulation(order)
+    const phase = simulation.phase
+    const start = {
+      latitude: Number(order.startLat || 0),
+      longitude: Number(order.startLng || 0)
+    }
+    const end = {
+      latitude: Number(order.endLat || 0),
+      longitude: Number(order.endLng || 0)
+    }
+    const from = phase === 'trip' ? start : simulation.driverStart
+    const to = phase === 'trip' ? end : start
+    let routePoints = await requestRoute(from, to).catch(() => [])
+    if (!routePoints.length && simulation.activeRoute && Array.isArray(simulation.activeRoute.points)) {
+      routePoints = simulation.activeRoute.points
+    }
+    const phaseRouteKey = phase === 'trip' ? 'tripRoutePoints' : 'approachRoutePoints'
+    const report = await buildTrackReport(order, {
+      runtime: {
+        phase,
+        [phaseRouteKey]: routePoints,
+        routePoints,
+        fullRoutePoints: routePoints,
+        points: routePoints,
+        routePlanned: routePoints.length >= 3,
+        currentPoint: simulation.currentPoint,
+        driverStartPoint: simulation.driverStart
+      }
     })
     await reportTrack(order.id, report.payload)
   },
