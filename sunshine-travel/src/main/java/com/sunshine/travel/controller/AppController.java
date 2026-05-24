@@ -6,18 +6,23 @@ import com.sunshine.travel.common.DriverServiceStatus;
 import com.sunshine.travel.entity.CarType;
 import com.sunshine.travel.entity.DriverProfile;
 import com.sunshine.travel.entity.SystemNotice;
+import com.sunshine.travel.entity.SystemVersion;
 import com.sunshine.travel.mapper.CarTypeMapper;
 import com.sunshine.travel.mapper.DriverProfileMapper;
 import com.sunshine.travel.mapper.SystemConfigMapper;
 import com.sunshine.travel.mapper.SystemNoticeMapper;
+import com.sunshine.travel.mapper.SystemVersionMapper;
 import com.sunshine.travel.service.CouponService;
 import com.sunshine.travel.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,11 +33,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/app")
 public class AppController {
 
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Shanghai");
+
     private final CarTypeMapper carTypeMapper;
     private final CouponService couponService;
     private final OrderService orderService;
     private final SystemNoticeMapper systemNoticeMapper;
     private final SystemConfigMapper systemConfigMapper;
+    private final SystemVersionMapper systemVersionMapper;
     private final DriverProfileMapper driverProfileMapper;
 
     public AppController(CarTypeMapper carTypeMapper,
@@ -40,18 +48,20 @@ public class AppController {
                          OrderService orderService,
                          SystemNoticeMapper systemNoticeMapper,
                          SystemConfigMapper systemConfigMapper,
+                         SystemVersionMapper systemVersionMapper,
                          DriverProfileMapper driverProfileMapper) {
         this.carTypeMapper = carTypeMapper;
         this.couponService = couponService;
         this.orderService = orderService;
         this.systemNoticeMapper = systemNoticeMapper;
         this.systemConfigMapper = systemConfigMapper;
+        this.systemVersionMapper = systemVersionMapper;
         this.driverProfileMapper = driverProfileMapper;
     }
 
     @Operation(summary = "首页聚合数据")
     @GetMapping("/home")
-    public ApiResponse<?> home() {
+    public ApiResponse<?> home(@RequestParam(required = false) String role) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("banners", orderService.homeBanners());
         data.put("carTypes", carTypeMapper.selectList(new LambdaQueryWrapper<CarType>().eq(CarType::getEnabled, 1)));
@@ -66,11 +76,24 @@ public class AppController {
                         .orderByDesc(SystemNotice::getSortNo)
                         .orderByDesc(SystemNotice::getId))
                 .stream()
+                .filter(notice -> noticeMatchesRole(notice, role))
+                .filter(this::noticeVisibleNow)
                 .map(SystemNotice::getTitle)
                 .limit(3)
                 .toList();
         data.put("notices", notices);
+        data.put("latestVersions", latestVersions());
         return ApiResponse.success(data);
+    }
+
+    private boolean noticeMatchesRole(SystemNotice notice, String role) {
+        if (!StringUtils.hasText(role) || "ALL".equalsIgnoreCase(role)) {
+            return true;
+        }
+        String targetRole = notice.getTargetRole();
+        return !StringUtils.hasText(targetRole)
+                || "ALL".equalsIgnoreCase(targetRole)
+                || role.equalsIgnoreCase(targetRole);
     }
 
     @Operation(summary = "系统连接状态")
@@ -85,6 +108,47 @@ public class AppController {
             data.put("database", false);
         }
         return ApiResponse.success(data);
+    }
+
+    private Map<String, Object> latestVersions() {
+        Map<String, Object> versions = new LinkedHashMap<>();
+        systemVersionMapper.selectList(new LambdaQueryWrapper<SystemVersion>()
+                        .eq(SystemVersion::getStatus, 1)
+                        .orderByDesc(SystemVersion::getId))
+                .forEach(item -> {
+                    Map<String, Object> version = new LinkedHashMap<>();
+                    version.put("versionNo", item.getVersionNo());
+                    version.put("releaseNote", item.getReleaseNote());
+                    version.put("forceUpdate", item.getForceUpdate());
+                    version.put("downloadUrl", item.getDownloadUrl());
+                    versions.putIfAbsent(item.getClientType(), version);
+                });
+        return versions;
+    }
+
+    private boolean noticeVisibleNow(SystemNotice notice) {
+        String range = notice.getDisplayTimeRange();
+        if (!StringUtils.hasText(range)) {
+            return true;
+        }
+        String[] parts = range.trim().split("-");
+        if (parts.length != 2) {
+            return true;
+        }
+        try {
+            LocalTime now = LocalTime.now(APP_ZONE);
+            LocalTime start = LocalTime.parse(parts[0]);
+            LocalTime end = LocalTime.parse(parts[1]);
+            if (start.equals(end)) {
+                return true;
+            }
+            if (start.isBefore(end)) {
+                return !now.isBefore(start) && !now.isAfter(end);
+            }
+            return !now.isBefore(start) || !now.isAfter(end);
+        } catch (Exception ex) {
+            return true;
+        }
     }
 
     private Map<String, Object> fleetSummary() {

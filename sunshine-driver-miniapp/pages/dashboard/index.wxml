@@ -55,6 +55,13 @@
     </view>
   </view>
 
+  <view wx:if="{{noticeText}}" class="driver-notice-ticker">
+    <view class="driver-notice-ticker__label">公告</view>
+    <view class="driver-notice-ticker__track">
+      <text class="driver-notice-ticker__text">{{noticeText}}</text>
+    </view>
+  </view>
+
   <view class="dashboard-bottom glass-card">
     <view class="dashboard-bottom-head row-between">
       <view class="dashboard-bottom-copy">

@@ -79,6 +79,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -94,6 +95,7 @@ public class AdminServiceImpl implements AdminService {
     private static final String INVOICE_SELLER_NAME = "北京阳光出行有限公司";
     private static final String INVOICE_SELLER_TAX_NO = "91110105MA01SUN8X9";
     private static final String INVOICE_SELLER_PHONE = "400-100-0101";
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter INVOICE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter INVOICE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -1143,6 +1145,8 @@ public class AdminServiceImpl implements AdminService {
         row.put("status", item.getStatus());
         row.put("sortNo", item.getSortNo());
         row.put("targetRole", item.getTargetRole());
+        row.put("displayTimeRange", item.getDisplayTimeRange());
+        row.put("activeNow", noticeActiveNow(item));
         row.put("createdAt", item.getCreatedAt());
         return row;
     }
@@ -1205,6 +1209,51 @@ public class AdminServiceImpl implements AdminService {
         notice.setStatus(request.getStatus());
         notice.setSortNo(request.getSortNo());
         notice.setTargetRole(StringUtils.hasText(request.getTargetRole()) ? request.getTargetRole() : "ALL");
+        notice.setDisplayTimeRange(normalizeNoticeDisplayTimeRange(request.getDisplayTimeRange()));
+    }
+
+    private String normalizeNoticeDisplayTimeRange(String range) {
+        if (!StringUtils.hasText(range)) {
+            return null;
+        }
+        String value = range.trim();
+        if (!value.matches("^([01]\\d|2[0-3]):[0-5]\\d-([01]\\d|2[0-3]):[0-5]\\d$")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "公告显示时段格式应为 HH:mm-HH:mm");
+        }
+        String[] parts = value.split("-");
+        LocalTime.parse(parts[0]);
+        LocalTime.parse(parts[1]);
+        return value;
+    }
+
+    private boolean noticeActiveNow(SystemNotice notice) {
+        if (notice == null || !Objects.equals(notice.getStatus(), 1)) {
+            return false;
+        }
+        return isInNoticeDisplayRange(notice.getDisplayTimeRange(), LocalTime.now(APP_ZONE));
+    }
+
+    private boolean isInNoticeDisplayRange(String range, LocalTime now) {
+        if (!StringUtils.hasText(range)) {
+            return true;
+        }
+        String[] parts = range.trim().split("-");
+        if (parts.length != 2) {
+            return true;
+        }
+        try {
+            LocalTime start = LocalTime.parse(parts[0]);
+            LocalTime end = LocalTime.parse(parts[1]);
+            if (start.equals(end)) {
+                return true;
+            }
+            if (start.isBefore(end)) {
+                return !now.isBefore(start) && !now.isAfter(end);
+            }
+            return !now.isBefore(start) || !now.isAfter(end);
+        } catch (Exception ex) {
+            return true;
+        }
     }
 
     private void fillVersion(SystemVersion version, SystemVersionSaveRequest request) {

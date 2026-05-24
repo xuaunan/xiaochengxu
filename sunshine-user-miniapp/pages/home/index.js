@@ -177,6 +177,18 @@ function buildActiveRideCard(order = {}) {
   }
 }
 
+function buildNoticeTickerText(notices = []) {
+  return (Array.isArray(notices) ? notices : [])
+    .map((item) => {
+      if (typeof item === 'string') return item.trim()
+      const title = `${item.title || ''}`.trim()
+      const content = `${item.content || ''}`.trim()
+      return title && content ? `${title}：${content}` : title || content
+    })
+    .filter(Boolean)
+    .join('　　·　　')
+}
+
 Page({
   data: {
     loading: true,
@@ -204,6 +216,7 @@ Page({
     calculating: false,
     dispatching: false,
     activeRideCard: null,
+    noticeText: '',
     brandTitle: '阳光出行',
     brandSubtitle: '暖橙色出行服务平台'
   },
@@ -460,7 +473,8 @@ Page({
       coupons,
       draft: currentDraft,
       activeService: 'taxi',
-      selectedCarTypeId: currentDraft.selectedCarTypeId
+      selectedCarTypeId: currentDraft.selectedCarTypeId,
+      noticeText: buildNoticeTickerText(homeData.notices || [])
     })
   },
 

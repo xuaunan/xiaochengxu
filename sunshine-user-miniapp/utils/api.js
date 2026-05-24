@@ -134,9 +134,13 @@ function submitRealName(data) {
   })
 }
 
-function fetchHome() {
+function fetchHome(options = {}) {
   return request({
-    url: '/app/home'
+    url: '/app/home',
+    data: {
+      role: options.role || 'USER'
+    },
+    skipToast: Boolean(options.skipToast)
   })
 }
 

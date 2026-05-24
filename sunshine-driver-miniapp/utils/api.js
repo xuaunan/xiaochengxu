@@ -190,6 +190,16 @@ function fetchDashboard() {
   })
 }
 
+function fetchHome(options = {}) {
+  return request({
+    url: '/app/home',
+    data: {
+      role: options.role || 'DRIVER'
+    },
+    skipToast: Boolean(options.skipToast)
+  })
+}
+
 function updateServiceStatus(data, options = {}) {
   return request({
     url: '/driver/service-status',
@@ -314,6 +324,7 @@ function withdraw(data) {
 module.exports = {
   acceptOrder,
   fetchDashboard,
+  fetchHome,
   fetchOrderDetail,
   fetchOrderRuntime,
   fetchOrders,

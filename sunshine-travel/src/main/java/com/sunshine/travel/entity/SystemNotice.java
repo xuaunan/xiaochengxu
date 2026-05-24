@@ -14,4 +14,5 @@ public class SystemNotice extends BaseEntity {
     private Integer status;
     private Integer sortNo;
     private String targetRole;
+    private String displayTimeRange;
 }
