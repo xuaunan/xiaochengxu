@@ -21,6 +21,13 @@
   </view>
 
   <view class="home-panel" style="height: {{panelHeight}}px;">
+    <view wx:if="{{noticeText}}" class="home-notice-ticker">
+      <view class="home-notice-ticker__label">公告</view>
+      <view class="home-notice-ticker__track">
+        <text class="home-notice-ticker__text">{{noticeText}}</text>
+      </view>
+    </view>
+
     <scroll-view class="home-panel__content" scroll-y enhanced show-scrollbar="{{false}}">
       <view class="service-tabs">
         <view class="service-tab {{activeService === 'taxi' ? 'service-tab--active' : ''}}" data-type="taxi" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">打车</view>

@@ -16,8 +16,10 @@ public class SystemNoticeSaveRequest {
     @NotNull(message = "状态不能为空")
     private Integer status;
 
-    @NotNull(message = "排序不能为空")
+    @NotNull(message = "首页优先级不能为空")
     private Integer sortNo;
 
     private String targetRole;
+
+    private String displayTimeRange;
 }

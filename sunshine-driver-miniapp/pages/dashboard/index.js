@@ -1,4 +1,4 @@
-const { acceptOrder, fetchDashboard, fetchWaitingOrders, rejectOrder, reportTrack, updateServiceStatus } = require('../../utils/api')
+const { acceptOrder, fetchDashboard, fetchHome, fetchWaitingOrders, rejectOrder, reportTrack, updateServiceStatus } = require('../../utils/api')
 const { DRIVER_SERVICE_STATUS, ORDER_STATUS, SERVICE_TYPE, getDriverServiceActionText, getDriverServiceText } = require('../../utils/constants')
 const { buildVehicleView, buildWallet, getReceiveOrderPermission, mapDriverProfile, mapTripOrder, mapWaitingOrder } = require('../../utils/driver-store')
 const { broadcastDriver, notifyDriver } = require('../../utils/notify')
@@ -79,6 +79,18 @@ function resolveServiceStatus(profileStatus, busy) {
   return profileStatus === DRIVER_SERVICE_STATUS.BUSY ? DRIVER_SERVICE_STATUS.OFFLINE : profileStatus
 }
 
+function buildNoticeTickerText(notices = []) {
+  return (Array.isArray(notices) ? notices : [])
+    .map((item) => {
+      if (typeof item === 'string') return item.trim()
+      const title = `${item.title || ''}`.trim()
+      const content = `${item.content || ''}`.trim()
+      return title && content ? `${title}：${content}` : title || content
+    })
+    .filter(Boolean)
+    .join('　　·　　')
+}
+
 function getListeningBaseline(settings = {}) {
   return new Set(Array.isArray(settings.listeningBaselineOrderIds)
     ? settings.listeningBaselineOrderIds.map((id) => `${id}`)
@@ -113,6 +125,7 @@ Page({
       auditText: '同步中',
       auditClassName: 'neutral'
     },
+    noticeText: '',
     noticePopup: {
       visible: false
     }
@@ -126,6 +139,7 @@ Page({
       wx.redirectTo({ url: '/pages/onboarding/index' })
       return
     }
+    this.loadHomeNotices().catch(() => {})
     await this.loadDashboard()
     this.startDashboardPolling()
   },
@@ -152,6 +166,14 @@ Page({
       clearInterval(this.dashboardPollingTimer)
       this.dashboardPollingTimer = null
     }
+  },
+
+  async loadHomeNotices() {
+    const response = await fetchHome({ skipToast: true })
+    const homeData = response.data || {}
+    this.setData({
+      noticeText: buildNoticeTickerText(homeData.notices || [])
+    })
   },
 
   async loadDashboard(silent = false) {

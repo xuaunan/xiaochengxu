@@ -168,6 +168,53 @@
   background: rgba(148, 163, 184, 0.18);
 }
 
+.driver-notice-ticker {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  top: calc(50vh - 62rpx);
+  z-index: 13;
+  height: 52rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(255, 122, 0, 0.16);
+  border-bottom: 0;
+  border-radius: 28rpx 28rpx 0 0;
+  background: linear-gradient(90deg, rgba(255, 247, 238, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 -10rpx 24rpx rgba(255, 122, 0, 0.08);
+}
+
+.driver-notice-ticker__label {
+  flex-shrink: 0;
+  padding: 5rpx 12rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 122, 0, 0.12);
+  color: #ff7a00;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.driver-notice-ticker__track {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.driver-notice-ticker__text {
+  display: inline-block;
+  padding-left: 100%;
+  color: #566277;
+  font-size: 22rpx;
+  line-height: 52rpx;
+  white-space: nowrap;
+  animation: driver-notice-marquee 18s linear infinite;
+}
+
 .dashboard-bottom {
   position: fixed;
   left: 24rpx;
@@ -182,6 +229,16 @@
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(18rpx);
   overflow: hidden;
+}
+
+@keyframes driver-notice-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 .listen-button {

@@ -33,9 +33,9 @@
         <div class="panel-head">
           <div>
             <span class="panel-kicker">运行环境</span>
-            <h3 class="panel-title">演示环境说明</h3>
+            <h3 class="panel-title">环境信息</h3>
             <p class="panel-subtitle">
-              当前后台、后端和小程序使用同一套演示数据库，适合课程答辩时联动展示。
+              当前后台、网页端、小程序端和后端服务连接同一套业务数据库。
             </p>
           </div>
         </div>
@@ -74,7 +74,7 @@
           <div>
             <span class="panel-kicker">公告中心</span>
             <h3 class="panel-title">公告管理</h3>
-            <p class="panel-subtitle">公告可同步到首页展示，支持新增、编辑、启停闭环管理。</p>
+            <p class="panel-subtitle">公告可同步到首页展示，支持新增、编辑、启停闭环管理；首页优先级越高越靠前。</p>
           </div>
           <div class="toolbar-actions">
             <el-input
@@ -96,11 +96,16 @@
               {{ targetRoleLabel(row.targetRole) }}
             </template>
           </el-table-column>
-          <el-table-column prop="sortNo" label="排序" width="80" />
+          <el-table-column prop="sortNo" label="首页优先级" width="110" />
+          <el-table-column label="显示时段" width="150">
+            <template #default="{ row }">
+              {{ displayTimeRangeText(row) }}
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="row.status === 1 ? 'success' : 'info'" effect="light">
-                {{ row.status === 1 ? '启用' : '停用' }}
+              <el-tag :type="noticeStatusType(row)" effect="light">
+                {{ noticeStatusText(row) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -221,8 +226,22 @@
             <el-option label="管理员" value="ADMIN" />
           </el-select>
         </el-form-item>
-        <el-form-item label="排序值" prop="sortNo">
+        <el-form-item label="首页优先级" prop="sortNo">
           <el-input-number v-model="noticeForm.sortNo" :min="1" :max="9999" />
+          <div class="config-remark">数值越大，乘客端和网页端首页公告越靠前。</div>
+        </el-form-item>
+        <el-form-item label="显示时段">
+          <el-time-picker
+            v-model="noticeForm.displayTimeWindow"
+            is-range
+            format="HH:mm"
+            value-format="HH:mm"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            style="width: 100%"
+          />
+          <div class="config-remark">不选择则全天显示；支持跨零点，例如 23:00 至 06:00。</div>
         </el-form-item>
         <el-form-item label="启用状态">
           <el-switch v-model="noticeForm.enabledFlag" />
@@ -317,6 +336,7 @@ const createNoticeForm = () => ({
   content: '',
   targetRole: 'ALL',
   sortNo: 100,
+  displayTimeWindow: [],
   enabledFlag: true
 })
 
@@ -337,7 +357,7 @@ const noticeRules = {
   title: [{ required: true, message: '请输入公告标题', trigger: 'blur' }],
   content: [{ required: true, message: '请输入公告内容', trigger: 'blur' }],
   targetRole: [{ required: true, message: '请选择目标角色', trigger: 'change' }],
-  sortNo: [{ required: true, message: '请输入排序值', trigger: 'change' }]
+  sortNo: [{ required: true, message: '请输入首页优先级', trigger: 'change' }]
 }
 
 const versionRules = {
@@ -426,6 +446,7 @@ function openNoticeEdit(row) {
     content: row.content,
     targetRole: row.targetRole || 'ALL',
     sortNo: row.sortNo,
+    displayTimeWindow: parseDisplayTimeRange(row.displayTimeRange),
     enabledFlag: row.status === 1
   })
   noticeVisible.value = true
@@ -440,6 +461,7 @@ async function submitNotice() {
       content: noticeForm.content.trim(),
       targetRole: noticeForm.targetRole,
       sortNo: noticeForm.sortNo,
+      displayTimeRange: buildDisplayTimeRange(noticeForm.displayTimeWindow),
       status: noticeForm.enabledFlag ? 1 : 0
     }
     if (noticeForm.id) {
@@ -465,6 +487,7 @@ async function toggleNotice(row) {
     content: row.content,
     targetRole: row.targetRole,
     sortNo: row.sortNo,
+    displayTimeRange: row.displayTimeRange || '',
     status: row.status === 1 ? 0 : 1
   })
   ElMessage.success(row.status === 1 ? '公告已停用' : '公告已启用')
@@ -541,6 +564,34 @@ function handleNoticePageChange(current) {
 function handleVersionPageChange(current) {
   versionQuery.current = current
   loadVersions()
+}
+
+function parseDisplayTimeRange(value) {
+  const text = `${value || ''}`.trim()
+  if (!text) return []
+  const parts = text.split('-')
+  return parts.length === 2 && parts[0] && parts[1] ? parts : []
+}
+
+function buildDisplayTimeRange(value) {
+  if (!Array.isArray(value) || value.length !== 2 || !value[0] || !value[1]) {
+    return ''
+  }
+  return `${value[0]}-${value[1]}`
+}
+
+function displayTimeRangeText(row) {
+  return row.displayTimeRange || '全天'
+}
+
+function noticeStatusType(row) {
+  if (row.status !== 1) return 'info'
+  return row.activeNow === false ? 'warning' : 'success'
+}
+
+function noticeStatusText(row) {
+  if (row.status !== 1) return '停用'
+  return row.activeNow === false ? '未到时段' : '当前生效'
 }
 
 function targetRoleLabel(value) {
@@ -642,21 +693,22 @@ onMounted(() => {
 }
 
 .runtime-summary-list {
-  gap: 14px;
+  gap: 10px;
 }
 
 .runtime-summary-list .summary-item {
-  gap: 6px;
-  padding: 16px 18px;
+  gap: 4px;
+  padding: 12px 14px;
 }
 
 .runtime-summary-list .summary-item span {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .runtime-summary-list .summary-item strong {
-  font-size: 18px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 700;
   word-break: break-word;
 }
 </style>
