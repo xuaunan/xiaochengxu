@@ -30,7 +30,14 @@
     <article class="panel">
       <el-table v-loading="tableLoading" :data="list" stripe>
         <el-table-column prop="id" label="ID" width="90" />
-        <el-table-column prop="nickname" label="用户昵称" min-width="140" />
+        <el-table-column label="用户昵称" min-width="160">
+          <template #default="{ row }">
+            <span>{{ row.nickname }}</span>
+            <el-tag v-if="isMember(row)" class="member-tag" size="small" type="warning" effect="light">
+              {{ row.memberLevel || '阳光会员' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" label="手机号" min-width="130" />
         <el-table-column label="角色" width="110">
           <template #default="{ row }">
@@ -52,6 +59,12 @@
             <el-tag :type="authTagType(resolveAuthStatus(row))" effect="light">
               {{ textOf(authStatusMap, resolveAuthStatus(row)) }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="会员" width="110">
+          <template #default="{ row }">
+            <el-tag v-if="isMember(row)" type="warning" effect="light">会员</el-tag>
+            <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column label="账号状态" width="110">
@@ -213,6 +226,10 @@
             <span>优惠券数量</span>
             <strong>{{ detail.couponTotal || 0 }}</strong>
           </div>
+          <div v-if="isMember(detail.user)" class="stat-card">
+            <span>会员状态</span>
+            <strong>{{ detail.user.memberLevel || '阳光会员' }}</strong>
+          </div>
           <div class="stat-card">
             <span>完成订单</span>
             <strong>{{ detail.completedOrderTotal || 0 }}</strong>
@@ -227,6 +244,9 @@
           <el-descriptions-item label="身份证号">{{ detail.user.idCard || '未填写' }}</el-descriptions-item>
           <el-descriptions-item label="紧急联系人">{{ detail.user.emergencyContact || '未填写' }}</el-descriptions-item>
           <el-descriptions-item label="联系电话">{{ detail.user.emergencyPhone || '未填写' }}</el-descriptions-item>
+          <el-descriptions-item v-if="isMember(detail.user)" label="会员到期">
+            {{ formatDateTime(detail.user.memberExpireAt) }}
+          </el-descriptions-item>
           <el-descriptions-item label="审核备注" :span="2">{{ detail.user.authRemark || '暂无备注' }}</el-descriptions-item>
         </el-descriptions>
 
@@ -355,6 +375,10 @@ function isDriver(row = {}) {
   return row?.roleCode === 'DRIVER'
 }
 
+function isMember(row = {}) {
+  return row?.roleCode === 'USER' && row?.memberStatus === 'ACTIVE'
+}
+
 function resolveAuthStatus(row = {}) {
   if (isDriver(row) && typeof row?.driverProfile?.vehicleAuditStatus === 'number') {
     return row.driverProfile.vehicleAuditStatus
@@ -410,6 +434,10 @@ function normalizeUserRecord(user = {}) {
     authStatus: firstDefined(user.authStatus, user.auth_status, 0),
     authRemark: firstDefined(user.authRemark, user.auth_remark, ''),
     walletBalance: firstDefined(user.walletBalance, user.wallet_balance, 0),
+    memberStatus: firstDefined(user.memberStatus, user.member_status, 'NONE'),
+    memberLevel: firstDefined(user.memberLevel, user.member_level, '普通用户'),
+    memberExpireAt: firstDefined(user.memberExpireAt, user.member_expire_at, ''),
+    memberLastCouponWeek: firstDefined(user.memberLastCouponWeek, user.member_last_coupon_week, ''),
     emergencyContact: firstDefined(user.emergencyContact, user.emergency_contact, ''),
     emergencyPhone: firstDefined(user.emergencyPhone, user.emergency_phone, ''),
     createdAt: firstDefined(user.createdAt, user.created_at, ''),
@@ -569,7 +597,7 @@ async function submitForm() {
       await syncCurrentUser(form.id)
     } else {
       await http.post('/admin/users', payload)
-      ElMessage.success('用户已创建并写入数据库')
+      ElMessage.success('用户已创建')
     }
     formVisible.value = false
     await loadUsers()
@@ -668,6 +696,10 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 16px;
+}
+
+.member-tag {
+  margin-left: 8px;
 }
 
 @media (max-width: 768px) {

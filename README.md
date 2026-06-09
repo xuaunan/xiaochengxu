@@ -15,8 +15,8 @@ D:\xiaochengxu
 - `sunshine-user-miniapp`：乘客端微信小程序
 - `sunshine-driver-miniapp`：司机端微信小程序
 - `sql`：最新数据库导出和同步补丁
-- `docs`：部署、接口、架构和演示文档
-- `zhengshu`：演示用证件图片素材
+- `docs`：部署、接口、架构和说明文档
+- `zhengshu`：证件图片素材
 
 这些不是多个版本，而是同一个完整项目的不同组成部分。
 

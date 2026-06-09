@@ -124,7 +124,7 @@ const internationalOptions = [
 ]
 
 const helpList = [
-  { id: 'faq001', title: '如何模拟支付流程？', content: '结算页点击“确认支付”后会直接触发模拟支付弹层，无需商户号即可演示全流程。' },
+  { id: 'faq001', title: '如何完成支付？', content: '结算页点击“确认支付”后会进入支付确认流程，支付完成后可继续查看行程进度。' },
   { id: 'faq002', title: '定位权限被拒绝怎么办？', content: '首页会自动切换为手动输入地址模式，并提供重新授权入口。' },
   { id: 'faq003', title: '顺风车如何取消？', content: '出发前 30 分钟可免费取消，临近出发取消会提示违约规则。' }
 ]
@@ -191,7 +191,6 @@ function createUserStore() {
       invoices: 3
     },
     settings: {
-      darkMode: false,
       pushEnabled: true,
       autoUseCoupon: true,
       language: 'zh-CN'
@@ -391,7 +390,7 @@ function getHomePayload(store) {
     ],
     quickTips: [
       '定位关闭时支持手动输入地址',
-      '全流程内置模拟支付与模拟司机轨迹',
+      '支付确认后可查看司机轨迹',
       '首页长按地图即可快速设定起终点'
     ],
     carTypes: getCarTypes(),

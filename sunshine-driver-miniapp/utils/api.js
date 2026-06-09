@@ -190,6 +190,13 @@ function fetchDashboard() {
   })
 }
 
+function fetchWithdraws(options = {}) {
+  return request({
+    url: '/driver/withdraws',
+    ...options
+  })
+}
+
 function fetchHome(options = {}) {
   return request({
     url: '/app/home',
@@ -313,6 +320,30 @@ function fetchMessages() {
   })
 }
 
+function fetchSupportConversation() {
+  return request({
+    url: '/support/conversation',
+    data: { _t: Date.now() },
+    skipToast: true
+  })
+}
+
+function fetchSupportMessages() {
+  return request({
+    url: '/support/messages',
+    data: { _t: Date.now() },
+    skipToast: true
+  })
+}
+
+function sendSupportMessage(content) {
+  return request({
+    url: '/support/messages',
+    method: 'POST',
+    data: { content }
+  })
+}
+
 function withdraw(data) {
   return request({
     url: '/driver/withdraw',
@@ -330,14 +361,18 @@ module.exports = {
   fetchOrders,
   fetchProfile,
   fetchMessages,
+  fetchSupportConversation,
+  fetchSupportMessages,
   fetchTrackHistory,
   fetchWaitingOrders,
+  fetchWithdraws,
   finishOrder,
   login,
   register,
   pickupOrder,
   reportTrack,
   rejectOrder,
+  sendSupportMessage,
   startOrder,
   submitCertification,
   uploadDriverDocument,

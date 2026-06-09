@@ -19,7 +19,15 @@
     </view>
 
     <view class="message-list" wx:if="{{list.length > 0}}">
-      <view class="message-card tap-scale" wx:for="{{list}}" wx:key="id">
+      <view
+        class="message-card tap-scale"
+        wx:for="{{list}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="openMessage"
+        hover-class="pressable-hover"
+        hover-stay-time="60"
+      >
         <view class="message-icon message-icon--{{item.iconClass}}"></view>
         <view class="message-card__main">
           <view class="message-card__title">{{item.title}}</view>

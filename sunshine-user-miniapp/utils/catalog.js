@@ -107,6 +107,7 @@ const INTERNATIONAL_OPTIONS = [
     id: 'int001',
     titleZh: '香港机场接送',
     titleEn: 'Hong Kong Airport Transfer',
+    routeCode: 'SZX-HKG',
     countryText: '中国香港',
     startName: '深圳湾口岸，中国深圳',
     endName: '香港国际机场，中国香港',
@@ -118,12 +119,13 @@ const INTERNATIONAL_OPTIONS = [
     badge: '热门接送机',
     inclusions: ['中文司机', '行李协助', '航班延误等待', '跨境路线备案'],
     documents: ['港澳通行证/护照', '航班号或落地时间'],
-    notice: '支持港澳跨境演示结算、优惠券抵扣与中文下单'
+    notice: '支持港澳跨境接送、优惠券抵扣与中文下单'
   },
   {
     id: 'int002',
     titleZh: '澳门商务包车',
     titleEn: 'Macau Business Charter',
+    routeCode: 'SZX-MFM',
     countryText: '中国澳门',
     startName: '深圳湾口岸，中国深圳',
     endName: '澳门渔人码头，中国澳门',
@@ -135,14 +137,15 @@ const INTERNATIONAL_OPTIONS = [
     badge: '商务包车',
     inclusions: ['专属车辆', '多点等待', '商务发票资料', '中英双语沟通'],
     documents: ['港澳通行证/护照', '企业或联系人信息'],
-    notice: '适合跨境商务接待与课程作业全流程演示'
+    notice: '适合跨境商务接待、会议用车与多点等待'
   },
   {
     id: 'int003',
     titleZh: '沪港商务接驳',
     titleEn: 'Shanghai-HK Business Link',
+    routeCode: 'PVG-HKG',
     countryText: '跨境商务',
-    startName: '上海浦东国际机场',
+    startName: '上海浦东国际机场，中国上海',
     endName: '香港国际机场，中国香港',
     basePrice: 168,
     currency: '美元',
@@ -152,19 +155,19 @@ const INTERNATIONAL_OPTIONS = [
     badge: '企业预约',
     inclusions: ['航班接续提醒', '企业账单', '专属客服', '行程资料归档'],
     documents: ['联系人电话', '航班/会议信息'],
-    notice: '面向企业客户的本地演示预约，订单实时进入后台'
+    notice: '面向企业客户的预约接驳，支持行程资料归档'
   }
 ]
 
 const HELP_LIST = [
-  { id: 'faq001', title: '如何完成模拟支付？', content: '行程结束后进入结算页，点击“确认支付”即可调用后端模拟支付接口完成支付闭环。' },
+  { id: 'faq001', title: '如何完成支付？', content: '行程结束后进入结算页，点击“确认支付”即可完成订单支付。' },
   { id: 'faq002', title: '定位权限被拒绝怎么办？', content: '首页会自动切换到手动输入模式，也可以点击“重新授权”重新获取定位。' },
-  { id: 'faq003', title: '国际出行为何要带城市信息？', content: '后端会校验国际订单地址中必须带有城市或地区信息，建议使用“地点，中国城市/地区”的格式。' }
+  { id: 'faq003', title: '国际出行为何要带城市信息？', content: '国际订单地址需包含城市或地区信息，建议使用“地点，中国城市/地区”的格式。' }
 ]
 
 const DEFAULT_MESSAGES = [
   { id: 'local-msg-001', title: '行程提醒', content: '接单、支付、评价后会自动在这里展示最近消息。', time: '刚刚', unread: false },
-  { id: 'local-msg-002', title: '演示账号提示', content: '默认乘客账号：13800000001 / 123456。', time: '今天', unread: false }
+  { id: 'local-msg-002', title: '账号提示', content: '默认乘客账号：13800000001 / 123456。', time: '今天', unread: false }
 ]
 
 function createDefaultUserStore() {
@@ -178,12 +181,12 @@ function createDefaultUserStore() {
       avatar: '/images/avatar-user.svg',
       phone: '',
       authStatus: AUTH_STATUS.UNVERIFIED,
+      memberLevel: '普通用户',
       walletBalance: 0,
       emergencyContact: '未设置',
       emergencyPhone: ''
     },
     settings: {
-      darkMode: false,
       pushEnabled: true,
       autoUseCoupon: true,
       language: 'zh-CN'
@@ -196,6 +199,14 @@ function createDefaultUserStore() {
     },
     coupons: [],
     couponCenter: [],
+    memberCoupons: [],
+    membership: {
+      active: false,
+      level: '普通用户',
+      openedAt: '',
+      expireDate: '',
+      packageMonth: ''
+    },
     orders: [],
     currentRideOrder: null,
     rideReviews: [],

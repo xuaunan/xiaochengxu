@@ -66,7 +66,7 @@ public class OrderRuntimeSupport {
         boolean waitingRedLight = latestTrace != null && Boolean.TRUE.equals(latestTrace.getWaitingRedLight());
         long waitSeconds = latestTrace == null ? 0L : safeLong(latestTrace.getWaitSeconds());
         long currentWaitSeconds = latestTrace == null ? 0L : safeLong(latestTrace.getCurrentWaitSeconds());
-        String trafficText = latestTrace == null ? "" : firstText(latestTrace.getTrafficText(), demoTrace ? "演示轨迹同步中" : "实时轨迹同步中");
+        String trafficText = latestTrace == null ? "" : firstText(latestTrace.getTrafficText(), demoTrace ? "规划轨迹更新中" : "实时轨迹更新中");
         String waitingText = latestTrace == null ? "" : firstText(latestTrace.getWaitingText(), waitingRedLight ? "红灯等待中" : "");
         Map<String, String> traceMetrics = parseTraceRemarkMetrics(latestTrace);
         BigDecimal reportedDistanceKm = decimalMetric(traceMetrics, "distance");
@@ -92,10 +92,21 @@ public class OrderRuntimeSupport {
             percent = clampPercent(reportedPercent);
         }
         boolean driverArrived = !traces.isEmpty() && resolveDriverArrived(order, phase, currentPoint, remainDistanceKm);
+        String phaseText = resolvePhaseText(status, driverArrived);
+        String displayText = resolveDisplayText(status, waitingRedLight, trafficText, waitingText, phaseText);
+        if (finished || cancelled) {
+            trafficText = displayText;
+            waitingText = "暂无等待";
+            waitingRedLight = false;
+            waitSeconds = 0L;
+            currentWaitSeconds = 0L;
+        }
 
         Map<String, Object> runtime = new LinkedHashMap<>();
         runtime.put("phase", phase);
-        runtime.put("phaseText", resolvePhaseText(status, driverArrived));
+        runtime.put("phaseText", phaseText);
+        runtime.put("stateText", phaseText);
+        runtime.put("displayText", displayText);
         runtime.put("percent", percent);
         runtime.put("progress", BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
         runtime.put("currentPoint", pointMap(currentPoint));
@@ -113,6 +124,7 @@ public class OrderRuntimeSupport {
         runtime.put("trafficText", trafficText);
         runtime.put("waitingText", waitingText);
         runtime.put("phaseComplete", finished);
+        runtime.put("terminal", finished || cancelled);
         runtime.put("driverArrived", driverArrived);
         runtime.put("tripAutoFinishReady", false);
         runtime.put("approachTotalSeconds", OrderStatus.IN_TRIP.equals(status) || finished ? 0 : totalSeconds);
@@ -192,6 +204,19 @@ public class OrderRuntimeSupport {
             return "接驾中";
         }
         return "等待派单";
+    }
+
+    private String resolveDisplayText(String status, boolean waitingRedLight, String trafficText, String waitingText, String phaseText) {
+        if (OrderStatus.FINISHED.equals(status)) {
+            return "行程已完成";
+        }
+        if (OrderStatus.CANCELLED.equals(status)) {
+            return "订单已取消";
+        }
+        if (waitingRedLight) {
+            return firstText(waitingText, "红灯等待中");
+        }
+        return firstText(trafficText, phaseText);
     }
 
     private GeoPoint resolveCurrentPoint(RideOrder order, List<TravelTrace> traces, boolean finished, boolean cancelled) {

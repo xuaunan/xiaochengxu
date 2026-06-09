@@ -1,6 +1,6 @@
 const { fetchOrderDetail, fetchOrderRuntime, fetchOrders, reportTrack } = require('../../utils/api')
 const { ORDER_STATUS, getServiceTypeMeta } = require('../../utils/constants')
-const { formatPrice, mapTripOrder } = require('../../utils/driver-store')
+const { formatPrice, mapTripOrder, parseInternationalMeta } = require('../../utils/driver-store')
 const { createSimulation } = require('../../utils/trip-simulator')
 const { buildRoutePolylines, hasUsableRoute } = require('../../utils/route-display')
 const { requestRoute } = require('../../utils/route-planner')
@@ -150,6 +150,7 @@ function formatDurationMinutes(seconds) {
 
 function buildTripModel(order = {}, runtime = null) {
   const serviceTypeMeta = getServiceTypeMeta(order.serviceType)
+  const internationalMeta = parseInternationalMeta(order)
   const fallback = createSimulation(order)
   const cachedRuntime = getApp().getOrderRuntimeCache ? getApp().getOrderRuntimeCache(order.id) : null
   const trackMode = getCurrentTrackMode()
@@ -211,6 +212,7 @@ function buildTripModel(order = {}, runtime = null) {
     serviceTypeLabel: serviceTypeMeta.label,
     trackModeText: `${getTrackModeLabel(trackMode)}轨迹`,
     serviceTypeClassName: serviceTypeMeta.className,
+    internationalMeta,
     fareText: formatPrice(order.actualAmount || order.payableAmount || order.estimatedAmount, order.currencyCode),
     statusText,
     etaText,
@@ -350,7 +352,7 @@ Page({
         runtime = getApp().getOrderRuntimeCache ? getApp().getOrderRuntimeCache(this.data.orderId) : null
         if (!silent) {
           wx.showToast({
-            title: '实时轨迹同步失败，请稍后刷新',
+            title: '实时轨迹刷新失败，请稍后重试',
             icon: 'none'
           })
         }

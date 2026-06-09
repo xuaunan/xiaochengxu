@@ -1,6 +1,7 @@
 package com.sunshine.travel.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -16,4 +17,6 @@ public class MessageRecord extends BaseEntity {
     private String content;
     private String languageCode;
     private String sendStatus;
+    private String readStatus;
+    private LocalDateTime readAt;
 }

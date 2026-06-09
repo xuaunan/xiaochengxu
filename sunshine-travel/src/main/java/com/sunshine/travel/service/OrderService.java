@@ -21,6 +21,8 @@ public interface OrderService {
 
     RideOrder detail(Long orderId);
 
+    Map<String, Object> detailView(Long orderId);
+
     Map<String, Object> runtime(Long orderId);
 
     void cancelOrder(Long orderId, String reason);
@@ -39,7 +41,11 @@ public interface OrderService {
 
     List<RideOrder> currentUserOrders(String roleCode);
 
+    List<Map<String, Object>> currentUserOrderViews(String roleCode);
+
     List<RideOrder> waitingOrders();
+
+    List<Map<String, Object>> waitingOrderViews();
 
     void submitEvaluation(EvaluationRequest request);
 

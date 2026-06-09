@@ -7,24 +7,24 @@
 .driver-orders-page {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding-top: 20rpx;
+  gap: 14rpx;
+  padding-top: 16rpx;
 }
 
 .driver-orders-hero {
   position: relative;
-  min-height: 128rpx;
+  min-height: 108rpx;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  padding: 22rpx 24rpx;
-  border-radius: 26rpx;
+  gap: 16rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
   border: 1rpx solid rgba(255, 122, 0, 0.26);
   background:
     linear-gradient(110deg, rgba(255, 250, 244, 0.98) 0%, rgba(255, 247, 238, 0.92) 52%, rgba(255, 226, 190, 0.52) 100%),
     #ffffff;
-  box-shadow: 0 18rpx 42rpx rgba(210, 104, 18, 0.09);
+  box-shadow: 0 10rpx 24rpx rgba(210, 104, 18, 0.08);
 }
 
 .driver-orders-hero__icon {
@@ -82,15 +82,15 @@
 
 .driver-orders-title {
   color: #172033;
-  font-size: 33rpx;
-  font-weight: 600;
+  font-size: 29rpx;
+  font-weight: 550;
   line-height: 1.15;
 }
 
 .driver-orders-desc {
   margin-top: 8rpx;
   color: #667085;
-  font-size: 23rpx;
+  font-size: 21rpx;
   font-weight: 400;
 }
 
@@ -98,15 +98,15 @@
   position: relative;
   z-index: 2;
   flex-shrink: 0;
-  min-width: 82rpx;
-  padding: 10rpx 17rpx;
+  min-width: 72rpx;
+  padding: 8rpx 14rpx;
   border-radius: 999rpx;
   color: #ff6f00;
   background: rgba(255, 255, 255, 0.7);
   border: 2rpx solid rgba(255, 122, 0, 0.42);
   text-align: center;
-  font-size: 24rpx;
-  font-weight: 600;
+  font-size: 21rpx;
+  font-weight: 550;
 }
 
 .driver-orders-city,
@@ -222,11 +222,11 @@
 }
 
 .driver-filter-card {
-  padding: 16rpx 18rpx;
-  border-radius: 24rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 16rpx 36rpx rgba(24, 34, 56, 0.06);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.055);
 }
 
 .driver-tabs-scroll {
@@ -247,9 +247,9 @@
 }
 
 .driver-filter-chip {
-  min-width: 104rpx;
-  height: 50rpx;
-  padding: 0 22rpx;
+  min-width: 94rpx;
+  height: 44rpx;
+  padding: 0 18rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -257,14 +257,14 @@
   color: #667085;
   background: #fbfcfe;
   border: 2rpx solid rgba(31, 36, 50, 0.08);
-  font-size: 24rpx;
+  font-size: 21rpx;
   font-weight: 500;
   transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .driver-filter-chip--type {
-  min-width: 116rpx;
-  height: 56rpx;
+  min-width: 104rpx;
+  height: 48rpx;
 }
 
 .driver-filter-chip--active {
@@ -276,18 +276,18 @@
 .driver-order-list {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 14rpx;
   padding-bottom: 28rpx;
 }
 
 .driver-order-card {
   position: relative;
   overflow: hidden;
-  padding: 22rpx 24rpx;
-  border-radius: 24rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 18rpx 42rpx rgba(24, 34, 56, 0.065);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.058);
 }
 
 .driver-order-card::before {
@@ -317,7 +317,7 @@
 }
 
 .driver-order-type {
-  gap: 16rpx;
+  gap: 12rpx;
   min-width: 0;
 }
 
@@ -329,29 +329,33 @@
   border-radius: 14rpx;
   color: #ff6f00;
   background: #fff1df;
+  box-sizing: border-box;
 }
 
 .driver-order-type__icon--taxi::before {
   content: "";
   position: absolute;
-  left: 9rpx;
-  top: 17rpx;
-  width: 28rpx;
+  left: 50%;
+  top: 50%;
+  width: 27rpx;
   height: 15rpx;
   border-radius: 8rpx 9rpx 5rpx 5rpx;
   border: 3rpx solid currentColor;
+  box-sizing: border-box;
+  transform: translate(-50%, -12%);
 }
 
 .driver-order-type__icon--taxi::after {
   content: "";
   position: absolute;
-  left: 14rpx;
-  bottom: 9rpx;
+  left: 50%;
+  top: 50%;
   width: 5rpx;
   height: 5rpx;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 14rpx 0 0 currentColor, 5rpx -18rpx 0 -1rpx currentColor;
+  box-shadow: 13rpx 0 0 currentColor, 5rpx -17rpx 0 -1rpx currentColor;
+  transform: translate(-160%, 78%);
 }
 
 .driver-order-type__icon--carpool::before,
@@ -363,60 +367,62 @@
 }
 
 .driver-order-type__icon--carpool::before {
-  left: 11rpx;
-  top: 10rpx;
+  left: 50%;
+  top: 50%;
   width: 10rpx;
   height: 10rpx;
   box-shadow: 15rpx 0 0 currentColor;
+  transform: translate(-126%, -120%);
 }
 
 .driver-order-type__icon--carpool::after {
-  left: 7rpx;
-  bottom: 10rpx;
+  left: 50%;
+  top: 50%;
   width: 16rpx;
   height: 12rpx;
   border-radius: 12rpx 12rpx 4rpx 4rpx;
   box-shadow: 17rpx 0 0 currentColor;
+  transform: translate(-112%, 18%);
 }
 
 .driver-order-type__icon--international::before {
   content: "";
   position: absolute;
-  left: 8rpx;
-  top: 20rpx;
+  left: 50%;
+  top: 50%;
   width: 30rpx;
-  height: 6rpx;
+  height: 5rpx;
   border-radius: 999rpx;
   background: currentColor;
-  transform: rotate(-28deg);
+  transform: translate(-50%, -50%) rotate(-28deg);
 }
 
 .driver-order-type__icon--international::after {
   content: "";
   position: absolute;
-  left: 21rpx;
-  top: 12rpx;
-  width: 7rpx;
+  left: 50%;
+  top: 50%;
+  width: 6rpx;
   height: 24rpx;
   border-radius: 999rpx;
   background: currentColor;
-  transform: rotate(-28deg);
+  transform: translate(-50%, -50%) rotate(-28deg);
 }
 
 .driver-order-type__text {
   color: #ff6f00;
-  font-size: 25rpx;
-  font-weight: 600;
+  font-size: 23rpx;
+  font-weight: 550;
 }
 
 .driver-order-status {
   flex-shrink: 0;
-  padding: 9rpx 16rpx;
+  padding: 7rpx 14rpx;
   border-radius: 999rpx;
   color: #ff6f00;
   background: #fff1df;
-  font-size: 23rpx;
-  font-weight: 600;
+  font-size: 21rpx;
+  font-weight: 500;
 }
 
 .driver-order-status--completed {
@@ -442,15 +448,67 @@
 .driver-order-route {
   position: relative;
   z-index: 1;
-  margin-top: 18rpx;
+  margin-top: 14rpx;
   color: #111827;
-  font-size: 27rpx;
-  font-weight: 600;
+  font-size: 23rpx;
+  font-weight: 550;
   line-height: 1.45;
 }
 
+.driver-order-intl {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10rpx;
+  margin-top: 14rpx;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: #f3f7fb;
+  border: 1rpx solid rgba(29, 78, 137, 0.08);
+}
+
+.driver-order-intl__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.driver-order-intl__head text,
+.driver-order-intl__head view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  line-height: 36rpx;
+}
+
+.driver-order-intl__head text {
+  color: #ffffff;
+  background: #1d4e89;
+}
+
+.driver-order-intl__head view {
+  color: #12845c;
+  background: #e8f8ef;
+}
+
+.driver-order-intl__brief,
+.driver-order-intl__docs {
+  color: #344054;
+  font-size: 21rpx;
+  line-height: 1.45;
+}
+
+.driver-order-intl__docs {
+  color: #1d4e89;
+}
+
 .driver-order-card__bottom {
-  margin-top: 18rpx;
+  margin-top: 14rpx;
 }
 
 .driver-order-meta {
@@ -459,9 +517,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12rpx 18rpx;
+  gap: 9rpx 14rpx;
   color: #7a8396;
-  font-size: 23rpx;
+  font-size: 21rpx;
 }
 
 .driver-order-meta__item {
@@ -482,6 +540,7 @@
   height: 26rpx;
   flex-shrink: 0;
   color: #8b94a7;
+  box-sizing: border-box;
 }
 
 .driver-order-meta__icon--user::before,
@@ -493,18 +552,20 @@
 }
 
 .driver-order-meta__icon--user::before {
-  left: 8rpx;
-  top: 3rpx;
+  left: 50%;
+  top: 50%;
   width: 10rpx;
   height: 10rpx;
+  transform: translate(-50%, -80%);
 }
 
 .driver-order-meta__icon--user::after {
-  left: 4rpx;
-  bottom: 3rpx;
+  left: 50%;
+  top: 50%;
   width: 18rpx;
   height: 11rpx;
   border-radius: 12rpx 12rpx 4rpx 4rpx;
+  transform: translate(-50%, 14%);
 }
 
 .driver-order-meta__icon--time {
@@ -515,51 +576,55 @@
 .driver-order-meta__icon--time::before {
   content: "";
   position: absolute;
-  left: 10rpx;
-  top: 4rpx;
+  left: 50%;
+  top: 50%;
   width: 3rpx;
   height: 9rpx;
   border-radius: 999rpx;
   background: currentColor;
+  transform: translate(-50%, -76%);
 }
 
 .driver-order-meta__icon--time::after {
   content: "";
   position: absolute;
-  left: 10rpx;
-  top: 11rpx;
+  left: 50%;
+  top: 50%;
   width: 8rpx;
   height: 3rpx;
   border-radius: 999rpx;
   background: currentColor;
+  transform: translate(0, -50%);
 }
 
 .driver-order-meta__icon--seat::before {
   content: "";
   position: absolute;
-  left: 5rpx;
-  top: 5rpx;
+  left: 50%;
+  top: 50%;
   width: 16rpx;
   height: 16rpx;
   border-radius: 7rpx;
   border: 3rpx solid currentColor;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
 }
 
 .driver-order-price {
   flex-shrink: 0;
   color: #ff6f00;
-  font-size: 32rpx;
-  font-weight: 600;
+  font-size: 27rpx;
+  font-weight: 550;
   line-height: 1;
 }
 
 .driver-empty-card {
-  min-height: 280rpx;
-  padding: 42rpx 28rpx;
-  border-radius: 26rpx;
+  min-height: 220rpx;
+  padding: 30rpx 24rpx;
+  border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 18rpx 42rpx rgba(24, 34, 56, 0.065);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.058);
   text-align: center;
 }
 
@@ -571,41 +636,45 @@
   border-radius: 28rpx;
   color: #ff6f00;
   background: #fff1df;
+  box-sizing: border-box;
 }
 
 .driver-empty-icon::before {
   content: "";
   position: absolute;
-  left: 23rpx;
-  top: 31rpx;
+  left: 50%;
+  top: 50%;
   width: 46rpx;
   height: 26rpx;
   border-radius: 12rpx 14rpx 7rpx 7rpx;
-  border: 6rpx solid currentColor;
+  border: 4rpx solid currentColor;
+  box-sizing: border-box;
+  transform: translate(-50%, -10%);
 }
 
 .driver-empty-icon::after {
   content: "";
   position: absolute;
-  left: 31rpx;
-  bottom: 27rpx;
+  left: 50%;
+  top: 50%;
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 24rpx 0 0 currentColor;
+  box-shadow: 24rpx 0 0 currentColor, 10rpx -30rpx 0 -2rpx currentColor;
+  transform: translate(-176%, 92%);
 }
 
 .driver-empty-title {
   color: #172033;
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 25rpx;
+  font-weight: 550;
 }
 
 .driver-empty-desc {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   color: #7a8396;
-  font-size: 25rpx;
+  font-size: 21rpx;
   line-height: 1.5;
 }
 

@@ -76,6 +76,14 @@
           <view class="driver-order-status driver-order-status--{{item.status}}">{{item.statusText}}</view>
         </view>
         <view class="driver-order-route">{{item.startName}} → {{item.endName}}</view>
+        <view class="driver-order-intl" wx:if="{{item.internationalMeta}}">
+          <view class="driver-order-intl__head">
+            <text>{{item.internationalMeta.routeCode}}</text>
+            <view>{{item.internationalMeta.syncStatusText}}</view>
+          </view>
+          <view class="driver-order-intl__brief">{{item.orderInfoText}}</view>
+          <view class="driver-order-intl__docs">{{item.internationalMeta.documentsText}}</view>
+        </view>
         <view class="driver-order-card__bottom">
           <view class="driver-order-meta">
             <view class="driver-order-meta__item">
@@ -99,7 +107,7 @@
     <view class="driver-empty-card" wx:else>
       <view class="driver-empty-icon"></view>
       <view class="driver-empty-title">暂无行程订单</view>
-      <view class="driver-empty-desc">保持听单状态，新的行程会实时同步到这里。</view>
+      <view class="driver-empty-desc">保持听单状态，新的行程会及时出现在这里。</view>
     </view>
   </view>
 </view>

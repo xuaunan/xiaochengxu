@@ -1,5 +1,5 @@
-<view class="page-shell invoice-shell safe-bottom">
-  <view class="page-content invoice-page page-enter">
+<view class="page-shell invoice-page-shell safe-bottom">
+  <view class="invoice-page page-enter">
     <view class="invoice-hero">
       <view class="invoice-hero__icon">
         <view class="invoice-doc-lines"></view>
@@ -10,11 +10,6 @@
         <view class="invoice-hero__desc">订单开票申请与已开具发票</view>
       </view>
       <view class="invoice-count">{{issuedList.length}} 张</view>
-      <view class="invoice-paper">
-        <view class="invoice-paper__sheet"></view>
-        <view class="invoice-paper__leaf invoice-paper__leaf--one"></view>
-        <view class="invoice-paper__leaf invoice-paper__leaf--two"></view>
-      </view>
     </view>
 
     <view class="invoice-tabs">
@@ -35,32 +30,40 @@
     </view>
 
     <block wx:if="{{activeTab === 'apply'}}">
+      <view class="invoice-section-head">
+        <view class="invoice-title-wrap">
+          <view class="invoice-section-icon invoice-section-icon--apply"></view>
+          <view class="invoice-section-title">可申请发票</view>
+        </view>
+        <view class="invoice-soft-pill">{{applyList.length}} 单</view>
+      </view>
+
       <view class="invoice-list" wx:if="{{applyList.length}}">
         <view class="invoice-card tap-scale" wx:for="{{applyList}}" wx:key="id">
-          <view class="invoice-card__top">
-            <view class="invoice-service-icon invoice-service-icon--{{item.iconClass}}">
-              <view class="invoice-service-icon__shape"></view>
+          <view class="invoice-service-icon invoice-service-icon--{{item.iconClass}}">
+            <view class="invoice-service-icon__shape"></view>
+          </view>
+          <view class="invoice-card__main">
+            <view class="invoice-tag invoice-tag--{{item.iconClass}}">{{item.serviceTag}}</view>
+            <view class="invoice-card__title">{{item.title}}</view>
+            <view class="invoice-card__time">
+              <view class="invoice-time-icon"></view>
+              <text>{{item.displayTime}}</text>
             </view>
-            <view class="invoice-card__main">
-              <view class="invoice-tag invoice-tag--{{item.iconClass}}">{{item.serviceTag}}</view>
-              <view class="invoice-card__title">{{item.title}}</view>
-              <view class="invoice-card__time">
-                <view class="invoice-time-icon"></view>
-                <text>{{item.displayTime}}</text>
-              </view>
-              <view wx:if="{{item.rejectReason}}" class="invoice-card__reason">驳回原因：{{item.rejectReason}}</view>
-            </view>
+            <view wx:if="{{item.rejectReason}}" class="invoice-card__reason">驳回原因：{{item.rejectReason}}</view>
+            <button
+              class="invoice-button {{item.canApply ? '' : 'invoice-button--disabled'}}"
+              hover-class="button-hover"
+              data-id="{{item.id}}"
+              bindtap="applyInvoice"
+            >
+              <text>{{item.status}}</text>
+              <text class="invoice-button__arrow">›</text>
+            </button>
+          </view>
+          <view class="invoice-card__side">
             <view class="invoice-amount">{{item.amountText}}</view>
           </view>
-          <button
-            class="invoice-button {{item.canApply ? '' : 'invoice-button--disabled'}}"
-            hover-class="button-hover"
-            data-id="{{item.id}}"
-            bindtap="applyInvoice"
-          >
-            <text>{{item.status}}</text>
-            <text class="invoice-button__arrow">›</text>
-          </button>
         </view>
       </view>
 
@@ -72,6 +75,14 @@
     </block>
 
     <block wx:else>
+      <view class="invoice-section-head">
+        <view class="invoice-title-wrap">
+          <view class="invoice-section-icon invoice-section-icon--issued"></view>
+          <view class="invoice-section-title">我的发票</view>
+        </view>
+        <view class="invoice-soft-pill">{{issuedList.length}} 张</view>
+      </view>
+
       <view class="invoice-issued-list" wx:if="{{issuedList.length}}">
         <view
           class="invoice-issued-row tap-scale {{selectedInvoiceId === '' + item.id ? 'invoice-issued-row--active' : ''}}"
@@ -91,14 +102,14 @@
             <view class="invoice-issued-row__title">{{item.title}}</view>
             <view class="invoice-issued-row__meta">订单 {{item.orderNo}} · {{item.issueTime || item.displayTime}}</view>
           </view>
-          <view class="invoice-issued-row__arrow">›</view>
+          <view class="invoice-issued-row__arrow"></view>
         </view>
       </view>
 
       <view class="invoice-empty" wx:else>
         <view class="invoice-empty__icon"></view>
         <view class="invoice-empty__title">暂无已开具发票</view>
-        <view class="invoice-empty__desc">后台审核通过后，会同步出现在我的发票里。</view>
+        <view class="invoice-empty__desc">发票开具后，会出现在我的发票里。</view>
       </view>
     </block>
 
@@ -111,13 +122,15 @@
           </view>
           <view class="invoice-viewer__close" bindtap="closeInvoiceViewer">×</view>
         </view>
-        <scroll-view class="invoice-viewer__scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <scroll-view class="invoice-viewer__scroll" style="{{invoiceScrollStyle}}" scroll-y enhanced show-scrollbar="{{false}}">
           <view wx:if="{{invoiceImageLoading}}" class="invoice-viewer__loading">发票图片生成中...</view>
           <image
             wx:elif="{{invoiceImagePath}}"
             class="invoice-viewer__image"
+            style="{{invoiceImageStyle}}"
             src="{{invoiceImagePath}}"
-            mode="widthFix"
+            mode="aspectFit"
+            bindload="handleInvoiceImageLoad"
             bindtap="previewInvoiceImage"
           ></image>
           <view wx:else class="invoice-viewer__loading">发票图片暂不可用</view>

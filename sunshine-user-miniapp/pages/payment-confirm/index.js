@@ -57,6 +57,10 @@ function getOrderOriginalAmount(rawOrder = {}) {
   return toNumber(rawOrder.actualAmount, toNumber(rawOrder.estimatedAmount, toNumber(rawOrder.payableAmount)))
 }
 
+function canPayOrder(rawOrder = {}) {
+  return rawOrder.orderStatus === ORDER_STATUS.FINISHED && rawOrder.payStatus === PAY_STATUS.UNPAID
+}
+
 function mergeOrderWithCouponContext(rawOrder, couponContext) {
   if (!couponContext) return rawOrder
 
@@ -79,15 +83,16 @@ Page({
       {
         key: 'WECHAT',
         name: '微信支付',
-        desc: '推荐用于课程演示，流程最完整'
+        desc: '推荐使用，流程更完整'
       },
       {
         key: 'BALANCE',
         name: '余额支付',
-        desc: '模拟钱包余额支付，状态同步一致'
+        desc: '使用账户余额完成支付'
       }
     ],
     confirmText: '确认支付',
+    canPay: false,
     processing: false,
     loading: true,
     showSuccessPopup: false,
@@ -130,7 +135,7 @@ Page({
     } catch (error) {
       if (!silent) {
         wx.showToast({
-          title: '订单同步失败，请稍后重试',
+          title: '订单确认失败，请稍后重试',
           icon: 'none'
         })
       }
@@ -143,7 +148,11 @@ Page({
   applyOrderState(rawOrder) {
     if (!rawOrder) return
 
-    const couponContext = rawOrder.payStatus === PAY_STATUS.UNPAID
+    const payable = canPayOrder(rawOrder)
+    if (!payable) {
+      clearPendingCouponContext(rawOrder.id, rawOrder.orderNo)
+    }
+    const couponContext = payable
       ? getPendingCouponContext(rawOrder.id, rawOrder.orderNo)
       : null
     const effectiveOrder = mergeOrderWithCouponContext(rawOrder, couponContext)
@@ -168,9 +177,22 @@ Page({
         startDisplay: order.startName || (order.start && order.start.name) || '',
         endDisplay: order.endName || (order.end && order.end.name) || ''
       },
-      confirmText: hasPaid ? '已完成支付' : `确认支付 ${amountText}`,
+      confirmText: hasPaid ? '已完成支付' : payable ? `确认支付 ${amountText}` : '暂不可支付',
+      canPay: payable,
       loading: false
     })
+
+    if (!payable && !hasPaid) {
+      wx.showToast({
+        title: '订单完成后才可支付',
+        icon: 'none'
+      })
+      if (!this.redirectTimer) {
+        this.redirectTimer = setTimeout(() => {
+          this.redirectToDetail(effectiveOrder)
+        }, 600)
+      }
+    }
   },
 
   async waitForPaidOrder(orderId, maxAttempts = 4, interval = 800) {
@@ -195,7 +217,7 @@ Page({
   },
 
   selectMethod(e) {
-    if (this.data.processing || !this.data.order || this.data.order.payStatus === PAY_STATUS.PAID) return
+    if (this.data.processing || !this.data.order || !this.data.canPay || this.data.order.payStatus === PAY_STATUS.PAID) return
     this.setData({
       selectedMethod: e.currentTarget.dataset.key
     })
@@ -229,6 +251,15 @@ Page({
 
   async confirmPay() {
     if (this.data.processing || !this.data.order) return
+
+    if (!this.data.canPay) {
+      wx.showToast({
+        title: '订单完成后才可支付',
+        icon: 'none'
+      })
+      this.redirectToDetail(this.data.order)
+      return
+    }
 
     if (this.data.order.payStatus === PAY_STATUS.PAID) {
       wx.showToast({
@@ -293,7 +324,7 @@ Page({
       this.setData({
         processing: false,
         showSuccessPopup: true,
-        successHint: '支付成功，订单状态已与后端同步，正在返回订单详情。'
+        successHint: '支付成功，正在返回订单详情。'
       })
 
       this.redirectTimer = setTimeout(() => {
@@ -304,7 +335,7 @@ Page({
       this.setData({ processing: false })
       wx.showModal({
         title: '支付失败',
-        content: '支付演示未完成，已返回订单详情页，当前订单仍保持待支付状态。',
+        content: '支付未完成，当前订单仍保持待支付状态。',
         showCancel: false,
         complete: () => {
           this.redirectToDetail()

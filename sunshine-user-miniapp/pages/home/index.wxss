@@ -175,9 +175,17 @@
 }
 
 .current-ride-card__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 122, 0, 0.1);
   font-size: 24rpx;
   font-weight: 700;
-  color: #1f2432;
+  color: #ff7a00;
+  white-space: nowrap;
 }
 
 .service-tab {
@@ -266,9 +274,10 @@
   width: 76rpx;
   height: 76rpx;
   border-radius: 24rpx;
-  background: #ffffff;
-  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.1);
-  color: #ff8a1f;
+  background: rgba(255, 122, 0, 0.1);
+  border: 1rpx solid rgba(255, 122, 0, 0.12);
+  box-shadow: 0 10rpx 24rpx rgba(255, 122, 0, 0.08);
+  color: #ff7a00;
   font-size: 28rpx;
   font-weight: 700;
   display: flex;
@@ -399,15 +408,26 @@
 }
 
 .car-card__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108rpx;
+  max-width: 100%;
+  min-height: 48rpx;
   margin-top: 12rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 122, 0, 0.1);
   font-size: 24rpx;
   font-weight: 700;
-  color: #ff8a1f;
+  color: #ff7a00;
+  overflow: hidden;
 }
 
 .car-card__action--price {
   font-size: 28rpx;
   color: #ff7a00;
+  background: rgba(255, 122, 0, 0.11);
 }
 
 .car-card__price-row {
@@ -460,13 +480,24 @@
   width: 100%;
   min-height: 96rpx;
   padding: 20rpx 0;
-  border-radius: 22rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(255, 122, 0, 0.14);
+  background: rgba(255, 122, 0, 0.11);
+  color: #ff7a00;
+  box-shadow: 0 10rpx 24rpx rgba(255, 122, 0, 0.08);
   font-size: 26rpx;
   font-weight: 800;
   line-height: 1.15;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.confirm-button[disabled] {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.14);
+  color: #98a2b3;
+  box-shadow: none;
 }
 
 .pressable-hover,

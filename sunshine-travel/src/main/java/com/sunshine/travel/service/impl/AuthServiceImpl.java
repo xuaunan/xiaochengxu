@@ -62,6 +62,8 @@ public class AuthServiceImpl implements AuthService {
         user.setAuthStatus(AuthStatus.UNVERIFIED);
         user.setEnabled(1);
         user.setWalletBalance(BigDecimal.valueOf(200));
+        user.setMemberStatus("NONE");
+        user.setMemberLevel("普通用户");
         user.setDefaultLanguage(StringUtils.hasText(request.getDefaultLanguage()) ? request.getDefaultLanguage() : "zh-CN");
         platformUserMapper.insert(user);
         if (RoleCode.DRIVER.equals(request.getRoleCode())) {

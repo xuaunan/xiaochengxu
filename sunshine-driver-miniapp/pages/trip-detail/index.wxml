@@ -57,7 +57,38 @@
       </view>
     </view>
 
-    <view class="trip-panel flow-panel">
+    <view class="trip-panel intl-trip-panel" wx:if="{{trip.internationalMeta}}">
+      <view class="panel-title-row">
+        <view class="panel-title-icon panel-title-icon--flow"></view>
+        <view class="panel-title">国际行程资料</view>
+      </view>
+      <view class="intl-trip-head">
+        <view class="intl-trip-code">{{trip.internationalMeta.routeCode}}</view>
+        <view class="intl-trip-sync">{{trip.internationalMeta.syncStatusText}}</view>
+      </view>
+      <view class="intl-trip-grid">
+        <view>
+          <text>预约</text>
+          <view>{{trip.internationalMeta.appointmentTimeText}}</view>
+        </view>
+        <view>
+          <text>航班/编号</text>
+          <view>{{trip.internationalMeta.flightNo || '待补充'}}</view>
+        </view>
+        <view>
+          <text>接机牌</text>
+          <view>{{trip.internationalMeta.pickupSign}}</view>
+        </view>
+        <view>
+          <text>人数行李</text>
+          <view>{{trip.internationalMeta.passengerCountText}} · {{trip.internationalMeta.luggageCountText}}</view>
+        </view>
+      </view>
+      <view class="intl-trip-note">{{trip.internationalMeta.documentsText}}</view>
+      <view class="intl-trip-note intl-trip-note--service">{{trip.internationalMeta.serviceItemsText}}</view>
+    </view>
+
+    <view class="trip-panel flow-panel" wx:if="{{trip.showServiceFlow}}">
       <view class="panel-title-row">
         <view class="panel-title-icon panel-title-icon--flow"></view>
         <view class="panel-title">服务流程</view>
@@ -71,61 +102,101 @@
       </view>
     </view>
 
-    <view class="trip-panel drive-panel">
-      <view class="drive-copy">
+    <view class="trip-panel drive-panel drive-panel--{{trip.driveStatus.state}}">
+      <view class="drive-head">
         <view class="panel-title-row">
           <view class="panel-title-icon panel-title-icon--car"></view>
-          <view class="panel-title">行驶状态</view>
+          <view class="panel-title">{{trip.driveStatus.sectionTitle}}</view>
         </view>
-        <view class="drive-subtitle">按道路路线行驶中</view>
-        <view class="drive-status">
-          <view class="drive-pin"></view>
-          <text>{{trip.trafficText}}</text>
-        </view>
+        <view class="drive-badge">{{trip.driveStatus.badge}}</view>
       </view>
-      <view class="mini-map">
-        <view class="mini-map__grid"></view>
-        <view class="mini-map__route"></view>
-        <view class="mini-map__point mini-map__point--start"></view>
-        <view class="mini-map__point mini-map__point--end"></view>
+
+      <block wx:if="{{trip.driveStatus.visualType === 'dispatch'}}">
+        <view class="status-stage status-stage--dispatch">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.subtitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.description}}</view>
+          </view>
+          <view class="dispatch-board">
+            <view class="dispatch-board__row dispatch-board__row--active">
+              <text>订单确认</text>
+              <text>待处理</text>
+            </view>
+            <view class="dispatch-board__row">
+              <text>接驾准备</text>
+              <text>未开始</text>
+            </view>
+            <view class="dispatch-board__row">
+              <text>服务状态</text>
+              <text>同步中</text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{trip.driveStatus.visualType === 'approach'}}">
+        <view class="status-stage status-stage--approach">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.subtitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.description}}</view>
+          </view>
+          <view class="arrival-board">
+            <view class="arrival-node arrival-node--driver">司机</view>
+            <view class="arrival-path">
+              <view class="arrival-car"></view>
+            </view>
+            <view class="arrival-node arrival-node--pickup">上车点</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{trip.driveStatus.visualType === 'trip'}}">
+        <view class="status-stage status-stage--trip">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.subtitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.description}}</view>
+          </view>
+          <view class="nav-board">
+            <view class="nav-board__top">
+              <text>{{trip.driveStatus.visualTitle}}</text>
+              <text>{{trip.driveStatus.progress}}%</text>
+            </view>
+            <view class="nav-board__bar">
+              <view class="nav-board__fill" style="width: {{trip.driveStatus.progress}}%;"></view>
+            </view>
+            <view class="nav-board__hint">{{trip.driveStatus.visualHint}}</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{trip.driveStatus.visualType === 'finished'}}">
+        <view class="status-stage status-stage--finished">
+          <view class="result-mark result-mark--done">✓</view>
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.visualTitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.visualHint}}</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="status-stage status-stage--cancelled">
+          <view class="result-mark result-mark--closed">×</view>
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.visualTitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.description}}</view>
+          </view>
+        </view>
+      </block>
+
+      <view class="drive-facts">
+        <view class="drive-fact drive-fact--{{item.tone || 'normal'}}" wx:for="{{trip.driveStatus.facts}}" wx:key="label">
+          <view class="drive-fact__label">{{item.label}}</view>
+          <view class="drive-fact__value">{{item.value}}</view>
+        </view>
       </view>
     </view>
 
-    <view class="trip-panel action-panel">
-      <view class="panel-title-row">
-        <view class="panel-title-icon panel-title-icon--driver"></view>
-        <view class="panel-title">司机操作</view>
-      </view>
-      <view class="action-desc">推进状态后会同步刷新司机端、乘客端和后台。</view>
-      <view class="driver-actions">
-        <view class="driver-action driver-action--{{trip.orderStatus === 'ACCEPTED' ? 'active' : 'done'}}">
-          <view class="driver-action__icon driver-action__icon--wheel"></view>
-          <view class="driver-action__copy">
-            <view class="driver-action__title">开始接驾</view>
-            <view class="driver-action__desc">司机已接单出发</view>
-            <view class="driver-action__state">{{trip.orderStatus === 'ACCEPTED' ? '待处理' : '已完成'}}</view>
-          </view>
-          <view class="driver-action__arrow"></view>
-        </view>
-        <view class="driver-action driver-action--{{trip.orderStatus === 'PICKING_UP' ? 'active' : (trip.orderStatus === 'ACCEPTED' ? 'pending' : 'done')}}">
-          <view class="driver-action__icon driver-action__icon--user"></view>
-          <view class="driver-action__copy">
-            <view class="driver-action__title">到达乘客</view>
-            <view class="driver-action__desc">已到达上车点</view>
-            <view class="driver-action__state">{{trip.orderStatus === 'PICKING_UP' ? '待处理' : (trip.orderStatus === 'ACCEPTED' ? '待完成' : '已完成')}}</view>
-          </view>
-          <view class="driver-action__arrow"></view>
-        </view>
-        <view class="driver-action driver-action--{{trip.orderStatus === 'FINISHED' ? 'done' : (trip.orderStatus === 'IN_TRIP' ? 'active' : 'pending')}}">
-          <view class="driver-action__icon driver-action__icon--check"></view>
-          <view class="driver-action__copy">
-            <view class="driver-action__title">完成行程</view>
-            <view class="driver-action__desc">已送达目的地</view>
-            <view class="driver-action__state">{{trip.orderStatus === 'FINISHED' ? '已完成' : (trip.orderStatus === 'IN_TRIP' ? '待处理' : '待完成')}}</view>
-          </view>
-        </view>
-      </view>
-    </view>
   </view>
 
   <view class="floating-bar trip-floating-bar">

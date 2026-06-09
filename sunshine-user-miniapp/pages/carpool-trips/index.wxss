@@ -7,44 +7,44 @@
 .trips-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding-top: 20rpx;
-  padding-left: 28rpx;
-  padding-right: 28rpx;
+  gap: 18rpx;
+  padding-top: 16rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
 }
 
 .trips-hero {
   position: relative;
-  min-height: 156rpx;
-  padding: 30rpx 230rpx 30rpx 30rpx;
-  border-radius: 28rpx;
+  min-height: 132rpx;
+  padding: 24rpx 196rpx 24rpx 26rpx;
+  border-radius: 22rpx;
   overflow: hidden;
   border: 1rpx solid rgba(255, 122, 0, 0.14);
   background:
     linear-gradient(105deg, rgba(255, 245, 233, 0.98) 0%, rgba(255, 255, 255, 0.92) 58%, rgba(255, 231, 194, 0.74) 100%);
-  box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
+  box-shadow: 0 12rpx 28rpx rgba(37, 43, 58, 0.045);
 }
 
 .trips-hero__title {
-  font-size: 42rpx;
-  font-weight: 900;
+  font-size: 32rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.18;
 }
 
 .trips-hero__desc {
-  margin-top: 10rpx;
-  font-size: 24rpx;
+  margin-top: 8rpx;
+  font-size: 22rpx;
   color: #737c90;
   line-height: 1.35;
 }
 
 .trips-hero__scene {
   position: absolute;
-  right: 24rpx;
+  right: 16rpx;
   bottom: 0;
-  width: 218rpx;
-  height: 124rpx;
+  width: 184rpx;
+  height: 106rpx;
 }
 
 .trips-hero__scene::before {
@@ -113,59 +113,62 @@
 .trip-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .summary-card {
-  min-height: 150rpx;
-  padding: 20rpx 18rpx;
-  border-radius: 24rpx;
+  min-height: 120rpx;
+  padding: 16rpx 14rpx;
+  border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid rgba(255, 122, 0, 0.08);
-  box-shadow: 0 14rpx 30rpx rgba(37, 43, 58, 0.045);
+  box-shadow: 0 10rpx 22rpx rgba(37, 43, 58, 0.04);
 }
 
 .summary-card__icon {
   position: relative;
-  width: 38rpx;
-  height: 38rpx;
-  margin-bottom: 12rpx;
-  border-radius: 14rpx;
+  width: 32rpx;
+  height: 32rpx;
+  margin-bottom: 10rpx;
+  box-sizing: border-box;
+  border-radius: 12rpx;
   background: rgba(255, 122, 0, 0.1);
 }
 
 .summary-card__icon::before {
   content: "";
   position: absolute;
-  left: 9rpx;
-  top: 15rpx;
+  left: 50%;
+  top: 18rpx;
   width: 20rpx;
   height: 12rpx;
   border-radius: 7rpx;
   background: #ff7a00;
+  transform: translateX(-50%);
 }
 
 .summary-card__icon::after {
   content: "";
   position: absolute;
-  left: 14rpx;
+  left: 50%;
   top: 8rpx;
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
   background: #ff7a00;
+  transform: translateX(-50%);
 }
 
 .summary-card__value {
-  font-size: 36rpx;
+  font-size: 28rpx;
   line-height: 1.1;
-  font-weight: 900;
+  font-weight: 550;
   color: #111827;
 }
 
 .summary-card__label {
-  margin-top: 8rpx;
-  font-size: 22rpx;
+  margin-top: 6rpx;
+  font-size: 20rpx;
   color: #7d8799;
 }
 
@@ -176,7 +179,7 @@
 
 .trip-tabs__inner {
   display: inline-flex;
-  gap: 16rpx;
+  gap: 12rpx;
   min-width: 100%;
   padding: 2rpx 2rpx 4rpx;
 }
@@ -185,14 +188,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 68rpx;
-  padding: 0 30rpx;
+  height: 56rpx;
+  padding: 0 24rpx;
   border-radius: 999rpx;
   color: #6f7787;
   background: #ffffff;
   border: 1rpx solid rgba(17, 24, 39, 0.06);
-  font-size: 25rpx;
-  font-weight: 900;
+  font-size: 22rpx;
+  font-weight: 500;
 }
 
 .trip-tab--active {
@@ -205,35 +208,36 @@
 .trip-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 14rpx;
 }
 
 .trip-record,
 .empty-card {
-  border-radius: 28rpx;
+  border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(17, 24, 39, 0.05);
-  box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
+  box-shadow: 0 12rpx 28rpx rgba(37, 43, 58, 0.045);
 }
 
 .trip-record {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
-  padding: 26rpx;
+  gap: 12rpx;
+  padding: 22rpx;
 }
 
 .trip-record__top {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 18rpx;
 }
 
 .service-badge {
   position: relative;
-  width: 42rpx;
-  height: 42rpx;
-  border-radius: 14rpx;
+  width: 36rpx;
+  height: 36rpx;
+  box-sizing: border-box;
+  border-radius: 12rpx;
   background: rgba(255, 122, 0, 0.1);
   flex-shrink: 0;
 }
@@ -241,25 +245,26 @@
 .service-badge::before {
   content: "";
   position: absolute;
-  left: 9rpx;
-  top: 16rpx;
+  left: 50%;
+  top: 50%;
   width: 24rpx;
   height: 14rpx;
   border-radius: 8rpx;
   background: #ff7a00;
+  transform: translate(-50%, -50%);
 }
 
 .record-role {
   flex: 1;
   min-width: 0;
   color: #ff6b00;
-  font-size: 25rpx;
-  font-weight: 900;
+  font-size: 22rpx;
+  font-weight: 550;
 }
 
 .record-title {
-  font-size: 32rpx;
-  font-weight: 900;
+  font-size: 25rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.35;
 }
@@ -267,14 +272,14 @@
 .record-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 14rpx 18rpx;
 }
 
 .record-meta__item {
   position: relative;
-  padding-left: 34rpx;
+  padding-left: 30rpx;
   color: #7b8497;
-  font-size: 24rpx;
+  font-size: 21rpx;
   line-height: 1.4;
 }
 
@@ -286,7 +291,7 @@
   width: 24rpx;
   height: 24rpx;
   border-radius: 50%;
-  border: 4rpx solid #9aa3b2;
+  border: 3rpx solid #9aa3b2;
   box-sizing: border-box;
 }
 
@@ -296,25 +301,30 @@
 }
 
 .record-hint {
-  padding: 14rpx 18rpx;
-  border-radius: 16rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 14rpx;
   color: #b45a00;
   background: rgba(255, 176, 32, 0.12);
-  font-size: 24rpx;
+  font-size: 21rpx;
   line-height: 1.45;
 }
 
 .record-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: 74rpx;
+  height: 60rpx;
   margin-top: 2rpx;
-  border-radius: 18rpx;
+  padding: 0;
+  border-radius: 16rpx;
   border: 1rpx solid rgba(255, 122, 0, 0.18);
   background: linear-gradient(135deg, rgba(255, 247, 237, 0.96), rgba(255, 255, 255, 0.98));
   color: #c6531f;
-  font-size: 27rpx;
-  font-weight: 900;
-  line-height: 74rpx;
+  font-size: 22rpx;
+  font-weight: 550;
+  line-height: 1.2;
+  box-sizing: border-box;
 }
 
 .record-action::after {
@@ -325,7 +335,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 54rpx 34rpx;
+  padding: 38rpx 28rpx;
   text-align: center;
 }
 
@@ -333,6 +343,7 @@
   position: relative;
   width: 86rpx;
   height: 86rpx;
+  box-sizing: border-box;
   border-radius: 26rpx;
   background: linear-gradient(180deg, rgba(255, 183, 105, 0.8), rgba(255, 122, 0, 0.78));
 }
@@ -340,25 +351,25 @@
 .empty-card__icon::after {
   content: "";
   position: absolute;
-  left: 25rpx;
-  top: 23rpx;
-  width: 32rpx;
-  height: 22rpx;
-  border-left: 6rpx solid #ffffff;
-  border-bottom: 6rpx solid #ffffff;
-  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  width: 33rpx;
+  height: 23rpx;
+  border-left: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  transform: translate(-50%, -56%) rotate(-45deg);
 }
 
 .empty-title {
-  margin-top: 28rpx;
-  font-size: 31rpx;
-  font-weight: 900;
+  margin-top: 22rpx;
+  font-size: 26rpx;
+  font-weight: 550;
   color: #111827;
 }
 
 .empty-desc {
-  margin-top: 12rpx;
-  font-size: 25rpx;
+  margin-top: 10rpx;
+  font-size: 22rpx;
   color: #7b8497;
   line-height: 1.55;
 }

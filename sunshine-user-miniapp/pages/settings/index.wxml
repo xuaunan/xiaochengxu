@@ -3,7 +3,7 @@
     <view class="settings-hero">
       <view class="settings-hero__copy">
         <view class="settings-title">出行偏好</view>
-        <view class="settings-desc">消息提醒、优惠匹配和显示偏好会保存在本地。</view>
+        <view class="settings-desc">消息提醒和优惠匹配会保存在当前设备。</view>
       </view>
       <view class="settings-hero__icon"></view>
     </view>
@@ -30,18 +30,6 @@
             <view class="setting-subtitle">下单时优先推荐最优券</view>
           </view>
           <switch color="#ff7a00" checked="{{settings.autoUseCoupon}}" data-key="autoUseCoupon" catchtap="noop" bindchange="changeSetting"></switch>
-        </view>
-      </view>
-
-      <view class="setting-group">
-        <view class="setting-group-title">外观</view>
-        <view class="setting-row tap-scale" data-key="darkMode" bindtap="toggleSetting" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="setting-icon setting-icon--theme"></view>
-          <view class="setting-copy">
-            <view class="setting-title">深色外观</view>
-            <view class="setting-subtitle">跟随系统外观偏好</view>
-          </view>
-          <switch color="#ff7a00" checked="{{settings.darkMode}}" data-key="darkMode" catchtap="noop" bindchange="changeSetting"></switch>
         </view>
       </view>
     </view>

@@ -1,0 +1,675 @@
+1. pages/coupon/coupon.wxml
+<view class="page">
+
+  <!-- 顶部背景 -->
+  <view class="hero">
+    <view class="hero-text">
+      <view class="title">优惠券中心</view>
+      <view class="sub-title">领券购物更优惠</view>
+    </view>
+
+    <view class="wallet">
+      <view class="ticket t1">%</view>
+      <view class="ticket t2">券</view>
+    </view>
+  </view>
+
+  <!-- 顶部 Tab -->
+  <view class="tabs">
+    <view 
+      wx:for="{{tabs}}" 
+      wx:key="index"
+      class="tab {{activeTab === index ? 'active' : ''}}"
+      bindtap="changeTab"
+      data-index="{{index}}"
+    >
+      {{item}}
+    </view>
+  </view>
+
+  <!-- 我的券包 -->
+  <view class="section">
+    <view class="section-head">
+      <view class="section-title">
+        <text class="section-icon orange">券</text>
+        我的券包
+      </view>
+      <view class="section-more">3 张可用券 〉</view>
+    </view>
+
+    <view 
+      wx:for="{{myCoupons}}" 
+      wx:key="id"
+      class="coupon-card orange-card"
+    >
+      <view class="coupon-left orange-gradient">
+        <view class="money">
+          <text class="num">{{item.value}}</text>
+          <text class="unit">{{item.unit}}</text>
+        </view>
+        <view class="coupon-type">{{item.type}}</view>
+        <view class="teeth"></view>
+      </view>
+
+      <view class="coupon-info">
+        <view class="coupon-name">{{item.name}}</view>
+        <view class="coupon-desc">{{item.desc}}</view>
+        <view class="coupon-code">券码 {{item.code}}</view>
+      </view>
+
+      <view class="coupon-action">
+        <button class="use-btn">立即使用</button>
+      </view>
+    </view>
+
+    <view class="expand orange-text">展开更多（1）⌄</view>
+  </view>
+
+  <!-- 券中心 -->
+  <view class="section">
+    <view class="section-head">
+      <view class="section-title">
+        <text class="section-icon purple">券</text>
+        券中心
+        <text class="small-desc">更多优惠券等你来领</text>
+      </view>
+      <view class="section-more">7 张可领券 〉</view>
+    </view>
+
+    <view 
+      wx:for="{{centerCoupons}}" 
+      wx:key="id"
+      class="coupon-card purple-card"
+    >
+      <view class="coupon-left purple-gradient">
+        <view class="money">
+          <text class="num">{{item.value}}</text>
+          <text class="unit">{{item.unit}}</text>
+        </view>
+        <view class="coupon-type">{{item.type}}</view>
+        <view class="teeth"></view>
+      </view>
+
+      <view class="coupon-info">
+        <view class="coupon-name">{{item.name}}</view>
+        <view class="coupon-desc">{{item.desc}}</view>
+        <view class="coupon-code">{{item.note}}</view>
+      </view>
+
+      <view class="coupon-action">
+        <button class="get-btn">领取</button>
+      </view>
+    </view>
+
+    <view class="expand purple-text">展开更多（4）⌄</view>
+  </view>
+
+  <!-- 会员横幅 -->
+  <view class="vip-banner">
+    <view class="vip-icon">♛</view>
+    <view class="vip-info">
+      <view class="vip-title">开通会员享更多优惠</view>
+      <view class="vip-desc">每月领券包 · 专属折扣 · 优先客服</view>
+    </view>
+    <button class="vip-btn">去开通</button>
+  </view>
+
+  <!-- 底部占位，防止被导航遮挡 -->
+  <view class="bottom-space"></view>
+
+  <!-- 自定义底部导航 -->
+  <view class="bottom-nav">
+    <view class="nav-item">
+      <text class="nav-icon">⌂</text>
+      <text>首页</text>
+    </view>
+    <view class="nav-item">
+      <text class="nav-icon">▤</text>
+      <text>行程</text>
+    </view>
+    <view class="nav-item">
+      <text class="nav-icon">▱</text>
+      <text>顺风车</text>
+    </view>
+    <view class="nav-item active-nav">
+      <text class="nav-icon">▭</text>
+      <text>优惠券</text>
+    </view>
+    <view class="nav-item">
+      <text class="nav-icon">♙</text>
+      <text>我的</text>
+    </view>
+  </view>
+
+</view>
+
+
+2. pages/coupon/coupon.wxss
+page {
+  background: #f6f7fb;
+  color: #222936;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+.page {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 顶部区域 */
+.hero {
+  height: 300rpx;
+  padding: 96rpx 48rpx 0;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #fff7ed 0%, #fff2e5 45%, #ffffff 100%);
+  position: relative;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #273142;
+  letter-spacing: 1rpx;
+}
+
+.sub-title {
+  margin-top: 18rpx;
+  font-size: 28rpx;
+  color: #6f7787;
+}
+
+/* 钱包插画 */
+.wallet {
+  position: absolute;
+  right: 72rpx;
+  top: 128rpx;
+  width: 176rpx;
+  height: 116rpx;
+  border-radius: 26rpx 26rpx 34rpx 34rpx;
+  background: linear-gradient(145deg, #ff9b3d, #ff6e22);
+  box-shadow: 0 18rpx 36rpx rgba(255, 120, 35, 0.24);
+}
+
+.wallet::after {
+  content: "";
+  position: absolute;
+  right: 26rpx;
+  top: 50rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.ticket {
+  position: absolute;
+  width: 80rpx;
+  height: 92rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(180deg, #ffe7a6, #ffd06f);
+  color: #ff7a1a;
+  font-size: 30rpx;
+  font-weight: 700;
+  text-align: center;
+  line-height: 92rpx;
+  box-shadow: 0 8rpx 18rpx rgba(255, 153, 51, 0.18);
+}
+
+.t1 {
+  left: 22rpx;
+  top: -48rpx;
+  transform: rotate(8deg);
+}
+
+.t2 {
+  left: 80rpx;
+  top: -38rpx;
+  transform: rotate(-8deg);
+}
+
+/* 顶部 tabs */
+.tabs {
+  width: calc(100% - 72rpx);
+  height: 88rpx;
+  margin: -44rpx auto 28rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 14rpx 38rpx rgba(35, 42, 54, 0.08);
+  position: relative;
+  z-index: 10;
+}
+
+.tab {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #747d8c;
+  position: relative;
+}
+
+.tab.active {
+  color: #ff7a1a;
+  font-weight: 700;
+}
+
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 12rpx;
+  width: 48rpx;
+  height: 5rpx;
+  transform: translateX(-50%);
+  border-radius: 10rpx;
+  background: #ff7a1a;
+}
+
+/* 通用模块 */
+.section {
+  width: calc(100% - 72rpx);
+  margin: 0 auto 28rpx;
+  padding: 28rpx 28rpx 20rpx;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 26rpx;
+  box-shadow: 0 12rpx 34rpx rgba(35, 42, 54, 0.055);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22rpx;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #273142;
+}
+
+.section-icon {
+  width: 34rpx;
+  height: 30rpx;
+  line-height: 30rpx;
+  border-radius: 8rpx;
+  color: #ffffff;
+  font-size: 20rpx;
+  text-align: center;
+  margin-right: 14rpx;
+}
+
+.section-icon.orange {
+  background: linear-gradient(135deg, #ff9b3d, #ff6c1f);
+}
+
+.section-icon.purple {
+  background: linear-gradient(135deg, #b69cff, #8f75ff);
+}
+
+.small-desc {
+  margin-left: 18rpx;
+  font-size: 22rpx;
+  color: #9aa2af;
+  font-weight: 400;
+}
+
+.section-more {
+  font-size: 24rpx;
+  color: #6f7787;
+}
+
+/* 优惠券卡片 */
+.coupon-card {
+  height: 138rpx;
+  border-radius: 18rpx;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  background: #ffffff;
+  margin-bottom: 18rpx;
+  box-shadow: 0 8rpx 26rpx rgba(35, 42, 54, 0.06);
+}
+
+.orange-card {
+  border: 1rpx solid #fff0e3;
+}
+
+.purple-card {
+  border: 1rpx solid #f0ecff;
+}
+
+.coupon-left {
+  width: 172rpx;
+  height: 100%;
+  padding-left: 26rpx;
+  box-sizing: border-box;
+  color: #ffffff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.orange-gradient {
+  background: linear-gradient(135deg, #ff9d35, #ff741e);
+}
+
+.purple-gradient {
+  background: linear-gradient(135deg, #b49cff, #8f73ff);
+}
+
+.money {
+  display: flex;
+  align-items: baseline;
+}
+
+.num {
+  font-size: 46rpx;
+  font-weight: 900;
+  line-height: 48rpx;
+}
+
+.unit {
+  font-size: 24rpx;
+  font-weight: 700;
+  margin-left: 4rpx;
+}
+
+.coupon-type {
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+/* 右侧齿状边 */
+.teeth {
+  position: absolute;
+  right: -8rpx;
+  top: 0;
+  width: 18rpx;
+  height: 100%;
+  background-image: radial-gradient(circle, #ffffff 8rpx, transparent 9rpx);
+  background-size: 18rpx 20rpx;
+  background-position: 0 0;
+}
+
+.coupon-info {
+  flex: 1;
+  padding: 26rpx 16rpx 20rpx 34rpx;
+  box-sizing: border-box;
+}
+
+.coupon-name {
+  font-size: 29rpx;
+  font-weight: 800;
+  color: #222936;
+  margin-bottom: 12rpx;
+}
+
+.coupon-desc {
+  font-size: 23rpx;
+  color: #737c8c;
+  margin-bottom: 8rpx;
+  white-space: nowrap;
+}
+
+.coupon-code {
+  font-size: 22rpx;
+  color: #9aa2af;
+  white-space: nowrap;
+}
+
+.coupon-action {
+  width: 154rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.use-btn,
+.get-btn,
+.vip-btn {
+  padding: 0;
+  border: none;
+  line-height: normal;
+}
+
+.use-btn::after,
+.get-btn::after,
+.vip-btn::after {
+  border: none;
+}
+
+.use-btn {
+  width: 126rpx;
+  height: 58rpx;
+  line-height: 58rpx;
+  border-radius: 100rpx;
+  background: #fff1e7;
+  color: #ff741e;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.get-btn {
+  width: 104rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  border-radius: 100rpx;
+  background: #f1edff;
+  color: #8d70ff;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.expand {
+  height: 46rpx;
+  line-height: 46rpx;
+  text-align: center;
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.orange-text {
+  color: #ff7a1a;
+}
+
+.purple-text {
+  color: #8f73ff;
+}
+
+/* 会员横幅 */
+.vip-banner {
+  width: calc(100% - 72rpx);
+  height: 110rpx;
+  margin: 0 auto 28rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #fff1d9, #ffe4bd);
+  display: flex;
+  align-items: center;
+  padding: 0 28rpx;
+  box-sizing: border-box;
+  box-shadow: 0 12rpx 28rpx rgba(255, 151, 47, 0.14);
+}
+
+.vip-icon {
+  font-size: 42rpx;
+  color: #ff8a22;
+  margin-right: 22rpx;
+}
+
+.vip-info {
+  flex: 1;
+}
+
+.vip-title {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #8a4b13;
+}
+
+.vip-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #a56b34;
+}
+
+.vip-btn {
+  width: 126rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 100rpx;
+  background: linear-gradient(135deg, #ff9a35, #ff741e);
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+/* 底部导航 */
+.bottom-space {
+  height: 150rpx;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 128rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #ffffff;
+  border-top: 1rpx solid #edf0f5;
+  display: flex;
+  z-index: 99;
+  box-shadow: 0 -8rpx 28rpx rgba(35, 42, 54, 0.05);
+}
+
+.nav-item {
+  flex: 1;
+  height: 128rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: #7d8796;
+}
+
+.nav-icon {
+  font-size: 34rpx;
+  line-height: 34rpx;
+}
+
+.active-nav {
+  color: #ff741e;
+  font-weight: 700;
+}
+
+
+3. pages/coupon/coupon.js
+Page({
+  data: {
+    activeTab: 0,
+
+    tabs: [
+      '可使用（8）',
+      '已使用（2）',
+      '已过期（1）'
+    ],
+
+    myCoupons: [
+      {
+        id: 1,
+        value: '20',
+        unit: '元',
+        type: '国际出行券',
+        name: '国际出行20美元券',
+        desc: '满 50 可用 · 2026-12-31 前有效',
+        code: 'UC1004'
+      },
+      {
+        id: 2,
+        value: '8',
+        unit: '折',
+        type: '顺风车券',
+        name: '顺风车八折券',
+        desc: '满 20 可用 · 2026-12-31 前有效',
+        code: 'UC1003'
+      }
+    ],
+
+    centerCoupons: [
+      {
+        id: 3,
+        value: '8',
+        unit: '元',
+        type: '全场通用',
+        name: '8元优惠',
+        desc: '满 10 可用 · 2026-12-31 前有效',
+        note: '库存 16 · 限时优惠'
+      },
+      {
+        id: 4,
+        value: '5',
+        unit: '元',
+        type: '全场通用',
+        name: '5元立减券',
+        desc: '满 5 可用 · 2026-12-31 前有效',
+        note: '库存 15 · 限时福利'
+      },
+      {
+        id: 5,
+        value: '10',
+        unit: '元',
+        type: '即时打车',
+        name: '通勤补贴10元券',
+        desc: '满 30 可用 · 2026-12-31 前有效',
+        note: '库存 498 · 工作日通勤满30元减10元'
+      }
+    ]
+  },
+
+  changeTab(e) {
+    const index = Number(e.currentTarget.dataset.index)
+
+    this.setData({
+      activeTab: index
+    })
+  }
+})
+
+4. pages/coupon/coupon.json
+
+{
+  "navigationBarTitleText": "优惠券中心",
+  "navigationStyle": "custom",
+  "backgroundColor": "#f6f7fb"
+}
+
+5. app.json 页面路径配置
+
+{
+  "pages": [
+    "pages/coupon/coupon"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "优惠券中心",
+    "navigationBarTextStyle": "black"
+  }
+}

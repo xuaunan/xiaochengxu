@@ -5,6 +5,8 @@ import UserView from '../views/UserView.vue'
 import DriverView from '../views/DriverView.vue'
 import OrderView from '../views/OrderView.vue'
 import CouponView from '../views/CouponView.vue'
+import MemberView from '../views/MemberView.vue'
+import SupportView from '../views/SupportView.vue'
 import InternationalView from '../views/InternationalView.vue'
 import SystemView from '../views/SystemView.vue'
 
@@ -59,6 +61,22 @@ const routes = [
     meta: {
       title: '营销中心',
       group: '营销管理'
+    }
+  },
+  {
+    path: '/members',
+    component: MemberView,
+    meta: {
+      title: '会员管理',
+      group: '营销管理'
+    }
+  },
+  {
+    path: '/support',
+    component: SupportView,
+    meta: {
+      title: '客服服务',
+      group: '运营管理'
     }
   },
   {

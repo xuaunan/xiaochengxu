@@ -17,6 +17,8 @@ html/output/playwright/*.png
 html/*-font-check.png
 sunshine-admin/*-check.png
 sunshine-admin/*-optimized.png
+sunshine-desktop/output/
+rollback-snapshots/
 
 .DS_Store
 Thumbs.db

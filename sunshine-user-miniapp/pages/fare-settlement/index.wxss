@@ -6,28 +6,28 @@
   overflow: hidden;
   background: #ffffff;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
-  border-radius: 30rpx;
-  box-shadow: 0 14rpx 32rpx rgba(24, 34, 56, 0.055);
+  border-radius: 16rpx;
+  box-shadow: 0 7rpx 18rpx rgba(24, 34, 56, 0.035);
 }
 
 .payable {
-  margin-top: 28rpx;
-  font-size: 64rpx;
-  font-weight: 800;
+  margin-top: 14rpx;
+  font-size: 36rpx;
+  font-weight: 550;
   color: #ff7a00;
 }
 
 .payable-desc {
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
+  margin-top: 8rpx;
+  font-size: 21rpx;
+  line-height: 1.5;
   color: #6b7385;
 }
 
 .original-payable {
   margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
+  font-size: 21rpx;
+  line-height: 1.45;
   color: #8b94a7;
 }
 
@@ -50,14 +50,14 @@
 }
 
 .fee-row {
-  margin-top: 22rpx;
-  padding: 18rpx 20rpx;
+  margin-top: 14rpx;
+  padding: 14rpx 16rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 26rpx;
+  font-size: 22rpx;
   color: #1f2432;
-  border-radius: 18rpx;
+  border-radius: 14rpx;
   background: #f8fafc;
 }
 
@@ -65,11 +65,11 @@
   display: flex;
   align-items: center;
   gap: 18rpx;
-  padding: 24rpx;
-  border-radius: 26rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
   background: #ffffff;
   border: 1rpx solid rgba(31, 36, 50, 0.05);
-  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
+  box-shadow: 0 6rpx 16rpx rgba(24, 34, 56, 0.035);
 }
 
 .coupon-entry:active {
@@ -89,34 +89,34 @@
 }
 
 .coupon-entry__icon {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 14rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 10rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  font-weight: 800;
+  font-size: 21rpx;
+  font-weight: 550;
   color: #ffffff;
   background: #ff7a00;
 }
 
 .coupon-entry__label {
-  font-size: 28rpx;
-  font-weight: 800;
+  font-size: 22rpx;
+  font-weight: 550;
   color: #1f2432;
 }
 
 .coupon-entry__desc {
   margin-top: 6rpx;
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: #8b94a7;
 }
 
 .coupon-entry__summary {
   flex: 1;
   min-width: 0;
-  font-size: 24rpx;
+  font-size: 21rpx;
   color: #8b94a7;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -125,13 +125,13 @@
 
 .coupon-entry__summary--active {
   color: #ff7a00;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .coupon-entry__action {
   flex-shrink: 0;
-  font-size: 24rpx;
-  font-weight: 800;
+  font-size: 21rpx;
+  font-weight: 500;
   color: #ff7a00;
 }
 
@@ -140,14 +140,14 @@
 }
 
 .tips {
-  margin-top: 22rpx;
+  margin-top: 14rpx;
 }
 
 .tip-item {
   position: relative;
   padding-left: 24rpx;
-  font-size: 24rpx;
-  line-height: 1.8;
+  font-size: 21rpx;
+  line-height: 1.55;
   color: #5b6476;
 }
 
@@ -170,7 +170,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 20rpx 24rpx calc(env(safe-area-inset-bottom) + 20rpx);
+  padding: 14rpx 20rpx calc(env(safe-area-inset-bottom) + 16rpx);
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(18rpx);
   box-shadow: 0 -12rpx 30rpx rgba(31, 36, 50, 0.08);
@@ -178,19 +178,19 @@
 
 .settlement-actions {
   display: flex;
-  gap: 18rpx;
+  gap: 12rpx;
 }
 
 .settlement-secondary {
-  width: 220rpx;
-  min-height: 96rpx;
-  border-radius: 24rpx;
+  width: 188rpx;
+  min-height: 68rpx;
+  border-radius: 16rpx;
 }
 
 .settlement-primary {
   flex: 1;
-  min-height: 96rpx;
-  border-radius: 24rpx;
+  min-height: 68rpx;
+  border-radius: 16rpx;
 }
 
 .coupon-picker-mask {
@@ -218,19 +218,19 @@
 }
 
 .coupon-picker__title {
-  font-size: 34rpx;
-  font-weight: 800;
+  font-size: 28rpx;
+  font-weight: 550;
   color: #1f2432;
 }
 
 .coupon-picker__close {
-  width: 64rpx;
-  height: 64rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+  font-size: 34rpx;
   color: #8b94a7;
   background: #ffffff;
 }
@@ -243,10 +243,10 @@
 }
 
 .coupon-tab {
-  padding: 16rpx 28rpx;
+  padding: 12rpx 22rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 22rpx;
+  font-weight: 500;
   color: #8b94a7;
   background: #f5f6fa;
 }
@@ -273,12 +273,12 @@
 .coupon-card {
   display: flex;
   align-items: stretch;
-  gap: 18rpx;
-  padding: 22rpx;
-  border-radius: 30rpx;
+  gap: 16rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
   background: #ffffff;
   border: 2rpx solid rgba(255, 122, 0, 0.08);
-  box-shadow: 0 16rpx 30rpx rgba(31, 36, 50, 0.06);
+  box-shadow: 0 6rpx 16rpx rgba(31, 36, 50, 0.035);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -296,9 +296,9 @@
 }
 
 .coupon-card__value {
-  width: 188rpx;
-  padding: 18rpx 16rpx;
-  border-radius: 22rpx;
+  width: 132rpx;
+  padding: 12rpx 10rpx;
+  border-radius: 14rpx;
   background: linear-gradient(180deg, #fff4e6 0%, #fff0de 100%);
   display: flex;
   flex-direction: column;
@@ -310,15 +310,15 @@
 }
 
 .coupon-card__amount {
-  font-size: 40rpx;
-  font-weight: 800;
+  font-size: 30rpx;
+  font-weight: 550;
   color: #ff7a00;
   line-height: 1.1;
 }
 
 .coupon-card__caption {
-  margin-top: 12rpx;
-  font-size: 22rpx;
+  margin-top: 8rpx;
+  font-size: 20rpx;
   color: #8b94a7;
 }
 
@@ -328,17 +328,17 @@
 }
 
 .coupon-card__name {
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 22rpx;
+  font-weight: 550;
   color: #1f2432;
   line-height: 1.4;
 }
 
 .coupon-card__rule,
 .coupon-card__valid {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
+  margin-top: 7rpx;
+  font-size: 21rpx;
+  line-height: 1.5;
   color: #8b94a7;
 }
 
@@ -367,8 +367,8 @@
   align-self: center;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 700;
+  font-size: 20rpx;
+  font-weight: 500;
   color: #8b94a7;
   background: #eef1f7;
 }
@@ -376,7 +376,7 @@
 .coupon-empty {
   margin-top: 12rpx;
   text-align: center;
-  font-size: 26rpx;
+  font-size: 22rpx;
   color: #8b94a7;
 }
 
@@ -388,10 +388,10 @@
 
 .coupon-picker__clear {
   width: 100%;
-  min-height: 96rpx;
+  min-height: 66rpx;
   border-radius: 999rpx;
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 24rpx;
+  font-weight: 550;
 }
 
 

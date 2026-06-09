@@ -4,12 +4,12 @@
       <div>
         <span class="panel-kicker">International Operations</span>
         <h3 class="panel-title">国际出行运营台</h3>
-        <p class="panel-subtitle">集中查看跨境订单、美元结算、汇率配置和乘客预约材料，数据来自本地后端数据库。</p>
+        <p class="panel-subtitle">集中查看跨境订单、美元结算、汇率配置和乘客预约材料。</p>
       </div>
       <div class="rate-card">
-        <span>后台汇率</span>
+        <span>结算汇率</span>
         <strong>1 USD ≈ {{ exchangeRate }} CNY</strong>
-        <small>系统配置 intlExchangeRate 实时生效</small>
+        <small>影响国际订单估算与结算展示</small>
       </div>
     </article>
 
@@ -37,7 +37,7 @@
         <div>
           <span class="panel-kicker">Orders</span>
           <h3 class="panel-title">跨境订单实时列表</h3>
-          <p class="panel-subtitle">乘客端提交国际预约后，这里会展示同一条订单与备注中的预约明细。</p>
+          <p class="panel-subtitle">查看国际预约订单、联系人和行程材料。</p>
         </div>
         <div class="toolbar-actions">
           <el-input v-model="keyword" clearable placeholder="搜索订单号/路线/联系人" style="width: 260px" @keyup.enter="loadData" />

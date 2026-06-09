@@ -15,7 +15,7 @@
 
     <view class="hero-copy">
       <view class="hero-title">欢迎回到阳光出行</view>
-      <view class="hero-desc">登录后可同步订单、钱包、优惠券和实名认证状态。</view>
+      <view class="hero-desc">登录后可查看订单、钱包、优惠券和实名认证状态。</view>
     </view>
 
     <view class="hero-visual">
@@ -93,7 +93,7 @@
   <view class="demo-card">
     <view class="demo-icon"></view>
     <view class="demo-copy">
-      <view class="demo-title">演示账号登录</view>
+      <view class="demo-title">快速账号登录</view>
       <view class="demo-desc">{{loginTip}}</view>
     </view>
     <view class="demo-button tap-scale" bindtap="fillDemoAccount" hover-class="button-hover" hover-stay-time="60">一键登录</view>

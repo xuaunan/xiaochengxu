@@ -30,7 +30,7 @@ public class WelcomeController {
                 </head>
                 <body>
                     <div class="wrap">
-                        <h1>阳光出行后端服务已启动</h1>
+                        <h1>阳光出行服务已启动</h1>
                         <p>当前地址 <code>http://127.0.0.1:8080</code> 是 Spring Boot API 服务，不是管理端前端页面入口。</p>
                         <ul>
                             <li>接口文档：<a href="/doc.html" target="_blank">/doc.html</a></li>

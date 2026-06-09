@@ -180,7 +180,7 @@
   justify-content: center;
   color: #ffffff;
   font-size: 28rpx;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .quick-action__icon--location {
@@ -433,14 +433,19 @@
 }
 
 .history-footer__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 88rpx;
-  line-height: 88rpx;
+  line-height: 1.2;
+  padding: 0;
   border: none;
   border-radius: 24rpx;
   color: #ff5b57;
   background: rgba(255, 91, 87, 0.1);
   font-size: 28rpx;
   font-weight: 700;
+  box-sizing: border-box;
 }
 
 .history-footer__button::after,
@@ -462,15 +467,20 @@
 }
 
 .address-empty__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 24rpx;
   height: 84rpx;
-  line-height: 84rpx;
+  line-height: 1.2;
+  padding: 0;
   border: none;
   border-radius: 24rpx;
   color: #ffffff;
   background: linear-gradient(135deg, #ff7a00 0%, #ff9430 100%);
   font-size: 28rpx;
   font-weight: 700;
+  box-sizing: border-box;
 }
 
 @keyframes rotate {

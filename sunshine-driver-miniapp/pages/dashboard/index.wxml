@@ -19,7 +19,7 @@
 
   <view class="dashboard-overlay">
     <view class="dashboard-nav-wrap">
-      <sun-nav title="接单大厅" subtitle="附近订单与接单状态实时同步"></sun-nav>
+      <sun-nav title="接单大厅" subtitle="附近订单与接单状态实时更新"></sun-nav>
     </view>
 
     <view class="glass-card dashboard-top {{hasActiveTrip ? 'is-busy' : (listening ? 'is-online' : 'is-offline')}}">
@@ -107,6 +107,13 @@
                   <view class="brand-text order-price">{{item.fareText}}</view>
                 </view>
                 <view wx:if="{{item.orderInfoText}}" class="section-subtitle order-passenger">{{item.orderInfoText}}</view>
+                <view wx:if="{{item.internationalMeta}}" class="order-intl-mini">
+                  <view>
+                    <text>{{item.internationalMeta.routeCode}}</text>
+                    <text>{{item.internationalMeta.flightText}}</text>
+                  </view>
+                  <view>{{item.internationalMeta.documentsText}}</view>
+                </view>
                 <view class="order-seat-hint">{{item.seatHint}}</view>
                 <view class="order-actions">
                   <button class="ghost-button order-button" hover-class="button-hover" data-id="{{item.id}}" bindtap="rejectOrder">暂不接</button>

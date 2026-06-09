@@ -1,50 +1,50 @@
-<view class="page-shell wallet-shell safe-bottom">
-  <view class="page-content wallet-page page-enter">
-    <view class="panel-card wallet-overview">
-      <view class="wallet-overview__top">
+<view class="page-shell wallet-page-shell safe-bottom">
+  <view class="wallet-page page-enter">
+    <view class="wallet-balance-card">
+      <view class="wallet-balance-head">
         <view>
-          <view class="section-title wallet-title">钱包余额</view>
+          <view class="wallet-balance-title">钱包余额</view>
+          <view class="wallet-balance-desc">账户当前可用余额</view>
         </view>
-        <view class="wallet-state">已同步</view>
       </view>
-      <view class="wallet-balance">¥{{wallet.balance}}</view>
-      <view class="wallet-subtitle">优惠累计 {{wallet.couponBalance}} 元 · 可开发票 {{wallet.invoices}} 张</view>
-      <view class="wallet-actions">
-        <button class="wallet-action wallet-action--primary" hover-class="button-hover" bindtap="recharge">余额说明</button>
-        <button class="wallet-action" hover-class="button-hover" bindtap="withdraw">提现规则</button>
+      <view class="wallet-amount-line">
+        <text class="wallet-amount-symbol">¥</text>
+        <text class="wallet-amount">{{wallet.balanceText}}</text>
       </view>
     </view>
 
-    <view class="wallet-metrics">
-      <view class="wallet-metric tap-scale">
-        <view class="wallet-metric__value">{{wallet.balance}}</view>
-        <view class="wallet-metric__label">可用余额</view>
+    <view class="wallet-section-head">
+      <view class="wallet-title-wrap">
+        <view class="wallet-section-icon"></view>
+        <view class="wallet-section-title">流水明细</view>
       </view>
-      <view class="wallet-metric tap-scale">
-        <view class="wallet-metric__value">{{wallet.couponBalance}}</view>
-        <view class="wallet-metric__label">券包额度</view>
-      </view>
-      <view class="wallet-metric tap-scale">
-        <view class="wallet-metric__value">{{wallet.invoices}}</view>
-        <view class="wallet-metric__label">发票张数</view>
-      </view>
+      <view class="wallet-soft-pill">{{records.length}} 条</view>
     </view>
 
-    <view class="panel-card wallet-detail">
-      <view class="wallet-detail__title">资产说明</view>
-      <view class="wallet-detail__row">
-        <view>
-          <view class="wallet-detail__name">余额展示</view>
-          <view class="wallet-detail__desc">与后端用户资料实时同步</view>
+    <view class="wallet-ledger-panel">
+      <block wx:if="{{hasRecords}}">
+        <view
+          class="wallet-record-row tap-scale"
+          wx:for="{{records}}"
+          wx:key="key"
+          data-type="{{item.type}}"
+          data-id="{{item.orderId}}"
+          bindtap="openRecord"
+        >
+          <view class="wallet-record-mark {{item.markerClass}}">{{item.marker}}</view>
+          <view class="wallet-record-copy">
+            <view class="wallet-record-title">{{item.title}}</view>
+            <view class="wallet-record-desc">{{item.desc}}</view>
+          </view>
+          <view class="wallet-record-side">
+            <view class="wallet-record-amount {{item.amountClass}}">{{item.amountText}}</view>
+            <view class="wallet-record-time">{{item.time}}</view>
+          </view>
         </view>
-        <view class="wallet-detail__tag">实时</view>
-      </view>
-      <view class="wallet-detail__row">
-        <view>
-          <view class="wallet-detail__name">优惠资产</view>
-          <view class="wallet-detail__desc">优惠券领取后自动计入账户</view>
-        </view>
-        <view class="wallet-detail__tag wallet-detail__tag--soft">券包</view>
+      </block>
+      <view wx:else class="wallet-empty">
+        <view class="wallet-empty__title">暂无流水</view>
+        <view class="wallet-empty__desc">完成支付或退款后，这里会显示明细。</view>
       </view>
     </view>
   </view>

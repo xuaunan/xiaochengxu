@@ -79,7 +79,7 @@ const roleMeta = {
 function App() {
   usePointerVars()
   const topLoader = useTopLoadBar()
-  const [apiMode, setMode] = useState({ mode: 'checking', message: '正在连接后端' })
+  const [apiMode, setMode] = useState({ mode: 'checking', message: '正在连接业务服务' })
   const [baseUrl, setBaseUrlState] = useState(getApiBase())
   const [home, setHome] = useState({ carTypes: fallbackCarTypes, couponCenter: [], notices: [], fleet: defaultFleetStats() })
   const [view, setView] = useState('portal')
@@ -248,7 +248,7 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
             <span><Radio size={15} /> 智能派单</span>
             <span><Route size={15} /> 实时路线</span>
             <span><Ticket size={15} /> 优惠券抵扣</span>
-            <span><ShieldCheck size={15} /> JWT 同步</span>
+            <span><ShieldCheck size={15} /> JWT 鉴权</span>
           </div>
           <div className="hero-actions">
             <MagneticButton className="mega-button" onClick={() => onLogin('USER')}>
@@ -287,7 +287,7 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
       </section>
 
       <section className="portal-strip">
-        <FeatureCard icon={Zap} title="数据同步" text="网页端接入现有后端服务，与小程序共用登录态、订单、优惠券、司机状态和顺风车数据。" />
+        <FeatureCard icon={Zap} title="数据联动" text="网页端接入现有业务服务，与小程序共用登录态、订单、优惠券、司机状态和顺风车数据。" />
         <FeatureCard icon={ShieldCheck} title="业务覆盖" text="乘客端支持叫车、订单、支付、优惠券、消息、实名与客服；司机端支持听单、行程、提现、资质和资料管理。" />
         <FeatureCard icon={Sparkles} title="交互体验" text="重点场景保持轻量动效和清晰反馈，兼顾页面质感、操作效率与实际使用稳定性。" />
       </section>
@@ -301,9 +301,9 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
 
       <section className="quick-entry glass-panel interactive-border">
         <div>
-          <span className="section-kicker">Local backend</span>
-          <h2>后端连接地址</h2>
-          <p>默认使用当前服务地址；未连接后端时页面会显示本地数据，保证基础操作可继续使用。</p>
+          <span className="section-kicker">Service endpoint</span>
+          <h2>业务服务地址</h2>
+          <p>默认使用当前服务地址；未连接时页面会显示离线数据，保证基础操作可继续使用。</p>
         </div>
         <div className="api-box">
           <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
@@ -438,7 +438,7 @@ const portalMenus = {
   },
   backend: {
     icon: ShieldCheck,
-    title: '后台同步',
+    title: '业务联动',
     text: '网页端优先连接现有业务服务，登录、订单、优惠券、顺风车、司机与消息数据保持统一。',
     chips: ['/auth/login', '/orders', '/coupons', '/carpool', '/driver', '/messages']
   }
@@ -562,7 +562,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
 
   const run = async (task, successText = '操作成功') => {
     try {
-      setToast('正在同步到后台...')
+      setToast('正在更新...')
       await task()
       await load()
       await onRefreshHome?.()
@@ -604,7 +604,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     const order = await api.createOrder(token, createOrderPayload(internationalBooking, priced))
     setOrders((items) => [order, ...items])
     setTab('orders')
-  }, '国际出行订单已提交并同步到订单库')
+  }, '国际出行订单已提交，订单列表已更新')
 
   if (!session) {
     return <LoginRequired role="USER" onLogin={onLogin} onBack={onBack} />
@@ -704,7 +704,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       {tab === 'wallet' && (
         <PassengerWalletBoard
           profile={profile || session}
-          onProfile={(form) => run(() => api.updateProfile(token, form), '资料已同步')}
+          onProfile={(form) => run(() => api.updateProfile(token, form), '资料已更新')}
           onRealName={(form) => run(() => api.submitRealName(token, form), '实名信息已提交')}
         />
       )}
@@ -756,7 +756,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
 
   const run = async (task, successText = '操作成功') => {
     try {
-      setToast('正在同步到后台...')
+      setToast('正在更新...')
       await task()
       await load()
       setToast(successText)
@@ -870,7 +870,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
         <DriverProfileBoard
           dashboard={dashboard}
           user={user}
-          onProfile={(form) => run(() => api.driverUpdateProfile(token, form), '司机资料已同步')}
+          onProfile={(form) => run(() => api.driverUpdateProfile(token, form), '司机资料已更新')}
         />
       )}
 
@@ -1000,8 +1000,8 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
       <div className="active-driver-card">
         <CarTaxiFront size={20} />
         <div>
-          <strong>{order.driverId ? '李师傅已同步接单' : '正在同步附近司机'}</strong>
-          <span>{order.driverId ? '车辆位置会从订单 runtime 接口刷新' : '司机端听单大厅接单后这里会自动变化'}</span>
+          <strong>{order.driverId ? '李师傅已接单' : '正在匹配附近司机'}</strong>
+          <span>{order.driverId ? '车辆位置会随行程进度刷新' : '司机端听单大厅接单后这里会自动变化'}</span>
         </div>
       </div>
       <div className="active-timeline">
@@ -1010,7 +1010,7 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
         ))}
       </div>
       <div className="active-ride-actions">
-        <button className="ghost-button" onClick={onRefresh}><RefreshCw size={16} />刷新同步</button>
+        <button className="ghost-button" onClick={onRefresh}><RefreshCw size={16} />刷新状态</button>
         {canCancel && <button className="ghost-button" onClick={() => onAction('cancel')}><XCircle size={16} />取消订单</button>}
         {canPickup && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />我已上车</button>}
         {canPay && <button className="solid-button" onClick={() => onAction('pay')}><CreditCard size={16} />支付</button>}
@@ -1027,7 +1027,7 @@ function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }
       <div className="active-map-sheet">
         <div className="active-map-sheet__head">
           <div>
-            <span className="section-kicker">订单同步</span>
+            <span className="section-kicker">订单进度</span>
             <h3>{copy.title}</h3>
             <p>{copy.desc}</p>
           </div>
@@ -1103,12 +1103,12 @@ function getRideStatusCopy(order = {}) {
   const map = {
     [ORDER_STATUS.DISPATCHING]: {
       title: '正在为你呼叫附近司机',
-      desc: '订单已写入后台，司机端听单大厅可实时接单。',
+      desc: '订单已提交，司机端听单大厅可实时接单。',
       mapLabel: '智能派单中'
     },
     [ORDER_STATUS.ACCEPTED]: {
       title: '司机已接单',
-      desc: '司机车辆位置将通过订单 runtime 接口持续同步。',
+      desc: '司机车辆位置将按订单状态持续更新。',
       mapLabel: '司机已接单'
     },
     [ORDER_STATUS.PICKING_UP]: {
@@ -1118,19 +1118,19 @@ function getRideStatusCopy(order = {}) {
     },
     [ORDER_STATUS.IN_TRIP]: {
       title: '行程进行中',
-      desc: '路线和预计到达时间会跟随后台状态刷新。',
+      desc: '路线和预计到达时间会跟随订单状态刷新。',
       mapLabel: '行程进行中'
     },
     [ORDER_STATUS.FINISHED]: {
       title: '行程已结束',
-      desc: '请完成支付，订单状态会同步到小程序和后台。',
+      desc: '请完成支付，订单状态会在多端更新。',
       mapLabel: '待支付'
     }
   }
   return map[order.orderStatus] || {
-    title: statusLabel[order.orderStatus] || '订单同步中',
+    title: statusLabel[order.orderStatus] || '订单处理中',
     desc: '正在读取订单状态。',
-    mapLabel: statusLabel[order.orderStatus] || '订单同步'
+    mapLabel: statusLabel[order.orderStatus] || '订单进度'
   }
 }
 
@@ -2272,7 +2272,7 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
                 <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
               ))}
             </div>
-            <button className="solid-button profile-save-button" onClick={saveProfile}><ShieldCheck size={15} />同步资料</button>
+            <button className="solid-button profile-save-button" onClick={saveProfile}><ShieldCheck size={15} />保存资料</button>
           </>
         ) : (
           <div className="profile-view-list wallet-readonly-list">
@@ -2286,7 +2286,7 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
         )}
         <div className="invoice-panel">
           <CreditCard size={18} />
-          <div><strong>发票抬头</strong><p>小程序发票页无独立后端接口，网页保留入口与本地表单，订单支付数据仍走订单接口。</p></div>
+          <div><strong>发票抬头</strong><p>发票信息会跟随订单支付记录展示，网页端可先保存抬头与联系方式。</p></div>
         </div>
       </section>
     </div>
@@ -2390,7 +2390,7 @@ function DriverProfileBoard({ dashboard, user, onProfile }) {
         {Object.keys(form).map((key) => (
           <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
         ))}
-        <button className="solid-button fill" onClick={() => onProfile(form)}><ShieldCheck size={16} />同步司机资料</button>
+        <button className="solid-button fill" onClick={() => onProfile(form)}><ShieldCheck size={16} />保存司机资料</button>
       </section>
       <section className="glass-panel work-card wide">
         <div className="card-head"><h2>设置与播报</h2><Settings size={21} /></div>
@@ -3377,7 +3377,7 @@ function StatusBadge({ value }) {
 }
 
 function ModeChip({ mode, message }) {
-  const label = mode === 'backend' ? '后端同步' : mode === 'demo' ? '本地演示' : '连接中'
+  const label = mode === 'backend' ? '在线服务' : mode === 'demo' ? '离线数据' : '连接中'
   return <span className={`mode-chip ${mode}`} title={message}><span />{label}</span>
 }
 

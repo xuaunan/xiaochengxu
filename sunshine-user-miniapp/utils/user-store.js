@@ -17,6 +17,7 @@ const PAYMENT_SYNC_GUARD_MS = 15000
 const CARPOOL_META_TAG = 'CARPOOL_META'
 const INTERNATIONAL_META_TAG = 'INTERNATIONAL_META'
 const INVOICE_META_TAG = 'INVOICE_META'
+const ORDER_META_TAGS = [CARPOOL_META_TAG, INTERNATIONAL_META_TAG, INVOICE_META_TAG]
 
 function toNumber(value, fallback = 0) {
   const next = Number(value)
@@ -54,10 +55,49 @@ function parseEmbeddedMeta(text = '', tag = CARPOOL_META_TAG) {
   }
 }
 
+function parseMetaObject(value) {
+  if (!value) return null
+  if (typeof value === 'object' && !Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    const text = value.trim()
+    if (!text) return null
+    try {
+      const parsed = JSON.parse(text)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+    } catch (error) {
+      return null
+    }
+  }
+  return null
+}
+
 function stripEmbeddedMeta(text = '', tag = CARPOOL_META_TAG) {
   const source = `${text || ''}`
   const matcher = new RegExp(`\\[${tag}\\][\\s\\S]*?\\[\\/${tag}\\]`, 'g')
   return source.replace(matcher, '').trim()
+}
+
+function stripAllEmbeddedMeta(text = '') {
+  return ORDER_META_TAGS.reduce((result, tag) => stripEmbeddedMeta(result, tag), `${text || ''}`).trim()
+}
+
+function stripSystemDispatchRemark(text = '') {
+  return `${text || ''}`
+    .split('|')
+    .map((item) => item.trim())
+    .filter((item) => item && !/^(SMART|Manual)\s+dispatch$/i.test(item))
+    .join(' | ')
+}
+
+function looksLikeRawInvoiceMeta(text = '') {
+  const source = `${text || ''}`.trim()
+  return source.startsWith('{') &&
+    /"(invoiceCode|invoiceNo|invoiceStatus|buyerTaxNo|sellerTaxNo|handledAt)"/.test(source)
+}
+
+function getVisibleOrderRemark(text = '') {
+  const cleanText = stripSystemDispatchRemark(stripAllEmbeddedMeta(text))
+  return looksLikeRawInvoiceMeta(cleanText) ? '' : cleanText
 }
 
 function getCarpoolTollLabel(value) {
@@ -97,7 +137,7 @@ function getCarpoolMetaFromOrder(order = {}) {
           : (metaPayableAmount || Math.max(originalAmount - discountAmount, 0))
       )
     : (orderPayableAmount || metaPayableAmount || originalAmount)
-  const remarkText = stripEmbeddedMeta(order.remark)
+  const remarkText = getVisibleOrderRemark(order.remark)
   const timeText = formatCarpoolTimeRange(rawMeta || {})
 
   return {
@@ -124,25 +164,53 @@ function getCarpoolMetaFromOrder(order = {}) {
 function getInternationalMetaFromOrder(order = {}) {
   if (order.serviceType !== SERVICE_TYPE.INTERNATIONAL) return null
 
-  const rawMeta = parseEmbeddedMeta(order.remark, INTERNATIONAL_META_TAG) || {}
-  const remarkText = stripEmbeddedMeta(order.remark, INTERNATIONAL_META_TAG)
+  const embeddedMeta = parseEmbeddedMeta(order.remark, INTERNATIONAL_META_TAG) || {}
+  const viewMeta = parseMetaObject(order.internationalMeta) || {}
+  const rawMeta = {
+    ...embeddedMeta,
+    ...viewMeta
+  }
+  const rawRemarkText = firstPresent(order.cleanRemark, order.remarkText, stripAllEmbeddedMeta(order.remark), '')
+  const remarkText = getVisibleOrderRemark(rawRemarkText)
   const serviceItems = Array.isArray(rawMeta.serviceItems)
     ? rawMeta.serviceItems
     : `${rawMeta.serviceItems || ''}`.split(',').map((item) => item.trim()).filter(Boolean)
   const documents = Array.isArray(rawMeta.documents)
     ? rawMeta.documents
     : `${rawMeta.documents || ''}`.split(',').map((item) => item.trim()).filter(Boolean)
+  const passengerCount = Math.max(1, toNumber(rawMeta.passengerCount, 1))
+  const luggageCount = Math.max(0, toNumber(rawMeta.luggageCount, 0))
+  const contactName = rawMeta.contactName || ''
+  const contactPhone = rawMeta.contactPhone || ''
+  const appointmentTime = rawMeta.appointmentTime || ''
+  const flightNo = rawMeta.flightNo || ''
+  const pickupSign = rawMeta.pickupSign || '待确认'
+  const syncStatus = rawMeta.syncStatus || 'BACKEND_ORDER'
+  const syncStatusText = syncStatus === 'BACKEND_ORDER'
+    ? '已确认'
+    : syncStatus === 'LOCAL_DRAFT'
+      ? '待提交'
+      : '确认中'
 
   return {
     optionId: rawMeta.optionId || '',
+    routeCode: rawMeta.routeCode || '',
+    countryText: rawMeta.countryText || '',
     productName: rawMeta.productName || '国际出行',
     productNameEn: rawMeta.productNameEn || '',
-    appointmentTime: rawMeta.appointmentTime || '',
-    passengerCount: Math.max(1, toNumber(rawMeta.passengerCount, 1)),
-    contactName: rawMeta.contactName || '',
-    contactPhone: rawMeta.contactPhone || '',
-    flightNo: rawMeta.flightNo || '',
-    luggageCount: Math.max(0, toNumber(rawMeta.luggageCount, 0)),
+    startName: rawMeta.startName || order.startName || '',
+    endName: rawMeta.endName || order.endName || '',
+    appointmentTime,
+    appointmentTimeText: appointmentTime || '待确认',
+    passengerCount,
+    passengerCountText: `${passengerCount}人`,
+    contactName,
+    contactPhone,
+    contactText: [contactName, contactPhone].filter(Boolean).join(' · ') || '待补充',
+    flightNo,
+    flightText: flightNo ? `航班/编号 ${flightNo}` : '航班/编号待补充',
+    luggageCount,
+    luggageCountText: `${luggageCount}件行李`,
     languageCode: rawMeta.languageCode || order.languageCode || 'zh-CN',
     currencyCode: rawMeta.currencyCode || order.currencyCode || 'USD',
     exchangeRate: toNumber(rawMeta.exchangeRate || order.exchangeRate, 7.15),
@@ -150,9 +218,14 @@ function getInternationalMetaFromOrder(order = {}) {
     serviceItemsText: serviceItems.length ? serviceItems.join(' · ') : '中文客服 · 跨境接送',
     documents,
     documentsText: documents.length ? documents.join('、') : '按目的地要求携带有效证件',
-    pickupSign: rawMeta.pickupSign || '阳光出行',
+    pickupSign,
+    pickupSignText: pickupSign === '待确认' ? pickupSign : `接机牌：${pickupSign}`,
     riskNotice: rawMeta.riskNotice || '请提前确认通关证件、航班时间与目的地政策。',
-    remarkText: stripEmbeddedMeta(remarkText, CARPOOL_META_TAG)
+    syncStatus,
+    syncStatusText,
+    submitSource: rawMeta.submitSource || 'USER_MINIAPP',
+    remarkText: getVisibleOrderRemark(remarkText),
+    summaryText: [appointmentTime, flightNo || '', `${passengerCount}人`, `${luggageCount}件行李`].filter(Boolean).join(' · ')
   }
 }
 
@@ -461,7 +534,7 @@ function buildDriverSummary(driverId) {
     name: driverId ? `${tail}号司机` : '平台司机',
     avatar: '/images/avatar-driver-1.svg',
     rating: 4.9,
-    plateNo: driverId ? `沪A${tail}8${tail}` : '待同步',
+    plateNo: driverId ? `沪A${tail}8${tail}` : '待确认',
     carModel: '平台认证车辆',
     carColor: '白色',
     completedTrips: 200 + toNumber(tail),
@@ -483,7 +556,7 @@ function buildOrderDriverSummary(order = {}) {
 
   return {
     ...fallback,
-    name: pickFirstText(order.driverName, driver.nickname, driver.name, driver.realName, fallback.name),
+    name: pickFirstText(order.driverName, order.driverNickname, driver.displayName, driver.nickname, driver.name, driver.realName, fallback.name),
     avatar: fallback.avatar,
     rating: Number(order.driverScore || order.driverRating || driver.score || driver.rating || fallback.rating),
     plateNo: pickFirstText(order.plateNo, order.vehiclePlateNo, vehicle.plateNo, fallback.plateNo),
@@ -510,9 +583,9 @@ function buildCancelRuleText(order = {}) {
     return `派单中可免费取消；下单后 ${minutes} 分钟内免费取消。`
   }
   if ([ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus)) {
-    return `司机已接单，下单后 ${minutes} 分钟内免费取消，超时按后台规则收取取消费。`
+    return `司机已接单，下单后 ${minutes} 分钟内免费取消，超时按平台规则收取取消费。`
   }
-  return `免费取消时长 ${minutes} 分钟，实际费用以后台订单规则为准。`
+  return `免费取消时长 ${minutes} 分钟，实际费用以平台规则为准。`
 }
 
 function buildRideOrderModel(order, options = {}) {
@@ -542,6 +615,7 @@ function buildRideOrderModel(order, options = {}) {
   estimate.payable = toNumber(order.payableAmount, estimate.payable)
   estimate.amount = toNumber(order.actualAmount || order.estimatedAmount, estimate.amount)
   const carpoolMeta = getCarpoolMetaFromOrder(order)
+  const internationalMeta = getInternationalMetaFromOrder(order)
 
   return {
     ...order,
@@ -554,7 +628,12 @@ function buildRideOrderModel(order, options = {}) {
     carType,
     fee: estimate,
     carpoolMeta,
-    remarkText: carpoolMeta ? carpoolMeta.remarkText : stripEmbeddedMeta(order.remark),
+    internationalMeta,
+    remarkText: carpoolMeta
+      ? carpoolMeta.remarkText
+      : internationalMeta
+        ? internationalMeta.remarkText
+        : getVisibleOrderRemark(order.remark),
     driver: buildOrderDriverSummary(order),
     nearbyDrivers: 6,
     waitingMinutes: 2,
@@ -588,7 +667,7 @@ function formatOrderItem(order, carTypeMap = {}) {
       ? carpoolMeta.remarkText
       : internationalMeta
         ? internationalMeta.remarkText
-        : stripEmbeddedMeta(order.remark),
+        : getVisibleOrderRemark(order.remark),
     carTypeName: carType.name || `车型 #${order.carTypeId}`
   }
 }
@@ -613,7 +692,7 @@ function timelineTime(order = {}, key) {
     paid: order.paidAt,
     cancelled: order.updatedAt || order.createdAt
   }
-  return formatDateTime(valueMap[key], { fallback: '等待同步' })
+  return formatDateTime(valueMap[key], { fallback: '等待更新' })
 }
 
 function isSameOrder(left, right) {
@@ -693,7 +772,7 @@ function buildOrderTimelineSteps(order = {}) {
     return {
       ...item,
       title: item.key === 'waiting-pay' && paidCompleted ? '支付完成' : item.title,
-      description: item.key === 'waiting-pay' && paidCompleted ? '本单已完成支付，订单状态已同步。' : item.description,
+      description: item.key === 'waiting-pay' && paidCompleted ? '本单已完成支付，订单状态已更新。' : item.description,
       time: timelineTime(order, item.key === 'waiting-pay' && paidCompleted ? 'paid' : item.key),
       state,
       pulse: state === 'current' && item.key === 'waiting-pay'
@@ -779,11 +858,16 @@ function resolveOrderWithPaymentGuard(order) {
   }
 
   const guardUntil = toNumber(cachedOrder.__paymentSyncGuardUntil)
+  const isGuardActive = guardUntil > Date.now()
   const shouldKeepPaidState = cachedOrder.payStatus === PAY_STATUS.PAID &&
-    order.payStatus === PAY_STATUS.UNPAID
+    order.payStatus === PAY_STATUS.UNPAID &&
+    isGuardActive
 
   if (!shouldKeepPaidState) {
-    return order
+    return {
+      ...order,
+      __paymentSyncGuardUntil: undefined
+    }
   }
 
   return {
@@ -1043,7 +1127,7 @@ function buildInvoiceDetail(order = {}, meta = {}, amount = 0, currencyCode = 'C
     carTypeName: firstPresent(meta.carTypeName, serviceName),
     distanceText: `${distanceKm.toFixed(1)} 公里`,
     durationText: `${Math.max(0, Math.round(durationMin))} 分钟`,
-    payChannel: firstPresent(meta.payChannel, '模拟支付'),
+    payChannel: firstPresent(meta.payChannel, '在线支付'),
     itemName: firstPresent(meta.itemName, `${serviceName}出行服务费`),
     itemUnit: firstPresent(meta.itemUnit, '次'),
     itemQuantity: firstPresent(meta.itemQuantity, '1'),
@@ -1140,8 +1224,12 @@ function getInternationalExchangeRate() {
 function buildInternationalRemark(meta = {}, note = '') {
   const payload = {
     optionId: meta.optionId || '',
+    routeCode: meta.routeCode || '',
+    countryText: meta.countryText || '',
     productName: meta.productName || '',
     productNameEn: meta.productNameEn || '',
+    startName: meta.startName || '',
+    endName: meta.endName || '',
     appointmentTime: meta.appointmentTime || '',
     passengerCount: Math.max(1, toNumber(meta.passengerCount, 1)),
     contactName: meta.contactName || '',
@@ -1154,7 +1242,12 @@ function buildInternationalRemark(meta = {}, note = '') {
     serviceItems: Array.isArray(meta.serviceItems) ? meta.serviceItems : [],
     documents: Array.isArray(meta.documents) ? meta.documents : [],
     pickupSign: meta.pickupSign || '阳光出行',
-    riskNotice: meta.riskNotice || '请提前确认通关证件、航班时间与目的地政策。'
+    riskNotice: meta.riskNotice || '请提前确认通关证件、航班时间与目的地政策。',
+    distanceText: meta.distanceText || '',
+    durationText: meta.durationText || '',
+    amountText: meta.amountText || '',
+    syncStatus: meta.syncStatus || 'BACKEND_ORDER',
+    submitSource: meta.submitSource || 'USER_MINIAPP'
   }
   const cleanNote = `${note || ''}`.trim()
   return `[${INTERNATIONAL_META_TAG}]${JSON.stringify(payload)}[/${INTERNATIONAL_META_TAG}]${cleanNote ? ` ${cleanNote}` : ''}`

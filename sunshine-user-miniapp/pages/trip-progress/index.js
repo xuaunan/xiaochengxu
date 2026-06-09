@@ -151,7 +151,7 @@ Page({
       order,
       progress: Number(activeRuntime.progress || fallback.progress || 0),
       currentPoint,
-      etaText: activeRuntime.routeSource === 'order_record' ? '等待司机位置同步' : (remainMinutes > 0 ? `${remainMinutes} 分钟后到达` : '即将到达终点'),
+      etaText: activeRuntime.routeSource === 'order_record' ? '等待司机位置更新' : (remainMinutes > 0 ? `${remainMinutes} 分钟后到达` : '即将到达终点'),
       trafficText: getTrafficText(activeRuntime, fallback),
       mileageText: formatDistance(Number(activeRuntime.traveledDistanceKm || fallback.traveledDistanceKm || 0)),
       durationText: formatDuration(Number(activeRuntime.elapsedSeconds || fallback.usedSeconds || 0) / 60),
@@ -287,7 +287,7 @@ Page({
         }
         if (!silent) {
           wx.showToast({
-            title: '已切换为本地行程演示数据',
+            title: '行程信息已恢复显示',
             icon: 'none'
           })
         }

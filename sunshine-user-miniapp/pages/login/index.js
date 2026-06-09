@@ -60,7 +60,7 @@ Page({
 
   handleForgotPassword() {
     wx.showToast({
-      title: '演示环境请使用默认密码 123456',
+      title: '请使用默认密码 123456',
       icon: 'none'
     })
   },

@@ -255,12 +255,17 @@ public class AdminServiceFacade implements AdminService {
 
     @Override
     public PageResult<Map<String, Object>> orders(long current, long size, String keyword, String status, String serviceType) {
+        List<Long> matchedUserIds = findUserIdsByKeyword(keyword);
         Page<RideOrder> page = rideOrderMapper.selectPage(new Page<>(current, size), new LambdaQueryWrapper<RideOrder>()
                 .and(StringUtils.hasText(keyword), q -> q.like(RideOrder::getOrderNo, keyword)
                         .or()
                         .like(RideOrder::getStartName, keyword)
                         .or()
-                        .like(RideOrder::getEndName, keyword))
+                        .like(RideOrder::getEndName, keyword)
+                        .or(!matchedUserIds.isEmpty())
+                        .in(!matchedUserIds.isEmpty(), RideOrder::getUserId, matchedUserIds)
+                        .or(!matchedUserIds.isEmpty())
+                        .in(!matchedUserIds.isEmpty(), RideOrder::getDriverId, matchedUserIds))
                 .eq(StringUtils.hasText(status), RideOrder::getOrderStatus, status)
                 .eq(StringUtils.hasText(serviceType), RideOrder::getServiceType, serviceType)
                 .orderByDesc(RideOrder::getId));
@@ -306,6 +311,21 @@ public class AdminServiceFacade implements AdminService {
         result.put("runtime", runtime);
         result.put("refundAllowed", isRefundAllowed(order));
         return result;
+    }
+
+    private List<Long> findUserIdsByKeyword(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return List.of();
+        }
+        return platformUserMapper.selectList(new LambdaQueryWrapper<PlatformUser>()
+                        .like(PlatformUser::getNickname, keyword)
+                        .or()
+                        .like(PlatformUser::getRealName, keyword)
+                        .or()
+                        .like(PlatformUser::getPhone, keyword))
+                .stream()
+                .map(PlatformUser::getId)
+                .toList();
     }
 
     @Override
@@ -711,6 +731,8 @@ public class AdminServiceFacade implements AdminService {
     }
 
     private Map<String, Object> mapOrderRow(RideOrder item) {
+        PlatformUser user = item.getUserId() == null ? null : platformUserMapper.selectById(item.getUserId());
+        PlatformUser driver = item.getDriverId() == null ? null : platformUserMapper.selectById(item.getDriverId());
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", item.getId());
         row.put("orderNo", item.getOrderNo());
@@ -732,6 +754,14 @@ public class AdminServiceFacade implements AdminService {
         row.put("endName", item.getEndName());
         row.put("driverId", item.getDriverId());
         row.put("userId", item.getUserId());
+        row.put("user", user == null ? null : mapOrderPersonRow(user));
+        row.put("passenger", user == null ? null : mapOrderPersonRow(user));
+        row.put("passengerName", displayName(user, "乘客"));
+        row.put("userName", displayName(user, "乘客"));
+        row.put("userNickname", user == null ? "" : firstNonBlank(user.getNickname(), user.getRealName()));
+        row.put("driver", driver == null ? null : mapOrderPersonRow(driver));
+        row.put("driverName", displayName(driver, item.getDriverId() == null ? "未分配" : "司机"));
+        row.put("driverNickname", driver == null ? "" : firstNonBlank(driver.getNickname(), driver.getRealName()));
         row.put("settlementStatus", item.getSettlementStatus());
         row.put("currencyCode", item.getCurrencyCode());
         row.put("platformCommissionAmount", item.getPlatformCommissionAmount());
@@ -740,6 +770,32 @@ public class AdminServiceFacade implements AdminService {
         row.put("remark", item.getRemark());
         row.put("refundAllowed", isRefundAllowed(item));
         return row;
+    }
+
+    private Map<String, Object> mapOrderPersonRow(PlatformUser user) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", user.getId());
+        row.put("nickname", user.getNickname());
+        row.put("realName", user.getRealName());
+        row.put("displayName", displayName(user, ""));
+        row.put("phone", user.getPhone());
+        row.put("roleCode", user.getRoleCode());
+        return row;
+    }
+
+    private String displayName(PlatformUser user, String fallback) {
+        return user == null ? fallback : firstNonBlank(user.getNickname(), user.getRealName(), fallback);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values != null) {
+            for (String value : values) {
+                if (StringUtils.hasText(value)) {
+                    return value.trim();
+                }
+            }
+        }
+        return "";
     }
 
     private String invoiceActionText(String status) {
@@ -759,6 +815,7 @@ public class AdminServiceFacade implements AdminService {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", item.getId());
         row.put("nickname", item.getNickname());
+        row.put("displayName", displayName(item, ""));
         row.put("phone", item.getPhone());
         row.put("roleCode", item.getRoleCode());
         row.put("enabled", item.getEnabled());

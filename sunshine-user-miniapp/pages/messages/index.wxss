@@ -7,24 +7,24 @@
 .message-page {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding-top: 20rpx;
+  gap: 12rpx;
+  padding-top: 12rpx;
 }
 
 .message-hero {
   position: relative;
-  min-height: 138rpx;
+  min-height: 102rpx;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  padding: 24rpx 28rpx;
-  border-radius: 26rpx;
+  gap: 16rpx;
+  padding: 17rpx 18rpx;
+  border-radius: 16rpx;
   border: 1rpx solid rgba(255, 122, 0, 0.2);
   background:
     linear-gradient(112deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 244, 0.96) 58%, rgba(255, 233, 209, 0.66) 100%),
     #ffffff;
-  box-shadow: 0 18rpx 42rpx rgba(210, 104, 18, 0.08);
+  box-shadow: 0 8rpx 20rpx rgba(210, 104, 18, 0.045);
 }
 
 .message-hero__copy {
@@ -36,46 +36,46 @@
 
 .message-hero__title {
   color: #111827;
-  font-size: 36rpx;
-  font-weight: 700;
+  font-size: 27rpx;
+  font-weight: 550;
   line-height: 1.15;
 }
 
 .message-hero__desc {
-  margin-top: 12rpx;
+  margin-top: 6rpx;
   color: #5f6676;
-  font-size: 24rpx;
+  font-size: 20rpx;
   line-height: 1.35;
 }
 
 .message-bell {
   position: absolute;
-  right: 202rpx;
-  top: 30rpx;
-  width: 104rpx;
-  height: 98rpx;
-  transform: rotate(-12deg);
-  opacity: 0.96;
+  right: 118rpx;
+  top: 28rpx;
+  width: 50rpx;
+  height: 48rpx;
+  transform: rotate(-8deg);
+  opacity: 0.46;
 }
 
 .message-bell__body {
   position: absolute;
-  left: 22rpx;
-  top: 16rpx;
-  width: 76rpx;
-  height: 78rpx;
-  border-radius: 42rpx 42rpx 24rpx 24rpx;
+  left: 10rpx;
+  top: 8rpx;
+  width: 34rpx;
+  height: 35rpx;
+  border-radius: 26rpx 26rpx 15rpx 15rpx;
   background: linear-gradient(145deg, #ffd9b5 0%, #ff8a16 100%);
-  box-shadow: 0 16rpx 28rpx rgba(255, 122, 0, 0.16);
+  box-shadow: 0 7rpx 14rpx rgba(255, 122, 0, 0.1);
 }
 
 .message-bell__body::before {
   content: "";
   position: absolute;
-  left: 28rpx;
-  top: -12rpx;
-  width: 22rpx;
-  height: 22rpx;
+  left: 13rpx;
+  top: -6rpx;
+  width: 11rpx;
+  height: 11rpx;
   border-radius: 50%;
   background: #ff9b32;
 }
@@ -83,20 +83,20 @@
 .message-bell__body::after {
   content: "";
   position: absolute;
-  left: -12rpx;
-  right: -12rpx;
-  bottom: -7rpx;
-  height: 20rpx;
+  left: -5rpx;
+  right: -5rpx;
+  bottom: -3rpx;
+  height: 9rpx;
   border-radius: 999rpx;
   background: linear-gradient(90deg, #ffc796 0%, #ff7900 100%);
 }
 
 .message-bell__clapper {
   position: absolute;
-  left: 54rpx;
-  bottom: 8rpx;
-  width: 18rpx;
-  height: 18rpx;
+  left: 25rpx;
+  bottom: 5rpx;
+  width: 8rpx;
+  height: 8rpx;
   border-radius: 50%;
   background: #ff7a00;
 }
@@ -105,140 +105,147 @@
   position: relative;
   z-index: 2;
   flex-shrink: 0;
-  min-width: 96rpx;
-  padding: 10rpx 18rpx;
+  min-width: 78rpx;
+  padding: 7rpx 14rpx;
   border-radius: 999rpx;
   color: #ff6f00;
   background: rgba(255, 250, 244, 0.8);
-  border: 2rpx solid rgba(255, 122, 0, 0.18);
+  border: 1rpx solid rgba(255, 122, 0, 0.18);
   text-align: center;
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 22rpx;
+  font-weight: 500;
 }
 
 .message-list {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
+  gap: 10rpx;
 }
 
 .message-card {
   position: relative;
-  min-height: 112rpx;
+  min-height: 84rpx;
   display: flex;
   align-items: center;
   gap: 18rpx;
-  padding: 22rpx 58rpx 22rpx 22rpx;
-  border-radius: 24rpx;
+  padding: 14rpx 42rpx 14rpx 16rpx;
+  border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 18rpx 42rpx rgba(24, 34, 56, 0.065);
+  box-shadow: 0 7rpx 18rpx rgba(24, 34, 56, 0.035);
 }
 
 .message-icon {
   position: relative;
-  width: 54rpx;
-  height: 54rpx;
+  width: 44rpx;
+  height: 44rpx;
   flex-shrink: 0;
   border-radius: 50%;
   color: #ff7900;
   background: #fff1df;
+  box-sizing: border-box;
 }
 
 .message-icon--cancel::before,
 .message-icon--cancel::after {
   content: "";
   position: absolute;
-  left: 17rpx;
-  top: 25rpx;
-  width: 21rpx;
-  height: 5rpx;
+  left: 50%;
+  top: 50%;
+  width: 17rpx;
+  height: 4rpx;
   border-radius: 999rpx;
   background: currentColor;
 }
 
 .message-icon--cancel::before {
-  transform: rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .message-icon--cancel::after {
-  transform: rotate(-45deg);
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .message-icon--order::before {
   content: "";
   position: absolute;
-  left: 16rpx;
-  top: 12rpx;
-  width: 23rpx;
-  height: 30rpx;
+  left: 50%;
+  top: 50%;
+  width: 19rpx;
+  height: 25rpx;
   border-radius: 7rpx;
   background: currentColor;
+  transform: translate(-50%, -50%);
 }
 
 .message-icon--order::after {
   content: "";
   position: absolute;
-  left: 23rpx;
-  top: 21rpx;
-  width: 11rpx;
-  height: 3rpx;
+  left: 50%;
+  top: 50%;
+  width: 9rpx;
+  height: 2rpx;
   border-radius: 999rpx;
   background: #ffffff;
-  box-shadow: 0 8rpx 0 #ffffff;
+  box-shadow: 0 7rpx 0 #ffffff;
+  transform: translate(-50%, -120%);
 }
 
 .message-icon--paid::before,
 .message-icon--finish::before {
   content: "";
   position: absolute;
-  left: 17rpx;
-  top: 12rpx;
-  width: 18rpx;
-  height: 28rpx;
-  border-right: 6rpx solid currentColor;
-  border-bottom: 6rpx solid currentColor;
-  transform: rotate(42deg);
+  left: 50%;
+  top: 50%;
+  width: 13rpx;
+  height: 23rpx;
+  border-right: 4rpx solid currentColor;
+  border-bottom: 4rpx solid currentColor;
+  box-sizing: border-box;
+  transform: translate(-35%, -58%) rotate(42deg);
+  transform-origin: center;
 }
 
 .message-icon--finish::before {
-  left: 18rpx;
-  top: 13rpx;
-  width: 16rpx;
-  height: 25rpx;
+  width: 12rpx;
+  height: 21rpx;
 }
 
 .message-icon--start::before {
   content: "";
   position: absolute;
-  left: 22rpx;
-  top: 16rpx;
-  border-left: 20rpx solid currentColor;
-  border-top: 12rpx solid transparent;
-  border-bottom: 12rpx solid transparent;
+  left: 50%;
+  top: 50%;
+  border-left: 16rpx solid currentColor;
+  border-top: 10rpx solid transparent;
+  border-bottom: 10rpx solid transparent;
+  transform: translate(-34%, -50%);
 }
 
 .message-icon--car::before {
   content: "";
   position: absolute;
-  left: 11rpx;
-  top: 23rpx;
-  width: 32rpx;
-  height: 17rpx;
+  left: 50%;
+  top: 50%;
+  width: 26rpx;
+  height: 14rpx;
   border-radius: 10rpx 12rpx 6rpx 6rpx;
-  border: 4rpx solid currentColor;
+  border: 3rpx solid currentColor;
+  box-sizing: border-box;
+  transform: translate(-50%, -10%);
 }
 
 .message-icon--car::after {
   content: "";
   position: absolute;
-  left: 18rpx;
-  bottom: 12rpx;
-  width: 6rpx;
-  height: 6rpx;
+  left: 50%;
+  top: 50%;
+  width: 5rpx;
+  height: 5rpx;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 16rpx 0 0 currentColor, 6rpx -21rpx 0 -1rpx currentColor;
+  box-shadow: 13rpx 0 0 currentColor, 5rpx -17rpx 0 -1rpx currentColor;
+  transform: translate(-162%, 76%);
 }
 
 .message-icon--driver::before,
@@ -250,40 +257,45 @@
 }
 
 .message-icon--driver::before {
-  left: 20rpx;
-  top: 12rpx;
-  width: 15rpx;
-  height: 15rpx;
+  left: 50%;
+  top: 50%;
+  width: 13rpx;
+  height: 13rpx;
+  transform: translate(-50%, -86%);
 }
 
 .message-icon--driver::after {
-  left: 14rpx;
-  bottom: 12rpx;
-  width: 27rpx;
-  height: 17rpx;
+  left: 50%;
+  top: 50%;
+  width: 22rpx;
+  height: 14rpx;
   border-radius: 18rpx 18rpx 7rpx 7rpx;
+  transform: translate(-50%, 16%);
 }
 
 .message-icon--notice::before {
   content: "";
   position: absolute;
-  left: 15rpx;
-  top: 14rpx;
-  width: 25rpx;
-  height: 25rpx;
+  left: 50%;
+  top: 50%;
+  width: 20rpx;
+  height: 20rpx;
   border-radius: 50%;
-  border: 5rpx solid currentColor;
+  border: 3rpx solid currentColor;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
 }
 
 .message-icon--notice::after {
   content: "";
   position: absolute;
-  left: 26rpx;
-  top: 24rpx;
-  width: 5rpx;
-  height: 13rpx;
+  left: 50%;
+  top: 50%;
+  width: 4rpx;
+  height: 10rpx;
   border-radius: 999rpx;
   background: currentColor;
+  transform: translate(-50%, -20%);
 }
 
 .message-card__main {
@@ -293,18 +305,18 @@
 
 .message-card__title {
   color: #111827;
-  font-size: 28rpx;
+  font-size: 23rpx;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 550;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .message-card__content {
-  margin-top: 10rpx;
+  margin-top: 5rpx;
   color: #222733;
-  font-size: 23rpx;
+  font-size: 20rpx;
   line-height: 1.45;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -312,17 +324,17 @@
 }
 
 .message-card__time {
-  margin-top: 10rpx;
+  margin-top: 6rpx;
   color: #8b94a7;
-  font-size: 22rpx;
+  font-size: 20rpx;
 }
 
 .message-card__dot {
   position: absolute;
-  left: 62rpx;
-  top: 22rpx;
-  width: 12rpx;
-  height: 12rpx;
+  left: 50rpx;
+  top: 16rpx;
+  width: 10rpx;
+  height: 10rpx;
   border-radius: 50%;
   background: #ff5b57;
   box-shadow: 0 0 0 5rpx #ffffff;
@@ -330,40 +342,40 @@
 
 .message-arrow {
   position: absolute;
-  right: 28rpx;
+  right: 22rpx;
   top: 50%;
-  width: 18rpx;
-  height: 18rpx;
-  border-top: 4rpx solid rgba(31, 36, 50, 0.46);
-  border-right: 4rpx solid rgba(31, 36, 50, 0.46);
+  width: 15rpx;
+  height: 15rpx;
+  border-top: 3rpx solid rgba(31, 36, 50, 0.46);
+  border-right: 3rpx solid rgba(31, 36, 50, 0.46);
   transform: translateY(-50%) rotate(45deg);
 }
 
 .message-empty {
-  min-height: 300rpx;
-  padding: 60rpx 26rpx;
-  border-radius: 24rpx;
+  min-height: 220rpx;
+  padding: 36rpx 22rpx;
+  border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.05);
-  box-shadow: 0 18rpx 42rpx rgba(24, 34, 56, 0.065);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.045);
   text-align: center;
   color: #8a94a8;
 }
 
 .message-empty__mark {
-  margin: 0 auto 20rpx;
+  margin: 0 auto 14rpx;
 }
 
 .message-empty__title {
   color: #1f2432;
-  font-size: 27rpx;
-  font-weight: 700;
+  font-size: 25rpx;
+  font-weight: 600;
 }
 
 .message-empty__desc {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.55;
+  margin-top: 7rpx;
+  font-size: 21rpx;
+  line-height: 1.45;
 }
 
 .tap-scale:active {

@@ -6,7 +6,7 @@
           <view class="wallet-title">收益总览</view>
           <view class="eye-icon"></view>
         </view>
-        <view class="detail-link tap-scale" hover-class="pressable-hover" hover-stay-time="60">
+        <view class="detail-link tap-scale" hover-class="pressable-hover" hover-stay-time="60" bindtap="showBillTip">
           <text>收益明细</text>
           <view class="link-arrow"></view>
         </view>
@@ -15,17 +15,17 @@
       <view class="income-grid">
         <view class="income-card income-card--today">
           <view class="income-value">¥{{wallet.todayIncome}}</view>
-          <view class="income-label">今日收入 <text class="info-dot">i</text></view>
+          <view class="income-label">今日收入 <text class="info-dot" data-type="today" catchtap="showIncomeTip">i</text></view>
           <view class="income-watermark income-watermark--wallet"></view>
         </view>
         <view class="income-card income-card--month">
           <view class="income-value">¥{{wallet.monthIncome}}</view>
-          <view class="income-label">本月收入 <text class="info-dot">i</text></view>
+          <view class="income-label">{{monthIncomeLabel}} <text class="info-dot" data-type="month" catchtap="showIncomeTip">i</text></view>
           <view class="income-watermark income-watermark--chart"></view>
         </view>
         <view class="income-card income-card--cash">
           <view class="income-value">¥{{wallet.withdrawable}}</view>
-          <view class="income-label">可提现 <text class="info-dot">i</text></view>
+          <view class="income-label">可提现 <text class="info-dot" data-type="cash" catchtap="showIncomeTip">i</text></view>
           <view class="income-watermark income-watermark--card"></view>
         </view>
       </view>
@@ -37,12 +37,18 @@
       <view class="bill-head">
         <view class="bill-title-wrap">
           <view class="bill-icon"></view>
-          <view class="bill-title">本月流水</view>
+          <view class="bill-title">{{billTitle}}</view>
         </view>
-        <view class="bill-summary">{{billSummary}}</view>
+        <picker mode="selector" range="{{monthOptions}}" range-key="label" value="{{selectedMonthIndex}}" bindchange="changeIncomeMonth">
+          <view class="month-picker tap-scale" hover-class="pressable-hover" hover-stay-time="60">
+            <text>{{selectedMonthLabel}}</text>
+            <view class="month-picker__arrow"></view>
+          </view>
+        </picker>
       </view>
+      <view class="bill-summary">{{billSummary}}</view>
 
-      <view class="bill-list">
+      <view class="bill-list" wx:if="{{bills.length}}">
         <view class="bill-row tap-scale" wx:for="{{bills}}" wx:key="id" hover-class="pressable-hover" hover-stay-time="60">
           <view class="bill-car-icon"></view>
           <view class="bill-copy">
@@ -54,9 +60,36 @@
         </view>
       </view>
 
-      <view class="bill-finished">
+      <view class="wallet-empty" wx:else>
+        <view class="wallet-empty__icon"></view>
+        <view class="wallet-empty__title">{{billEmptyTitle}}</view>
+        <view class="wallet-empty__desc">{{billEmptyDesc}}</view>
+      </view>
+
+      <view class="bill-finished" wx:if="{{bills.length}}">
         <view class="finished-check"></view>
         <text>已加载全部</text>
+      </view>
+    </view>
+
+    <view class="withdraw-panel">
+      <view class="withdraw-panel__head">
+        <view class="withdraw-panel__title">提现记录</view>
+        <view class="withdraw-panel__action tap-scale" bindtap="openWithdraw">申请/查看</view>
+      </view>
+      <view class="withdraw-record-list" wx:if="{{withdrawRecords.length}}">
+        <view class="withdraw-record" wx:for="{{withdrawRecords}}" wx:key="id">
+          <view class="withdraw-record__main">
+            <view class="withdraw-record__amount">¥{{item.amountText}}</view>
+            <view class="withdraw-record__meta">{{item.bankName}} {{item.bankAccountMasked}}</view>
+            <view class="withdraw-record__time">{{item.createdAtText}}</view>
+          </view>
+          <view class="withdraw-status withdraw-status--{{item.statusClass}}">{{item.statusText}}</view>
+        </view>
+      </view>
+      <view class="wallet-empty wallet-empty--compact" wx:else>
+        <view class="wallet-empty__title">暂无提现记录</view>
+        <view class="wallet-empty__desc">提交申请后，这里会显示审核状态和打款结果。</view>
       </view>
     </view>
   </view>

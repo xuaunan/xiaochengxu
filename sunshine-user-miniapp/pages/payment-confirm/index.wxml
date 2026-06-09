@@ -4,7 +4,7 @@
       <view class="amount-label">订单总金额</view>
       <view class="amount-value">{{order.amountText}}</view>
       <view class="section-subtitle amount-subtitle">
-        {{order.payStatus === 'PAID' ? '当前订单已完成支付，可直接返回订单详情。' : '支付成功后会实时写入后端和数据库。'}}
+        {{order.payStatus === 'PAID' ? '当前订单已完成支付，可直接返回订单详情。' : '支付成功后会自动更新订单状态。'}}
       </view>
       <view class="route-summary">
         <view class="route-text">{{order.startDisplay}} -> {{order.endDisplay}}</view>
@@ -37,7 +37,7 @@
     <view class="panel-card tip-card">
       <view class="section-title">支付提示</view>
       <view class="tip-list">
-        <view class="tip-item">支付完成后，订单状态会自动同步到订单详情。</view>
+        <view class="tip-item">支付完成后，订单详情会自动更新。</view>
         <view class="tip-item">未完成支付时，订单会继续保留为待支付状态。</view>
       </view>
     </view>
@@ -57,7 +57,7 @@
       hover-class="button-hover"
       bindtap="confirmPay"
       loading="{{processing}}"
-      disabled="{{processing || order.payStatus === 'PAID'}}"
+      disabled="{{processing || !canPay || order.payStatus === 'PAID'}}"
     >
       {{confirmText}}
     </button>

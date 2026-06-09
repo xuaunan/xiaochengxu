@@ -4,7 +4,7 @@
       <div>
         <span class="panel-kicker">运营总览</span>
         <h3 class="panel-title">阳光出行运营数据大盘</h3>
-        <p class="panel-subtitle">实时业务数据看板，所有指标、趋势和画像数据均来自后端数据库真实业务表。</p>
+        <p class="panel-subtitle">集中查看订单、收入、用户和司机运营指标。</p>
       </div>
       <div class="toolbar-actions">
         <el-segmented v-model="range" :options="rangeOptions" />

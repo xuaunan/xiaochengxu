@@ -62,7 +62,7 @@ async function request(path, options = {}) {
   bumpApiLoading(1)
 
   if (Date.now() < backendBackoffUntil) {
-    emitApiMode('demo', '后端刚刚不可达，当前操作直接使用网页本地演示数据')
+    emitApiMode('demo', '业务服务暂不可用，当前操作使用网页离线数据')
     try {
       return demoRequest(path, { method, data, token, demoRole })
     } finally {
@@ -88,7 +88,7 @@ async function request(path, options = {}) {
     const payload = await parsePayload(response)
     if (response.ok && Number(payload.code) === 0) {
       backendBackoffUntil = 0
-      emitApiMode('backend', '已连接 Spring Boot 后端')
+      emitApiMode('backend', '已连接业务服务')
       return payload.data ?? payload
     }
     throw new ApiError(payload.message || payload.msg || `请求失败：${response.status}`, {
@@ -102,7 +102,7 @@ async function request(path, options = {}) {
       throw error
     }
     backendBackoffUntil = Date.now() + 5000
-    emitApiMode('demo', '后端未连接，当前使用网页本地演示数据')
+    emitApiMode('demo', '业务服务未连接，当前使用网页离线数据')
     return demoRequest(path, { method, data, token, demoRole })
   } finally {
     window.clearTimeout(timer)
@@ -197,7 +197,7 @@ function demoRequest(path, options) {
     const password = account?.password || fallback?.password
     const phone = account?.phone || fallback?.phone
     if (!account || body.phone !== phone || body.password !== password) {
-      throw new ApiError('演示账号或密码不正确', { code: 4000 })
+      throw new ApiError('账号或密码不正确', { code: 4000 })
     }
     return createDemoSession(role)
   }
@@ -221,12 +221,12 @@ function demoRequest(path, options) {
     const busyDriverCount = 2
     return {
       banners: [
-        { title: '橙色专车门户已接入同一套后端', subtitle: '乘客下单、司机抢单、支付评价闭环演示' },
-        { title: '即时打车 / 顺风车 / 国际出行', subtitle: '同步小程序枚举、状态、接口字段' }
+        { title: '橙色专车门户已接入统一业务服务', subtitle: '乘客下单、司机抢单、支付评价闭环' },
+        { title: '即时打车 / 顺风车 / 国际出行', subtitle: '沿用小程序状态与接口字段' }
       ],
       carTypes: fallbackCarTypes,
       couponCenter: db.coupons,
-      notices: ['司机听单大厅实时刷新', '默认后端地址 http://127.0.0.1:8080', '后端未启动时自动切换本地演示'],
+      notices: ['司机听单大厅实时刷新', '默认业务服务地址 http://127.0.0.1:8080', '业务服务未连接时自动切换离线数据'],
       fleet: {
         onlineDriverCount,
         idleDriverCount: Math.max(0, onlineDriverCount - busyDriverCount),
@@ -276,7 +276,7 @@ function demoRequest(path, options) {
   if (url.pathname === '/auth/real-name' && method === 'POST') {
     requireRole(actor, ROLE.USER)
     Object.assign(db.passengerUser, body, { authStatus: 1, authRemark: '网页端已提交实名审核' })
-    db.messages.unshift(message('USER', '实名信息已提交', '资料已同步到网页端演示数据库，后端运行时走 /auth/real-name。'))
+    db.messages.unshift(message('USER', '实名信息已提交', '资料已更新到网页端，在线服务可继续处理实名流程。'))
     saveDemoDb(db)
     return { auditStatus: 1, message: '实名信息已提交' }
   }
@@ -377,8 +377,8 @@ function demoRequest(path, options) {
     const order = requireOrder(db, body.orderId)
     order.payStatus = PAY_STATUS.PAID
     order.updatedAt = nowText()
-    addTimeline(order, '模拟支付成功', 'success')
-    db.messages.unshift(message('USER', '支付完成', `${order.orderNo} 已完成模拟支付。`))
+    addTimeline(order, '支付成功', 'success')
+    db.messages.unshift(message('USER', '支付完成', `${order.orderNo} 已完成支付。`))
     saveDemoDb(db)
     return order
   }
@@ -443,7 +443,7 @@ function demoRequest(path, options) {
     db.driverUser.nickname = body.nickname || db.driverUser.nickname
     db.driverProfile.cityCode = body.cityCode || db.driverProfile.cityCode
     db.driverProfile.licenseNo = body.licenseNo || db.driverProfile.licenseNo
-    db.messages.unshift(message('DRIVER', '司机资料已更新', '资料已同步到司机端工作台。'))
+    db.messages.unshift(message('DRIVER', '司机资料已更新', '资料已更新到司机端工作台。'))
     saveDemoDb(db)
     return { ...db.driverUser, profile: db.driverProfile }
   }
@@ -535,7 +535,7 @@ function demoRequest(path, options) {
     return app || true
   }
 
-  throw new ApiError(`本地演示暂未覆盖接口：${method} ${url.pathname}`, { code: 4004 })
+  throw new ApiError(`离线数据暂未覆盖接口：${method} ${url.pathname}`, { code: 4004 })
 }
 
 function createDemoSession(roleCode) {
@@ -620,7 +620,7 @@ function mutateOrderByAction(db, actor, order, action, body) {
     db.driverProfile.todayIncome = Number(db.driverProfile.todayIncome || 0) + Number(order.payableAmount || 0) * 0.8
     db.driverProfile.withdrawableIncome = Number(db.driverProfile.withdrawableIncome || 0) + Number(order.payableAmount || 0) * 0.8
     addTimeline(order, '行程已结束，等待乘客支付', 'success')
-    db.messages.unshift(message('USER', '行程已结束', '请完成模拟支付并评价本次服务。'))
+    db.messages.unshift(message('USER', '行程已结束', '请完成支付并评价本次服务。'))
     return
   }
   if (action === 'cancel') {
@@ -638,7 +638,7 @@ function buildDriverDashboard(db) {
     vehicle: db.vehicle,
     servicePermission: {
       canReceiveOrders: db.driverProfile.auditStatus === 2 && db.vehicle.auditStatus === 2,
-      message: db.driverProfile.auditStatus === 2 ? '资质正常，可听单' : '资质待审核，可体验演示流程'
+      message: db.driverProfile.auditStatus === 2 ? '资质正常，可听单' : '资质待审核，可继续体验流程'
     },
     orders: db.orders.filter((item) => Number(item.driverId) === db.driverUser.id),
     pendingWithdraw: db.withdraws.filter((item) => item.status === 'PENDING')
@@ -779,7 +779,7 @@ function seedDemoDb() {
         actualAmount: fare.amount,
         currencyCode: fare.currencyCode,
         dispatchMode: 'SMART',
-        remark: '本地演示订单，可用司机账号接单。',
+        remark: '网页端订单，可用司机账号接单。',
         createdAt: nowText(),
         updatedAt: nowText(),
         evaluationStatus: 'PENDING',

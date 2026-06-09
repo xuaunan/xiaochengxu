@@ -18,7 +18,7 @@ public interface IPaymentService extends IService<PaymentRecord> {
     PaymentRecord createPayment(Long orderId, Long userId, BigDecimal amount, Integer paymentMethod);
     
     /**
-     * 模拟支付成功
+     * 支付成功
      */
     void mockPaymentSuccess(String paymentNo);
     
