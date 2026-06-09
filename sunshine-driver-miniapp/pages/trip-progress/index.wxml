@@ -17,7 +17,7 @@
   ></map>
 
   <view class="trip-progress-overlay">
-    <sun-nav title="行程进行中" subtitle="车辆轨迹实时同步，返回后也能从首页继续进入" transparent backable></sun-nav>
+    <sun-nav title="行程进行中" subtitle="车辆轨迹实时更新，返回后也能从首页继续进入" transparent backable></sun-nav>
   </view>
 
   <view class="trip-progress-glow"></view>
@@ -34,6 +34,15 @@
         <view class="section-subtitle trip-progress-subtitle">{{order.etaText}} · {{order.trafficText}}</view>
       </view>
       <view class="status-tag processing trip-progress-status">{{order.statusText}}</view>
+    </view>
+
+    <view class="trip-progress-intl" wx:if="{{order.internationalMeta}}">
+      <view class="trip-progress-intl__head">
+        <text>{{order.internationalMeta.routeCode}}</text>
+        <text>{{order.internationalMeta.flightText}}</text>
+      </view>
+      <view>{{order.internationalMeta.appointmentTimeText}} · {{order.internationalMeta.pickupSignText}}</view>
+      <view>{{order.internationalMeta.passengerCountText}} · {{order.internationalMeta.luggageCountText}}</view>
     </view>
 
     <view class="trip-progress-focus">

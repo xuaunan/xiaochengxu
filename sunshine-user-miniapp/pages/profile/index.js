@@ -15,6 +15,7 @@ Page({
       { iconClass: 'wallet', title: '\u6211\u7684\u94b1\u5305', url: '/pages/wallet/index', desc: '\u4f59\u989d\u3001\u4f18\u60e0\u5238\u548c\u53d1\u7968\u6c47\u603b' },
       { iconClass: 'star', title: '\u8bc4\u4ef7\u7ba1\u7406', url: '/pages/reviews/index', desc: '\u67e5\u770b\u5386\u53f2\u8bc4\u4ef7\u4e0e\u53f8\u673a\u8bc4\u5206' },
       { iconClass: 'message', title: '\u6295\u8bc9\u5efa\u8bae', url: '/pages/complaint/index', desc: '\u63d0\u4ea4\u53cd\u9988\u5e76\u67e5\u770b\u5904\u7406\u8fdb\u5ea6' },
+      { iconClass: 'message', title: '\u5728\u7ebf\u5ba2\u670d', url: '/pages/support/index', desc: '\u4e0e\u5e73\u53f0\u5ba2\u670d\u5b9e\u65f6\u5bf9\u8bdd' },
       { iconClass: 'bell', title: '\u6d88\u606f\u901a\u77e5', url: '/pages/messages/index', desc: '\u8ba2\u5355\u72b6\u6001\u3001\u4f18\u60e0\u5238\u548c\u516c\u544a\u63d0\u9192' },
       { iconClass: 'help', title: '\u5e2e\u52a9\u4e2d\u5fc3', url: '/pages/help/index', desc: '\u5e38\u89c1\u95ee\u9898\u4e0e\u6743\u9650\u8bbe\u7f6e' },
       { iconClass: 'settings', title: '\u7cfb\u7edf\u8bbe\u7f6e', url: '/pages/settings/index', desc: '\u8bed\u8a00\u3001\u63a8\u9001\u548c\u9690\u79c1\u8bbe\u7f6e' },

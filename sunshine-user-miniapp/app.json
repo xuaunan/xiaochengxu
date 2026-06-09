@@ -32,7 +32,8 @@
     "pages/help/index",
     "pages/settings/index",
     "pages/messages/index",
-    "pages/invoice/index"
+    "pages/invoice/index",
+    "pages/support/index"
   ],
   "window": {
     "navigationBarTitleText": "\u9633\u5149\u51fa\u884c",

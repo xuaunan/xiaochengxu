@@ -12,9 +12,9 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI().info(new Info()
-                .title("阳光出行后端 API")
+                .title("阳光出行业务 API")
                 .version("2.0.0")
-                .description("覆盖即时打车、顺风车、国际出行、优惠券与后台管理的课程演示后端接口")
+                .description("覆盖即时打车、顺风车、国际出行、优惠券与后台管理的业务接口")
                 .contact(new Contact().name("Sunshine Travel Team").email("sunshine@example.com")));
     }
 }

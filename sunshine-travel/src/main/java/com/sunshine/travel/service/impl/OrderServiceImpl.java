@@ -1,6 +1,7 @@
 package com.sunshine.travel.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sunshine.travel.common.BusinessException;
 import com.sunshine.travel.common.CouponStatus;
@@ -48,6 +49,7 @@ import com.sunshine.travel.service.OrderService;
 import com.sunshine.travel.service.support.CacheSupport;
 import com.sunshine.travel.service.support.MessagePushSupport;
 import com.sunshine.travel.service.support.OrderRuntimeSupport;
+import com.sunshine.travel.util.InternationalMetaUtil;
 import com.sunshine.travel.util.InvoiceMetaUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -209,6 +211,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public Map<String, Object> detailView(Long orderId) {
+        return mapOrderView(detail(orderId));
+    }
+
+    @Override
     public Map<String, Object> runtime(Long orderId) {
         RideOrder order = detail(orderId);
         return orderRuntimeSupport.buildRuntime(order);
@@ -327,11 +334,11 @@ public class OrderServiceImpl implements OrderService {
         if (!RoleCode.ADMIN.equals(UserContext.role()) && !Objects.equals(order.getUserId(), UserContext.userId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "No permission to pay this order");
         }
-        if (!List.of(OrderStatus.FINISHED, OrderStatus.CANCELLED).contains(order.getOrderStatus())) {
-            throw new BusinessException(ErrorCode.STATUS_ERROR, "Order is not finished yet");
+        if (!OrderStatus.FINISHED.equals(order.getOrderStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "Only finished orders can be paid");
         }
-        if (PayStatus.PAID.equals(order.getPayStatus())) {
-            return order;
+        if (!PayStatus.UNPAID.equals(order.getPayStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "Only unpaid orders can be paid");
         }
         applyMockPaymentAdjustments(order, request);
         PaymentRecord paymentRecord = new PaymentRecord();
@@ -368,6 +375,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<Map<String, Object>> currentUserOrderViews(String roleCode) {
+        return currentUserOrders(roleCode).stream()
+                .map(this::mapOrderView)
+                .toList();
+    }
+
+    @Override
     public List<RideOrder> waitingOrders() {
         if (!List.of(RoleCode.DRIVER, RoleCode.ADMIN).contains(UserContext.role())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "No permission to view waiting orders");
@@ -384,6 +398,13 @@ public class OrderServiceImpl implements OrderService {
         }
         return orders.stream()
                 .filter(item -> cacheSupport.get(buildRejectCacheKey(driverId, item.getId())).isEmpty())
+                .toList();
+    }
+
+    @Override
+    public List<Map<String, Object>> waitingOrderViews() {
+        return waitingOrders().stream()
+                .map(this::mapOrderView)
                 .toList();
     }
 
@@ -451,7 +472,7 @@ public class OrderServiceImpl implements OrderService {
                 "INVOICE",
                 "INVOICE_APPLIED",
                 "发票申请已提交",
-                "订单 " + order.getOrderNo() + " 的电子发票申请已提交，后台处理后会同步到发票中心。",
+                "订单 " + order.getOrderNo() + " 的电子发票申请已提交，处理后可在发票中心查看。",
                 order.getLanguageCode());
         return order;
     }
@@ -939,6 +960,71 @@ public class OrderServiceImpl implements OrderService {
                 .last("limit 1"));
     }
 
+    private Map<String, Object> mapOrderView(RideOrder order) {
+        Map<String, Object> row = BeanUtil.beanToMap(order, new LinkedHashMap<>(), false, false);
+        PlatformUser user = order.getUserId() == null ? null : platformUserMapper.selectById(order.getUserId());
+        PlatformUser driver = order.getDriverId() == null ? null : platformUserMapper.selectById(order.getDriverId());
+        Vehicle vehicle = order.getDriverId() == null ? null : queryVehicle(order.getDriverId());
+        DriverProfile profile = order.getDriverId() == null ? null : driverProfileMapper.selectOne(new LambdaQueryWrapper<DriverProfile>()
+                .eq(DriverProfile::getUserId, order.getDriverId())
+                .last("limit 1"));
+
+        Map<String, Object> userSummary = mapUserSummary(user);
+        Map<String, Object> driverSummary = mapUserSummary(driver);
+        String passengerName = displayName(user, "乘客");
+        String driverName = displayName(driver, "司机");
+        row.put("user", userSummary);
+        row.put("passenger", userSummary);
+        row.put("passengerName", passengerName);
+        row.put("userName", passengerName);
+        row.put("userNickname", user == null ? "" : firstNonBlank(user.getNickname(), user.getRealName()));
+        row.put("driver", driverSummary);
+        row.put("driverName", driverName);
+        row.put("driverNickname", driver == null ? "" : firstNonBlank(driver.getNickname(), driver.getRealName()));
+        row.put("driverPhone", driver == null ? "" : firstNonBlank(driver.getPhone()));
+        row.put("driverScore", profile == null ? null : profile.getScore());
+        row.put("vehicle", vehicle);
+        row.put("plateNo", vehicle == null ? "" : firstNonBlank(vehicle.getPlateNo()));
+        row.put("vehiclePlateNo", vehicle == null ? "" : firstNonBlank(vehicle.getPlateNo()));
+        row.put("carModel", vehicle == null ? "" : firstNonBlank(
+                (firstNonBlank(vehicle.getBrand()) + " " + firstNonBlank(vehicle.getModelName())).trim(),
+                vehicle.getModelName(),
+                vehicle.getBrand()));
+        row.put("carColor", vehicle == null ? "" : firstNonBlank(vehicle.getColor()));
+        row.put("cleanRemark", InternationalMetaUtil.cleanText(order.getRemark()));
+        if (ServiceType.INTERNATIONAL.equals(order.getServiceType())) {
+            Map<String, Object> internationalMeta = InternationalMetaUtil.parse(order.getRemark());
+            putIfBlank(internationalMeta, "productName", "国际出行");
+            putIfBlank(internationalMeta, "startName", order.getStartName());
+            putIfBlank(internationalMeta, "endName", order.getEndName());
+            putIfBlank(internationalMeta, "languageCode", order.getLanguageCode());
+            putIfBlank(internationalMeta, "currencyCode", order.getCurrencyCode());
+            putIfBlank(internationalMeta, "exchangeRate", order.getExchangeRate());
+            putIfBlank(internationalMeta, "syncStatus", "BACKEND_ORDER");
+            row.put("internationalMeta", internationalMeta);
+        }
+        return row;
+    }
+
+    private Map<String, Object> mapUserSummary(PlatformUser user) {
+        if (user == null) {
+            return null;
+        }
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", user.getId());
+        row.put("nickname", user.getNickname());
+        row.put("realName", user.getRealName());
+        row.put("displayName", displayName(user, ""));
+        row.put("phone", user.getPhone());
+        row.put("avatar", user.getAvatar());
+        row.put("roleCode", user.getRoleCode());
+        return row;
+    }
+
+    private String displayName(PlatformUser user, String fallback) {
+        return user == null ? fallback : firstNonBlank(user.getNickname(), user.getRealName(), fallback);
+    }
+
     private void writeCouponLog(UserCoupon userCoupon, Long couponId, String operationType, String content, Long orderId) {
         CouponOperationLog operationLog = new CouponOperationLog();
         operationLog.setCouponId(couponId);
@@ -1009,7 +1095,7 @@ public class OrderServiceImpl implements OrderService {
         meta.put("carTypeName", carType == null || !StringUtils.hasText(carType.getName()) ? serviceTypeLabel(order.getServiceType()) : carType.getName());
         meta.put("distanceKm", distanceKm.toPlainString());
         meta.put("durationMin", durationMin.toPlainString());
-        meta.put("payChannel", paymentRecord == null || !StringUtils.hasText(paymentRecord.getPayChannel()) ? "模拟支付" : paymentRecord.getPayChannel());
+        meta.put("payChannel", paymentRecord == null || !StringUtils.hasText(paymentRecord.getPayChannel()) ? "在线支付" : paymentRecord.getPayChannel());
         meta.put("currencyCode", firstNonBlank(order.getCurrencyCode(), "CNY"));
         meta.put("itemName", serviceTypeLabel(order.getServiceType()) + "出行服务费");
         meta.put("itemUnit", "次");
@@ -1094,6 +1180,16 @@ public class OrderServiceImpl implements OrderService {
             }
         }
         return "";
+    }
+
+    private void putIfBlank(Map<String, Object> row, String key, Object value) {
+        if (row == null || !StringUtils.hasText(key) || value == null) {
+            return;
+        }
+        Object current = row.get(key);
+        if (current == null || !StringUtils.hasText(String.valueOf(current))) {
+            row.put(key, value);
+        }
     }
 
     private String buildDispatchRemark(String dispatchMode, String originalRemark) {

@@ -1,10 +1,23 @@
-<view class="page-shell safe-bottom">
+<view class="page-shell intl-shell safe-bottom">
   <view class="page-content list-gap">
     <view class="intl-hero">
-      <view>
-        <view class="intl-kicker">Global Mobility</view>
-        <view class="intl-title">{{pageTitle}}</view>
-        <view class="intl-subtitle">{{pageSubtitle}}</view>
+      <view class="intl-hero-head">
+        <view class="intl-hero-copy">
+          <view class="intl-kicker">Global Travel Desk</view>
+          <view class="intl-title">{{pageTitle}}</view>
+          <view class="intl-subtitle">{{pageSubtitle}}</view>
+        </view>
+        <view class="intl-globe">
+          <view class="intl-globe-ring"></view>
+          <view class="intl-globe-line intl-globe-line--one"></view>
+          <view class="intl-globe-line intl-globe-line--two"></view>
+        </view>
+      </view>
+      <view class="intl-airline-strip">
+        <view wx:for="{{routeCodes}}" wx:key="code">
+          <text>{{item.code}}</text>
+          <view>{{item.label}}</view>
+        </view>
       </view>
       <view class="intl-exchange">{{exchangeRate}}</view>
       <view class="intl-metrics">
@@ -17,8 +30,12 @@
 
     <view class="list-gap">
       <view class="intl-card tap-scale" wx:for="{{options}}" wx:key="id" data-id="{{item.id}}" bindtap="openOrder">
-        <view class="row-between">
-          <view>
+        <view class="intl-card-head">
+          <view class="intl-route-badge">{{item.routeCode}}</view>
+          <view class="intl-country">{{item.countryText}}</view>
+        </view>
+        <view class="row-between intl-card-title-row">
+          <view class="intl-card-copy">
             <view class="intl-route-title">{{item.titleZh}}</view>
             <view class="intl-route-en">{{item.titleEn}}</view>
           </view>
@@ -27,7 +44,11 @@
             <view>{{item.basePrice}}</view>
           </view>
         </view>
-        <view class="intl-route-line">{{item.startName}} → {{item.endName}}</view>
+        <view class="intl-route-line">
+          <text>{{item.startName}}</text>
+          <view>→</view>
+          <text>{{item.endName}}</text>
+        </view>
         <view class="intl-meta-row">
           <view>{{item.badge}}</view>
           <view>{{item.vehicle}}</view>
@@ -36,6 +57,7 @@
         <view class="intl-service-row">
           <text wx:for="{{item.inclusions}}" wx:key="*this">{{item}}</text>
         </view>
+        <view class="intl-doc-row">{{item.documents[0]}} · {{item.documents[1]}}</view>
         <view class="intl-notice">{{item.notice}}</view>
       </view>
     </view>

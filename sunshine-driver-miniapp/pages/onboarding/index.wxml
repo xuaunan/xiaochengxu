@@ -1,33 +1,49 @@
 <view class="onboarding-page safe-bottom">
   <view class="driver-landing" wx:if="{{!loggedIn}}">
-    <view class="driver-hero">
-      <view class="brand-block">
-        <view class="brand-shield"></view>
-        <view>
-          <view class="brand-title">阳光出行</view>
-          <view class="brand-subtitle">让 出 行 更 美 好</view>
+    <view class="auth-hero page-enter">
+      <view class="auth-copy">
+        <view class="auth-kicker">司机车辆认证</view>
+        <view class="auth-title">登录后继续管理车辆资料</view>
+        <view class="auth-desc">提交车辆证照并通过审核后，听单权限会自动恢复。</view>
+        <view class="auth-flow">
+          <view class="auth-flow__item auth-flow__item--active">
+            <view class="auth-flow__dot">1</view>
+            <text>登录</text>
+          </view>
+          <view class="auth-flow__line"></view>
+          <view class="auth-flow__item">
+            <view class="auth-flow__dot">2</view>
+            <text>传证照</text>
+          </view>
+          <view class="auth-flow__line"></view>
+          <view class="auth-flow__item">
+            <view class="auth-flow__dot">3</view>
+            <text>等审核</text>
+          </view>
         </view>
       </view>
-      <view class="hero-city">
-        <view class="hero-building hero-building--1"></view>
-        <view class="hero-building hero-building--2"></view>
-        <view class="hero-building hero-building--3"></view>
-        <view class="hero-building hero-building--4"></view>
-      </view>
-      <view class="hero-sun"></view>
-      <view class="hero-road"></view>
-      <view class="hero-car">
-        <view class="hero-car__body"></view>
-        <view class="hero-car__top"></view>
-        <view class="hero-car__sign">阳光出行</view>
-        <view class="hero-car__wheel hero-car__wheel--left"></view>
-        <view class="hero-car__wheel hero-car__wheel--right"></view>
+      <view class="auth-vehicle">
+        <view class="auth-vehicle__head">
+          <view class="auth-vehicle__mark"></view>
+          <view class="auth-vehicle__lines">
+            <view></view>
+            <view></view>
+          </view>
+        </view>
+        <view class="auth-vehicle__plate">沪A · 待认证</view>
+        <view class="auth-vehicle__status">接单待解锁</view>
       </view>
     </view>
 
     <view class="login-card page-enter">
-      <view class="login-title">{{mode === 'register' ? '司机账号注册' : '司机账号登录'}}</view>
-      <view class="login-desc">司机账号注册成功后即可登录小程序，添加车辆并提交审核。</view>
+      <view class="login-head">
+        <view>
+          <view class="login-eyebrow">司机账号</view>
+          <view class="login-title">{{mode === 'register' ? '注册司机账号' : '登录司机账号'}}</view>
+        </view>
+        <view class="login-badge">车辆入口</view>
+      </view>
+      <view class="login-desc">使用司机手机号登录，继续查看车辆审核状态或补充资料。</view>
 
       <view class="mode-switch">
         <view class="mode-item {{mode === 'login' ? 'mode-item--active' : ''}}" data-mode="login" bindtap="chooseMode">登录</view>
@@ -65,6 +81,18 @@
         <view class="login-note__icon"></view>
         <text>登录后可管理车辆、接单状态与审核信息</text>
         <view class="login-note__line"></view>
+      </view>
+    </view>
+
+    <view class="driver-guide page-enter">
+      <view class="driver-guide__title">下一步</view>
+      <view class="driver-guide__row">
+        <view class="driver-guide__dot"></view>
+        <text>没有车辆资料时，登录后会直接进入车辆提交表单。</text>
+      </view>
+      <view class="driver-guide__row">
+        <view class="driver-guide__dot"></view>
+        <text>资料变更后需要重新审核，审核期间暂停接单。</text>
       </view>
     </view>
   </view>
@@ -131,7 +159,7 @@
       <view class="vehicle-form-head">
         <view class="vehicle-form-title">{{vehicleView.hasVehicle ? '更换车辆信息' : '添加车辆信息'}}</view>
         <view class="vehicle-form-desc">
-          {{vehicleView.hasVehicle ? '提交更换后，车辆审核状态会回到待审核，接单权限临时锁定。' : '提交后系统会同步到后台司机管理列表，等待管理员审核。'}}
+          {{vehicleView.hasVehicle ? '提交更换后，车辆审核状态会回到待审核，接单权限临时锁定。' : '提交后进入车辆审核流程，等待管理员审核。'}}
         </view>
       </view>
 

@@ -48,7 +48,7 @@ Page({
       })
     } catch (error) {
       wx.showToast({
-        title: '消息同步失败，请确认本地后端已启动',
+        title: '消息刷新失败，请稍后重试',
         icon: 'none'
       })
     }

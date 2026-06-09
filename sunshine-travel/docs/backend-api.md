@@ -51,7 +51,7 @@
 | `/orders/{orderId}/pickup` | POST | DRIVER | 乘客上车，行程开始 |
 | `/orders/{orderId}/finish` | POST | DRIVER | 完成行程 |
 | `/orders/{orderId}/cancel` | POST | USER/DRIVER/ADMIN | 取消订单 |
-| `/orders/mock-pay` | POST | USER/ADMIN | 模拟支付 |
+| `/orders/mock-pay` | POST | USER/ADMIN | 支付确认 |
 | `/orders/evaluation` | POST | USER | 提交评价 |
 | `/orders/complaint` | POST | USER/ADMIN | 提交投诉 |
 | `/orders/{orderId}/track/report` | POST | USER/DRIVER | 上报轨迹点 |

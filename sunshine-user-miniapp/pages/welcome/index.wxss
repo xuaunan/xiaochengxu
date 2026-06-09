@@ -372,7 +372,7 @@ page {
   color: #ffffff;
   background: #ff7a00;
   font-size: 17rpx;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .welcome-content {
@@ -388,8 +388,8 @@ page {
 
 .brand-title {
   color: #333238;
-  font-size: 42rpx;
-  font-weight: 900;
+  font-size: 38rpx;
+  font-weight: 600;
   line-height: 1.08;
   letter-spacing: 1rpx;
 }
@@ -398,67 +398,72 @@ page {
   margin-top: 12rpx;
   color: #7a7170;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .gift-pill {
   display: inline-flex;
   align-items: center;
   gap: 14rpx;
-  height: 58rpx;
-  margin-top: 64rpx;
-  padding: 0 28rpx 0 22rpx;
-  border-radius: 20rpx;
+  height: 50rpx;
+  margin-top: 54rpx;
+  padding: 0 22rpx 0 18rpx;
+  border-radius: 16rpx;
   color: #ff6f00;
   background: rgba(255, 214, 170, 0.72);
-  font-size: 24rpx;
-  font-weight: 800;
+  font-size: 21rpx;
+  font-weight: 500;
 }
 
 .gift-icon {
   position: relative;
   width: 34rpx;
   height: 32rpx;
+  box-sizing: border-box;
 }
 
 .gift-icon::before {
   content: "";
   position: absolute;
-  left: 2rpx;
+  left: 50%;
   top: 11rpx;
   width: 30rpx;
   height: 20rpx;
   border-radius: 4rpx;
   background: currentColor;
+  transform: translateX(-50%);
 }
 
 .gift-icon::after {
   content: "";
   position: absolute;
-  left: 15rpx;
+  left: 50%;
   top: 6rpx;
-  width: 4rpx;
+  width: 3rpx;
   height: 25rpx;
   border-radius: 999rpx;
   background: #ffffff;
+  transform: translateX(-50%);
 }
 
 .gift-icon__bow {
   position: absolute;
-  left: 5rpx;
+  left: 50%;
   top: 0;
-  width: 24rpx;
+  width: 26rpx;
   height: 14rpx;
+  transform: translateX(-50%);
 }
 
 .gift-icon__bow::before,
 .gift-icon__bow::after {
   content: "";
   position: absolute;
-  width: 13rpx;
-  height: 13rpx;
+  width: 12rpx;
+  height: 12rpx;
+  box-sizing: border-box;
   border-radius: 50% 50% 50% 0;
-  border: 4rpx solid currentColor;
+  border: 3rpx solid currentColor;
 }
 
 .gift-icon__bow::before {
@@ -472,34 +477,34 @@ page {
 }
 
 .hero-copy {
-  margin-top: 44rpx;
+  margin-top: 34rpx;
 }
 
 .hero-title {
   color: #3b220c;
-  font-size: 62rpx;
-  font-weight: 900;
+  font-size: 56rpx;
+  font-weight: 600;
   line-height: 1.12;
   letter-spacing: 1rpx;
 }
 
 .hero-desc {
-  margin-top: 24rpx;
+  margin-top: 18rpx;
   color: #716d73;
-  font-size: 27rpx;
+  font-size: 24rpx;
   line-height: 1.45;
 }
 
 .coupon-card {
   position: relative;
   width: 392rpx;
-  min-height: 276rpx;
-  margin-top: 118rpx;
-  padding: 40rpx 44rpx 34rpx;
-  border-radius: 32rpx;
+  min-height: 238rpx;
+  margin-top: 104rpx;
+  padding: 32rpx 36rpx 28rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.86);
   border: 2rpx solid rgba(255, 255, 255, 0.78);
-  box-shadow: 0 22rpx 44rpx rgba(153, 86, 25, 0.12);
+  box-shadow: 0 16rpx 34rpx rgba(153, 86, 25, 0.1);
   backdrop-filter: blur(10rpx);
 }
 
@@ -519,32 +524,32 @@ page {
   display: flex;
   align-items: baseline;
   color: #ff6f00;
-  font-weight: 900;
+  font-weight: 600;
   line-height: 1;
 }
 
 .coupon-amount text:first-child {
-  font-size: 104rpx;
+  font-size: 88rpx;
   letter-spacing: 1rpx;
 }
 
 .coupon-unit {
   margin-left: 14rpx;
-  font-size: 32rpx;
+  font-size: 28rpx;
 }
 
 .coupon-title {
-  margin-top: 24rpx;
+  margin-top: 18rpx;
   color: #191715;
-  font-size: 34rpx;
-  font-weight: 900;
+  font-size: 29rpx;
+  font-weight: 600;
   line-height: 1.2;
 }
 
 .coupon-desc {
-  margin-top: 20rpx;
+  margin-top: 14rpx;
   color: #5f5960;
-  font-size: 24rpx;
+  font-size: 21rpx;
   line-height: 1.45;
 }
 
@@ -573,30 +578,31 @@ page {
   align-items: center;
   justify-content: center;
   font-size: 52rpx;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .feature-card {
-  margin-top: 64rpx;
-  padding: 28rpx 34rpx;
-  border-radius: 30rpx;
+  margin-top: 54rpx;
+  padding: 22rpx 28rpx;
+  border-radius: 22rpx;
   background: rgba(255, 255, 255, 0.9);
   border: 1rpx solid rgba(255, 255, 255, 0.72);
   box-shadow: 0 18rpx 46rpx rgba(135, 83, 39, 0.08);
 }
 
 .feature-row {
-  min-height: 142rpx;
+  min-height: 118rpx;
   display: flex;
   align-items: center;
-  gap: 26rpx;
+  gap: 20rpx;
 }
 
 .feature-icon {
   position: relative;
-  width: 88rpx;
-  height: 88rpx;
+  width: 70rpx;
+  height: 70rpx;
   flex-shrink: 0;
+  box-sizing: border-box;
   border-radius: 50%;
   color: #ff6f00;
   background:
@@ -607,78 +613,82 @@ page {
 .feature-icon--pin::before {
   content: "";
   position: absolute;
-  left: 28rpx;
-  top: 18rpx;
-  width: 32rpx;
-  height: 42rpx;
+  left: 50%;
+  top: 50%;
+  width: 30rpx;
+  height: 40rpx;
   border-radius: 50% 50% 50% 0;
   background: currentColor;
-  transform: rotate(-45deg);
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .feature-icon--pin::after {
   content: "";
   position: absolute;
-  left: 38rpx;
-  top: 28rpx;
+  left: 50%;
+  top: 30rpx;
   width: 12rpx;
   height: 12rpx;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 32rpx 0 -2rpx currentColor;
+  transform: translateX(-50%);
 }
 
 .feature-icon--wallet::before {
   content: "";
   position: absolute;
-  left: 24rpx;
-  top: 30rpx;
+  left: 50%;
+  top: 50%;
   width: 42rpx;
   height: 30rpx;
   border-radius: 8rpx;
   background: currentColor;
+  transform: translate(-50%, -50%);
 }
 
 .feature-icon--wallet::after {
   content: "";
   position: absolute;
-  right: 20rpx;
-  top: 40rpx;
+  left: 43rpx;
+  top: 50%;
   width: 14rpx;
   height: 10rpx;
   border-radius: 999rpx;
   background: #ffffff;
+  transform: translateY(-50%);
 }
 
 .feature-icon--shield::before {
   content: "";
   position: absolute;
-  left: 24rpx;
-  top: 18rpx;
+  left: 50%;
+  top: 17rpx;
   width: 40rpx;
   height: 48rpx;
   border-radius: 18rpx 18rpx 24rpx 24rpx;
   background: currentColor;
+  transform: translateX(-50%);
 }
 
 .feature-icon--shield::after {
   content: "";
   position: absolute;
-  left: 37rpx;
+  left: 50%;
   top: 29rpx;
-  width: 12rpx;
-  height: 24rpx;
-  border-right: 7rpx solid #ffffff;
-  border-bottom: 7rpx solid #ffffff;
-  transform: rotate(42deg);
+  width: 11rpx;
+  height: 22rpx;
+  border-right: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  transform: translateX(-50%) rotate(42deg);
 }
 
 .feature-index {
   width: 52rpx;
   flex-shrink: 0;
   color: #ff6f00;
-  font-size: 29rpx;
-  font-weight: 900;
+  font-size: 25rpx;
+  font-weight: 600;
 }
 
 .feature-copy {
@@ -688,15 +698,15 @@ page {
 
 .feature-title {
   color: #16130f;
-  font-size: 31rpx;
-  font-weight: 900;
+  font-size: 26rpx;
+  font-weight: 600;
   line-height: 1.22;
 }
 
 .feature-desc {
-  margin-top: 16rpx;
+  margin-top: 10rpx;
   color: #6f6b74;
-  font-size: 24rpx;
+  font-size: 21rpx;
   line-height: 1.45;
 }
 
@@ -716,12 +726,12 @@ page {
 }
 
 .bottom-action {
-  margin-top: 40rpx;
+  margin-top: 32rpx;
 }
 
 .claim-button {
   width: 100%;
-  min-height: 96rpx;
+  min-height: 78rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -730,8 +740,8 @@ page {
   color: #ffffff;
   background: linear-gradient(135deg, #ffb450 0%, #ff7a00 52%, #ff6500 100%);
   box-shadow: 0 18rpx 34rpx rgba(255, 111, 0, 0.28);
-  font-size: 33rpx;
-  font-weight: 900;
+  font-size: 28rpx;
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: 1rpx;
 }
@@ -746,19 +756,20 @@ page {
 }
 
 .safe-note {
-  margin-top: 26rpx;
+  margin-top: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12rpx;
   color: #a49b96;
-  font-size: 24rpx;
+  font-size: 21rpx;
 }
 
 .safe-note__icon {
   position: relative;
   width: 26rpx;
   height: 30rpx;
+  box-sizing: border-box;
   border-radius: 10rpx 10rpx 14rpx 14rpx;
   border: 3rpx solid currentColor;
 }
@@ -766,11 +777,11 @@ page {
 .safe-note__icon::after {
   content: "";
   position: absolute;
-  left: 8rpx;
+  left: 50%;
   top: 5rpx;
   width: 7rpx;
   height: 14rpx;
-  border-right: 4rpx solid currentColor;
-  border-bottom: 4rpx solid currentColor;
-  transform: rotate(42deg);
+  border-right: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
+  transform: translateX(-50%) rotate(42deg);
 }

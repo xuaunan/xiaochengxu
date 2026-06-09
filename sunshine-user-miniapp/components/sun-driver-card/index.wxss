@@ -95,16 +95,20 @@
   position: absolute;
   top: 18rpx;
   right: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 108rpx;
   height: 44rpx;
   padding: 0 14rpx;
   border-radius: 999rpx;
   font-size: 21rpx;
   font-weight: 700;
-  line-height: 44rpx;
+  line-height: 1;
   color: #ff7a00;
   background: #fff1df;
   box-shadow: 0 8rpx 18rpx rgba(255, 122, 0, 0.1);
+  box-sizing: border-box;
 }
 
 .driver-button::after {

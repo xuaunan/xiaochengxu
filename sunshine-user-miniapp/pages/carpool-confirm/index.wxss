@@ -7,27 +7,27 @@
 .confirm-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding-top: 20rpx;
-  padding-left: 28rpx;
-  padding-right: 28rpx;
+  gap: 18rpx;
+  padding-top: 16rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
 }
 
 .confirm-hero,
 .confirm-panel {
-  border-radius: 28rpx;
+  border-radius: 22rpx;
   background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
+  box-shadow: 0 12rpx 28rpx rgba(37, 43, 58, 0.045);
 }
 
 .confirm-hero {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  min-height: 156rpx;
-  padding: 30rpx 28rpx;
+  gap: 20rpx;
+  min-height: 128rpx;
+  padding: 24rpx;
   overflow: hidden;
   background:
     linear-gradient(105deg, rgba(255, 245, 233, 0.98) 0%, rgba(255, 255, 255, 0.92) 58%, rgba(255, 231, 194, 0.74) 100%);
@@ -49,9 +49,10 @@
 .confirm-hero__icon {
   position: relative;
   z-index: 1;
-  width: 86rpx;
-  height: 86rpx;
-  border-radius: 24rpx;
+  width: 66rpx;
+  height: 66rpx;
+  box-sizing: border-box;
+  border-radius: 18rpx;
   flex-shrink: 0;
   background: linear-gradient(180deg, #ff9e36, #ff6b00);
   box-shadow: 0 18rpx 30rpx rgba(255, 122, 0, 0.2);
@@ -65,22 +66,23 @@
 }
 
 .confirm-hero__icon::before {
-  left: 22rpx;
-  top: 20rpx;
-  width: 42rpx;
-  height: 42rpx;
+  left: 50%;
+  top: 50%;
+  width: 38rpx;
+  height: 38rpx;
   border-radius: 50%;
-  border: 6rpx solid #ffffff;
+  border: 4rpx solid #ffffff;
+  transform: translate(-50%, -50%);
 }
 
 .confirm-hero__icon::after {
-  left: 38rpx;
-  top: 30rpx;
-  width: 8rpx;
-  height: 24rpx;
+  left: 50%;
+  top: 50%;
+  width: 5rpx;
+  height: 22rpx;
   border-radius: 999rpx;
   background: #ffffff;
-  transform: rotate(45deg);
+  transform: translate(-50%, -28%) rotate(45deg);
   transform-origin: bottom center;
 }
 
@@ -92,15 +94,15 @@
 }
 
 .confirm-hero__title {
-  font-size: 42rpx;
-  font-weight: 900;
+  font-size: 31rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.18;
 }
 
 .confirm-hero__desc {
-  margin-top: 10rpx;
-  font-size: 24rpx;
+  margin-top: 8rpx;
+  font-size: 21rpx;
   color: #737c90;
   line-height: 1.35;
   white-space: nowrap;
@@ -112,21 +114,21 @@
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  padding: 12rpx 20rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   background: rgba(255, 122, 0, 0.1);
   color: #ff6b00;
-  font-size: 24rpx;
-  font-weight: 900;
+  font-size: 21rpx;
+  font-weight: 550;
 }
 
 .confirm-panel {
-  padding: 24rpx;
+  padding: 20rpx;
 }
 
 .route-card {
   position: relative;
-  border-radius: 26rpx;
+  border-radius: 20rpx;
   border: 1rpx solid rgba(255, 122, 0, 0.12);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.72);
@@ -135,9 +137,9 @@
 .route-point {
   display: flex;
   align-items: center;
-  gap: 22rpx;
-  min-height: 116rpx;
-  padding: 24rpx 28rpx;
+  gap: 24rpx;
+  min-height: 92rpx;
+  padding: 18rpx 22rpx;
   background: linear-gradient(180deg, #fafbfe 0%, #ffffff 100%);
 }
 
@@ -153,8 +155,8 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 70rpx;
-  height: 70rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: #ffffff;
@@ -165,11 +167,12 @@
 .route-swap::after {
   content: "";
   position: absolute;
-  left: 31rpx;
-  width: 7rpx;
+  left: 50%;
+  width: 4rpx;
   height: 28rpx;
   border-radius: 999rpx;
   background: #ff6b00;
+  transform: translateX(-50%);
 }
 
 .route-swap::before {
@@ -203,15 +206,15 @@
 }
 
 .route-label {
-  font-size: 24rpx;
+  font-size: 20rpx;
   color: #7d8799;
   line-height: 1.2;
 }
 
 .route-value {
-  margin-top: 12rpx;
-  font-size: 34rpx;
-  font-weight: 900;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  font-weight: 550;
   color: #121826;
   line-height: 1.22;
   overflow: hidden;
@@ -222,33 +225,34 @@
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16rpx;
-  margin-top: 22rpx;
+  gap: 12rpx;
+  margin-top: 18rpx;
 }
 
 .summary-item {
   position: relative;
   min-width: 0;
-  min-height: 140rpx;
-  padding: 22rpx 18rpx 18rpx;
-  border-radius: 20rpx;
+  min-height: 112rpx;
+  padding: 16rpx 14rpx;
+  border-radius: 18rpx;
   border: 1rpx solid rgba(255, 122, 0, 0.12);
   background: linear-gradient(135deg, rgba(255, 249, 241, 0.96), rgba(255, 255, 255, 0.98));
 }
 
 .summary-icon {
   position: relative;
-  width: 34rpx;
-  height: 34rpx;
-  margin-bottom: 12rpx;
+  width: 30rpx;
+  height: 30rpx;
+  margin-bottom: 10rpx;
+  box-sizing: border-box;
 }
 
 .summary-icon::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 1rpx;
   border-radius: 8rpx;
-  border: 4rpx solid #ff7a00;
+  border: 3rpx solid #ff7a00;
   box-sizing: border-box;
 }
 
@@ -258,38 +262,39 @@
 
 .summary-item--people .summary-icon::before {
   border-radius: 50%;
-  width: 15rpx;
-  height: 15rpx;
-  left: 9rpx;
-  top: 1rpx;
+  width: 14rpx;
+  height: 14rpx;
+  left: 50%;
+  top: 2rpx;
   inset: auto;
   background: #ff7a00;
+  transform: translateX(-50%);
 }
 
 .summary-item--people .summary-icon::after {
   content: "";
   position: absolute;
-  left: 2rpx;
+  left: 50%;
   bottom: 2rpx;
-  width: 28rpx;
-  height: 17rpx;
+  width: 26rpx;
+  height: 16rpx;
   border-radius: 18rpx 18rpx 8rpx 8rpx;
-  border: 4rpx solid #ff7a00;
-  border-top-width: 6rpx;
+  border: 3rpx solid #ff7a00;
   box-sizing: border-box;
+  transform: translateX(-50%);
 }
 
 .summary-item__label {
-  font-size: 22rpx;
+  font-size: 19rpx;
   color: #7d8799;
   line-height: 1.2;
 }
 
 .summary-item__value {
-  margin-top: 10rpx;
-  font-size: 27rpx;
+  margin-top: 8rpx;
+  font-size: 23rpx;
   line-height: 1.25;
-  font-weight: 900;
+  font-weight: 550;
   color: #111827;
   white-space: nowrap;
   overflow: hidden;
@@ -299,17 +304,17 @@
 .preference-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 14rpx;
-  margin-top: 20rpx;
+  gap: 10rpx;
+  margin-top: 16rpx;
 }
 
 .preference-chip {
-  padding: 12rpx 20rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   background: rgba(255, 122, 0, 0.08);
   color: #ff6b00;
-  font-size: 24rpx;
-  font-weight: 800;
+  font-size: 21rpx;
+  font-weight: 500;
 }
 
 .section-row {
@@ -321,8 +326,8 @@
 .compact-title {
   position: relative;
   padding-left: 20rpx;
-  font-size: 34rpx;
-  font-weight: 900;
+  font-size: 27rpx;
+  font-weight: 550;
   color: #111827;
 }
 
@@ -330,35 +335,35 @@
   content: "";
   position: absolute;
   left: 0;
-  top: 9rpx;
+  top: 6rpx;
   width: 8rpx;
-  height: 32rpx;
+  height: 27rpx;
   border-radius: 999rpx;
   background: linear-gradient(180deg, #ff8d1a, #ff6b00);
 }
 
 .compact-subtitle {
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 21rpx;
   color: #7b8497;
 }
 
 .coupon-entry {
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  margin-top: 22rpx;
-  padding: 20rpx 22rpx;
-  border-radius: 22rpx;
+  gap: 20rpx;
+  margin-top: 18rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 18rpx;
   background: linear-gradient(180deg, #fafbfe, #ffffff);
   border: 1rpx solid rgba(255, 122, 0, 0.12);
 }
 
 .coupon-entry__icon {
   position: relative;
-  width: 46rpx;
-  height: 38rpx;
-  border-radius: 12rpx;
+  width: 40rpx;
+  height: 34rpx;
+  border-radius: 10rpx;
   background: linear-gradient(180deg, #ff9c2f, #ff6b00);
   flex-shrink: 0;
 }
@@ -388,14 +393,14 @@
 }
 
 .coupon-entry__label {
-  font-size: 26rpx;
-  font-weight: 900;
+  font-size: 23rpx;
+  font-weight: 550;
   color: #111827;
 }
 
 .coupon-entry__summary {
   margin-top: 6rpx;
-  font-size: 23rpx;
+  font-size: 20rpx;
   color: #8b94a7;
   white-space: nowrap;
   overflow: hidden;
@@ -405,46 +410,46 @@
 .coupon-entry__summary--active,
 .coupon-entry__action {
   color: #ff6b00;
-  font-weight: 800;
+  font-weight: 550;
 }
 
 .coupon-entry__action {
   flex-shrink: 0;
-  padding: 12rpx 18rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   background: rgba(255, 122, 0, 0.08);
-  font-size: 23rpx;
+  font-size: 20rpx;
 }
 
 .price-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220rpx;
-  gap: 16rpx;
-  margin-top: 20rpx;
-  padding: 16rpx;
-  border-radius: 24rpx;
+  grid-template-columns: minmax(0, 1fr) 190rpx;
+  gap: 12rpx;
+  margin-top: 16rpx;
+  padding: 14rpx;
+  border-radius: 18rpx;
   background: linear-gradient(135deg, rgba(255, 249, 241, 0.96), rgba(255, 255, 255, 0.98));
   border: 1rpx solid rgba(255, 122, 0, 0.1);
 }
 
 .price-summary__main {
   min-width: 0;
-  padding: 22rpx 24rpx;
-  border-radius: 20rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
   background: linear-gradient(135deg, #ff7a00, #ff9c2f);
-  box-shadow: 0 16rpx 30rpx rgba(255, 122, 0, 0.18);
+  box-shadow: 0 12rpx 24rpx rgba(255, 122, 0, 0.16);
 }
 
 .price-summary__label {
-  font-size: 22rpx;
+  font-size: 19rpx;
   color: rgba(255, 255, 255, 0.82);
 }
 
 .price-summary__value {
-  margin-top: 10rpx;
-  font-size: 44rpx;
+  margin-top: 8rpx;
+  font-size: 34rpx;
   line-height: 1.1;
-  font-weight: 900;
+  font-weight: 550;
   color: #ffffff;
   word-break: break-all;
 }
@@ -453,8 +458,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 14rpx;
-  padding: 10rpx 4rpx;
+  gap: 10rpx;
+  padding: 6rpx 2rpx;
 }
 
 .price-summary__line {
@@ -462,14 +467,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
-  font-size: 22rpx;
+  font-size: 19rpx;
   color: #687386;
 }
 
 .price-summary__original,
 .price-summary__discount {
-  font-size: 26rpx;
-  font-weight: 900;
+  font-size: 22rpx;
+  font-weight: 550;
   white-space: nowrap;
 }
 
@@ -484,24 +489,28 @@
 
 .confirm-actions {
   display: grid;
-  grid-template-columns: 220rpx minmax(0, 1fr);
-  gap: 18rpx;
-  margin-top: 24rpx;
+  grid-template-columns: 184rpx minmax(0, 1fr);
+  gap: 14rpx;
+  margin-top: 18rpx;
 }
 
 .publish-button,
 .match-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  padding: 0 20rpx;
-  border-radius: 20rpx;
-  font-size: 29rpx;
-  font-weight: 900;
+  height: 68rpx;
+  padding: 0 16rpx;
+  border-radius: 18rpx;
+  font-size: 23rpx;
+  font-weight: 550;
+  line-height: 1.2;
+  box-sizing: border-box;
 }
 
 .match-button {
-  box-shadow: 0 18rpx 34rpx rgba(255, 107, 0, 0.22);
+  box-shadow: 0 12rpx 26rpx rgba(255, 107, 0, 0.18);
 }
 
 .coupon-picker-mask {
@@ -523,27 +532,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 28rpx) 28rpx 20rpx;
+  padding: calc(env(safe-area-inset-top) + 22rpx) 24rpx 16rpx;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 8rpx 24rpx rgba(31, 41, 55, 0.04);
 }
 
 .coupon-picker__title {
-  font-size: 36rpx;
-  font-weight: 900;
+  font-size: 28rpx;
+  font-weight: 550;
   color: #111827;
 }
 
 .coupon-picker__subtitle {
   margin-top: 8rpx;
-  font-size: 23rpx;
+  font-size: 20rpx;
   color: #8b94a7;
 }
 
 .coupon-picker__close {
   position: relative;
-  width: 68rpx;
-  height: 68rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 10rpx 24rpx rgba(31, 41, 55, 0.08);
@@ -572,18 +581,18 @@
 .coupon-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18rpx;
-  padding: 20rpx 28rpx 0;
+  gap: 12rpx;
+  padding: 16rpx 24rpx 0;
 }
 
 .coupon-tab {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 72rpx;
+  height: 56rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 900;
+  font-size: 22rpx;
+  font-weight: 500;
   color: #6f7787;
   background: #ffffff;
   border: 1rpx solid rgba(17, 24, 39, 0.06);
@@ -599,23 +608,23 @@
 .coupon-picker__content {
   flex: 1;
   min-height: 0;
-  padding: 24rpx 28rpx 0;
+  padding: 18rpx 24rpx 0;
   box-sizing: border-box;
 }
 
 .coupon-list {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding-bottom: 24rpx;
+  gap: 14rpx;
+  padding-bottom: 20rpx;
 }
 
 .coupon-card {
   display: flex;
   align-items: stretch;
-  gap: 18rpx;
-  padding: 22rpx;
-  border-radius: 26rpx;
+  gap: 16rpx;
+  padding: 18rpx;
+  border-radius: 20rpx;
   background: #ffffff;
   border: 2rpx solid rgba(255, 122, 0, 0.08);
   box-shadow: 0 14rpx 30rpx rgba(31, 36, 50, 0.05);
@@ -634,9 +643,9 @@
 }
 
 .coupon-card__value {
-  width: 188rpx;
-  padding: 18rpx 16rpx;
-  border-radius: 22rpx;
+  width: 154rpx;
+  padding: 14rpx;
+  border-radius: 18rpx;
   background: linear-gradient(180deg, #fff4e6 0%, #fff0de 100%);
   display: flex;
   flex-direction: column;
@@ -648,15 +657,15 @@
 }
 
 .coupon-card__amount {
-  font-size: 40rpx;
-  font-weight: 900;
+  font-size: 31rpx;
+  font-weight: 550;
   color: #ff6b00;
   line-height: 1.1;
 }
 
 .coupon-card__caption {
-  margin-top: 12rpx;
-  font-size: 22rpx;
+  margin-top: 8rpx;
+  font-size: 19rpx;
   color: #8b94a7;
 }
 
@@ -666,16 +675,16 @@
 }
 
 .coupon-card__name {
-  font-size: 30rpx;
-  font-weight: 900;
+  font-size: 24rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.4;
 }
 
 .coupon-card__rule,
 .coupon-card__valid {
-  margin-top: 10rpx;
-  font-size: 24rpx;
+  margin-top: 8rpx;
+  font-size: 21rpx;
   line-height: 1.55;
   color: #7b8497;
 }
@@ -705,32 +714,32 @@
   align-self: center;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 800;
+  font-size: 19rpx;
+  font-weight: 500;
   color: #8b94a7;
   background: #eef1f7;
 }
 
 .coupon-empty {
   margin-top: 12rpx;
-  padding: 46rpx 24rpx;
-  border-radius: 26rpx;
+  padding: 34rpx 22rpx;
+  border-radius: 20rpx;
   background: #ffffff;
   text-align: center;
-  font-size: 26rpx;
+  font-size: 22rpx;
   color: #8b94a7;
 }
 
 .coupon-picker__footer {
-  padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 24rpx);
+  padding: 14rpx 24rpx calc(env(safe-area-inset-bottom) + 20rpx);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 -12rpx 28rpx rgba(31, 36, 50, 0.06);
 }
 
 .coupon-picker__clear {
   width: 100%;
-  min-height: 96rpx;
+  min-height: 72rpx;
   border-radius: 999rpx;
-  font-size: 30rpx;
-  font-weight: 900;
+  font-size: 24rpx;
+  font-weight: 550;
 }

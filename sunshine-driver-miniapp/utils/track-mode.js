@@ -6,13 +6,13 @@ const TRACK_MODE = {
 const TRACK_MODE_OPTIONS = [
   {
     value: TRACK_MODE.DEMO,
-    label: '演示',
-    desc: '司机接单后显示在上车点附近，并按模拟路线接驾。'
+    label: '智能路线',
+    desc: '司机接单后显示在上车点附近，并按规划路线接驾。'
   },
   {
     value: TRACK_MODE.REAL,
     label: '真实',
-    desc: '使用司机手机实际定位作为接驾位置并同步轨迹。'
+    desc: '使用司机手机实际定位作为接驾位置并更新轨迹。'
   }
 ]
 
@@ -23,7 +23,7 @@ function normalizeTrackMode(value) {
 function getTrackModeLabel(value) {
   const mode = normalizeTrackMode(value)
   const option = TRACK_MODE_OPTIONS.find((item) => item.value === mode)
-  return option ? option.label : '演示'
+  return option ? option.label : '智能路线'
 }
 
 function getTrackModeDesc(value) {

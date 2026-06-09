@@ -55,7 +55,7 @@ function buildInvoiceViewRows(detail = {}) {
       { label: '车型', value: detail.carTypeName || detail.serviceName || '--' },
       { label: '行程里程', value: detail.distanceText || '--' },
       { label: '行程时长', value: detail.durationText || '--' },
-      { label: '支付方式', value: detail.payChannel || '模拟支付' }
+      { label: '支付方式', value: detail.payChannel || '在线支付' }
     ],
     feeRows: [
       { label: '项目', value: detail.itemName || '出行服务费' },
@@ -79,9 +79,48 @@ function mapInvoiceView(invoice = {}) {
   }
 }
 
+function getWindowMetrics() {
+  if (wx.getWindowInfo) {
+    return wx.getWindowInfo()
+  }
+  return wx.getSystemInfoSync()
+}
+
+function buildInvoiceImageLayout(width, height) {
+  const imageWidth = Number(width)
+  const imageHeight = Number(height)
+  if (!imageWidth || !imageHeight) {
+    return {
+      invoiceImageStyle: '',
+      invoiceScrollStyle: ''
+    }
+  }
+
+  const windowInfo = getWindowMetrics()
+  const windowWidth = Number(windowInfo.windowWidth || 375)
+  const windowHeight = Number(windowInfo.windowHeight || 667)
+  const rpxToPx = windowWidth / 750
+  const horizontalInset = 80 * rpxToPx
+  const verticalInset = 36 * rpxToPx
+  const displayWidth = Math.max(1, windowWidth - horizontalInset)
+  const displayHeight = Math.ceil(displayWidth * imageHeight / imageWidth)
+  const maxScrollHeight = Math.floor(windowHeight * 0.62)
+  const minScrollHeight = Math.ceil(260 * rpxToPx)
+  const scrollHeight = Math.max(
+    minScrollHeight,
+    Math.min(maxScrollHeight, displayHeight + verticalInset)
+  )
+
+  return {
+    invoiceImageStyle: `height: ${displayHeight}px;`,
+    invoiceScrollStyle: `height: ${scrollHeight}px;`
+  }
+}
+
 Page({
   data: {
     activeTab: 'apply',
+    pendingInvoiceOrderId: '',
     list: [],
     applyList: [],
     issuedList: [],
@@ -90,7 +129,17 @@ Page({
     invoiceViewerVisible: false,
     invoiceImageLoading: false,
     invoiceImagePath: '',
+    invoiceImageStyle: '',
+    invoiceScrollStyle: '',
     viewerInvoice: null
+  },
+
+  onLoad(options = {}) {
+    const activeTab = options.tab === 'issued' ? 'issued' : 'apply'
+    this.setData({
+      activeTab,
+      pendingInvoiceOrderId: options.orderId || options.id || ''
+    })
   },
 
   async onShow() {
@@ -111,6 +160,7 @@ Page({
       selectedInvoiceId: this.data.selectedInvoiceId,
       selectedInvoice: this.data.selectedInvoice
     })
+    this.applyPendingInvoiceSelection(issuedList)
   },
 
   async refreshInvoices() {
@@ -126,7 +176,19 @@ Page({
     this.setData({
       activeTab,
       selectedInvoice: null,
-      selectedInvoiceId: ''
+      selectedInvoiceId: '',
+      pendingInvoiceOrderId: ''
+    })
+  },
+
+  applyPendingInvoiceSelection(issuedList = []) {
+    const orderId = `${this.data.pendingInvoiceOrderId || ''}`
+    if (!orderId || this.data.activeTab !== 'issued') return
+    const selectedInvoice = issuedList.find((item) => `${item.id || ''}` === orderId || `${item.orderNo || ''}` === orderId)
+    if (!selectedInvoice) return
+    this.setData({
+      selectedInvoiceId: `${selectedInvoice.id}`,
+      selectedInvoice
     })
   },
 
@@ -140,7 +202,9 @@ Page({
       viewerInvoice: selectedInvoice,
       invoiceViewerVisible: true,
       invoiceImageLoading: true,
-      invoiceImagePath: ''
+      invoiceImagePath: '',
+      invoiceImageStyle: '',
+      invoiceScrollStyle: ''
     })
     try {
       const invoiceImagePath = await downloadInvoiceImage(selectedInvoice.id)
@@ -160,8 +224,16 @@ Page({
   closeInvoiceViewer() {
     this.setData({
       invoiceViewerVisible: false,
-      invoiceImageLoading: false
+      invoiceImageLoading: false,
+      invoiceImagePath: '',
+      invoiceImageStyle: '',
+      invoiceScrollStyle: ''
     })
+  },
+
+  handleInvoiceImageLoad(e) {
+    const { width, height } = e.detail || {}
+    this.setData(buildInvoiceImageLayout(width, height))
   },
 
   previewInvoiceImage() {

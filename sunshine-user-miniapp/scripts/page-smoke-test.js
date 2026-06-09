@@ -378,7 +378,7 @@ function makeMyCarpool() {
 function buildHomeData(carTypes, couponCenter) {
   return {
     banners: [{ id: 'banner-1', title: '春季出行' }],
-    notices: [{ id: 'notice-1', title: '欢迎使用演示环境' }],
+    notices: [{ id: 'notice-1', title: '欢迎使用阳光出行' }],
     carTypes,
     couponCenter
   }
@@ -690,8 +690,12 @@ function buildWx(dataset) {
         }
       }
     },
-    navigateTo() {},
-    redirectTo() {},
+    navigateTo(options = {}) {
+      this.__lastNavigateTo = options
+    },
+    redirectTo(options = {}) {
+      this.__lastRedirectTo = options
+    },
     switchTab() {},
     reLaunch() {},
     navigateBack() {},
@@ -861,6 +865,45 @@ async function runPage(pagePath) {
   }
 }
 
+async function runPageWithOptions(pagePath, options = {}) {
+  registeredPage = null
+  const pageFile = path.join(projectRoot, `${pagePath}.js`)
+  delete require.cache[require.resolve(pageFile)]
+  require(pageFile)
+
+  if (!registeredPage) {
+    throw new Error('Page() was not registered')
+  }
+
+  const page = createPageInstance(registeredPage, pagePath)
+  activePages = [page]
+
+  if (typeof page.onLoad === 'function') {
+    await page.onLoad(options)
+  }
+  if (typeof page.onShow === 'function') {
+    await page.onShow()
+  }
+  return page
+}
+
+async function assertPaymentEligibility() {
+  const cancelledDetail = await runPageWithOptions('pages/order-detail/index', { id: 'ord-cancelled' })
+  if (cancelledDetail.data.showPayBar) {
+    throw new Error('Cancelled unpaid order should not show payment bar')
+  }
+
+  const activeDetail = await runPageWithOptions('pages/order-detail/index', { id: 'ord-intrip' })
+  if (activeDetail.data.showPayBar) {
+    throw new Error('Unfinished unpaid order should not show payment bar')
+  }
+
+  const paymentPage = await runPageWithOptions('pages/payment-confirm/index', { id: 'ord-intrip' })
+  if (paymentPage.data.canPay) {
+    throw new Error('Payment confirmation should reject unfinished unpaid order')
+  }
+}
+
 async function main() {
   const dataset = getDataset()
   const initialStore = createInitialStore(dataset)
@@ -906,6 +949,17 @@ async function main() {
       })
       console.log(`FAIL ${pagePath}: ${error.message}`)
     }
+  }
+
+  try {
+    await assertPaymentEligibility()
+    console.log('PASS payment eligibility guards')
+  } catch (error) {
+    failures.push({
+      pagePath: 'payment eligibility guards',
+      error
+    })
+    console.log(`FAIL payment eligibility guards: ${error.message}`)
   }
 
   if (failures.length) {

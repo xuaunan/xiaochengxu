@@ -39,6 +39,12 @@ public class DriverController {
         return ApiResponse.success(driverService.dashboard());
     }
 
+    @Operation(summary = "Driver withdraw records")
+    @GetMapping("/withdraws")
+    public ApiResponse<?> withdraws() {
+        return ApiResponse.success(driverService.withdraws());
+    }
+
     @Operation(summary = "Update driver profile")
     @PutMapping("/profile")
     public ApiResponse<?> updateProfile(@Valid @RequestBody DriverProfileUpdateRequest request) {

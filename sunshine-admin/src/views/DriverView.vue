@@ -394,7 +394,7 @@ async function approveVehicle(row) {
 }
 
 async function rejectVehicle(row) {
-  const result = await ElMessageBox.prompt('请输入驳回原因，提交后司机端会同步看到审核结果。', '驳回车辆审核', {
+  const result = await ElMessageBox.prompt('请输入驳回原因，提交后司机端会看到审核结果。', '驳回车辆审核', {
     confirmButtonText: '提交驳回',
     cancelButtonText: '取消',
     inputType: 'textarea',

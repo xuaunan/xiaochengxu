@@ -35,6 +35,30 @@ function hasMeaningfulValue(value) {
   return value !== undefined && value !== null && value !== ''
 }
 
+function firstText(...values) {
+  const matched = values.find((value) => `${value || ''}`.trim())
+  return matched === undefined ? '' : `${matched}`.trim()
+}
+
+function normalizeOrderStatusValue(value) {
+  const raw = `${value || ''}`.trim()
+  const upper = raw.toUpperCase()
+  if (ORDER_STAGE_MAP[upper] !== undefined || upper === ORDER_STATUS.CANCELLED) return upper
+  if (['completed', 'finished', 'waiting-pay', 'refunded'].includes(raw)) return ORDER_STATUS.FINISHED
+  if (raw === 'cancelled') return ORDER_STATUS.CANCELLED
+  if (raw === 'dispatching' || raw === 'waiting') return ORDER_STATUS.DISPATCHING
+  return raw
+}
+
+function normalizeOrderStatusFields(order = null) {
+  if (!order) return null
+  return {
+    ...order,
+    orderStatus: normalizeOrderStatusValue(order.orderStatus || order.order_status || order.rawStatus || order.status),
+    payStatus: order.payStatus || order.pay_status || PAY_STATUS.UNPAID
+  }
+}
+
 function getOrderStage(order = {}) {
   if (!order || !order.orderStatus) return -1
   if (order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID) {
@@ -148,14 +172,15 @@ function buildRuntimeOrderPatch(runtime = {}, currentOrder = {}) {
 }
 
 function reconcileLiveOrder(detailOrder, listOrder, cachedOrder, runtime) {
-  let effectiveOrder = detailOrder || listOrder || cachedOrder || null
+  let effectiveOrder = normalizeOrderStatusFields(detailOrder || listOrder || cachedOrder || null)
   if (!effectiveOrder) return null
 
   ;[listOrder, cachedOrder].forEach((candidate) => {
     if (!candidate) return
-    effectiveOrder = shouldPreferCandidate(effectiveOrder, candidate)
-      ? mergeOrderFields(effectiveOrder, candidate)
-      : mergeMissingOrderFields(effectiveOrder, candidate)
+    const normalizedCandidate = normalizeOrderStatusFields(candidate)
+    effectiveOrder = shouldPreferCandidate(effectiveOrder, normalizedCandidate)
+      ? mergeOrderFields(effectiveOrder, normalizedCandidate)
+      : mergeMissingOrderFields(effectiveOrder, normalizedCandidate)
   })
 
   const runtimePatch = buildRuntimeOrderPatch(runtime, effectiveOrder)
@@ -165,7 +190,7 @@ function reconcileLiveOrder(detailOrder, listOrder, cachedOrder, runtime) {
       : mergeMissingOrderFields(effectiveOrder, runtimePatch)
   }
 
-  return syncOrderToCache(effectiveOrder)
+  return syncOrderToCache(normalizeOrderStatusFields(effectiveOrder))
 }
 
 function getCarTypeMapFromStore() {
@@ -232,12 +257,18 @@ function getOrderPayableAmount(rawOrder = {}) {
   return Math.max(0, toNumber(rawOrder.payableAmount, getOrderOriginalAmount(rawOrder)))
 }
 
+function canPayOrder(rawOrder = {}) {
+  return rawOrder.orderStatus === ORDER_STATUS.FINISHED &&
+    rawOrder.payStatus === PAY_STATUS.UNPAID &&
+    getOrderPayableAmount(rawOrder) > 0
+}
+
 function hasPendingPayment(rawOrder = {}) {
-  return rawOrder.payStatus === PAY_STATUS.UNPAID && getOrderPayableAmount(rawOrder) > 0
+  return canPayOrder(rawOrder)
 }
 
 function canUseCouponForOrder(rawOrder = {}) {
-  return rawOrder.orderStatus === ORDER_STATUS.FINISHED && hasPendingPayment(rawOrder)
+  return canPayOrder(rawOrder)
 }
 
 function getAmountCaption(rawOrder = {}) {
@@ -351,6 +382,140 @@ function getProgressValue(rawOrder = {}) {
   return Math.min(100, Math.round((stage / 6) * 100))
 }
 
+function getTimelineSummary(steps = []) {
+  const current = (steps || []).find((item) => item.state === 'current')
+  return current || (steps || []).filter((item) => item.state !== 'upcoming').slice(-1)[0] || (steps || [])[0] || null
+}
+
+function clampProgress(value, fallback = 0) {
+  const numeric = Number(value)
+  const next = Number.isNaN(numeric) ? fallback : numeric
+  return Math.max(0, Math.min(100, Math.round(next)))
+}
+
+function formatRuntimeDistance(value, fallback = '--') {
+  const numeric = Number(value)
+  if (Number.isNaN(numeric) || numeric <= 0) return fallback
+  return `${Number(numeric.toFixed(1))} 公里`
+}
+
+function formatRuntimeMinutes(seconds, fallback = '--') {
+  const numeric = Number(seconds)
+  if (Number.isNaN(numeric) || numeric <= 0) return fallback
+  return `${Math.max(1, Math.round(numeric / 60))} 分钟`
+}
+
+function compactFacts(items = []) {
+  return items
+    .filter((item) => item && `${item.value || ''}`.trim())
+    .slice(0, 3)
+}
+
+function buildDriveStatusView(rawOrder = {}, runtime = {}, timelineSummary = {}) {
+  const runtimeText = firstText(runtime.displayText, runtime.stateText, runtime.phaseText, runtime.waitingText, runtime.trafficText)
+  const progress = clampProgress(runtime.percent, getProgressValue(rawOrder))
+  const remainingDistanceText = formatRuntimeDistance(runtime.remainDistanceKm, '')
+  const traveledDistanceText = formatRuntimeDistance(runtime.traveledDistanceKm, formatDistanceValue(rawOrder))
+  const elapsedText = formatRuntimeMinutes(runtime.elapsedSeconds, formatDurationValue(rawOrder))
+  const amountText = formatPrice(getOrderPayableAmount(rawOrder), rawOrder.currencyCode || 'CNY')
+
+  if (rawOrder.orderStatus === ORDER_STATUS.CANCELLED) {
+    return {
+      sectionTitle: '行程结果',
+      subtitle: '订单已取消',
+      description: firstText(rawOrder.cancelReason, '本单已取消，行程状态已同步。'),
+      badge: '已关闭',
+      visualType: 'cancelled',
+      visualTitle: '服务已停止',
+      visualHint: '不会继续派单或接驾',
+      progress: 0,
+      state: 'cancelled',
+      facts: compactFacts([
+        { label: '取消原因', value: rawOrder.cancelReason || '订单已关闭' },
+        { label: '支付状态', value: getPayStatusLabel(rawOrder.payStatus) },
+        { label: '订单费用', value: amountText }
+      ])
+    }
+  }
+
+  if (rawOrder.orderStatus === ORDER_STATUS.FINISHED) {
+    const unpaid = rawOrder.payStatus === PAY_STATUS.UNPAID
+    return {
+      sectionTitle: '行程结果',
+      subtitle: unpaid ? '行程已结束，待支付' : '行程已完成',
+      description: unpaid
+        ? '司机已完成行程，请完成本单支付。'
+        : '已到达目的地，订单状态已完成。',
+      badge: unpaid ? '待支付' : '已送达',
+      visualType: 'finished',
+      visualTitle: unpaid ? '费用待确认' : '本次行程完成',
+      visualHint: unpaid ? '支付后可申请发票或评价' : '可查看发票、评价与售后',
+      progress: 100,
+      state: unpaid ? 'paying' : 'finished',
+      facts: compactFacts([
+        { label: unpaid ? '待支付' : '实付金额', value: amountText, tone: 'strong' },
+        { label: '行驶里程', value: formatDistanceValue(rawOrder) },
+        { label: '行驶时长', value: formatDurationValue(rawOrder) }
+      ])
+    }
+  }
+
+  if ([ORDER_STATUS.CREATED, ORDER_STATUS.DISPATCHING].includes(rawOrder.orderStatus)) {
+    return {
+      sectionTitle: '派单状态',
+      subtitle: '正在为你派单',
+      description: runtimeText || firstText(timelineSummary.description, '平台正在匹配合适司机。'),
+      badge: '匹配中',
+      visualType: 'dispatch',
+      visualTitle: '附近司机筛选中',
+      visualHint: '系统会优先匹配距离近、评分稳定的司机',
+      progress: Math.max(12, progress),
+      state: 'dispatching',
+      facts: compactFacts([
+        { label: '派单状态', value: runtimeText || '等待司机响应' },
+        { label: '预计里程', value: formatDistanceValue(rawOrder) },
+        { label: '预计时长', value: formatDurationValue(rawOrder) }
+      ])
+    }
+  }
+
+  if ([ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(rawOrder.orderStatus)) {
+    return {
+      sectionTitle: '接驾状态',
+      subtitle: '司机接驾中',
+      description: runtimeText || firstText(timelineSummary.description, '司机正在前往上车点。'),
+      badge: '接驾',
+      visualType: 'approach',
+      visualTitle: '司机 → 上车点',
+      visualHint: remainingDistanceText ? `距上车点约 ${remainingDistanceText}` : '请留意司机位置变化',
+      progress: Math.max(24, progress),
+      state: 'approach',
+      facts: compactFacts([
+        { label: '接驾进度', value: runtimeText || '司机已接单' },
+        { label: '剩余距离', value: remainingDistanceText || '同步中' },
+        { label: '等待信息', value: firstText(runtime.waitingText, '暂无等待') }
+      ])
+    }
+  }
+
+  return {
+    sectionTitle: '行驶状态',
+    subtitle: '行程进行中',
+    description: runtimeText || firstText(timelineSummary.description, '车辆正在前往目的地。'),
+    badge: '行程中',
+    visualType: 'trip',
+    visualTitle: '起点 → 目的地',
+    visualHint: remainingDistanceText ? `剩余约 ${remainingDistanceText}` : '实时轨迹持续更新',
+    progress: Math.max(42, progress),
+    state: 'trip',
+    facts: compactFacts([
+      { label: '行程进度', value: `${Math.max(42, progress)}%`, tone: 'strong' },
+      { label: '已行驶', value: traveledDistanceText },
+      { label: '已用时', value: elapsedText }
+    ])
+  }
+}
+
 function buildDetailMetrics(rawOrder = {}) {
   return [
     {
@@ -374,25 +539,6 @@ function buildDetailMetrics(rawOrder = {}) {
   ]
 }
 
-function buildServiceFlowSteps(rawOrder = {}) {
-  const stage = getOrderStage(rawOrder)
-  const cancelled = rawOrder.orderStatus === ORDER_STATUS.CANCELLED
-  const items = [
-    { key: 'accepted', title: '开始接驾', desc: '司机已接单出发', threshold: 2, icon: 'wheel' },
-    { key: 'picked', title: '到达乘客', desc: '已到达上车点', threshold: 3, icon: 'user' },
-    { key: 'finished', title: '完成行程', desc: '已送达目的地', threshold: 5, icon: 'check' }
-  ]
-
-  return items.map((item) => {
-    const done = !cancelled && stage >= item.threshold
-    return {
-      ...item,
-      stateText: done ? '已完成' : '待同步',
-      done
-    }
-  })
-}
-
 function buildAppliedCoupon(rawOrder, coupons = []) {
   const discountAmount = toNumber(rawOrder.couponDiscount)
   if (discountAmount <= 0) return null
@@ -411,7 +557,7 @@ function buildAppliedCoupon(rawOrder, coupons = []) {
   }
 }
 
-function buildDetailViewState(rawOrder, coupons = []) {
+function buildDetailViewState(rawOrder, coupons = [], runtime = {}) {
   const detail = buildRideOrderModel(rawOrder, {
     carType: getCarTypeMapFromStore()[rawOrder.carTypeId]
   })
@@ -452,6 +598,10 @@ function buildDetailViewState(rawOrder, coupons = []) {
     : selectedCoupon
       ? `已选${selectedCoupon.name}`
       : `可用${couponGroups.available.length}张`
+  const timelineSteps = buildOrderTimelineSteps(rawOrder)
+  const timelineSummary = getTimelineSummary(timelineSteps)
+  const driveStatus = buildDriveStatusView(rawOrder, runtime, timelineSummary)
+  const showServiceFlow = !['finished', 'cancelled'].includes(driveStatus.visualType)
 
   const detailState = {
     ...detail,
@@ -475,8 +625,10 @@ function buildDetailViewState(rawOrder, coupons = []) {
   return {
     detail: detailState,
     detailMetrics: buildDetailMetrics(rawOrder),
-    serviceFlowSteps: buildServiceFlowSteps(rawOrder),
-    timelineSteps: buildOrderTimelineSteps(rawOrder),
+    timelineSteps,
+    timelineSummary,
+    driveStatus,
+    showServiceFlow,
     showPayBar,
     payButtonText: `立即支付 ${payableAmountText}`,
     paymentSceneText: rawOrder.orderStatus === ORDER_STATUS.CANCELLED ? '取消费待支付' : '行程费待支付',
@@ -498,8 +650,9 @@ Page({
   data: {
     detail: null,
     detailMetrics: [],
-    serviceFlowSteps: [],
     timelineSteps: [],
+    driveStatus: null,
+    showServiceFlow: true,
     showPayBar: false,
     payButtonText: '',
     paymentSceneText: '',
@@ -701,7 +854,7 @@ Page({
 
         if (!silent) {
           wx.showToast({
-            title: '已切换为本地订单演示数据',
+            title: '订单信息已恢复显示',
             icon: 'none'
           })
         }
@@ -716,7 +869,8 @@ Page({
       }
 
       this.applyRawOrder(rawOrder, {
-        immediate: !this.data.detail
+        immediate: !this.data.detail,
+        runtime
       })
     })
   },
@@ -733,14 +887,15 @@ Page({
     }
 
     this.rawOrder = rawOrder
-    const viewState = buildDetailViewState(rawOrder, this.couponList || [])
+    const viewState = buildDetailViewState(rawOrder, this.couponList || [], options.runtime || {})
 
     this.setData({
       detail: viewState.detail,
       detailMetrics: viewState.detailMetrics,
-      serviceFlowSteps: viewState.serviceFlowSteps,
       timelineSteps: viewState.timelineSteps,
-      timelineSummary: this.getTimelineSummary(viewState.timelineSteps),
+      timelineSummary: viewState.timelineSummary,
+      driveStatus: viewState.driveStatus,
+      showServiceFlow: viewState.showServiceFlow,
       showPayBar: viewState.showPayBar,
       availableCoupons: viewState.availableCoupons,
       unavailableCoupons: viewState.unavailableCoupons,
@@ -761,11 +916,6 @@ Page({
     })
   },
 
-  getTimelineSummary(steps = []) {
-    const current = (steps || []).find((item) => item.state === 'current')
-    return current || (steps || []).filter((item) => item.state !== 'upcoming').slice(-1)[0] || (steps || [])[0] || null
-  },
-
   toggleTimeline() {
     this.setData({
       timelineExpanded: !this.data.timelineExpanded
@@ -784,7 +934,7 @@ Page({
   applyRefund() {
     wx.showModal({
       title: '退款说明',
-      content: '演示环境下退款走模拟售后流程，提交投诉后可在后台演示退款处理，当前订单状态不会被直接修改。',
+      content: '退款需提交投诉或联系客服处理，当前订单状态不会被直接修改。',
       showCancel: false
     })
   },
@@ -860,7 +1010,16 @@ Page({
   },
 
   goToPay() {
-    if (!this.data.detail) return
+    if (!this.data.detail || !canPayOrder(this.rawOrder)) {
+      if (this.rawOrder) {
+        clearPendingCouponContext(this.rawOrder.id, this.rawOrder.orderNo)
+      }
+      wx.showToast({
+        title: '订单完成后才可支付',
+        icon: 'none'
+      })
+      return
+    }
     wx.navigateTo({
       url: `/pages/payment-confirm/index?id=${this.data.detail.id}`
     })

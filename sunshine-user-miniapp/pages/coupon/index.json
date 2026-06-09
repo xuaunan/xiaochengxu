@@ -1,7 +1,8 @@
 {
   "navigationBarTitleText": "优惠券中心",
+  "navigationStyle": "custom",
+  "backgroundColor": "#f6f7fb",
   "usingComponents": {
-    "sun-coupon-card": "/components/sun-coupon-card/index",
-    "sun-empty": "/components/sun-empty/index"
+    "sun-coupon-card": "/components/sun-coupon-card/index"
   }
 }

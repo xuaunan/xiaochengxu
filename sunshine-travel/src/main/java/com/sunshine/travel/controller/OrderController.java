@@ -12,6 +12,7 @@ import com.sunshine.travel.dto.OrderCancelRequest;
 import com.sunshine.travel.dto.OrderCreateRequest;
 import com.sunshine.travel.dto.OrderFinishRequest;
 import com.sunshine.travel.dto.TrackReportRequest;
+import com.sunshine.travel.entity.RideOrder;
 import com.sunshine.travel.service.InvoiceImageService;
 import com.sunshine.travel.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,21 +46,22 @@ public class OrderController {
     @RequireRole(RoleCode.USER)
     @PostMapping
     public ApiResponse<?> create(@Valid @RequestBody OrderCreateRequest request) {
-        return ApiResponse.success("订单创建成功", orderService.createOrder(request));
+        RideOrder order = orderService.createOrder(request);
+        return ApiResponse.success("订单创建成功", orderService.detailView(order.getId()));
     }
 
     @Operation(summary = "我的订单")
     @RequireRole({RoleCode.USER, RoleCode.DRIVER, RoleCode.ADMIN})
     @GetMapping("/mine")
     public ApiResponse<?> mine() {
-        return ApiResponse.success(orderService.currentUserOrders(UserContext.role()));
+        return ApiResponse.success(orderService.currentUserOrderViews(UserContext.role()));
     }
 
     @Operation(summary = "订单详情")
     @RequireRole({RoleCode.USER, RoleCode.DRIVER, RoleCode.ADMIN})
     @GetMapping("/{orderId}")
     public ApiResponse<?> detail(@PathVariable Long orderId) {
-        return ApiResponse.success(orderService.detail(orderId));
+        return ApiResponse.success(orderService.detailView(orderId));
     }
 
     @Operation(summary = "订单实时运行态")
@@ -73,7 +75,7 @@ public class OrderController {
     @RequireRole({RoleCode.DRIVER, RoleCode.ADMIN})
     @GetMapping("/waiting")
     public ApiResponse<?> waiting() {
-        return ApiResponse.success(orderService.waitingOrders());
+        return ApiResponse.success(orderService.waitingOrderViews());
     }
 
     @Operation(summary = "司机接单")
@@ -124,11 +126,11 @@ public class OrderController {
         return ApiResponse.success("订单已取消");
     }
 
-    @Operation(summary = "模拟支付")
+    @Operation(summary = "确认支付")
     @RequireRole({RoleCode.USER, RoleCode.ADMIN})
     @PostMapping("/mock-pay")
     public ApiResponse<?> mockPay(@Valid @RequestBody MockPayRequest request) {
-        return ApiResponse.success("模拟支付成功", orderService.mockPay(request));
+        return ApiResponse.success("支付成功", orderService.mockPay(request));
     }
 
     @Operation(summary = "提交评价")

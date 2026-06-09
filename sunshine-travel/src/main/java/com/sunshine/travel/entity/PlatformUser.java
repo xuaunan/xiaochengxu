@@ -2,6 +2,7 @@ package com.sunshine.travel.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -22,6 +23,11 @@ public class PlatformUser extends BaseEntity {
     private Integer authStatus;
     private Integer enabled;
     private BigDecimal walletBalance;
+    private String memberStatus;
+    private String memberLevel;
+    private LocalDateTime memberOpenedAt;
+    private LocalDateTime memberExpireAt;
+    private String memberLastCouponWeek;
     private String emergencyContact;
     private String emergencyPhone;
     private String defaultLanguage;

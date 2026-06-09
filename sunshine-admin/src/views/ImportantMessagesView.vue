@@ -3,7 +3,7 @@
     <article class="panel toolbar">
       <div>
         <span class="panel-kicker">待办工作台</span>
-        <p class="panel-subtitle">只展示需要后台介入的事项：投诉、发票申请、司机/车辆资料审核、提现申请；普通打车消息不进入这里。</p>
+        <p class="panel-subtitle">集中处理投诉、发票申请、司机/车辆资料审核和提现申请。</p>
       </div>
       <div class="toolbar-actions">
         <el-segmented v-model="levelFilter" :options="levelOptions" />
@@ -148,7 +148,7 @@
             :rows="3"
             maxlength="160"
             show-word-limit
-            :placeholder="invoiceForm.invoiceStatus === 'REJECTED' ? '请输入驳回原因，会同步到用户消息' : '例如：电子发票已生成，可在用户端我的发票查看'"
+            :placeholder="invoiceForm.invoiceStatus === 'REJECTED' ? '请输入驳回原因，会通知用户' : '例如：电子发票已生成，可在用户端我的发票查看'"
           />
         </el-form-item>
       </el-form>
@@ -227,7 +227,7 @@ const summaryCards = computed(() => [
     key: 'total',
     title: '全部重要事项',
     value: summary.value.total,
-    desc: '来自后端实时汇总',
+    desc: '按当前待办汇总',
     icon: BellFilled,
     accent: '#2563eb',
     bg: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 68%)'
@@ -324,7 +324,7 @@ async function handleComplaint(item) {
     ElMessage.warning('当前投诉消息缺少投诉ID，无法直接处理')
     return
   }
-  const prompt = await ElMessageBox.prompt('请输入投诉处理结果，提交后会同步订单详情和消息待办。', '处理投诉', {
+  const prompt = await ElMessageBox.prompt('请输入投诉处理结果，提交后会更新订单详情和消息待办。', '处理投诉', {
     confirmButtonText: '确认处理',
     cancelButtonText: '取消',
     inputType: 'textarea',
@@ -353,7 +353,7 @@ async function auditWithdraw(item, action) {
       type: 'warning'
     })
   } else {
-    const result = await ElMessageBox.prompt('请输入驳回原因，提交后司机端会同步看到审核结果。', '驳回提现', {
+    const result = await ElMessageBox.prompt('请输入驳回原因，提交后司机端会看到审核结果。', '驳回提现', {
       confirmButtonText: '提交驳回',
       cancelButtonText: '取消',
       inputType: 'textarea',
@@ -426,7 +426,7 @@ async function submitInvoice() {
       buyerPhone: invoiceForm.value.buyerPhone || '13800000000',
       remark: remark || '电子发票已生成，可在用户端我的发票查看'
     })
-    ElMessage.success(invoiceForm.value.invoiceStatus === 'REJECTED' ? '发票申请已驳回并通知用户' : '电子发票已生成并同步用户端')
+    ElMessage.success(invoiceForm.value.invoiceStatus === 'REJECTED' ? '发票申请已驳回并通知用户' : '电子发票已生成，用户端可查看')
     invoiceVisible.value = false
     await loadMessages()
   } catch (error) {

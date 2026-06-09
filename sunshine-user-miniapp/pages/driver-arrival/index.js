@@ -239,8 +239,8 @@ Page({
       order,
       progress: displayPercent / 100,
       driverPosition,
-      etaText: !hasSyncedTrace ? '等待司机位置同步' : (driverArrived ? '司机已到达，请确认上车' : `预计 ${displayRemainMinutes} 分钟到达起点`),
-      trafficText: hasSyncedTrace ? getTrafficText(activeRuntime, fallback) : '司机端同步中',
+      etaText: !hasSyncedTrace ? '等待司机位置更新' : (driverArrived ? '司机已到达，请确认上车' : `预计 ${displayRemainMinutes} 分钟到达起点`),
+      trafficText: hasSyncedTrace ? getTrafficText(activeRuntime, fallback) : '司机位置更新中',
       progressText: `${displayPercent}%`,
       actionButtonText: driverArrived ? '我已上车' : '刷新接驾状态',
       markers,
@@ -329,7 +329,7 @@ Page({
         }
         if (!silent) {
           wx.showToast({
-            title: '已切换为本地接驾演示数据',
+            title: '接驾信息已恢复显示',
             icon: 'none'
           })
         }

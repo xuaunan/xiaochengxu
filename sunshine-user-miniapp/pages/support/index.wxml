@@ -1,0 +1,52 @@
+<view class="page-shell support-shell safe-bottom">
+  <view class="support-page page-enter">
+    <view class="support-hero">
+      <view>
+        <view class="support-title">在线客服</view>
+        <view class="support-desc">平台客服会在后台同步回复</view>
+      </view>
+      <view class="support-status">{{conversation.status === 'OPEN' ? '处理中' : '已关闭'}}</view>
+    </view>
+
+    <scroll-view
+      class="support-messages"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      scroll-into-view="{{scrollIntoView}}"
+      scroll-with-animation
+    >
+      <block wx:if="{{messages.length}}">
+        <view
+          class="support-message {{item.fromAdmin ? 'support-message--admin' : 'support-message--self'}}"
+          id="{{item.anchorId}}"
+          wx:for="{{messages}}"
+          wx:key="id"
+        >
+          <view class="support-bubble">
+            <view class="support-bubble__text">{{item.content}}</view>
+            <view class="support-bubble__time">{{item.timeText}}</view>
+          </view>
+        </view>
+      </block>
+      <view wx:else class="support-empty">
+        <view class="support-empty__title">客服已接入</view>
+        <view class="support-empty__desc">请发送你遇到的问题。</view>
+      </view>
+    </scroll-view>
+
+    <view class="support-input-panel">
+      <textarea
+        class="support-input"
+        value="{{inputText}}"
+        maxlength="500"
+        auto-height
+        placeholder="输入消息"
+        bindinput="handleInput"
+      />
+      <view class="support-send {{sending ? 'support-send--disabled' : ''}}" bindtap="sendMessage">
+        {{sending ? '...' : '发送'}}
+      </view>
+    </view>
+  </view>
+</view>

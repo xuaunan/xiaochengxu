@@ -34,7 +34,7 @@ function buildPageCopy(typeText) {
     tipFallback: '未配置腾讯地图 Key，当前使用网络反解兜底，建议补充 Key 以获得最佳准确度',
     currentTag: `当前${typeText}`,
     currentTitleFallback: '请在地图上选择地址',
-    currentDescFallback: '地图中心点会作为当前选点，并同步刷新附近地址列表',
+    currentDescFallback: '地图中心点会作为当前选点，并刷新附近地址列表',
     myLocationText: '我的位置',
     permissionTitle: '暂未获取定位权限',
     permissionDesc: '你仍然可以拖动地图选点，点击我的位置后可重新触发定位授权。',

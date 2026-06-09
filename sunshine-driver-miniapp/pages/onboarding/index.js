@@ -79,7 +79,7 @@ Page({
     loginForm: {
       phone: '13900000001',
       password: '123456',
-      nickname: '演示司机'
+      nickname: '测试司机'
     },
     showPassword: false,
     vehicleForm: {
@@ -114,6 +114,7 @@ Page({
   async onShow() {
     const loggedIn = getApp().globalData.driverStore.loggedIn
     this.setData({ loggedIn })
+    this.syncNavigationTitle(loggedIn)
     if (this._skipNextOnShowSync) {
       this._skipNextOnShowSync = false
       return
@@ -124,7 +125,15 @@ Page({
   },
 
   chooseMode(e) {
-    this.setData({ mode: e.currentTarget.dataset.mode })
+    const mode = e.currentTarget.dataset.mode
+    this.setData({ mode })
+    this.syncNavigationTitle(false, mode)
+  },
+
+  syncNavigationTitle(loggedIn = this.data.loggedIn, mode = this.data.mode) {
+    wx.setNavigationBarTitle({
+      title: loggedIn ? '我的车辆' : (mode === 'register' ? '司机注册' : '司机登录')
+    })
   },
 
   updateLoginField(e) {
@@ -150,7 +159,7 @@ Page({
 
   handleForgotPassword() {
     wx.showToast({
-      title: '演示环境请使用默认密码 123456',
+      title: '请使用默认密码 123456',
       icon: 'none'
     })
   },
@@ -165,7 +174,7 @@ Page({
   chooseImageSource() {
     return new Promise((resolve, reject) => {
       wx.showActionSheet({
-        itemList: ['本地选择图片', '拍照'],
+        itemList: ['从相册选择', '拍照'],
         success: (res) => {
           if (res.tapIndex === 0) resolve('album')
           if (res.tapIndex === 1) resolve('camera')
@@ -248,7 +257,7 @@ Page({
       const file = await this.pickImageFile(source)
       if (!file || !file.path) {
         wx.showToast({
-          title: '未获取到本地图片，请重试',
+          title: '未获取到图片，请重试',
           icon: 'none'
         })
         return
@@ -386,7 +395,10 @@ Page({
       title: this.data.mode === 'register' ? '注册并登录成功' : '登录成功',
       icon: 'success'
     })
-    this.goDashboard()
+    const loaded = await this.loadDriverData()
+    if (loaded && loaded.vehicleView && loaded.vehicleView.hasVehicle) {
+      this.goDashboard()
+    }
   },
 
   async loadDriverData() {
@@ -446,6 +458,12 @@ Page({
       vehiclePreview,
       uploadingKey: ''
     })
+    this.syncNavigationTitle(true)
+    return {
+      profile,
+      permission,
+      vehicleView
+    }
   },
 
   validateVehicleForm() {

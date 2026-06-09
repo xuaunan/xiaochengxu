@@ -8,20 +8,20 @@
 .driver-profile {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding: 16rpx 22rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  gap: 20rpx;
+  padding: 18rpx 24rpx calc(env(safe-area-inset-bottom) + 34rpx);
 }
 
 .driver-hero {
   position: relative;
   overflow: hidden;
-  padding: 28rpx 24rpx 24rpx;
-  border-radius: 26rpx;
+  padding: 30rpx 26rpx 26rpx;
+  border-radius: 24rpx;
   border: 1rpx solid rgba(255, 160, 74, 0.28);
   background:
     linear-gradient(115deg, rgba(255, 213, 160, 0.62) 0%, rgba(255, 251, 246, 0.92) 54%, rgba(255, 231, 203, 0.72) 100%),
     #fff7ef;
-  box-shadow: 0 18rpx 42rpx rgba(210, 104, 18, 0.12);
+  box-shadow: 0 12rpx 30rpx rgba(210, 104, 18, 0.11);
 }
 
 .driver-city,
@@ -141,8 +141,8 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  min-height: 118rpx;
+  gap: 28rpx;
+  min-height: 122rpx;
 }
 
 .driver-avatar-wrap {
@@ -207,7 +207,7 @@
 .profile-name {
   color: #172033;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 550;
   line-height: 1.18;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -269,17 +269,17 @@
 .profile-logout-card {
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 16rpx 40rpx rgba(24, 34, 56, 0.065);
+  box-shadow: 0 12rpx 30rpx rgba(24, 34, 56, 0.058);
 }
 
 .permission-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 30rpx;
-  min-height: 104rpx;
-  padding: 20rpx 66rpx 20rpx 22rpx;
-  border-radius: 24rpx;
+  gap: 34rpx;
+  min-height: 110rpx;
+  padding: 20rpx 68rpx 20rpx 24rpx;
+  border-radius: 20rpx;
 }
 
 .permission-icon {
@@ -290,29 +290,34 @@
   border-radius: 16rpx;
   background: linear-gradient(135deg, #ffb34d 0%, #ff7a00 100%);
   box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.18);
+  box-sizing: border-box;
 }
 
 .permission-icon::before {
   content: "";
   position: absolute;
-  left: 17rpx;
-  top: 15rpx;
-  width: 30rpx;
-  height: 30rpx;
-  border: 6rpx solid #ffffff;
-  border-radius: 12rpx;
+  left: 50%;
+  top: 50%;
+  width: 25rpx;
+  height: 25rpx;
+  border: 4rpx solid #ffffff;
+  border-radius: 8rpx;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
 }
 
 .permission-icon::after {
   content: "";
   position: absolute;
-  left: 26rpx;
-  top: 27rpx;
-  width: 12rpx;
-  height: 7rpx;
-  border-left: 4rpx solid #ff7a00;
-  border-bottom: 4rpx solid #ff7a00;
-  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  width: 9rpx;
+  height: 15rpx;
+  border-right: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  box-sizing: border-box;
+  transform: translate(-24%, -58%) rotate(42deg);
+  transform-origin: center;
 }
 
 .permission-copy {
@@ -322,7 +327,7 @@
 
 .permission-title {
   color: #172033;
-  font-size: 25rpx;
+  font-size: 24rpx;
   font-weight: 500;
   line-height: 1.28;
 }
@@ -330,7 +335,7 @@
 .permission-desc {
   margin-top: 7rpx;
   color: #6f788b;
-  font-size: 21rpx;
+  font-size: 20rpx;
   line-height: 1.42;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -375,15 +380,15 @@
 .group-block {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
 .group-title {
   position: relative;
-  padding-left: 18rpx;
+  padding-left: 16rpx;
   color: #172033;
-  font-size: 25rpx;
-  font-weight: 600;
+  font-size: 24rpx;
+  font-weight: 550;
   line-height: 1.3;
 }
 
@@ -392,25 +397,25 @@
   position: absolute;
   left: 0;
   top: 4rpx;
-  width: 7rpx;
-  height: 28rpx;
+  width: 5rpx;
+  height: 24rpx;
   border-radius: 999rpx;
   background: #ff7a00;
 }
 
 .group-card {
   overflow: hidden;
-  padding: 0 22rpx;
-  border-radius: 24rpx;
+  padding: 0 24rpx;
+  border-radius: 20rpx;
 }
 
 .menu-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 30rpx;
-  min-height: 104rpx;
-  padding: 18rpx 42rpx 18rpx 0;
+  gap: 34rpx;
+  min-height: 108rpx;
+  padding: 20rpx 44rpx 20rpx 0;
   border-bottom: 1rpx solid rgba(31, 36, 50, 0.07);
 }
 
@@ -425,6 +430,7 @@
   flex-shrink: 0;
   border-radius: 16rpx;
   background: #fff0df;
+  box-sizing: border-box;
 }
 
 .menu-icon::before,
@@ -435,23 +441,25 @@
 }
 
 .menu-icon--vehicle::before {
-  left: 13rpx;
-  top: 24rpx;
-  width: 36rpx;
-  height: 20rpx;
-  border-radius: 8rpx 10rpx 6rpx 6rpx;
+  left: 50%;
+  top: 50%;
+  width: 30rpx;
+  height: 16rpx;
+  border-radius: 7rpx 8rpx 5rpx 5rpx;
   background: #ff7a00;
+  transform: translate(-50%, -2%);
 }
 
 .menu-icon--vehicle::after {
-  left: 18rpx;
-  top: 17rpx;
-  width: 26rpx;
-  height: 18rpx;
+  left: 50%;
+  top: 50%;
+  width: 21rpx;
+  height: 14rpx;
   border-radius: 14rpx 14rpx 4rpx 4rpx;
-  border: 6rpx solid #ff7a00;
+  border: 4rpx solid #ff7a00;
   border-bottom: 0;
-  box-shadow: -6rpx 24rpx 0 -2rpx #ffffff, 24rpx 24rpx 0 -2rpx #ffffff;
+  box-shadow: -6rpx 21rpx 0 -2rpx #ffffff, 20rpx 21rpx 0 -2rpx #ffffff;
+  transform: translate(-50%, -72%);
 }
 
 .menu-icon--orders {
@@ -459,40 +467,43 @@
 }
 
 .menu-icon--orders::before {
-  left: 17rpx;
-  top: 13rpx;
-  width: 28rpx;
-  height: 36rpx;
+  left: 50%;
+  top: 50%;
+  width: 24rpx;
+  height: 30rpx;
   border-radius: 7rpx;
   background: #3b82f6;
+  transform: translate(-50%, -50%);
 }
 
 .menu-icon--orders::after {
-  left: 24rpx;
-  top: 24rpx;
-  width: 16rpx;
-  height: 14rpx;
-  border-top: 4rpx solid rgba(255, 255, 255, 0.95);
-  border-bottom: 4rpx solid rgba(255, 255, 255, 0.95);
+  left: 50%;
+  top: 50%;
+  width: 12rpx;
+  height: 11rpx;
+  border-top: 3rpx solid rgba(255, 255, 255, 0.95);
+  border-bottom: 3rpx solid rgba(255, 255, 255, 0.95);
+  transform: translate(-50%, -34%);
 }
 
 .menu-icon--income::before {
-  left: 16rpx;
-  top: 17rpx;
-  width: 30rpx;
-  height: 31rpx;
+  left: 50%;
+  top: 50%;
+  width: 25rpx;
+  height: 26rpx;
   border-radius: 8rpx;
   background: #ff7a00;
+  transform: translate(-50%, -50%);
 }
 
 .menu-icon--income::after {
-  left: 26rpx;
-  top: 21rpx;
-  width: 12rpx;
-  height: 18rpx;
-  border-top: 4rpx solid #ffffff;
-  border-bottom: 4rpx solid #ffffff;
-  transform: rotate(90deg);
+  left: 50%;
+  top: 50%;
+  width: 10rpx;
+  height: 14rpx;
+  border-top: 3rpx solid #ffffff;
+  border-bottom: 3rpx solid #ffffff;
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 .menu-icon--settings {
@@ -500,41 +511,45 @@
 }
 
 .menu-icon--settings::before {
-  left: 18rpx;
-  top: 18rpx;
-  width: 26rpx;
-  height: 26rpx;
-  border: 8rpx solid #5b6ff0;
+  left: 50%;
+  top: 50%;
+  width: 25rpx;
+  height: 25rpx;
+  border: 3rpx solid #5b6ff0;
   border-radius: 50%;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
 }
 
 .menu-icon--settings::after {
-  left: 28rpx;
-  top: 9rpx;
-  width: 6rpx;
-  height: 44rpx;
+  left: 50%;
+  top: 50%;
+  width: 3rpx;
+  height: 38rpx;
   border-radius: 999rpx;
   background: #5b6ff0;
   box-shadow: 0 0 0 0 #5b6ff0;
-  transform: rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .menu-icon--profile::before {
-  left: 22rpx;
-  top: 13rpx;
-  width: 18rpx;
-  height: 18rpx;
+  left: 50%;
+  top: 50%;
+  width: 16rpx;
+  height: 16rpx;
   border-radius: 50%;
   background: #ff7a00;
+  transform: translate(-50%, -80%);
 }
 
 .menu-icon--profile::after {
-  left: 14rpx;
-  top: 34rpx;
-  width: 34rpx;
-  height: 17rpx;
+  left: 50%;
+  top: 50%;
+  width: 30rpx;
+  height: 16rpx;
   border-radius: 18rpx 18rpx 9rpx 9rpx;
   background: #ff7a00;
+  transform: translate(-50%, 18%);
 }
 
 .menu-icon--bell {
@@ -542,22 +557,24 @@
 }
 
 .menu-icon--bell::before {
-  left: 18rpx;
-  top: 16rpx;
-  width: 26rpx;
-  height: 28rpx;
+  left: 50%;
+  top: 50%;
+  width: 24rpx;
+  height: 27rpx;
   border-radius: 16rpx 16rpx 9rpx 9rpx;
   background: #3b82f6;
+  transform: translate(-50%, -54%);
 }
 
 .menu-icon--bell::after {
-  left: 28rpx;
-  top: 45rpx;
-  width: 8rpx;
-  height: 8rpx;
+  left: 50%;
+  top: 50%;
+  width: 7rpx;
+  height: 7rpx;
   border-radius: 50%;
   background: #3b82f6;
-  box-shadow: 16rpx -29rpx 0 -1rpx #ff5a1f;
+  box-shadow: 13rpx -27rpx 0 -1rpx #ff5a1f;
+  transform: translate(-50%, 122%);
 }
 
 .menu-copy {
@@ -567,7 +584,7 @@
 
 .menu-title {
   color: #172033;
-  font-size: 25rpx;
+  font-size: 24rpx;
   font-weight: 500;
   line-height: 1.28;
 }
@@ -575,7 +592,7 @@
 .menu-desc {
   margin-top: 7rpx;
   color: #6f788b;
-  font-size: 21rpx;
+  font-size: 20rpx;
   line-height: 1.42;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -603,12 +620,12 @@
 }
 
 .profile-logout-card {
-  min-height: 82rpx;
+  min-height: 78rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 20rpx;
   color: #ff5b57;
-  font-size: 24rpx;
+  font-size: 23rpx;
   font-weight: 500;
 }

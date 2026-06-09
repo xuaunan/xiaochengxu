@@ -1,6 +1,9 @@
-<view class="coupon-card {{item.cardDisabled ? 'coupon-card-disabled' : ''}}" bindtap="handleTap">
+<view class="coupon-card coupon-card--{{item.theme || theme}} {{item.cardDisabled ? 'coupon-card--disabled' : ''}}" bindtap="handleTap">
   <view class="coupon-main">
-    <view class="coupon-value">{{item.faceValueText}}</view>
+    <view class="coupon-value">
+      <text class="coupon-value__num">{{item.faceValueMain}}</text>
+      <text class="coupon-value__unit">{{item.faceValueUnit}}</text>
+    </view>
     <view class="coupon-scope">{{item.scopeText}}</view>
   </view>
   <view class="coupon-body">

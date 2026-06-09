@@ -7,82 +7,83 @@
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding-top: 16rpx;
+  gap: 14rpx;
+  padding-top: 14rpx;
 }
 
 .settings-hero,
 .setting-list {
-  border-radius: 24rpx;
+  border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
+  box-shadow: 0 10rpx 24rpx rgba(37, 43, 58, 0.045);
 }
 
 .settings-hero {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 126rpx;
-  padding: 24rpx 126rpx 24rpx 26rpx;
+  min-height: 104rpx;
+  padding: 18rpx 112rpx 18rpx 20rpx;
   overflow: hidden;
   background:
     linear-gradient(105deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 255, 255, 0.95) 56%, rgba(255, 231, 194, 0.7) 100%);
 }
 
 .settings-title {
-  font-size: 34rpx;
+  font-size: 29rpx;
   line-height: 1.18;
-  font-weight: 700;
+  font-weight: 600;
   color: #111827;
 }
 
 .settings-desc {
-  margin-top: 8rpx;
+  margin-top: 6rpx;
   max-width: 520rpx;
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: #737c90;
   line-height: 1.4;
 }
 
 .settings-hero__icon {
   position: absolute;
-  right: 32rpx;
-  top: 34rpx;
-  width: 68rpx;
-  height: 68rpx;
-  border-radius: 22rpx;
+  right: 26rpx;
+  top: 26rpx;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 18rpx;
   background: linear-gradient(180deg, rgba(255, 183, 105, 0.9), rgba(255, 122, 0, 0.86));
-  box-shadow: 0 18rpx 34rpx rgba(255, 122, 0, 0.18);
+  box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.14);
+  box-sizing: border-box;
 }
 
 .settings-hero__icon::before,
 .settings-hero__icon::after {
   content: "";
   position: absolute;
-  left: 20rpx;
-  right: 20rpx;
-  height: 7rpx;
+  left: 50%;
+  top: 50%;
+  width: 26rpx;
+  height: 4rpx;
   border-radius: 999rpx;
   background: #ffffff;
 }
 
 .settings-hero__icon::before {
-  top: 27rpx;
-  box-shadow: 0 22rpx 0 rgba(255, 255, 255, 0.78);
+  box-shadow: 0 16rpx 0 rgba(255, 255, 255, 0.78);
+  transform: translate(-50%, -160%);
 }
 
 .settings-hero__icon::after {
-  top: 21rpx;
-  left: 44rpx;
-  width: 12rpx;
-  height: 12rpx;
+  width: 10rpx;
+  height: 10rpx;
   border-radius: 50%;
   box-shadow: -22rpx 22rpx 0 #ffffff;
+  transform: translate(70%, -142%);
 }
 
 .setting-list {
-  padding: 6rpx 22rpx 8rpx;
+  padding: 4rpx 18rpx 6rpx;
 }
 
 .setting-group + .setting-group {
@@ -90,9 +91,9 @@
 }
 
 .setting-group-title {
-  padding: 20rpx 0 6rpx;
-  font-size: 22rpx;
-  font-weight: 700;
+  padding: 16rpx 0 5rpx;
+  font-size: 20rpx;
+  font-weight: 500;
   color: #ff6b00;
 }
 
@@ -100,18 +101,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18rpx;
-  min-height: 92rpx;
-  padding-bottom: 14rpx;
+  gap: 14rpx;
+  min-height: 76rpx;
+  padding-bottom: 10rpx;
 }
 
 .setting-icon {
   position: relative;
-  width: 50rpx;
-  height: 50rpx;
+  width: 42rpx;
+  height: 42rpx;
   flex-shrink: 0;
-  border-radius: 16rpx;
+  border-radius: 13rpx;
   background: rgba(255, 122, 0, 0.1);
+  box-sizing: border-box;
 }
 
 .setting-icon::before,
@@ -122,48 +124,43 @@
 }
 
 .setting-icon--push::before {
-  left: 19rpx;
-  top: 11rpx;
+  left: 50%;
+  top: 50%;
   width: 20rpx;
-  height: 30rpx;
+  height: 28rpx;
   border-radius: 12rpx 12rpx 8rpx 8rpx;
   background: #ff7a00;
+  transform: translate(-50%, -54%);
 }
 
 .setting-icon--push::after {
-  left: 25rpx;
-  bottom: 10rpx;
-  width: 8rpx;
-  height: 8rpx;
+  left: 50%;
+  top: 50%;
+  width: 7rpx;
+  height: 7rpx;
   border-radius: 50%;
   background: #ff7a00;
+  transform: translate(-50%, 128%);
 }
 
 .setting-icon--coupon::before {
-  left: 13rpx;
-  top: 18rpx;
-  width: 32rpx;
-  height: 22rpx;
+  left: 50%;
+  top: 50%;
+  width: 29rpx;
+  height: 20rpx;
   border-radius: 8rpx;
   background: #ff7a00;
+  transform: translate(-50%, -50%);
 }
 
 .setting-icon--coupon::after {
-  left: 20rpx;
-  top: 27rpx;
+  left: 50%;
+  top: 50%;
   width: 18rpx;
-  height: 4rpx;
+  height: 3rpx;
   border-radius: 999rpx;
   background: #ffffff;
-}
-
-.setting-icon--theme::before {
-  left: 14rpx;
-  top: 14rpx;
-  width: 30rpx;
-  height: 30rpx;
-  border-radius: 50%;
-  border: 8rpx solid #ff7a00;
+  transform: translate(-50%, -50%);
 }
 
 .setting-copy {
@@ -172,15 +169,15 @@
 }
 
 .setting-title {
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 24rpx;
+  font-weight: 600;
   color: #111827;
 }
 
 .setting-subtitle {
-  margin-top: 6rpx;
-  font-size: 21rpx;
-  line-height: 1.45;
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  line-height: 1.35;
   color: #7a8396;
 }
 

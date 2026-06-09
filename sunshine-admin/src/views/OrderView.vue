@@ -32,15 +32,24 @@
     </article>
 
     <article class="panel">
-      <el-table v-loading="loading" :data="list" stripe row-key="id">
+      <el-table v-loading="loading" class="order-table" :data="list" stripe row-key="id">
         <el-table-column prop="orderNo" label="订单号" min-width="190" />
         <el-table-column label="业务类型" width="120">
           <template #default="{ row }">{{ textOf(serviceTypeMap, row.serviceType) }}</template>
+        </el-table-column>
+        <el-table-column label="乘客" min-width="120">
+          <template #default="{ row }">{{ row.passengerName || row.user?.displayName || row.user?.nickname || row.userId || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="司机" min-width="120">
+          <template #default="{ row }">{{ row.driverName || row.driver?.displayName || row.driver?.nickname || (row.driverId ? `司机 #${row.driverId}` : '未分配') }}</template>
         </el-table-column>
         <el-table-column label="订单状态" width="110">
           <template #default="{ row }">
             <el-tag :type="getOrderStatusType(row)">{{ getOrderStatusLabel(row) }}</el-tag>
           </template>
+        </el-table-column>
+        <el-table-column label="行程状态" width="120">
+          <template #default="{ row }">{{ row.runtime.phaseText }}</template>
         </el-table-column>
         <el-table-column label="支付状态" width="110">
           <template #default="{ row }">
@@ -63,7 +72,7 @@
         <el-table-column label="创建时间" min-width="180">
           <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="360" fixed="right">
+        <el-table-column label="操作" min-width="260" fixed="right">
           <template #default="{ row }">
             <div class="table-actions">
               <el-button link type="primary" @click="openDetail(row.id)">详情</el-button>
@@ -162,7 +171,7 @@
             :rows="3"
             maxlength="160"
             show-word-limit
-            :placeholder="invoiceForm.invoiceStatus === 'REJECTED' ? '请输入驳回原因，会同步给用户消息' : '例如：电子发票已生成，可在用户端我的发票查看'"
+            :placeholder="invoiceForm.invoiceStatus === 'REJECTED' ? '请输入驳回原因，会通知用户' : '例如：电子发票已生成，可在用户端我的发票查看'"
           />
         </el-form-item>
       </el-form>
@@ -188,7 +197,7 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" title="订单详情" size="860px" destroy-on-close>
+    <el-drawer v-model="detailVisible" title="订单详情" size="min(860px, 100vw)" destroy-on-close>
       <div v-if="detail.order" class="drawer-stack">
         <div class="stat-grid">
           <div class="stat-card">
@@ -211,13 +220,17 @@
             <span>进度</span>
             <strong>{{ detail.runtime.percent }}%</strong>
           </div>
+          <div class="stat-card">
+            <span>行程状态</span>
+            <strong>{{ detail.runtime.phaseText }}</strong>
+          </div>
         </div>
 
         <el-descriptions title="基础信息" :column="2" border>
           <el-descriptions-item label="订单号">{{ detail.order.orderNo }}</el-descriptions-item>
           <el-descriptions-item label="业务类型">{{ textOf(serviceTypeMap, detail.order.serviceType) }}</el-descriptions-item>
-          <el-descriptions-item label="乘客">{{ detail.user?.nickname || '未分配' }}</el-descriptions-item>
-          <el-descriptions-item label="司机">{{ detail.driver?.nickname || '未分配' }}</el-descriptions-item>
+          <el-descriptions-item label="乘客">{{ detail.user?.displayName || detail.user?.nickname || detail.order?.passengerName || '未分配' }}</el-descriptions-item>
+          <el-descriptions-item label="司机">{{ detail.driver?.displayName || detail.driver?.nickname || detail.order?.driverName || '未分配' }}</el-descriptions-item>
           <el-descriptions-item label="起点">{{ detail.order.startName }}</el-descriptions-item>
           <el-descriptions-item label="终点">{{ detail.order.endName }}</el-descriptions-item>
           <el-descriptions-item label="已用时长">{{ detail.runtime.elapsedText }}</el-descriptions-item>
@@ -226,7 +239,7 @@
           <el-descriptions-item label="阶段">{{ detail.runtime.phaseText }}</el-descriptions-item>
           <el-descriptions-item label="轨迹模式">{{ detail.runtime.traceModeText }}</el-descriptions-item>
           <el-descriptions-item label="发票状态">{{ getInvoiceStatusLabel(detail.order.invoiceStatus) }}</el-descriptions-item>
-          <el-descriptions-item label="等待信息">{{ detail.runtime.waitingText }}</el-descriptions-item>
+          <el-descriptions-item label="状态说明">{{ detail.runtime.displayText }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ stripOrderMetaRemark(detail.order.remark) || '无' }}</el-descriptions-item>
         </el-descriptions>
 
@@ -258,7 +271,7 @@
 
         <div>
           <h4 class="sub-title">轨迹记录</h4>
-          <el-table v-if="detail.trackList?.length" :data="detail.trackList" stripe>
+          <el-table v-if="detail.trackList?.length" class="detail-table" :data="detail.trackList" stripe>
             <el-table-column label="上报时间" min-width="170">
               <template #default="{ row }">{{ formatDateTime(row.reportedAt) }}</template>
             </el-table-column>
@@ -288,7 +301,7 @@
 
         <div>
           <h4 class="sub-title">支付记录</h4>
-          <el-table v-if="detail.payments?.length" :data="detail.payments" stripe>
+          <el-table v-if="detail.payments?.length" class="detail-table" :data="detail.payments" stripe>
             <el-table-column prop="payNo" label="支付单号" min-width="190" />
             <el-table-column prop="payChannel" label="渠道" width="130" />
             <el-table-column label="Status" width="120">
@@ -313,7 +326,7 @@
             <h4 class="sub-title">投诉记录</h4>
             <el-tag v-if="pendingComplaintCount > 0" type="danger">待处理 {{ pendingComplaintCount }}</el-tag>
           </div>
-          <el-table v-if="detail.complaints?.length" :data="detail.complaints" stripe>
+          <el-table v-if="detail.complaints?.length" class="detail-table" :data="detail.complaints" stripe>
             <el-table-column prop="complaintType" label="类型" width="120" />
             <el-table-column prop="content" label="内容" min-width="220" />
             <el-table-column label="创建时间" min-width="170">
@@ -494,12 +507,15 @@ function pickRuntimeSummary(runtime = {}) {
     routeSource: source.routeSource,
     routeReal: source.routeReal,
     traceMode: source.traceMode,
-    phaseText: source.phaseText
+    phaseText: source.phaseText,
+    stateText: source.stateText,
+    displayText: source.displayText,
+    terminal: source.terminal
   }
 }
 
 function getTraceModeText(runtime = {}) {
-  if (runtime.traceMode === 'DEMO' || runtime.routeSource === 'demo_trace') return '演示轨迹'
+  if (runtime.traceMode === 'DEMO' || runtime.routeSource === 'demo_trace') return '规划轨迹'
   if (runtime.traceMode === 'REAL' || runtime.routeReal) return '真实定位'
   return '暂无轨迹'
 }
@@ -510,7 +526,14 @@ function buildRuntimePhaseText(status, runtime = {}) {
   if (status === 'IN_TRIP') return '行程中'
   if (status === 'FINISHED' || status === 'REFUNDED') return '已完成'
   if (status === 'CANCELLED') return '已取消'
-  return runtime.phase === 'trip' ? '行程中' : '接驾中'
+  return runtime.stateText || runtime.phaseText || (runtime.phase === 'trip' ? '行程中' : '接驾中')
+}
+
+function buildRuntimeDisplayText(status, runtime = {}, phaseText = '') {
+  if (status === 'FINISHED' || status === 'REFUNDED') return '行程已完成'
+  if (status === 'CANCELLED') return '订单已取消'
+  if (runtime.waitingRedLight) return runtime.waitingText || runtime.displayText || phaseText
+  return runtime.displayText || runtime.waitingText || runtime.trafficText || phaseText
 }
 
 function getOrderPayStatusLabel(order = {}) {
@@ -582,12 +605,14 @@ function buildRuntimeBase(order = {}, runtime = {}) {
       : phasePercent
   const traveledDistanceKm = Number(runtime.traveledDistanceKm ?? runtime.distanceKm ?? (isFinished ? order.actualDistanceKm || order.estimatedDistanceKm || 0 : 0))
   const remainDistanceKm = Number(runtime.remainDistanceKm ?? runtime.remainingDistanceKm ?? Math.max(0, Number(order.actualDistanceKm || order.estimatedDistanceKm || 0) - traveledDistanceKm))
+  const phaseText = buildRuntimePhaseText(status, runtime)
+  const displayText = buildRuntimeDisplayText(status, runtime, phaseText)
   let waitingText = runtime.waitingText || ''
 
   if (isTerminal) {
-    waitingText = '暂无等待'
+    waitingText = displayText
   } else if (!waitingText) {
-    waitingText = runtime.trafficText || (runtime.routeReal ? '实时轨迹同步中' : (status === 'DISPATCHING' ? '等待派单' : '暂无等待'))
+    waitingText = displayText || (runtime.routeReal ? '实时轨迹更新中' : (status === 'DISPATCHING' ? '等待派单' : '暂无等待'))
   }
 
   return {
@@ -602,7 +627,8 @@ function buildRuntimeBase(order = {}, runtime = {}) {
     elapsedText: `${Math.max(0, Math.round(usedSeconds / 60))} min`,
     distanceText: `${traveledDistanceKm.toFixed(1)} km`,
     remainingText: `${(isFinished ? 0 : remainDistanceKm).toFixed(1)} km`,
-    phaseText: buildRuntimePhaseText(status, runtime),
+    phaseText,
+    displayText,
     traceModeText: getTraceModeText(runtime),
     waitingText
   }
@@ -854,7 +880,7 @@ async function submitInvoice() {
       buyerPhone: invoiceForm.buyerPhone || '13800000000',
       remark: remark || '电子发票已生成，可在用户端我的发票查看'
     })
-    ElMessage.success(invoiceForm.invoiceStatus === 'REJECTED' ? '发票申请已驳回并通知用户' : '电子发票已生成并同步用户端')
+    ElMessage.success(invoiceForm.invoiceStatus === 'REJECTED' ? '发票申请已驳回并通知用户' : '电子发票已生成，用户端可查看')
     invoiceVisible.value = false
     await refreshPageData(invoiceForm.orderId)
   } catch (error) {
@@ -970,11 +996,16 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .table-actions {
   display: flex;
-  gap: 10px;
+  gap: 6px 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
 }
 
 .empty-block {
@@ -997,12 +1028,14 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
+  min-width: 0;
 }
 
 .stat-card {
   border-radius: 16px;
   padding: 18px;
   background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+  min-width: 0;
 }
 
 .stat-card span {
@@ -1014,6 +1047,7 @@ onUnmounted(() => {
 .stat-card strong {
   font-size: 20px;
   color: #1f2432;
+  overflow-wrap: anywhere;
 }
 
 .sub-title {
@@ -1043,5 +1077,93 @@ onUnmounted(() => {
   min-width: 960px;
   border-radius: 12px;
   box-shadow: 0 18px 48px rgba(31, 36, 50, 0.14);
+}
+
+.order-table,
+.detail-table {
+  width: 100%;
+}
+
+.order-table :deep(.cell),
+.detail-table :deep(.cell) {
+  overflow-wrap: anywhere;
+}
+
+.order-table :deep(.el-table__cell),
+.detail-table :deep(.el-table__cell) {
+  vertical-align: top;
+}
+
+.order-table :deep(.el-table__fixed-right) {
+  max-width: calc(100vw - 48px);
+}
+
+.drawer-stack {
+  min-width: 0;
+}
+
+.drawer-stack :deep(.el-descriptions),
+.drawer-stack :deep(.el-descriptions__body),
+.drawer-stack :deep(.el-descriptions__table) {
+  min-width: 0;
+}
+
+.drawer-stack :deep(.el-descriptions__content) {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1280px) {
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-start;
+  }
+
+  .invoice-image {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .stat-card strong {
+    font-size: 18px;
+  }
+
+  .drawer-stack {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-image-stage {
+    min-height: 280px;
+    padding: 8px;
+  }
+
+  .invoice-image {
+    min-width: 560px;
+  }
 }
 </style>

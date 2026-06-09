@@ -26,10 +26,6 @@
           <view class="profile-pill profile-pill--plain">{{verifiedText}}</view>
         </view>
       </view>
-      <view class="profile-edit tap-scale" data-url="/pages/profileEdit/index" bindtap="openMenu">
-        <view class="profile-edit__icon"></view>
-        <text>编辑</text>
-      </view>
     </view>
 
     <view class="profile-assets">
@@ -41,7 +37,7 @@
             <view class="profile-card-desc">余额、发票和优惠券集中管理</view>
           </view>
         </view>
-        <view class="sync-pill">已同步</view>
+        <view class="sync-pill">已更新</view>
       </view>
       <view class="profile-metrics">
         <view class="asset-card tap-scale" bindtap="openOrders">

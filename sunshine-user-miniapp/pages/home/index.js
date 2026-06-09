@@ -491,7 +491,7 @@ Page({
       } catch (error) {
         if (!silent) {
           wx.showToast({
-            title: '订单列表同步失败',
+            title: '订单列表刷新失败',
             icon: 'none'
           })
         }
@@ -518,7 +518,7 @@ Page({
       } catch (error) {
         if (!silent) {
           wx.showToast({
-            title: '当前订单同步失败',
+            title: '当前订单刷新失败',
             icon: 'none'
           })
         }

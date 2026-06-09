@@ -3,7 +3,7 @@
     <view class="auth-hero">
       <view class="auth-hero__copy">
         <view class="auth-title">实名认证信息</view>
-        <view class="auth-desc">提交后进入审核流程，结果会同步到个人资料。</view>
+        <view class="auth-desc">提交后进入审核流程，结果会显示在个人资料。</view>
       </view>
       <view class="auth-hero__icon"></view>
     </view>

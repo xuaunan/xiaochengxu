@@ -105,7 +105,7 @@ Page({
             url: '/pages/profile-edit/index',
             mode: 'navigate',
             badge: '编辑',
-            desc: '修改昵称、城市编码和紧急联系人并同步后台'
+            desc: '修改昵称、城市编码和紧急联系人'
           },
           {
             iconClass: 'bell',
@@ -114,6 +114,14 @@ Page({
             mode: 'navigate',
             badge: '查看',
             desc: '查看平台通知、审核结果和活动消息'
+          },
+          {
+            iconClass: 'bell',
+            title: '在线客服',
+            url: '/pages/support/index',
+            mode: 'navigate',
+            badge: '客服',
+            desc: '与平台客服实时沟通接单、审核和提现问题'
           }
         ]
       }

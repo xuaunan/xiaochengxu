@@ -70,6 +70,7 @@ import com.sunshine.travel.service.OrderService;
 import com.sunshine.travel.service.support.MessagePushSupport;
 import com.sunshine.travel.service.support.OperationLogSupport;
 import com.sunshine.travel.util.InvoiceMetaUtil;
+import com.sunshine.travel.util.NoticeTimeRangeUtil;
 import com.sunshine.travel.util.PasswordUtil;
 import com.sunshine.travel.vo.DashboardVO;
 import java.math.BigDecimal;
@@ -79,7 +80,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -95,7 +95,6 @@ public class AdminServiceImpl implements AdminService {
     private static final String INVOICE_SELLER_NAME = "北京阳光出行有限公司";
     private static final String INVOICE_SELLER_TAX_NO = "91110105MA01SUN8X9";
     private static final String INVOICE_SELLER_PHONE = "400-100-0101";
-    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter INVOICE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter INVOICE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -564,12 +563,17 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public PageResult<Map<String, Object>> orders(long current, long size, String keyword, String status, String serviceType) {
+        List<Long> matchedUserIds = findUserIdsByKeyword(keyword);
         Page<RideOrder> page = rideOrderMapper.selectPage(new Page<>(current, size), new LambdaQueryWrapper<RideOrder>()
                 .and(StringUtils.hasText(keyword), q -> q.like(RideOrder::getOrderNo, keyword)
                         .or()
                         .like(RideOrder::getStartName, keyword)
                         .or()
-                        .like(RideOrder::getEndName, keyword))
+                        .like(RideOrder::getEndName, keyword)
+                        .or(!matchedUserIds.isEmpty())
+                        .in(!matchedUserIds.isEmpty(), RideOrder::getUserId, matchedUserIds)
+                        .or(!matchedUserIds.isEmpty())
+                        .in(!matchedUserIds.isEmpty(), RideOrder::getDriverId, matchedUserIds))
                 .eq(StringUtils.hasText(status), RideOrder::getOrderStatus, status)
                 .eq(StringUtils.hasText(serviceType), RideOrder::getServiceType, serviceType)
                 .orderByDesc(RideOrder::getId));
@@ -618,6 +622,21 @@ public class AdminServiceImpl implements AdminService {
         result.put("runtime", runtime);
         result.put("refundAllowed", isRefundAllowed(order));
         return result;
+    }
+
+    private List<Long> findUserIdsByKeyword(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return List.of();
+        }
+        return platformUserMapper.selectList(new LambdaQueryWrapper<PlatformUser>()
+                        .like(PlatformUser::getNickname, keyword)
+                        .or()
+                        .like(PlatformUser::getRealName, keyword)
+                        .or()
+                        .like(PlatformUser::getPhone, keyword))
+                .stream()
+                .map(PlatformUser::getId)
+                .toList();
     }
 
     @Override
@@ -1065,9 +1084,33 @@ public class AdminServiceImpl implements AdminService {
         row.put("emergencyContact", item.getEmergencyContact());
         row.put("emergencyPhone", item.getEmergencyPhone());
         row.put("walletBalance", item.getWalletBalance());
+        row.put("memberStatus", resolveMemberStatus(item));
+        row.put("memberLevel", resolveMemberLevel(item));
+        row.put("memberOpenedAt", item.getMemberOpenedAt());
+        row.put("memberExpireAt", item.getMemberExpireAt());
+        row.put("memberLastCouponWeek", item.getMemberLastCouponWeek());
         row.put("defaultLanguage", item.getDefaultLanguage());
         row.put("createdAt", item.getCreatedAt());
         return row;
+    }
+
+    private String resolveMemberStatus(PlatformUser item) {
+        if (item == null || !RoleCode.USER.equals(item.getRoleCode())) {
+            return "NONE";
+        }
+        if (!"ACTIVE".equalsIgnoreCase(item.getMemberStatus())) {
+            return "NONE";
+        }
+        if (item.getMemberExpireAt() == null || item.getMemberExpireAt().isBefore(LocalDateTime.now())) {
+            return "NONE";
+        }
+        return "ACTIVE";
+    }
+
+    private String resolveMemberLevel(PlatformUser item) {
+        return "ACTIVE".equals(resolveMemberStatus(item))
+                ? (StringUtils.hasText(item.getMemberLevel()) ? item.getMemberLevel() : "阳光会员")
+                : "普通用户";
     }
 
     private Map<String, Object> mapDriverRow(DriverProfile item) {
@@ -1096,6 +1139,8 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private Map<String, Object> mapOrderRow(RideOrder item) {
+        PlatformUser user = item.getUserId() == null ? null : platformUserMapper.selectById(item.getUserId());
+        PlatformUser driver = item.getDriverId() == null ? null : platformUserMapper.selectById(item.getDriverId());
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", item.getId());
         row.put("orderNo", item.getOrderNo());
@@ -1111,11 +1156,34 @@ public class AdminServiceImpl implements AdminService {
         row.put("endName", item.getEndName());
         row.put("driverId", item.getDriverId());
         row.put("userId", item.getUserId());
+        row.put("user", user == null ? null : mapOrderPersonRow(user));
+        row.put("passenger", user == null ? null : mapOrderPersonRow(user));
+        row.put("passengerName", displayName(user, "乘客"));
+        row.put("userName", displayName(user, "乘客"));
+        row.put("userNickname", user == null ? "" : firstNonBlank(user.getNickname(), user.getRealName()));
+        row.put("driver", driver == null ? null : mapOrderPersonRow(driver));
+        row.put("driverName", displayName(driver, item.getDriverId() == null ? "未分配" : "司机"));
+        row.put("driverNickname", driver == null ? "" : firstNonBlank(driver.getNickname(), driver.getRealName()));
         row.put("settlementStatus", item.getSettlementStatus());
         row.put("currencyCode", item.getCurrencyCode());
         row.put("createdAt", item.getCreatedAt());
         row.put("remark", item.getRemark());
         return row;
+    }
+
+    private Map<String, Object> mapOrderPersonRow(PlatformUser user) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", user.getId());
+        row.put("nickname", user.getNickname());
+        row.put("realName", user.getRealName());
+        row.put("displayName", displayName(user, ""));
+        row.put("phone", user.getPhone());
+        row.put("roleCode", user.getRoleCode());
+        return row;
+    }
+
+    private String displayName(PlatformUser user, String fallback) {
+        return user == null ? fallback : firstNonBlank(user.getNickname(), user.getRealName(), fallback);
     }
 
     private Map<String, Object> mapCouponRow(Coupon item) {
@@ -1230,30 +1298,7 @@ public class AdminServiceImpl implements AdminService {
         if (notice == null || !Objects.equals(notice.getStatus(), 1)) {
             return false;
         }
-        return isInNoticeDisplayRange(notice.getDisplayTimeRange(), LocalTime.now(APP_ZONE));
-    }
-
-    private boolean isInNoticeDisplayRange(String range, LocalTime now) {
-        if (!StringUtils.hasText(range)) {
-            return true;
-        }
-        String[] parts = range.trim().split("-");
-        if (parts.length != 2) {
-            return true;
-        }
-        try {
-            LocalTime start = LocalTime.parse(parts[0]);
-            LocalTime end = LocalTime.parse(parts[1]);
-            if (start.equals(end)) {
-                return true;
-            }
-            if (start.isBefore(end)) {
-                return !now.isBefore(start) && !now.isAfter(end);
-            }
-            return !now.isBefore(start) || !now.isAfter(end);
-        } catch (Exception ex) {
-            return true;
-        }
+        return NoticeTimeRangeUtil.activeNow(notice.getDisplayTimeRange());
     }
 
     private void fillVersion(SystemVersion version, SystemVersionSaveRequest request) {
@@ -1705,7 +1750,7 @@ public class AdminServiceImpl implements AdminService {
         meta.put("carTypeName", carType == null || !StringUtils.hasText(carType.getName()) ? serviceTypeLabel(order.getServiceType()) : carType.getName());
         meta.put("distanceKm", distanceKm.toPlainString());
         meta.put("durationMin", durationMin.toPlainString());
-        meta.put("payChannel", paymentRecord == null || !StringUtils.hasText(paymentRecord.getPayChannel()) ? "模拟支付" : paymentRecord.getPayChannel());
+        meta.put("payChannel", paymentRecord == null || !StringUtils.hasText(paymentRecord.getPayChannel()) ? "在线支付" : paymentRecord.getPayChannel());
         meta.put("currencyCode", firstNonBlank(order.getCurrencyCode(), "CNY"));
         meta.put("itemName", serviceTypeLabel(order.getServiceType()) + "出行服务费");
         meta.put("itemUnit", "次");

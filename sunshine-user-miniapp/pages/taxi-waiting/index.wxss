@@ -4,32 +4,32 @@
 
 .waiting-banner {
   text-align: center;
-  border-radius: 30rpx;
+  border-radius: 20rpx;
   background: #ffffff;
-  box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
+  box-shadow: 0 8rpx 22rpx rgba(24, 34, 56, 0.04);
 }
 
 .waiting-title {
-  margin-top: 24rpx;
-  font-size: 38rpx;
-  font-weight: 800;
+  margin-top: 18rpx;
+  font-size: 30rpx;
+  font-weight: 550;
   color: #1f2432;
 }
 
 .waiting-desc {
-  margin-top: 16rpx;
-  font-size: 26rpx;
+  margin-top: 10rpx;
+  font-size: 22rpx;
   color: #6b7385;
 }
 
 .waiting-circle {
-  width: 168rpx;
-  height: 168rpx;
-  margin: 36rpx auto 0;
+  width: 132rpx;
+  height: 132rpx;
+  margin: 26rpx auto 0;
   border-radius: 50%;
-  line-height: 168rpx;
-  font-size: 44rpx;
-  font-weight: 800;
+  line-height: 132rpx;
+  font-size: 32rpx;
+  font-weight: 550;
   color: #ff7a00;
   background: radial-gradient(circle, rgba(255, 122, 0, 0.12), rgba(255, 122, 0, 0.02));
 }
@@ -40,7 +40,7 @@
 
 .waiting-metric,
 .waiting-rule {
-  border-radius: 26rpx;
+  border-radius: 18rpx;
   background: #ffffff;
   box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.05);
 }

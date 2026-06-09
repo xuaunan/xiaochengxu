@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/onboarding/index",
     "pages/dashboard/index",
+    "pages/onboarding/index",
     "pages/orders/index",
     "pages/wallet/index",
     "pages/profile/index",
@@ -10,6 +10,7 @@
     "pages/trip-detail/index",
     "pages/withdraw/index",
     "pages/messages/index",
+    "pages/support/index",
     "pages/settings/index"
   ],
   "window": {
@@ -52,7 +53,7 @@
   },
   "permission": {
     "scope.userLocation": {
-      "desc": "用于展示司机当前位置、附近订单和模拟接驾路线"
+      "desc": "用于展示司机当前位置、附近订单和接驾路线"
     }
   },
   "requiredPrivateInfos": [

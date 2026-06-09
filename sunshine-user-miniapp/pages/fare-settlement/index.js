@@ -228,7 +228,7 @@ Page({
       }
       if (!silent) {
         wx.showToast({
-          title: '已切换为本地结算演示数据',
+          title: '结算信息已恢复显示',
           icon: 'none'
         })
       }

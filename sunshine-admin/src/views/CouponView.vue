@@ -4,7 +4,7 @@
       <div>
         <span class="panel-kicker">营销中心</span>
         <h3 class="panel-title">营销中心 - 优惠券管理</h3>
-        <p class="panel-subtitle">支持新建、编辑、上下架、发券和领取/使用记录查看，所有操作均实时写入后端数据库。</p>
+        <p class="panel-subtitle">支持新建、编辑、上下架、发券和领取/使用记录查看。</p>
       </div>
       <div class="toolbar-actions">
         <el-input v-model="query.keyword" placeholder="搜索优惠券名称" clearable style="width: 220px" @keyup.enter="loadCoupons" />
@@ -149,7 +149,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
-        <el-button :loading="formSubmitting" type="primary" @click="submitForm">保存并同步列表</el-button>
+        <el-button :loading="formSubmitting" type="primary" @click="submitForm">保存并更新列表</el-button>
       </template>
     </el-dialog>
 

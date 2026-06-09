@@ -8,10 +8,16 @@
       </view>
     </view>
 
+    <view class="withdraw-balance-card">
+      <view class="withdraw-balance-card__label">当前可提现</view>
+      <view class="withdraw-balance-card__amount">¥{{availableAmountText}}</view>
+      <view class="withdraw-balance-card__desc">金额来自司机钱包真实余额，提交申请后会进入审核记录。</view>
+    </view>
+
     <view class="withdraw-card">
       <view class="withdraw-field">
         <view class="withdraw-field__label">提现金额</view>
-        <input class="driver-input withdraw-input" data-key="amount" type="digit" value="{{form.amount}}" bindinput="updateField" placeholder="请输入提现金额" />
+        <input class="driver-input withdraw-input" data-key="amount" type="digit" value="{{form.amount}}" bindinput="updateField" placeholder="{{amountPlaceholder}}" />
       </view>
       <view class="withdraw-field">
         <view class="withdraw-field__label">银行卡号</view>
@@ -22,9 +28,31 @@
         <input class="driver-input withdraw-input" data-key="bankName" value="{{form.bankName}}" bindinput="updateField" placeholder="请输入开户行" />
       </view>
     </view>
+
+    <view class="withdraw-record-card">
+      <view class="withdraw-record-card__head">
+        <view class="withdraw-record-card__title">提现记录</view>
+        <view class="withdraw-record-card__count">{{withdrawRecords.length}} 条</view>
+      </view>
+      <view class="withdraw-record-list" wx:if="{{withdrawRecords.length}}">
+        <view class="withdraw-record" wx:for="{{withdrawRecords}}" wx:key="id">
+          <view class="withdraw-record__main">
+            <view class="withdraw-record__amount">¥{{item.amountText}}</view>
+            <view class="withdraw-record__meta">{{item.bankName}} {{item.bankAccountMasked}}</view>
+            <view class="withdraw-record__time">{{item.createdAtText}}</view>
+            <view wx:if="{{item.rejectReason}}" class="withdraw-record__reason">驳回原因：{{item.rejectReason}}</view>
+          </view>
+          <view class="withdraw-status withdraw-status--{{item.statusClass}}">{{item.statusText}}</view>
+        </view>
+      </view>
+      <view class="withdraw-empty" wx:else>
+        <view class="withdraw-empty__title">暂无提现记录</view>
+        <view class="withdraw-empty__desc">提交申请后，审核、打款、驳回都会在这里更新。</view>
+      </view>
+    </view>
   </view>
 
   <view class="floating-bar withdraw-floating-bar">
-    <button class="primary-button withdraw-button" hover-class="button-hover" bindtap="submit">确认提现</button>
+    <button class="primary-button withdraw-button" hover-class="button-hover" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">确认提现</button>
   </view>
 </view>

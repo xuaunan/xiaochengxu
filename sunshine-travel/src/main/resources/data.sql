@@ -2,19 +2,20 @@ SET NAMES utf8mb4;
 
 INSERT INTO t_platform_user (
     id, open_id, phone, password, nickname, avatar, real_name, id_card, gender, role_code,
-    auth_status, enabled, wallet_balance, emergency_contact, emergency_phone, default_language,
+    auth_status, enabled, wallet_balance, member_status, member_level, member_opened_at, member_expire_at, member_last_coupon_week,
+    emergency_contact, emergency_phone, default_language,
     auth_remark, created_at, updated_at
 ) VALUES
-    (1, 'mock-admin-001', '13700000001', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '系统管理员', '/images/avatar-admin.svg', '课程管理员', '310101199001010011', 'MALE', 'ADMIN', 2, 1, 0.00, '运维老师', '13100000001', 'zh-CN', '系统初始化管理员', '2026-03-01 09:00:00', '2026-04-18 08:00:00'),
-    (2, 'mock-user-001', '13800000001', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '小阳乘客', '/images/avatar-user.svg', '陈晓阳', '310101199804050026', 'FEMALE', 'USER', 2, 1, 286.20, '陈妈妈', '13200000001', 'zh-CN', '实名认证已通过', '2026-03-12 09:20:00', '2026-04-18 18:10:00'),
-    (3, 'mock-user-002', '13800000002', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '校园乘客', '/images/avatar-user.svg', '李明远', '310101199706020033', 'MALE', 'USER', 2, 1, 88.50, '李爸爸', '13200000002', 'zh-CN', '实名认证已通过', '2026-03-28 10:15:00', '2026-04-18 10:12:00'),
-    (4, 'mock-user-003', '13800000003', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '城市通勤客', '/images/avatar-user.svg', '王晨曦', '320101199912120028', 'FEMALE', 'USER', 0, 1, 58.80, '王姐姐', '13200000003', 'zh-CN', '新注册用户待实名', '2026-04-10 18:05:00', '2026-04-18 12:26:00'),
-    (5, 'mock-user-004', '13800000004', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '商务出行客', '/images/avatar-user.svg', '周文博', '330101199706062015', 'MALE', 'USER', 2, 1, 120.00, '周同学', '13200000004', 'zh-CN', '高频乘客', '2026-04-17 20:16:00', '2026-04-18 15:22:00'),
-    (6, 'mock-user-005', '13800000005', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '新注册乘客', '/images/avatar-user.svg', '孙悦然', NULL, 'FEMALE', 'USER', 1, 1, 15.50, '孙室友', '13200000005', 'zh-CN', '实名认证审核中', '2026-04-18 08:45:00', '2026-04-18 17:18:00'),
-    (7, 'mock-driver-001', '13900000001', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '一号司机', '/images/avatar-driver.svg', '刘师傅', '310101198605180037', 'MALE', 'DRIVER', 2, 1, 0.00, '刘爱人', '13300000001', 'zh-CN', '司机资质审核通过', '2026-02-20 08:30:00', '2026-04-18 18:20:00'),
-    (8, 'mock-driver-002', '13900000002', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '二号司机', '/images/avatar-driver.svg', '周师傅', '310101198409210019', 'MALE', 'DRIVER', 2, 1, 0.00, '周爱人', '13300000002', 'zh-CN', '司机资质审核通过', '2026-02-28 10:10:00', '2026-04-18 16:40:00'),
-    (9, 'mock-driver-003', '13900000003', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '三号司机', '/images/avatar-driver.svg', '孙师傅', '320101198711110035', 'MALE', 'DRIVER', 1, 1, 0.00, '孙爸爸', '13300000003', 'zh-CN', '司机资质审核中', '2026-04-02 11:45:00', '2026-04-18 09:18:00'),
-    (10, 'mock-driver-004', '13900000004', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '四号司机', '/images/avatar-driver.svg', '顾师傅', '310101198812120014', 'MALE', 'DRIVER', 2, 1, 0.00, '顾姐姐', '13300000004', 'zh-CN', '司机资质审核通过', '2026-03-05 07:45:00', '2026-04-18 16:20:00');
+    (1, 'mock-admin-001', '13700000001', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '系统管理员', '/images/avatar-admin.svg', '平台管理员', '310101199001010011', 'MALE', 'ADMIN', 2, 1, 0.00, 'NONE', '普通用户', NULL, NULL, NULL, '运维老师', '13100000001', 'zh-CN', '系统初始化管理员', '2026-03-01 09:00:00', '2026-04-18 08:00:00'),
+    (2, 'mock-user-001', '13800000001', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '小阳乘客', '/images/avatar-user.svg', '陈晓阳', '310101199804050026', 'FEMALE', 'USER', 2, 1, 286.20, 'ACTIVE', '阳光会员', '2026-06-01 09:00:00', '2026-07-01 23:59:59', NULL, '陈妈妈', '13200000001', 'zh-CN', '实名认证已通过', '2026-03-12 09:20:00', '2026-04-18 18:10:00'),
+    (3, 'mock-user-002', '13800000002', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '校园乘客', '/images/avatar-user.svg', '李明远', '310101199706020033', 'MALE', 'USER', 2, 1, 88.50, 'NONE', '普通用户', NULL, NULL, NULL, '李爸爸', '13200000002', 'zh-CN', '实名认证已通过', '2026-03-28 10:15:00', '2026-04-18 10:12:00'),
+    (4, 'mock-user-003', '13800000003', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '城市通勤客', '/images/avatar-user.svg', '王晨曦', '320101199912120028', 'FEMALE', 'USER', 0, 1, 58.80, 'NONE', '普通用户', NULL, NULL, NULL, '王姐姐', '13200000003', 'zh-CN', '新注册用户待实名', '2026-04-10 18:05:00', '2026-04-18 12:26:00'),
+    (5, 'mock-user-004', '13800000004', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '商务出行客', '/images/avatar-user.svg', '周文博', '330101199706062015', 'MALE', 'USER', 2, 1, 120.00, 'NONE', '普通用户', NULL, NULL, NULL, '周同学', '13200000004', 'zh-CN', '高频乘客', '2026-04-17 20:16:00', '2026-04-18 15:22:00'),
+    (6, 'mock-user-005', '13800000005', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '新注册乘客', '/images/avatar-user.svg', '孙悦然', NULL, 'FEMALE', 'USER', 1, 1, 15.50, 'NONE', '普通用户', NULL, NULL, NULL, '孙室友', '13200000005', 'zh-CN', '实名认证审核中', '2026-04-18 08:45:00', '2026-04-18 17:18:00'),
+    (7, 'mock-driver-001', '13900000001', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '一号司机', '/images/avatar-driver.svg', '刘师傅', '310101198605180037', 'MALE', 'DRIVER', 2, 1, 0.00, 'NONE', '普通用户', NULL, NULL, NULL, '刘爱人', '13300000001', 'zh-CN', '司机资质审核通过', '2026-02-20 08:30:00', '2026-04-18 18:20:00'),
+    (8, 'mock-driver-002', '13900000002', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '二号司机', '/images/avatar-driver.svg', '周师傅', '310101198409210019', 'MALE', 'DRIVER', 2, 1, 0.00, 'NONE', '普通用户', NULL, NULL, NULL, '周爱人', '13300000002', 'zh-CN', '司机资质审核通过', '2026-02-28 10:10:00', '2026-04-18 16:40:00'),
+    (9, 'mock-driver-003', '13900000003', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '三号司机', '/images/avatar-driver.svg', '孙师傅', '320101198711110035', 'MALE', 'DRIVER', 1, 1, 0.00, 'NONE', '普通用户', NULL, NULL, NULL, '孙爸爸', '13300000003', 'zh-CN', '司机资质审核中', '2026-04-02 11:45:00', '2026-04-18 09:18:00'),
+    (10, 'mock-driver-004', '13900000004', '$2a$10$3Y9BVxGLBVkMjScULzO3ne6Bgw/DX5A9Pk0uWzrJ.mVGFrAtXTC8m', '四号司机', '/images/avatar-driver.svg', '顾师傅', '310101198812120014', 'MALE', 'DRIVER', 2, 1, 0.00, 'NONE', '普通用户', NULL, NULL, NULL, '顾姐姐', '13300000004', 'zh-CN', '司机资质审核通过', '2026-03-05 07:45:00', '2026-04-18 16:20:00');
 
 INSERT INTO t_driver_profile (
     id, user_id, driver_no, license_no, service_status, audit_status, score,
@@ -158,6 +159,20 @@ INSERT INTO t_message_record (
     (4, 7, 'WITHDRAW', 'WITHDRAW_APPLY', '提现待审核', '你的提现申请正在等待管理员审核。', 'zh-CN', 'SUCCESS', '2026-04-18 16:30:10', '2026-04-18 16:30:10'),
     (5, 4, 'COMPLAINT', 'COMPLAINT_DONE', '投诉已处理', '客服已完成发票信息修改并重新发送。', 'zh-CN', 'SUCCESS', '2026-04-17 22:41:00', '2026-04-17 22:41:00');
 
+INSERT INTO t_support_conversation (
+    id, user_id, user_role, status, last_message, last_message_at, unread_for_admin, unread_for_user, created_at, updated_at
+) VALUES
+    (1, 2, 'USER', 'OPEN', '想确认会员每周券什么时候到账。', '2026-06-09 09:16:00', 1, 0, '2026-06-09 09:12:00', '2026-06-09 09:16:00'),
+    (2, 7, 'DRIVER', 'OPEN', '车辆审核资料已经重新上传，请帮忙看一下。', '2026-06-09 09:20:00', 1, 0, '2026-06-09 09:18:00', '2026-06-09 09:20:00');
+
+INSERT INTO t_support_message (
+    id, conversation_id, sender_id, sender_role, content, created_at, updated_at
+) VALUES
+    (1, 1, NULL, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。', '2026-06-09 09:12:00', '2026-06-09 09:12:00'),
+    (2, 1, 2, 'USER', '想确认会员每周券什么时候到账。', '2026-06-09 09:16:00', '2026-06-09 09:16:00'),
+    (3, 2, NULL, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。', '2026-06-09 09:18:00', '2026-06-09 09:18:00'),
+    (4, 2, 7, 'DRIVER', '车辆审核资料已经重新上传，请帮忙看一下。', '2026-06-09 09:20:00', '2026-06-09 09:20:00');
+
 INSERT INTO t_operation_log (
     id, operator_id, operator_role, biz_module, biz_action, target_type, target_id,
     content, created_at, updated_at
@@ -185,7 +200,7 @@ INSERT INTO t_coupon_operation_log (
 INSERT INTO t_system_config (
     id, config_key, config_name, config_value, config_type, config_group, remark, created_at, updated_at
 ) VALUES
-    (1, 'platformCommissionRate', '平台佣金比例', '0.20', 'DECIMAL', 'ORDER', '用于订单结算演示', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
+    (1, 'platformCommissionRate', '平台佣金比例', '0.20', 'DECIMAL', 'ORDER', '用于订单结算规则', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
     (2, 'freeCancelMinutes', '免费取消时长', '3', 'NUMBER', 'ORDER', '乘客下单后的免费取消分钟数', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
     (3, 'nightTimeRange', '夜间附加费时段', '23:00-06:00', 'STRING', 'ORDER', '夜间计费规则展示', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
     (4, 'intlExchangeRate', '国际出行汇率', '7.15', 'DECIMAL', 'INTERNATIONAL', '用于国际出行费用换算', '2026-04-18 08:00:00', '2026-04-18 08:00:00');
@@ -193,13 +208,13 @@ INSERT INTO t_system_config (
 INSERT INTO t_system_notice (
     id, title, content, status, sort_no, target_role, created_at, updated_at
 ) VALUES
-    (1, '夜间安全演示已开启', '晚间订单已开启安全录音与紧急联系人展示能力，适合课堂演示。', 1, 100, 'ALL', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
+    (1, '夜间安全服务已开启', '晚间订单已开启安全录音与紧急联系人展示能力。', 1, 100, 'ALL', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
     (2, '国际出行支持多币种结算', '港澳国际出行支持美元展示、中文下单与优惠券抵扣。', 1, 90, 'USER', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
-    (3, '司机提现审核时效', '当前演示环境下提现申请会在一个工作日内完成审核。', 1, 80, 'DRIVER', '2026-04-18 08:00:00', '2026-04-18 08:00:00');
+    (3, '司机提现审核时效', '提现申请会在一个工作日内完成审核。', 1, 80, 'DRIVER', '2026-04-18 08:00:00', '2026-04-18 08:00:00');
 
 INSERT INTO t_system_version (
     id, version_no, client_type, release_note, force_update, status, download_url, created_at, updated_at
 ) VALUES
-    (1, '1.0.0', 'ADMIN', '首个课程大作业演示版，支持后台全链路操作。', 0, 1, 'http://127.0.0.1:5173', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
+    (1, '1.0.0', 'ADMIN', '首个正式运营版本，支持后台全链路操作。', 0, 1, 'http://127.0.0.1:5173', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
     (2, '1.0.0', 'USER_MINIAPP', '乘客端已支持打车、顺风车、国际出行、支付与评价闭环。', 0, 1, '微信开发者工具导入 sunshine-user-miniapp', '2026-04-18 08:00:00', '2026-04-18 08:00:00'),
     (3, '1.0.0', 'DRIVER_MINIAPP', '司机端已支持听单、拒单、接单、开始行程、结束行程与提现。', 0, 1, '微信开发者工具导入 sunshine-driver-miniapp', '2026-04-18 08:00:00', '2026-04-18 08:00:00');

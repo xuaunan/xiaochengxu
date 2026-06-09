@@ -7,7 +7,7 @@
             <span class="panel-kicker">系统配置</span>
             <h3 class="panel-title">全局参数配置</h3>
             <p class="panel-subtitle">
-              汇率、佣金比例、免费取消时长和夜间附加费时段都直接写入后端系统配置，保存后全业务模块即时生效。
+              统一管理汇率、佣金比例、免费取消时长和夜间附加费时段，保存后影响业务计算规则。
             </p>
           </div>
           <el-button :loading="configLoading" type="primary" @click="saveConfigs">保存配置</el-button>
@@ -35,13 +35,13 @@
             <span class="panel-kicker">运行环境</span>
             <h3 class="panel-title">环境信息</h3>
             <p class="panel-subtitle">
-              当前后台、网页端、小程序端和后端服务连接同一套业务数据库。
+              查看当前运营后台、网页端和小程序端的运行信息。
             </p>
           </div>
         </div>
         <div class="summary-list runtime-summary-list">
           <div class="summary-item">
-            <span>后端接口地址</span>
+            <span>业务接口地址</span>
             <strong>http://127.0.0.1:8080</strong>
           </div>
           <div class="summary-item">
@@ -53,16 +53,16 @@
             <strong>13700000001 / 123456</strong>
           </div>
           <div class="summary-item">
-            <span>乘客演示账号</span>
+            <span>乘客测试账号</span>
             <strong>13800000001 / 123456</strong>
           </div>
           <div class="summary-item">
-            <span>司机演示账号</span>
+            <span>司机测试账号</span>
             <strong>13900000001 / 123456</strong>
           </div>
           <div class="summary-item">
             <span>联动状态</span>
-            <strong>后台 / 小程序 / 后端同源数据</strong>
+            <strong>多端业务数据一致</strong>
           </div>
         </div>
       </article>
@@ -74,7 +74,7 @@
           <div>
             <span class="panel-kicker">公告中心</span>
             <h3 class="panel-title">公告管理</h3>
-            <p class="panel-subtitle">公告可同步到首页展示，支持新增、编辑、启停闭环管理；首页优先级越高越靠前。</p>
+            <p class="panel-subtitle">公告可在首页展示，支持新增、编辑和启停管理；首页优先级越高越靠前。</p>
           </div>
           <div class="toolbar-actions">
             <el-input
@@ -143,7 +143,7 @@
           <div>
             <span class="panel-kicker">版本中心</span>
             <h3 class="panel-title">版本管理</h3>
-            <p class="panel-subtitle">统一管理后台、乘客端和司机端版本信息，支持发布和停用实时同步。</p>
+            <p class="panel-subtitle">统一管理后台、乘客端和司机端版本信息，支持发布和停用。</p>
           </div>
           <div class="toolbar-actions">
             <el-select v-model="versionQuery.clientType" clearable placeholder="客户端类型" style="width: 180px">
@@ -425,7 +425,7 @@ async function saveConfigs() {
         configValue: `${item.configValue ?? ''}`.trim()
       }))
     })
-    ElMessage.success('系统配置已保存并写入数据库')
+    ElMessage.success('系统配置已保存')
     await loadConfigs()
   } catch (error) {
     ElMessage.error(error?.message || '系统配置保存失败')
@@ -615,7 +615,7 @@ function configHint(configKey) {
   if (configKey === 'intlExchangeRate') return '国际出行汇率必须大于 0'
   if (configKey === 'freeCancelMinutes') return '免费取消时长必须是大于等于 0 的整数'
   if (configKey === 'nightTimeRange') return '请按 22:00-06:00 的格式填写'
-  return '修改后会同步影响业务计算逻辑'
+  return '修改后会影响业务计算逻辑'
 }
 
 function validateConfigs() {

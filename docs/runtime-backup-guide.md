@@ -1,4 +1,4 @@
-# Runtime Backup Guide
+﻿# Runtime Backup Guide
 
 Keep `schema.sql` for structure and `data.sql` for base demo records.
 Store newly generated runtime data in `sql/runtime-backup.sql`.

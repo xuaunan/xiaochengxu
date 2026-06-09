@@ -4,12 +4,15 @@ import com.sunshine.travel.dto.DriverCertificationRequest;
 import com.sunshine.travel.dto.DriverProfileUpdateRequest;
 import com.sunshine.travel.dto.DriverStatusRequest;
 import com.sunshine.travel.dto.WithdrawRequest;
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface DriverService {
 
     Map<String, Object> dashboard();
+
+    List<Map<String, Object>> withdraws();
 
     Map<String, Object> updateProfile(DriverProfileUpdateRequest request);
 

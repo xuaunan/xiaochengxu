@@ -2,34 +2,47 @@
   <view class="page-content list-gap">
     <view class="international-list-hero">
       <view class="section-title">我的国际行程</view>
-      <view class="section-subtitle">订单从本地小程序进入后端数据库，后台订单中心会实时看到同一份数据。</view>
+      <view class="section-subtitle">查看已预约的国际行程、接送信息和服务进度。</view>
     </view>
     <block wx:if="{{list.length}}">
       <view class="intl-order-card" wx:for="{{list}}" wx:key="id">
+        <view class="intl-card-head">
+          <view class="intl-route-badge">{{item.internationalMeta.routeCode || 'GLOBAL'}}</view>
+          <view class="intl-sync-tag">{{item.internationalMeta.syncStatusText}}</view>
+        </view>
         <view class="row-between">
-          <view class="intl-card-title">{{item.internationalMeta.productName || '国际出行'}}</view>
+          <view class="intl-card-title-wrap">
+            <view class="intl-card-title">{{item.internationalMeta.productName || '国际出行'}}</view>
+            <view class="intl-card-en">{{item.internationalMeta.productNameEn}}</view>
+          </view>
           <view class="status-tag {{item.statusTag}}">{{item.statusText}}</view>
         </view>
         <view class="intl-card-route">{{item.startName}} → {{item.endName}}</view>
         <view class="intl-info-grid">
           <view>
             <text>预约</text>
-            <view>{{item.internationalMeta.appointmentTime || item.createdAtText}}</view>
+            <view>{{item.internationalMeta.appointmentTimeText || item.createdAtText}}</view>
           </view>
           <view>
             <text>联系人</text>
-            <view>{{item.internationalMeta.contactName || '待同步'}}</view>
+            <view>{{item.internationalMeta.contactText}}</view>
           </view>
           <view>
             <text>费用</text>
             <view>{{item.amountText}}</view>
           </view>
         </view>
+        <view class="intl-detail-grid">
+          <view>{{item.internationalMeta.flightText}}</view>
+          <view>{{item.internationalMeta.pickupSignText}}</view>
+          <view>{{item.internationalMeta.passengerCountText}} · {{item.internationalMeta.luggageCountText}}</view>
+        </view>
+        <view class="intl-doc-text">{{item.internationalMeta.documentsText}}</view>
         <view class="intl-service-text">{{item.internationalMeta.serviceItemsText}}</view>
       </view>
     </block>
     <view class="panel-card empty-panel" wx:else>
-      <sun-empty title="还没有国际出行订单" description="先去国际出行页面选线路下单，订单会自动同步到这里。"></sun-empty>
+      <sun-empty title="还没有国际出行订单" description="先选择国际线路，预约成功后会显示在这里。"></sun-empty>
       <button class="primary-button" hover-class="button-hover" bindtap="goInternational">去下国际出行订单</button>
     </view>
   </view>

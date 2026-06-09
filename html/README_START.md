@@ -8,7 +8,7 @@
 D:\xiaochengxu\html\START_WEB.bat
 ```
 
-它会自动进入 `D:\xiaochengxu\html`，启动 Vite 本地网页服务，并打开浏览器。
+它会自动进入 `D:\xiaochengxu\html`，启动 Vite 网页服务，并打开浏览器。
 
 ## 手动启动
 
@@ -31,4 +31,3 @@ http://127.0.0.1:5174/
 cd /d D:\xiaochengxu\html
 npm run build
 ```
-

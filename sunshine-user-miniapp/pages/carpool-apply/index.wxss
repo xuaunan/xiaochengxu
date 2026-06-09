@@ -7,25 +7,25 @@
 .apply-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding-top: 20rpx;
-  padding-left: 28rpx;
-  padding-right: 28rpx;
-  padding-bottom: 142rpx;
+  gap: 18rpx;
+  padding-top: 16rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+  padding-bottom: 126rpx;
 }
 
 .apply-hero,
 .apply-panel {
-  border-radius: 28rpx;
+  border-radius: 22rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
+  box-shadow: 0 12rpx 28rpx rgba(37, 43, 58, 0.045);
 }
 
 .apply-hero {
   position: relative;
-  min-height: 168rpx;
-  padding: 30rpx 160rpx 30rpx 30rpx;
+  min-height: 136rpx;
+  padding: 24rpx 144rpx 24rpx 26rpx;
   overflow: hidden;
   background:
     linear-gradient(105deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 255, 255, 0.95) 56%, rgba(255, 231, 194, 0.7) 100%);
@@ -47,8 +47,8 @@
 .apply-hero__title {
   position: relative;
   z-index: 1;
-  font-size: 38rpx;
-  font-weight: 900;
+  font-size: 31rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.32;
 }
@@ -56,44 +56,45 @@
 .apply-hero__desc {
   position: relative;
   z-index: 1;
-  margin-top: 12rpx;
-  font-size: 25rpx;
+  margin-top: 8rpx;
+  font-size: 22rpx;
   color: #6f7787;
   line-height: 1.35;
 }
 
 .apply-hero__badge {
   position: absolute;
-  right: 28rpx;
-  top: 30rpx;
+  right: 24rpx;
+  top: 24rpx;
   z-index: 1;
-  padding: 12rpx 18rpx;
+  padding: 8rpx 16rpx;
   border-radius: 999rpx;
   color: #ff6b00;
   background: rgba(255, 122, 0, 0.09);
-  font-size: 24rpx;
-  font-weight: 900;
+  font-size: 21rpx;
+  font-weight: 550;
 }
 
 .apply-panel {
-  padding: 26rpx;
+  padding: 22rpx;
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  font-size: 34rpx;
-  font-weight: 900;
+  gap: 18rpx;
+  font-size: 27rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.3;
 }
 
 .panel-title__icon {
   position: relative;
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 16rpx;
+  width: 42rpx;
+  height: 42rpx;
+  box-sizing: border-box;
+  border-radius: 14rpx;
   background: rgba(255, 122, 0, 0.1);
 }
 
@@ -105,60 +106,64 @@
 }
 
 .panel-title__icon--people::before {
-  left: 18rpx;
+  left: 50%;
   top: 9rpx;
   width: 14rpx;
   height: 14rpx;
   border-radius: 50%;
   background: #ff7a00;
+  transform: translateX(-50%);
 }
 
 .panel-title__icon--people::after {
-  left: 11rpx;
+  left: 50%;
   bottom: 9rpx;
-  width: 28rpx;
-  height: 17rpx;
+  width: 27rpx;
+  height: 16rpx;
   border-radius: 18rpx 18rpx 8rpx 8rpx;
-  border: 4rpx solid #ff7a00;
-  border-top-width: 6rpx;
+  border: 3rpx solid #ff7a00;
+  transform: translateX(-50%);
 }
 
 .panel-title__icon--note::before {
-  left: 12rpx;
-  top: 12rpx;
+  left: 50%;
+  top: 50%;
   width: 24rpx;
   height: 24rpx;
   border-radius: 3rpx;
-  border: 4rpx solid #ff7a00;
-  transform: rotate(-45deg);
+  border: 3rpx solid #ff7a00;
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .panel-desc {
-  margin-top: 14rpx;
-  font-size: 26rpx;
+  margin-top: 10rpx;
+  font-size: 22rpx;
   color: #6f7787;
   line-height: 1.55;
 }
 
 .counter-row {
   display: grid;
-  grid-template-columns: 96rpx minmax(0, 1fr) 96rpx;
+  grid-template-columns: 76rpx minmax(0, 1fr) 76rpx;
   align-items: center;
-  gap: 18rpx;
-  margin-top: 28rpx;
-  padding: 18rpx;
-  border-radius: 26rpx;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  padding: 16rpx;
+  border-radius: 20rpx;
   background: linear-gradient(135deg, rgba(255, 249, 241, 0.96), rgba(255, 255, 255, 0.98));
   border: 1rpx solid rgba(255, 122, 0, 0.1);
 }
 
 .counter-button {
   position: relative;
-  width: 96rpx;
-  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76rpx;
+  height: 76rpx;
   padding: 0;
   border: 0;
-  border-radius: 24rpx;
+  border-radius: 18rpx;
   background: #ffffff;
   box-shadow: 0 10rpx 24rpx rgba(31, 41, 55, 0.08);
 }
@@ -171,16 +176,17 @@
 .counter-button--plus::after {
   content: "";
   position: absolute;
-  left: 29rpx;
-  top: 45rpx;
-  width: 38rpx;
-  height: 6rpx;
+  left: 50%;
+  top: 50%;
+  width: 28rpx;
+  height: 5rpx;
   border-radius: 999rpx;
   background: #ff6b00;
+  transform: translate(-50%, -50%);
 }
 
 .counter-button--plus::after {
-  transform: rotate(90deg);
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 .counter-value {
@@ -189,15 +195,15 @@
 }
 
 .counter-value__number {
-  font-size: 50rpx;
+  font-size: 38rpx;
   line-height: 1.1;
-  font-weight: 900;
+  font-weight: 550;
   color: #111827;
 }
 
 .counter-value__label {
   margin-top: 4rpx;
-  font-size: 24rpx;
+  font-size: 21rpx;
   color: #7d8799;
 }
 
@@ -206,22 +212,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
-  margin-top: 20rpx;
-  padding: 18rpx 20rpx;
-  border-radius: 18rpx;
+  margin-top: 16rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
   background: rgba(255, 122, 0, 0.08);
 }
 
 .apply-summary__label {
   color: #7d8799;
-  font-size: 24rpx;
+  font-size: 21rpx;
 }
 
 .apply-summary__value {
   min-width: 0;
   color: #ff6b00;
-  font-size: 26rpx;
-  font-weight: 900;
+  font-size: 23rpx;
+  font-weight: 550;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -229,29 +235,34 @@
 
 .apply-textarea {
   width: 100%;
-  min-height: 220rpx;
-  margin-top: 20rpx;
-  padding: 24rpx;
-  border-radius: 22rpx;
+  min-height: 170rpx;
+  margin-top: 16rpx;
+  padding: 18rpx;
+  border-radius: 18rpx;
   background: linear-gradient(180deg, #fafbfe, #ffffff);
   border: 1rpx solid rgba(31, 36, 50, 0.08);
-  font-size: 28rpx;
-  line-height: 1.6;
+  font-size: 24rpx;
+  line-height: 1.5;
   color: #111827;
   box-sizing: border-box;
 }
 
 .apply-floating-bar {
-  left: 28rpx;
-  right: 28rpx;
+  left: 24rpx;
+  right: 24rpx;
 }
 
 .apply-submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: 92rpx;
-  line-height: 92rpx;
-  border-radius: 20rpx;
-  font-size: 32rpx;
-  font-weight: 900;
-  box-shadow: 0 18rpx 34rpx rgba(255, 107, 0, 0.22);
+  height: 72rpx;
+  padding: 0;
+  line-height: 1.2;
+  border-radius: 18rpx;
+  font-size: 24rpx;
+  font-weight: 550;
+  box-shadow: 0 12rpx 26rpx rgba(255, 107, 0, 0.18);
+  box-sizing: border-box;
 }

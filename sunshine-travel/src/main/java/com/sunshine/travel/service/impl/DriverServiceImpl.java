@@ -99,10 +99,21 @@ public class DriverServiceImpl implements DriverService {
         map.put("vehicle", vehicle);
         map.put("servicePermission", servicePermission);
         map.put("orders", orders);
-        map.put("pendingWithdraw", withdrawApplicationMapper.selectList(new LambdaQueryWrapper<WithdrawApplication>()
-                .eq(WithdrawApplication::getDriverId, driverId)
-                .eq(WithdrawApplication::getStatus, WithdrawStatus.PENDING)));
+        List<WithdrawApplication> withdrawApplications = queryDriverWithdrawApplications(driverId);
+        map.put("pendingWithdraw", withdrawApplications.stream()
+                .filter(item -> WithdrawStatus.PENDING.equals(item.getStatus()))
+                .map(this::mapDriverWithdraw)
+                .toList());
+        map.put("withdraws", withdrawApplications.stream().map(this::mapDriverWithdraw).toList());
         return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> withdraws() {
+        requireDriverUser();
+        return queryDriverWithdrawApplications(UserContext.userId()).stream()
+                .map(this::mapDriverWithdraw)
+                .toList();
     }
 
     @Override
@@ -149,10 +160,11 @@ public class DriverServiceImpl implements DriverService {
     @Transactional
     public void withdraw(WithdrawRequest request) {
         DriverProfile profile = requireProfile();
+        BigDecimal withdrawableIncome = profile.getWithdrawableIncome() == null ? BigDecimal.ZERO : profile.getWithdrawableIncome();
         if (request.getApplyAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "提现金额必须大于 0");
         }
-        if (profile.getWithdrawableIncome().compareTo(request.getApplyAmount()) < 0) {
+        if (withdrawableIncome.compareTo(request.getApplyAmount()) < 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "可提现余额不足");
         }
         Long pendingCount = withdrawApplicationMapper.selectCount(new LambdaQueryWrapper<WithdrawApplication>()
@@ -168,7 +180,7 @@ public class DriverServiceImpl implements DriverService {
         application.setBankName(request.getBankName());
         application.setStatus(WithdrawStatus.PENDING);
         withdrawApplicationMapper.insert(application);
-        profile.setWithdrawableIncome(profile.getWithdrawableIncome().subtract(request.getApplyAmount()));
+        profile.setWithdrawableIncome(withdrawableIncome.subtract(request.getApplyAmount()));
         driverProfileMapper.updateById(profile);
     }
 
@@ -278,6 +290,54 @@ public class DriverServiceImpl implements DriverService {
                 .eq(Vehicle::getDriverId, driverId)
                 .orderByDesc(Vehicle::getId)
                 .last("limit 1"));
+    }
+
+    private List<WithdrawApplication> queryDriverWithdrawApplications(Long driverId) {
+        return withdrawApplicationMapper.selectList(new LambdaQueryWrapper<WithdrawApplication>()
+                .eq(WithdrawApplication::getDriverId, driverId)
+                .orderByDesc(WithdrawApplication::getId)
+                .last("limit 20"));
+    }
+
+    private Map<String, Object> mapDriverWithdraw(WithdrawApplication item) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", item.getId());
+        row.put("applyAmount", item.getApplyAmount() == null ? BigDecimal.ZERO : item.getApplyAmount());
+        row.put("bankName", item.getBankName());
+        row.put("bankAccountMasked", maskBankAccount(item.getBankAccount()));
+        row.put("status", item.getStatus());
+        row.put("statusText", withdrawStatusText(item.getStatus()));
+        row.put("rejectReason", item.getRejectReason());
+        row.put("createdAt", item.getCreatedAt());
+        row.put("auditedAt", item.getAuditedAt());
+        return row;
+    }
+
+    private String withdrawStatusText(String status) {
+        if (WithdrawStatus.PENDING.equals(status)) {
+            return "待审核";
+        }
+        if (WithdrawStatus.APPROVED.equals(status)) {
+            return "已打款";
+        }
+        if (WithdrawStatus.REJECTED.equals(status)) {
+            return "已驳回";
+        }
+        return "未知状态";
+    }
+
+    private String maskBankAccount(String bankAccount) {
+        String value = bankAccount == null ? "" : bankAccount.replaceAll("\\s+", "");
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        if (value.length() <= 4) {
+            return value;
+        }
+        if (value.length() <= 8) {
+            return "**** " + value.substring(value.length() - 4);
+        }
+        return value.substring(0, 4) + " **** **** " + value.substring(value.length() - 4);
     }
 
     private Map<String, Object> buildServicePermission(PlatformUser user, Vehicle vehicle) {

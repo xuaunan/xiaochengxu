@@ -40,7 +40,7 @@
       </view>
     </view>
 
-    <view class="detail-card service-panel">
+    <view class="detail-card service-panel" wx:if="{{showServiceFlow}}">
       <view class="detail-section-head">
         <view class="detail-section-title-wrap">
           <view class="detail-section-icon detail-section-icon--flow"></view>
@@ -56,41 +56,97 @@
       </view>
     </view>
 
-    <view class="detail-card drive-panel">
-      <view class="drive-copy">
+    <view class="detail-card drive-panel drive-panel--{{driveStatus.state}}">
+      <view class="drive-head">
         <view class="detail-section-title-wrap">
           <view class="detail-section-icon detail-section-icon--car"></view>
-          <view class="detail-section-title">行驶状态</view>
+          <view class="detail-section-title">{{driveStatus.sectionTitle}}</view>
         </view>
-        <view class="drive-subtitle">按道路路线行驶中</view>
-        <view class="drive-status">
-          <view class="drive-pin"></view>
-          <text>{{timelineSummary.description}}</text>
-        </view>
+        <view class="drive-badge">{{driveStatus.badge}}</view>
       </view>
-      <view class="mini-map">
-        <view class="mini-map__grid"></view>
-        <view class="mini-map__route"></view>
-        <view class="mini-map__point mini-map__point--start"></view>
-        <view class="mini-map__point mini-map__point--end"></view>
-      </view>
-    </view>
 
-    <view class="detail-card action-panel">
-      <view class="detail-section-title-wrap">
-        <view class="detail-section-icon detail-section-icon--driver"></view>
-        <view class="detail-section-title">司机操作</view>
-      </view>
-      <view class="action-desc">推送状态后会同步刷新司机端、乘客端和后台。</view>
-      <view class="driver-actions">
-        <view class="driver-action driver-action--{{item.done ? 'done' : 'pending'}}" wx:for="{{serviceFlowSteps}}" wx:key="key">
-          <view class="driver-action__icon driver-action__icon--{{item.icon}}"></view>
-          <view class="driver-action__copy">
-            <view class="driver-action__title">{{item.title}}</view>
-            <view class="driver-action__desc">{{item.desc}}</view>
-            <view class="driver-action__state">{{item.stateText}}</view>
+      <block wx:if="{{driveStatus.visualType === 'dispatch'}}">
+        <view class="status-stage status-stage--dispatch">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{driveStatus.subtitle}}</view>
+            <view class="drive-description">{{driveStatus.description}}</view>
           </view>
-          <view class="driver-action__arrow" wx:if="{{index !== serviceFlowSteps.length - 1}}"></view>
+          <view class="dispatch-board">
+            <view class="dispatch-board__row dispatch-board__row--active">
+              <text>系统派单</text>
+              <text>筛选中</text>
+            </view>
+            <view class="dispatch-board__row">
+              <text>附近司机</text>
+              <text>等待响应</text>
+            </view>
+            <view class="dispatch-board__row">
+              <text>接驾距离</text>
+              <text>同步中</text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{driveStatus.visualType === 'approach'}}">
+        <view class="status-stage status-stage--approach">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{driveStatus.subtitle}}</view>
+            <view class="drive-description">{{driveStatus.description}}</view>
+          </view>
+          <view class="arrival-board">
+            <view class="arrival-node arrival-node--driver">司机</view>
+            <view class="arrival-path">
+              <view class="arrival-car"></view>
+            </view>
+            <view class="arrival-node arrival-node--pickup">上车点</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{driveStatus.visualType === 'trip'}}">
+        <view class="status-stage status-stage--trip">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{driveStatus.subtitle}}</view>
+            <view class="drive-description">{{driveStatus.description}}</view>
+          </view>
+          <view class="nav-board">
+            <view class="nav-board__top">
+              <text>{{driveStatus.visualTitle}}</text>
+              <text>{{driveStatus.progress}}%</text>
+            </view>
+            <view class="nav-board__bar">
+              <view class="nav-board__fill" style="width: {{driveStatus.progress}}%;"></view>
+            </view>
+            <view class="nav-board__hint">{{driveStatus.visualHint}}</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{driveStatus.visualType === 'finished'}}">
+        <view class="status-stage status-stage--finished">
+          <view class="result-mark result-mark--done">✓</view>
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{driveStatus.visualTitle}}</view>
+            <view class="drive-description">{{driveStatus.visualHint}}</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="status-stage status-stage--cancelled">
+          <view class="result-mark result-mark--closed">×</view>
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{driveStatus.visualTitle}}</view>
+            <view class="drive-description">{{driveStatus.description}}</view>
+          </view>
+        </view>
+      </block>
+
+      <view class="drive-facts">
+        <view class="drive-fact drive-fact--{{item.tone || 'normal'}}" wx:for="{{driveStatus.facts}}" wx:key="label">
+          <view class="drive-fact__label">{{item.label}}</view>
+          <view class="drive-fact__value">{{item.value}}</view>
         </view>
       </view>
     </view>
@@ -147,9 +203,9 @@
           <text class="info-label">司机信息</text>
           <text class="info-value">{{detail.driver.name}} {{detail.driver.plateNo}}</text>
         </view>
-        <view class="info-row" wx:if="{{detail.remarkText}}">
+        <view class="info-row info-row--remark" wx:if="{{detail.remarkText}}">
           <text class="info-label">订单备注</text>
-          <text class="info-value">{{detail.remarkText}}</text>
+          <text class="info-value info-value--remark">{{detail.remarkText}}</text>
         </view>
       </view>
     </view>

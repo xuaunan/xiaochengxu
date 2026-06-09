@@ -14,11 +14,10 @@ import com.sunshine.travel.mapper.SystemNoticeMapper;
 import com.sunshine.travel.mapper.SystemVersionMapper;
 import com.sunshine.travel.service.CouponService;
 import com.sunshine.travel.service.OrderService;
+import com.sunshine.travel.util.NoticeTimeRangeUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/app")
 public class AppController {
-
-    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Shanghai");
 
     private final CarTypeMapper carTypeMapper;
     private final CouponService couponService;
@@ -127,28 +124,7 @@ public class AppController {
     }
 
     private boolean noticeVisibleNow(SystemNotice notice) {
-        String range = notice.getDisplayTimeRange();
-        if (!StringUtils.hasText(range)) {
-            return true;
-        }
-        String[] parts = range.trim().split("-");
-        if (parts.length != 2) {
-            return true;
-        }
-        try {
-            LocalTime now = LocalTime.now(APP_ZONE);
-            LocalTime start = LocalTime.parse(parts[0]);
-            LocalTime end = LocalTime.parse(parts[1]);
-            if (start.equals(end)) {
-                return true;
-            }
-            if (start.isBefore(end)) {
-                return !now.isBefore(start) && !now.isAfter(end);
-            }
-            return !now.isBefore(start) || !now.isAfter(end);
-        } catch (Exception ex) {
-            return true;
-        }
+        return NoticeTimeRangeUtil.activeNow(notice.getDisplayTimeRange());
     }
 
     private Map<String, Object> fleetSummary() {

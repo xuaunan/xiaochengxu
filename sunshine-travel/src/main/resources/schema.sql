@@ -2,6 +2,8 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS t_coupon_operation_log;
+DROP TABLE IF EXISTS t_support_message;
+DROP TABLE IF EXISTS t_support_conversation;
 DROP TABLE IF EXISTS t_system_version;
 DROP TABLE IF EXISTS t_system_notice;
 DROP TABLE IF EXISTS t_system_config;
@@ -23,7 +25,7 @@ DROP TABLE IF EXISTS t_platform_user;
 
 CREATE TABLE IF NOT EXISTS t_platform_user (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    open_id VARCHAR(64) NOT NULL COMMENT '微信OpenID/模拟ID',
+    open_id VARCHAR(64) NOT NULL COMMENT '微信OpenID/测试ID',
     phone VARCHAR(20) NOT NULL COMMENT '手机号',
     password VARCHAR(100) NOT NULL COMMENT '密码',
     nickname VARCHAR(50) NOT NULL COMMENT '昵称',
@@ -35,6 +37,11 @@ CREATE TABLE IF NOT EXISTS t_platform_user (
     auth_status INT NOT NULL DEFAULT 0 COMMENT '实名认证状态',
     enabled INT NOT NULL DEFAULT 1 COMMENT '是否启用',
     wallet_balance DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '钱包余额',
+    member_status VARCHAR(20) NOT NULL DEFAULT 'NONE' COMMENT '会员状态',
+    member_level VARCHAR(30) DEFAULT '普通用户' COMMENT '会员等级',
+    member_opened_at DATETIME DEFAULT NULL COMMENT '会员开通时间',
+    member_expire_at DATETIME DEFAULT NULL COMMENT '会员到期时间',
+    member_last_coupon_week VARCHAR(20) DEFAULT NULL COMMENT '最近发放会员周券周次',
     emergency_contact VARCHAR(50) DEFAULT NULL COMMENT '紧急联系人',
     emergency_phone VARCHAR(20) DEFAULT NULL COMMENT '紧急联系电话',
     default_language VARCHAR(20) DEFAULT 'zh-CN' COMMENT '默认语言',
@@ -226,7 +233,7 @@ CREATE TABLE IF NOT EXISTS t_payment_record (
     pay_status VARCHAR(20) NOT NULL COMMENT '支付状态',
     pay_amount DECIMAL(10,2) NOT NULL COMMENT '支付金额',
     currency_code VARCHAR(10) NOT NULL COMMENT '币种',
-    mock_transaction_no VARCHAR(64) DEFAULT NULL COMMENT '模拟交易号',
+    mock_transaction_no VARCHAR(64) DEFAULT NULL COMMENT '支付交易号',
     refund_amount DECIMAL(10,2) DEFAULT NULL COMMENT '退款金额',
     refund_reason VARCHAR(255) DEFAULT NULL COMMENT '退款原因',
     refunded_at DATETIME DEFAULT NULL COMMENT '退款时间',
@@ -338,10 +345,41 @@ CREATE TABLE IF NOT EXISTS t_message_record (
     content VARCHAR(500) NOT NULL COMMENT '消息内容',
     language_code VARCHAR(20) DEFAULT 'zh-CN' COMMENT '语言编码',
     send_status VARCHAR(20) NOT NULL COMMENT '发送状态',
+    read_status VARCHAR(20) NOT NULL DEFAULT 'UNREAD' COMMENT 'Read status',
+    read_at DATETIME DEFAULT NULL COMMENT 'Read time',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     KEY idx_message_record_user (user_id)
 ) COMMENT='消息推送记录表';
+
+CREATE TABLE IF NOT EXISTS t_support_conversation (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    user_role VARCHAR(20) NOT NULL COMMENT '用户角色',
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN' COMMENT '会话状态',
+    last_message VARCHAR(500) DEFAULT NULL COMMENT '最后一条消息',
+    last_message_at DATETIME DEFAULT NULL COMMENT '最后消息时间',
+    unread_for_admin INT NOT NULL DEFAULT 0 COMMENT '后台未读数',
+    unread_for_user INT NOT NULL DEFAULT 0 COMMENT '用户未读数',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_support_conversation_user_role (user_id, user_role),
+    KEY idx_support_conversation_status (status),
+    KEY idx_support_conversation_last (last_message_at),
+    CONSTRAINT fk_support_conversation_user FOREIGN KEY (user_id) REFERENCES t_platform_user(id)
+) COMMENT='客服会话表';
+
+CREATE TABLE IF NOT EXISTS t_support_message (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    conversation_id BIGINT NOT NULL COMMENT '客服会话ID',
+    sender_id BIGINT DEFAULT NULL COMMENT '发送人ID',
+    sender_role VARCHAR(20) NOT NULL COMMENT '发送人角色',
+    content VARCHAR(500) NOT NULL COMMENT '消息内容',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_support_message_conversation (conversation_id, id),
+    CONSTRAINT fk_support_message_conversation FOREIGN KEY (conversation_id) REFERENCES t_support_conversation(id)
+) COMMENT='客服消息表';
 
 CREATE TABLE IF NOT EXISTS t_operation_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',

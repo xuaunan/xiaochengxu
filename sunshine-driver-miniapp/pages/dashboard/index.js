@@ -117,12 +117,12 @@ Page({
     profile: {},
     permission: {
       canReceiveOrders: false,
-      message: '正在同步司机与车辆审核状态'
+      message: '正在确认司机与车辆审核状态'
     },
     hasActiveTrip: false,
     activeTripCard: null,
     vehicleView: {
-      auditText: '同步中',
+      auditText: '确认中',
       auditClassName: 'neutral'
     },
     noticeText: '',
@@ -140,7 +140,8 @@ Page({
       return
     }
     this.loadHomeNotices().catch(() => {})
-    await this.loadDashboard()
+    const openedVehiclePage = await this.loadDashboard()
+    if (openedVehiclePage) return
     this.startDashboardPolling()
   },
 
@@ -177,11 +178,11 @@ Page({
   },
 
   async loadDashboard(silent = false) {
-    const location = await this.safeGetLocation()
     let dashboardResponse = null
     try {
       dashboardResponse = await fetchDashboard()
     } catch (error) {
+      const location = await this.safeGetLocation()
       this.applyDashboardLoadFailure(error, silent, location)
       return
     }
@@ -200,6 +201,22 @@ Page({
     const wallet = buildWallet(dashboard.profile || {}, orders)
     const store = getApp().globalData.driverStore
     let serviceStatus = resolveServiceStatus(profile.serviceStatus, busy)
+
+    if (!silent && !vehicleView.hasVehicle) {
+      store.profile = {
+        ...profile,
+        serviceStatus
+      }
+      store.vehicle = dashboard.vehicle || {}
+      store.permission = permission
+      store.tripOrders = orders.map(mapTripOrder)
+      store.wallet = wallet
+      getApp().saveStore()
+      wx.navigateTo({ url: '/pages/onboarding/index' })
+      return true
+    }
+
+    const location = await this.safeGetLocation()
 
     if (permission.canReceiveOrders &&
       !busy &&
@@ -284,12 +301,12 @@ Page({
       ? cachedPermission
       : {
           canReceiveOrders: false,
-          message: '后端同步超时，暂时无法确认接单资格，请刷新或检查后端服务'
+          message: '连接超时，暂时无法确认接单资格，请刷新重试'
         }
     const vehicleView = cachedVehicle && cachedVehicle.id
       ? buildVehicleView(cachedVehicle, {}, permission)
       : {
-          auditText: '同步失败',
+          auditText: '确认失败',
           auditClassName: 'neutral',
           hasVehicle: false
         }
@@ -299,7 +316,7 @@ Page({
 
     this.setData({
       listening: serviceStatus === DRIVER_SERVICE_STATUS.ONLINE,
-      listeningText: hasCachedPermission ? getDriverServiceText(serviceStatus) : '后端连接超时，无法同步接单状态',
+      listeningText: hasCachedPermission ? getDriverServiceText(serviceStatus) : '连接超时，无法确认接单状态',
       listeningActionText: getDriverServiceActionText(serviceStatus),
       availableOrders,
       currentIncome: `¥${Number(wallet.todayIncome || 0).toFixed(2)}`,
@@ -315,7 +332,7 @@ Page({
 
     if (!silent) {
       wx.showToast({
-        title: '后端同步超时，请刷新重试',
+        title: '状态刷新超时，请刷新重试',
         icon: 'none'
       })
     }

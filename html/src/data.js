@@ -115,7 +115,7 @@ export const defaultBooking = {
   startId: 'poi101',
   endId: 'poi102',
   carTypeId: 1,
-  remark: '网页端下单，自动同步同一套后端订单。'
+  remark: '网页端下单，订单状态可多端查看。'
 }
 
 export function findPoi(id) {

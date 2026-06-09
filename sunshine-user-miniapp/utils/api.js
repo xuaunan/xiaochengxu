@@ -69,7 +69,7 @@ async function updateProfileByAdmin(userId, data, currentProfile = {}) {
   })
   const token = adminLogin && adminLogin.data ? adminLogin.data.token : ''
   if (!token || !userId) {
-    throw new Error('后台同步失败')
+    throw new Error('资料更新失败')
   }
   const phone = pickValue(currentProfile.phone, '')
   const nickname = pickValue(data.nickname, currentProfile.nickname, currentProfile.name, '')
@@ -282,9 +282,55 @@ function fetchMyCoupons() {
   })
 }
 
+function fetchMembership() {
+  return request({
+    url: '/membership',
+    skipToast: true
+  })
+}
+
+function activateMembership() {
+  return request({
+    url: '/membership/activate',
+    method: 'POST'
+  })
+}
+
 function fetchMessages() {
   return request({
     url: '/messages'
+  })
+}
+
+function fetchSupportConversation() {
+  return request({
+    url: '/support/conversation',
+    data: { _t: Date.now() },
+    skipToast: true
+  })
+}
+
+function fetchSupportMessages() {
+  return request({
+    url: '/support/messages',
+    data: { _t: Date.now() },
+    skipToast: true
+  })
+}
+
+function sendSupportMessage(content) {
+  return request({
+    url: '/support/messages',
+    method: 'POST',
+    data: { content }
+  })
+}
+
+function markMessageRead(messageId) {
+  return request({
+    url: `/messages/${messageId}/read`,
+    method: 'POST',
+    skipToast: true
   })
 }
 
@@ -354,6 +400,7 @@ function fetchMyCarpool() {
 }
 
 module.exports = {
+  activateMembership,
   applyInvoice,
   downloadInvoiceImage,
   applyCarpool,
@@ -364,6 +411,7 @@ module.exports = {
   fetchCarpoolDetail,
   fetchCouponCenter,
   fetchHome,
+  fetchMembership,
   fetchMessages,
   fetchMyCarpool,
   fetchMyCoupons,
@@ -372,7 +420,10 @@ module.exports = {
   fetchOrders,
   fetchProfile,
   fetchTrackHistory,
+  fetchSupportConversation,
+  fetchSupportMessages,
   login,
+  markMessageRead,
   mockPay,
   ownerConfirmCarpool,
   pickupOrder,
@@ -382,6 +433,7 @@ module.exports = {
   register,
   reportTrack,
   searchCarpool,
+  sendSupportMessage,
   submitComplaint,
   submitEvaluation,
   submitRealName,

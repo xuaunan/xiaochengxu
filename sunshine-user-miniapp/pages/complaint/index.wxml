@@ -1,35 +1,88 @@
 <view class="page-shell complaint-shell safe-bottom">
   <view class="page-content complaint-page page-enter">
-    <view class="complaint-hero">
-      <view>
-        <view class="complaint-title">投诉与建议</view>
-        <view class="complaint-subtitle">订单问题与服务反馈</view>
+    <view class="complaint-context">
+      <view class="complaint-context__body">
+        <view class="complaint-context__label">关联行程</view>
+        <view class="complaint-context__route" wx:if="{{orderRouteText}}">{{orderRouteText}}</view>
+        <view class="complaint-context__route complaint-context__route--muted" wx:else>请从订单详情进入</view>
+        <view class="complaint-context__meta" wx:if="{{orderNoText}}">订单号 {{orderNoText}}</view>
+        <view class="complaint-context__meta" wx:else>平台会自动关联对应行程后受理</view>
       </view>
-      <view class="complaint-count">{{history.length}} 条</view>
-      <view class="complaint-hero__icon"></view>
+      <view class="complaint-context__status">{{orderNoText ? '待提交' : '未关联'}}</view>
     </view>
 
     <view class="complaint-form">
-      <view class="complaint-form__title">提交投诉或建议</view>
-      <view class="complaint-form__desc">描述订单问题、司机服务反馈或产品建议，平台会记录处理进度。</view>
-      <textarea class="review-textarea" placeholder="请输入订单问题、司机服务反馈或产品建议" value="{{content}}" bindinput="updateContent"></textarea>
-      <button class="primary-button complaint-submit" hover-class="button-hover" bindtap="submitComplaint">提交反馈</button>
+      <view class="complaint-section-head">
+        <view class="complaint-section-title">选择问题</view>
+      </view>
+
+      <view class="feedback-chips">
+        <view
+          class="feedback-chip tap-scale {{activeType === item.value ? 'feedback-chip--active' : ''}}"
+          wx:for="{{feedbackTypes}}"
+          wx:key="value"
+          data-value="{{item.value}}"
+          bindtap="chooseFeedbackType"
+          hover-class="pressable-hover"
+          hover-stay-time="60"
+        >
+          <view class="feedback-chip__dot"></view>
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+      <view class="complaint-type-hint">{{feedbackHint}}</view>
+
+      <view class="complaint-section-head complaint-section-head--content">
+        <view class="complaint-section-title">说明情况</view>
+        <view class="complaint-count">{{content.length}}/300</view>
+      </view>
+      <textarea
+        class="complaint-textarea"
+        maxlength="300"
+        placeholder="请写清发生时间、司机或车辆情况、费用疑问等，方便客服核实"
+        value="{{content}}"
+        bindinput="updateContent"
+        show-confirm-bar="{{false}}"
+        cursor-spacing="20"
+      ></textarea>
     </view>
 
     <view class="complaint-history">
-      <view class="complaint-history__title">处理记录</view>
-      <view wx:if="{{history.length === 0}}" class="complaint-empty">
-        <view class="complaint-empty__icon"></view>
-        <view class="complaint-empty__title">暂无处理记录</view>
-        <view class="complaint-empty__desc">提交反馈后，处理进度会显示在这里。</view>
+      <view class="complaint-section-head">
+        <view class="complaint-section-title">处理记录</view>
+        <view class="complaint-section-count">{{history.length}} 条</view>
       </view>
+
+      <view wx:if="{{history.length === 0}}" class="complaint-empty-row">
+        <view class="complaint-empty-row__body">
+          <view class="complaint-empty-row__title">还没有处理记录</view>
+          <view class="complaint-empty-row__desc">提交后可在这里查看客服受理状态</view>
+        </view>
+      </view>
+
       <view class="complaint-card tap-scale" wx:for="{{history}}" wx:key="id" hover-class="pressable-hover" hover-stay-time="60">
-        <view class="row-between">
+        <view class="complaint-card__top">
           <view class="complaint-card__title">{{item.title}}</view>
           <view class="status-tag processing">{{item.status}}</view>
         </view>
-        <view class="complaint-card__time">{{item.createdAt}}</view>
+        <view class="complaint-card__meta">
+          <text wx:if="{{item.typeText}}">{{item.typeText}}</text>
+          <text wx:if="{{item.orderNo}}">订单 {{item.orderNo}}</text>
+          <text>{{item.createdAt}}</text>
+        </view>
       </view>
     </view>
+  </view>
+
+  <view class="complaint-bottom-bar">
+    <button
+      class="primary-button complaint-submit"
+      hover-class="button-hover"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="submitComplaint"
+    >
+      {{submitting ? '提交中' : '提交给客服'}}
+    </button>
   </view>
 </view>

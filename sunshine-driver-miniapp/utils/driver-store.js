@@ -18,8 +18,8 @@ function formatDateTime(date) {
 function formatPrice(value, currency = 'CNY') {
   const amount = Number(value || 0).toFixed(2)
   if (currency === 'USD') return `$${amount}`
-  return `\u00a5${amount}`
-  return currency === 'USD' ? `$${amount}` : `¥${amount}`
+  if (currency === 'HKD') return `HK$${amount}`
+  return `¥${amount}`
 }
 
 function toRadians(value) {
@@ -60,7 +60,7 @@ function createDefaultDriverStore() {
       listeningBaselineOrderIds: []
     },
     messages: [
-      { id: 'driver-local-001', title: '课程演示提示', content: '默认司机账号：13900000001 / 123456，通知只在消息中心展示，不触发语音。', time: '刚刚', unread: false }
+      { id: 'driver-local-001', title: '账号提示', content: '默认司机账号：13900000001 / 123456，通知只在消息中心展示，不触发语音。', time: '刚刚', unread: false }
     ],
     noticeHistory: {},
     voiceHistory: {},
@@ -81,7 +81,13 @@ function toNumber(value, fallback = 0) {
 }
 
 function getOrderStatusValue(order = {}) {
-  return order.orderStatus || order.status || ''
+  const rawStatus = `${order.orderStatus || order.order_status || order.rawStatus || order.status || ''}`.trim()
+  const statusMap = {
+    completed: ORDER_STATUS.FINISHED,
+    finished: ORDER_STATUS.FINISHED,
+    cancelled: ORDER_STATUS.CANCELLED
+  }
+  return statusMap[rawStatus] || rawStatus.toUpperCase()
 }
 
 function getDriverIncomeAmount(order = {}) {
@@ -127,18 +133,34 @@ function normalizeDateKey(value) {
   return text.slice(0, 10).replace(/\//g, '-')
 }
 
-function parseCarpoolMeta(order = {}) {
-  if (order.serviceType !== SERVICE_TYPE.CARPOOL) return null
-  const remark = `${order.remark || ''}`
-  const matched = remark.match(/\[CARPOOL_META\]([\s\S]*?)\[\/CARPOOL_META\]/)
-  let meta = null
-  if (matched && matched[1]) {
+function parseMetaObject(value) {
+  if (!value) return null
+  if (typeof value === 'object' && !Array.isArray(value)) return value
+  if (typeof value === 'string') {
     try {
-      meta = JSON.parse(matched[1])
+      const parsed = JSON.parse(value.trim())
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
     } catch (error) {
-      meta = null
+      return null
     }
   }
+  return null
+}
+
+function parseTaggedMeta(remark = '', tag) {
+  const matched = `${remark || ''}`.match(new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`))
+  if (!matched || !matched[1]) return null
+  return parseMetaObject(matched[1])
+}
+
+function toList(value) {
+  if (Array.isArray(value)) return value.filter((item) => `${item || ''}`.trim())
+  return `${value || ''}`.split(',').map((item) => item.trim()).filter(Boolean)
+}
+
+function parseCarpoolMeta(order = {}) {
+  if (order.serviceType !== SERVICE_TYPE.CARPOOL) return null
+  const meta = parseTaggedMeta(order.remark, 'CARPOOL_META')
   if (!meta) return null
 
   const passengerCount = Math.max(1, toNumber(meta.passengerCount, 1))
@@ -147,6 +169,52 @@ function parseCarpoolMeta(order = {}) {
 
   return {
     summaryText: [[meta.departDate, meta.timeRange].filter(Boolean).join(' '), `${passengerCount}人`, luggageText, tollText].filter(Boolean).join(' · ')
+  }
+}
+
+function parseInternationalMeta(order = {}) {
+  if (order.serviceType !== SERVICE_TYPE.INTERNATIONAL) return null
+  const embeddedMeta = parseTaggedMeta(order.remark, 'INTERNATIONAL_META') || {}
+  const viewMeta = parseMetaObject(order.internationalMeta) || {}
+  const meta = {
+    ...embeddedMeta,
+    ...viewMeta
+  }
+  const passengerCount = Math.max(1, toNumber(meta.passengerCount, 1))
+  const luggageCount = Math.max(0, toNumber(meta.luggageCount, 0))
+  const appointmentTime = firstText(meta.appointmentTime)
+  const flightNo = firstText(meta.flightNo).toUpperCase()
+  const contactName = firstText(meta.contactName)
+  const contactPhone = firstText(meta.contactPhone)
+  const pickupSign = firstText(meta.pickupSign, contactName, '待确认')
+  const documents = toList(meta.documents)
+  const serviceItems = toList(meta.serviceItems)
+
+  return {
+    routeCode: firstText(meta.routeCode, 'GLOBAL'),
+    countryText: firstText(meta.countryText),
+    productName: firstText(meta.productName, '国际出行'),
+    productNameEn: firstText(meta.productNameEn),
+    appointmentTime,
+    appointmentTimeText: appointmentTime || '预约时间待确认',
+    passengerCount,
+    passengerCountText: `${passengerCount}人`,
+    luggageCount,
+    luggageCountText: `${luggageCount}件行李`,
+    contactName,
+    contactPhone,
+    contactText: [contactName, contactPhone].filter(Boolean).join(' · ') || '联系人待确认',
+    flightNo,
+    flightText: flightNo ? `航班/编号 ${flightNo}` : '航班/编号待补充',
+    pickupSign,
+    pickupSignText: pickupSign === '待确认' ? '接机牌待确认' : `接机牌 ${pickupSign}`,
+    documents,
+    documentsText: documents.length ? documents.join('、') : '按目的地要求携带有效证件',
+    serviceItems,
+    serviceItemsText: serviceItems.length ? serviceItems.join(' · ') : '跨境接送 · 中文客服',
+    syncStatusText: meta.syncStatus === 'LOCAL_DRAFT' ? '待提交' : '已确认',
+    summaryText: [appointmentTime || '', flightNo || '', `${passengerCount}人`, `${luggageCount}件行李`].filter(Boolean).join(' · '),
+    driverBriefText: [appointmentTime || '预约待确认', flightNo || '航班待补充', `${passengerCount}人/${luggageCount}件行李`, pickupSign === '待确认' ? '' : `接机牌 ${pickupSign}`].filter(Boolean).join(' · ')
   }
 }
 
@@ -162,6 +230,10 @@ function isEnabled(value) {
 
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null)
+}
+
+function firstText(...values) {
+  return values.find((value) => `${value || ''}`.trim()) || ''
 }
 
 function getReceiveOrderPermission(dashboard = {}) {
@@ -240,20 +312,25 @@ function buildVehicleView(vehicle = {}, user = {}, permission = {}) {
 function mapWaitingOrder(order, driverLocation) {
   const serviceTypeMeta = getServiceTypeMeta(order.serviceType)
   const carpoolMeta = parseCarpoolMeta(order)
+  const internationalMeta = parseInternationalMeta(order)
+  const passenger = order.passenger || order.user || {}
+  const passengerName = firstText(order.passengerName, order.userName, order.userNickname, passenger.displayName, passenger.nickname, passenger.realName, `乘客 #${String(order.userId || '').slice(-2) || '00'}`)
   const distanceText = driverLocation
     ? `${getDistanceKm(driverLocation, { latitude: toNumber(order.startLat), longitude: toNumber(order.startLng) }).toFixed(1)} 公里到上车点`
     : '等待获取当前位置'
   return {
     ...order,
-    passengerName: `乘客 #${String(order.userId || '').slice(-2) || '00'}`,
+    passengerName,
     startName: order.startName,
     endName: order.endName,
     distanceText,
     fareText: `预估 ${formatPrice(order.payableAmount || order.estimatedAmount, order.currencyCode)}`,
     serviceTypeLabel: serviceTypeMeta.label,
     serviceTypeClassName: serviceTypeMeta.className,
-    orderInfoText: carpoolMeta ? carpoolMeta.summaryText : '',
-    seatHint: order.serviceType === SERVICE_TYPE.CARPOOL ? '顺路拼座单' : order.serviceType === SERVICE_TYPE.INTERNATIONAL ? '跨境行程单' : '标准即时订单',
+    carpoolMeta,
+    internationalMeta,
+    orderInfoText: internationalMeta ? internationalMeta.driverBriefText : carpoolMeta ? carpoolMeta.summaryText : '',
+    seatHint: order.serviceType === SERVICE_TYPE.CARPOOL ? '顺路拼座单' : order.serviceType === SERVICE_TYPE.INTERNATIONAL ? '国际预约行程' : '标准即时订单',
     latitude: toNumber(order.startLat),
     longitude: toNumber(order.startLng),
     status: 'waiting'
@@ -261,17 +338,26 @@ function mapWaitingOrder(order, driverLocation) {
 }
 
 function mapTripOrder(order) {
-  const statusMeta = getOrderStatusMeta(order.orderStatus)
+  const orderStatus = getOrderStatusValue(order)
+  const statusMeta = getOrderStatusMeta(orderStatus)
   const serviceTypeMeta = getServiceTypeMeta(order.serviceType)
+  const carpoolMeta = parseCarpoolMeta(order)
+  const internationalMeta = parseInternationalMeta(order)
+  const passenger = order.passenger || order.user || {}
+  const passengerName = firstText(order.passengerName, order.userName, order.userNickname, passenger.displayName, passenger.nickname, passenger.realName, `乘客 #${String(order.userId || '').slice(-2) || '00'}`)
   return {
     ...order,
-    passengerName: `乘客 #${String(order.userId || '').slice(-2) || '00'}`,
+    orderStatus,
+    passengerName,
     status: statusMeta.key,
-    rawStatus: order.orderStatus,
+    rawStatus: orderStatus,
     statusText: statusMeta.label,
     serviceTypeLabel: serviceTypeMeta.label,
     serviceTypeClassName: serviceTypeMeta.className,
-    seatHint: order.serviceType === SERVICE_TYPE.CARPOOL ? '顺风车订单' : order.serviceType === SERVICE_TYPE.INTERNATIONAL ? '国际行程订单' : '即时打车订单',
+    carpoolMeta,
+    internationalMeta,
+    orderInfoText: internationalMeta ? internationalMeta.driverBriefText : carpoolMeta ? carpoolMeta.summaryText : '',
+    seatHint: order.serviceType === SERVICE_TYPE.CARPOOL ? '顺风车订单' : order.serviceType === SERVICE_TYPE.INTERNATIONAL ? '国际预约行程' : '即时打车订单',
     fareText: formatPrice(order.actualAmount || order.payableAmount || order.estimatedAmount, order.currencyCode),
     createdAt: formatDateTime(order.createdAt || new Date())
   }
@@ -287,8 +373,8 @@ function buildWallet(profile, orders = []) {
     .filter((item) => normalizeDateKey(item.finishedAt || item.finishTime || item.finished_at || item.finish_time || item.updatedAt || item.updated_at).startsWith(month))
     .reduce((sum, item) => sum + getDriverIncomeAmount(item), 0)
   return {
-    todayIncome: Number((todayIncome || toNumber(profile.todayIncome ?? profile.today_income, 0)).toFixed(2)),
-    monthIncome: Number((monthIncome || toNumber(profile.monthIncome ?? profile.month_income ?? profile.totalIncome ?? profile.total_income, 0)).toFixed(2)),
+    todayIncome: Number(todayIncome.toFixed(2)),
+    monthIncome: Number(monthIncome.toFixed(2)),
     withdrawable: toNumber(
       profile.withdrawableIncome ??
       profile.withdrawable_income ??
@@ -327,6 +413,7 @@ module.exports = {
   mapTripOrder,
   mapWaitingOrder,
   nextActionText,
+  parseInternationalMeta,
   toNumber,
   getDriverIncomeAmount
 }

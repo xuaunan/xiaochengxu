@@ -27,10 +27,14 @@
 }
 
 .empty-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 24rpx;
   padding: 0 34rpx;
   height: 76rpx;
-  line-height: 76rpx;
+  line-height: 1.2;
+  box-sizing: border-box;
   color: #ff7a00;
   background: #fff1df;
   border-radius: 999rpx;

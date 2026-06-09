@@ -105,6 +105,23 @@ function normalizeUserStore(store) {
     ...base,
     ...(store || {})
   }
+  merged.profile = {
+    ...base.profile,
+    ...((store && store.profile) || {})
+  }
+  merged.settings = {
+    ...base.settings,
+    ...((store && store.settings) || {})
+  }
+  merged.membership = {
+    ...base.membership,
+    ...((store && store.membership) || {})
+  }
+  merged.memberCoupons = Array.isArray(merged.memberCoupons) ? merged.memberCoupons : []
+  if (merged.settings && Object.prototype.hasOwnProperty.call(merged.settings, 'darkMode')) {
+    const { darkMode, ...settings } = merged.settings
+    merged.settings = settings
+  }
   merged.orders = normalizeOrders(merged.orders)
   merged.currentRideOrder = pickCurrentRideOrder(merged.orders, merged.currentRideOrder)
   return merged
@@ -137,7 +154,6 @@ App({
   onLaunch() {
     this.globalData.poiLibrary = POI_LIBRARY
     this.bootstrapState()
-    this.syncSystemTheme()
   },
 
   bootstrapState() {
@@ -155,15 +171,6 @@ App({
     this.globalData.userStore = normalizeUserStore(cachedStore || createDefaultUserStore())
     this.globalData.routeDraft = normalizeDraft(cachedDraft)
     this.globalData.userStore.loggedIn = Boolean(this.globalData.token)
-  },
-
-  syncSystemTheme() {
-    wx.getSystemInfo({
-      success: ({ theme }) => {
-        this.globalData.userStore.settings.darkMode = theme === 'dark'
-        this.saveUserStore()
-      }
-    })
   },
 
   saveUserStore() {
@@ -305,8 +312,26 @@ App({
 
   applyProfile(profile) {
     const previousProfile = this.globalData.userStore.profile || {}
+    const membership = this.globalData.userStore.membership || {}
     const source = {
       ...profile
+    }
+    const memberStatus = firstDefined(source.memberStatus, source.member_status, membership.active ? 'ACTIVE' : 'NONE')
+    const memberLevel = firstDefined(source.memberLevel, source.member_level, memberStatus === 'ACTIVE' ? '阳光会员' : '普通用户')
+    const memberExpireAt = firstDefined(source.memberExpireAt, source.member_expire_at, membership.expireAt, '')
+    const memberOpenedAt = firstDefined(source.memberOpenedAt, source.member_opened_at, membership.openedAt, '')
+    const memberLastCouponWeek = firstDefined(source.memberLastCouponWeek, source.member_last_coupon_week, membership.packageWeek, '')
+    const memberActive = memberStatus === 'ACTIVE'
+    this.globalData.userStore.membership = {
+      ...membership,
+      active: memberActive,
+      status: memberActive ? 'ACTIVE' : 'NONE',
+      level: memberLevel,
+      openedAt: memberOpenedAt,
+      expireAt: memberExpireAt,
+      expireDate: `${memberExpireAt || ''}`.slice(0, 10),
+      packageWeek: memberLastCouponWeek,
+      couponRuleText: firstDefined(source.couponRuleText, membership.couponRuleText, '每周自动赠送 3 张不同优惠券')
     }
     this.globalData.userStore.profile = {
       ...previousProfile,
@@ -318,7 +343,9 @@ App({
       authStatus: firstDefined(source.authStatus, source.auth_status),
       realName: firstDefined(source.realName, source.real_name, ''),
       idCard: firstDefined(source.idCard, source.id_card, ''),
-      memberLevel: '阳光会员',
+      memberStatus: memberActive ? 'ACTIVE' : 'NONE',
+      memberLevel,
+      memberExpireAt,
       walletBalance: Number(source.walletBalance || 0),
       emergencyContact: firstDefined(source.emergencyContact, source.emergency_contact, ''),
       emergencyPhone: firstDefined(source.emergencyPhone, source.emergency_phone, ''),

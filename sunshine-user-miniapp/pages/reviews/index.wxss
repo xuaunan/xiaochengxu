@@ -7,65 +7,69 @@
 .reviews-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding-top: 20rpx;
+  gap: 12rpx;
+  padding-top: 12rpx;
 }
 
 .reviews-hero,
 .review-card,
 .reviews-empty {
-  border-radius: 28rpx;
+  border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 16rpx 36rpx rgba(37, 43, 58, 0.05);
+  box-shadow: 0 7rpx 18rpx rgba(37, 43, 58, 0.035);
 }
 
 .reviews-hero {
   position: relative;
-  min-height: 160rpx;
-  padding: 30rpx 170rpx 30rpx 30rpx;
+  min-height: 102rpx;
+  padding: 17rpx 116rpx 17rpx 18rpx;
   overflow: hidden;
   background:
     linear-gradient(105deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 255, 255, 0.95) 56%, rgba(255, 231, 194, 0.7) 100%);
 }
 
 .reviews-title {
-  font-size: 42rpx;
-  font-weight: 900;
+  font-size: 27rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.18;
 }
 
 .reviews-subtitle {
-  margin-top: 10rpx;
-  font-size: 24rpx;
+  margin-top: 7rpx;
+  font-size: 20rpx;
   color: #737c90;
 }
 
 .reviews-count {
   position: absolute;
-  right: 30rpx;
-  top: 32rpx;
+  right: 20rpx;
+  top: 24rpx;
   z-index: 2;
-  min-width: 92rpx;
-  height: 58rpx;
-  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78rpx;
+  height: 42rpx;
+  padding: 0 16rpx;
   border-radius: 999rpx;
   color: #ff6b00;
   background: rgba(255, 255, 255, 0.72);
   border: 1rpx solid rgba(255, 255, 255, 0.82);
-  font-size: 26rpx;
-  font-weight: 900;
-  line-height: 58rpx;
-  text-align: center;
+  font-size: 20rpx;
+  font-weight: 550;
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .reviews-hero__icon {
   position: absolute;
-  right: 52rpx;
-  bottom: 22rpx;
-  width: 84rpx;
-  height: 84rpx;
+  right: 38rpx;
+  bottom: 16rpx;
+  width: 64rpx;
+  height: 64rpx;
+  box-sizing: border-box;
   border-radius: 50%;
   background: linear-gradient(180deg, rgba(255, 183, 105, 0.82), rgba(255, 122, 0, 0.76));
 }
@@ -73,25 +77,25 @@
 .reviews-hero__icon::before {
   content: "";
   position: absolute;
-  left: 24rpx;
-  top: 23rpx;
-  width: 36rpx;
-  height: 26rpx;
-  border-left: 7rpx solid #ffffff;
-  border-bottom: 7rpx solid #ffffff;
+  left: 50%;
+  top: 50%;
+  width: 27rpx;
+  height: 18rpx;
+  border-left: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
   border-radius: 2rpx;
   background: transparent;
-  transform: rotate(-45deg);
+  transform: translate(-50%, -56%) rotate(-45deg);
 }
 
 .reviews-list {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 10rpx;
 }
 
 .review-card {
-  padding: 26rpx;
+  padding: 16rpx;
 }
 
 .review-card__top {
@@ -102,24 +106,25 @@
 
 .review-icon {
   position: relative;
-  width: 58rpx;
-  height: 58rpx;
+  width: 46rpx;
+  height: 46rpx;
   flex-shrink: 0;
-  border-radius: 18rpx;
+  box-sizing: border-box;
+  border-radius: 14rpx;
   background: rgba(255, 122, 0, 0.1);
 }
 
 .review-icon::before {
   content: "";
   position: absolute;
-  left: 16rpx;
-  top: 19rpx;
-  width: 26rpx;
-  height: 18rpx;
-  border-left: 5rpx solid #ff7a00;
-  border-bottom: 5rpx solid #ff7a00;
+  left: 50%;
+  top: 50%;
+  width: 21rpx;
+  height: 14rpx;
+  border-left: 3rpx solid #ff7a00;
+  border-bottom: 3rpx solid #ff7a00;
   border-radius: 2rpx;
-  transform: rotate(-45deg);
+  transform: translate(-50%, -56%) rotate(-45deg);
 }
 
 .review-card__main {
@@ -129,39 +134,39 @@
 
 .review-score {
   flex-shrink: 0;
-  padding: 10rpx 18rpx;
+  padding: 8rpx 14rpx;
   border-radius: 999rpx;
   color: #ff6b00;
   background: rgba(255, 122, 0, 0.08);
-  font-size: 24rpx;
-  font-weight: 900;
+  font-size: 20rpx;
+  font-weight: 550;
 }
 
 .review-card__title {
-  font-size: 29rpx;
-  font-weight: 900;
+  font-size: 23rpx;
+  font-weight: 550;
   color: #111827;
   line-height: 1.34;
 }
 
 .review-card__meta,
 .review-card__time {
-  margin-top: 8rpx;
-  font-size: 23rpx;
+  margin-top: 6rpx;
+  font-size: 21rpx;
   color: #7a8396;
 }
 
 .review-content {
-  margin-top: 18rpx;
-  padding: 18rpx 20rpx;
-  border-radius: 20rpx;
+  margin-top: 10rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 14rpx;
   background: linear-gradient(135deg, rgba(255, 249, 241, 0.96), rgba(255, 255, 255, 0.98));
   border: 1rpx solid rgba(255, 122, 0, 0.08);
-  font-size: 24rpx;
-  line-height: 1.6;
+  font-size: 20rpx;
+  line-height: 1.5;
   color: #4f5b70;
 }
 
 .reviews-empty {
-  padding: 24rpx;
+  padding: 20rpx;
 }

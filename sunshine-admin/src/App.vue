@@ -59,17 +59,19 @@ const navItems = [
   { path: '/users', label: '用户管理', desc: '用户、实名、密码' },
   { path: '/drivers', label: '司机管理', desc: '审核、启禁、接单' },
   { path: '/orders', label: '订单管理', desc: '详情、退款、投诉' },
+  { path: '/support', label: '客服服务', desc: '乘客/司机在线对话' },
   { path: '/international', label: '国际出行', desc: '跨境订单、汇率、材料' },
   { path: '/coupons', label: '营销中心', desc: '优惠券全生命周期' },
+  { path: '/members', label: '会员管理', desc: '乘客会员与周券' },
   { path: '/system', label: '系统配置', desc: '公告、版本、参数' }
 ]
 
 const webClientUrl = import.meta.env.VITE_SUNSHINE_WEB_URL || 'http://127.0.0.1:5174/'
 const connectionLabels = {
-  frontend: '小程序前端',
-  backend: '后端服务',
+  frontend: '小程序',
+  backend: '业务接口',
   admin: '管理后台',
-  database: '数据库',
+  database: '数据状态',
   web: '网页端'
 }
 const connectionStatus = ref({
