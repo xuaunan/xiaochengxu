@@ -1144,7 +1144,7 @@ function normalizeTimeline(order = {}) {
   }))
 }
 
-function CityMap({ booking, estimate, compact = false, operational = false, activeOrder = null, runtime = null }) {
+function CityMap({ booking, estimate, compact = false, operational = true, activeOrder = null, runtime = null }) {
   const tilt = useTiltCard({ maxX: 6, maxY: 9 })
   const route = activeOrder ? buildRouteFromOrder(activeOrder) : calcRoute(booking.startId, booking.endId)
   const fallback = activeOrder
@@ -1327,7 +1327,7 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
     const renderRoute = renderRouteSource
       .map((point) => new TMap.LatLng(Number(point.latitude), Number(point.longitude)))
 
-    new TMap.MultiPolyline({
+    const routeLayer = new TMap.MultiPolyline({
       map,
       styles: {
         route: new TMap.PolylineStyle({
@@ -1361,7 +1361,7 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
         position: new TMap.LatLng(runtime.driverLocation.latitude, runtime.driverLocation.longitude)
       })
     }
-    new TMap.MultiMarker({
+    const markerLayer = new TMap.MultiMarker({
       map,
       styles: {
         start: new TMap.MarkerStyle({
@@ -1396,6 +1396,13 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
       if (typeof map.fitBounds === 'function') {
         map.fitBounds(bounds)
       }
+    }
+
+    return () => {
+      if (typeof markerLayer.setMap === 'function') markerLayer.setMap(null)
+      if (typeof routeLayer.setMap === 'function') routeLayer.setMap(null)
+      if (typeof map.destroy === 'function') map.destroy()
+      if (mapInstanceRef.current === map) mapInstanceRef.current = null
     }
   }, [scriptReady, start, end, runtime?.driverLocation, runtime?.route, routePoints])
 

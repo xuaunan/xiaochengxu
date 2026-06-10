@@ -17,6 +17,13 @@ export default defineConfig({
   },
   preview: {
     host: '127.0.0.1',
-    port: 4174
+    port: 4174,
+    proxy: {
+      '/__tencent_map__': {
+        target: 'https://apis.map.qq.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__tencent_map__/, '')
+      }
+    }
   }
 })
