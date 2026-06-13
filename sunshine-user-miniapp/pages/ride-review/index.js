@@ -1,5 +1,6 @@
 const { fetchOrderDetail, submitEvaluation } = require('../../utils/api')
 const { buildReviewRecord } = require('../../utils/user-store')
+const { switchTabSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -74,7 +75,7 @@ Page({
       icon: 'success'
     })
     setTimeout(() => {
-      wx.switchTab({
+      switchTabSilky(this, {
         url: '/pages/orders/index'
       })
     }, 360)

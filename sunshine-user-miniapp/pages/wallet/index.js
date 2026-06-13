@@ -1,10 +1,18 @@
 const { fetchOrders, fetchProfile } = require('../../utils/api')
 const { buildWalletView, syncOrdersToCache } = require('../../utils/user-store')
-const { runExclusive } = require('../../utils/page')
+const { navigateToSilky, runExclusive } = require('../../utils/page')
 const { PAY_STATUS, getServiceLabel } = require('../../utils/constants')
 const { formatDateTime, formatPrice, parseDateValue } = require('../../utils/format')
 
 const RECORD_LIMIT = 20
+
+const EMPTY_SUMMARY = {
+  spendText: '¥0.00',
+  refundText: '¥0.00',
+  countText: '0笔',
+  filterLabel: '全部类型',
+  syncText: '完成支付或退款后自动同步'
+}
 
 function toNumber(value, fallback = 0) {
   const number = Number(value)
@@ -40,6 +48,24 @@ function formatWalletTime(value) {
   return text === '时间待同步' ? text : text.replace(/^\d{4}-/, '')
 }
 
+function splitWalletTime(value) {
+  const text = formatWalletTime(value)
+  if (text === '时间待同步') {
+    return {
+      date: '待同步',
+      clock: '--:--',
+      text
+    }
+  }
+
+  const [date, clock = ''] = text.split(' ')
+  return {
+    date,
+    clock,
+    text
+  }
+}
+
 function buildOrderRecords(orders = []) {
   return orders
     .filter((item) => item.payStatus === PAY_STATUS.PAID || item.payStatus === PAY_STATUS.REFUNDED)
@@ -48,6 +74,8 @@ function buildOrderRecords(orders = []) {
     .map((order, index) => {
       const refunded = order.payStatus === PAY_STATUS.REFUNDED
       const tone = refunded ? 'refund' : 'spend'
+      const time = splitWalletTime(firstPresent(order.paidAt, order.finishedAt, order.updatedAt, order.createdAt))
+      const serviceLabel = getServiceLabel(order.serviceType)
       return {
         key: `order-${order.id || order.orderNo || index}`,
         type: 'order',
@@ -55,12 +83,41 @@ function buildOrderRecords(orders = []) {
         marker: refunded ? '退' : '支',
         markerClass: `wallet-record__marker--${tone}`,
         amountClass: `wallet-record__amount--${tone}`,
+        statusClass: `wallet-record__status--${tone}`,
+        statusText: refunded ? '已退款' : '已支付',
+        tone,
+        serviceLabel,
         title: getOrderRouteText(order),
-        desc: `${getServiceLabel(order.serviceType)} · ${refunded ? '退款入账' : '已支付'}`,
-        time: formatWalletTime(firstPresent(order.paidAt, order.finishedAt, order.updatedAt, order.createdAt)),
+        desc: refunded ? '退款入账' : '账户扣款',
+        date: time.date,
+        clock: time.clock,
+        time: time.text,
+        amount: getOrderAmount(order),
         amountText: `${refunded ? '+' : '-'}${formatPrice(getOrderAmount(order), order.currencyCode)}`
       }
     })
+}
+
+function buildSummary(records = []) {
+  if (!records.length) return { ...EMPTY_SUMMARY }
+
+  const spendTotal = records
+    .filter((item) => item.tone === 'spend')
+    .reduce((sum, item) => sum + toNumber(item.amount), 0)
+  const refundTotal = records
+    .filter((item) => item.tone === 'refund')
+    .reduce((sum, item) => sum + toNumber(item.amount), 0)
+  const latestTimeText = records[0].time === '时间待同步'
+    ? '最近交易时间待同步'
+    : `最近交易 ${records[0].date} ${records[0].clock}`
+
+  return {
+    spendText: formatPrice(spendTotal),
+    refundText: formatPrice(refundTotal),
+    countText: `${records.length}笔`,
+    filterLabel: '全部类型',
+    syncText: latestTimeText
+  }
 }
 
 function buildWalletPageState(baseWallet = {}, orders = []) {
@@ -71,6 +128,7 @@ function buildWalletPageState(baseWallet = {}, orders = []) {
   const records = buildOrderRecords(orders)
   return {
     wallet,
+    summary: buildSummary(records),
     records,
     hasRecords: records.length > 0
   }
@@ -79,8 +137,10 @@ function buildWalletPageState(baseWallet = {}, orders = []) {
 Page({
   data: {
     wallet: {},
+    summary: EMPTY_SUMMARY,
     records: [],
-    hasRecords: false
+    hasRecords: false,
+    balanceVisible: true
   },
 
   async onShow() {
@@ -113,7 +173,13 @@ Page({
     const type = e.currentTarget.dataset.type
     const id = e.currentTarget.dataset.id
     if (type === 'order' && id) {
-      wx.navigateTo({ url: `/pages/order-detail/index?id=${id}` })
+      navigateToSilky(this, { url: `/pages/order-detail/index?id=${id}` }, { selector: '.wallet-page' })
     }
+  },
+
+  toggleBalanceVisible() {
+    this.setData({
+      balanceVisible: !this.data.balanceVisible
+    })
   }
 })

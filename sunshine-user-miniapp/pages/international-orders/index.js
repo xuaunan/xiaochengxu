@@ -1,7 +1,7 @@
 const { fetchOrders } = require('../../utils/api')
 const { SERVICE_TYPE } = require('../../utils/constants')
 const { formatOrderItem, getCarTypeMap, syncOrdersToCache } = require('../../utils/user-store')
-const { runExclusive } = require('../../utils/page')
+const { navigateToSilky, runExclusive } = require('../../utils/page')
 
 function buildInternationalList(orders = []) {
   const carTypeMap = getCarTypeMap(getApp().globalData.userStore.home.carTypes || [])
@@ -35,6 +35,6 @@ Page({
   },
 
   goInternational() {
-    wx.navigateTo({ url: '/pages/international/index' })
+    navigateToSilky(this, { url: '/pages/international/index' })
   }
 })

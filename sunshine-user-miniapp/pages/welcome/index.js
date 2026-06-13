@@ -1,3 +1,5 @@
+const { navigateToSilky, redirectToSilky } = require('../../utils/page')
+
 Page({
   data: {
     couponCount: 3
@@ -6,8 +8,10 @@ Page({
   onShow() {
     const app = getApp()
     if (app.globalData.userStore.hasSeenWelcome) {
-      wx.redirectTo({
+      redirectToSilky(this, {
         url: '/pages/login/index'
+      }, {
+        selector: '.welcome-page'
       })
     }
   },
@@ -16,8 +20,10 @@ Page({
     const app = getApp()
     app.globalData.userStore.hasSeenWelcome = true
     app.saveUserStore()
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: '/pages/login/index'
+    }, {
+      selector: '.welcome-page'
     })
   }
 })

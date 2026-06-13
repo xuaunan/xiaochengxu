@@ -1,5 +1,6 @@
 const { publishCarpool } = require('../../utils/api')
 const { joinDateTime, splitDateTime } = require('../../utils/format')
+const { redirectToSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -71,7 +72,7 @@ Page({
       })
       wx.showToast({ title: '发布成功', icon: 'success' })
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/carpool-trips/index' })
+        redirectToSilky(this, { url: '/pages/carpool-trips/index' })
       }, 320)
     } finally {
       this.setData({ submitting: false })

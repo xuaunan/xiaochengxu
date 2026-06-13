@@ -568,6 +568,14 @@ input {
   animation: page-enter 0.32s var(--motion-smooth) both;
 }
 
+.page-leaving,
+.page-enter.page-leaving,
+.page-leaving .page-enter {
+  pointer-events: none;
+  animation: silky-page-leave 0.16s var(--motion-press) forwards;
+  transform-origin: center top;
+}
+
 .card-hover,
 .tap-card {
   transition:
@@ -589,6 +597,16 @@ input {
 .card-hover:active {
   transform: translateY(2rpx) scale(0.985);
   opacity: 0.96;
+}
+
+.pressable-row,
+.pressable-surface {
+  transition:
+    transform 0.16s var(--motion-press),
+    opacity 0.16s var(--motion-press),
+    background 0.2s var(--motion-smooth),
+    box-shadow 0.2s var(--motion-smooth);
+  will-change: transform, opacity;
 }
 
 .badge-dot {
@@ -654,5 +672,21 @@ input {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .silky-page--enter,
+  .silky-page--leave,
+  .page-leaving,
+  .page-enter.page-leaving,
+  .page-leaving .page-enter,
+  .fade-in,
+  .slide-in,
+  .bottom-sheet,
+  .skeleton::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
   }
 }

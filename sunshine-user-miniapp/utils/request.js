@@ -1,4 +1,5 @@
 const { ERROR_CODE } = require('./constants')
+const { reLaunchSilky } = require('./page')
 
 let refreshingPromise = null
 let reloginPromise = null
@@ -37,6 +38,14 @@ function redirectToLogin() {
   if (active && active.route === 'pages/login/index') {
     return
   }
+
+  if (active && typeof active.setData === 'function') {
+    reLaunchSilky(active, {
+      url: '/pages/login/index'
+    })
+    return
+  }
+
   wx.reLaunch({
     url: '/pages/login/index'
   })

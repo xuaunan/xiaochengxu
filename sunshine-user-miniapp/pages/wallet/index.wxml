@@ -1,24 +1,61 @@
 <view class="page-shell wallet-page-shell safe-bottom">
   <view class="wallet-page page-enter">
-    <view class="wallet-balance-card">
-      <view class="wallet-balance-head">
+    <view class="wallet-hero">
+      <image class="wallet-hero-bg" src="/images/wallet-security-bg.png" mode="aspectFill"></image>
+      <view class="wallet-hero-top">
         <view>
-          <view class="wallet-balance-title">钱包余额</view>
-          <view class="wallet-balance-desc">账户当前可用余额</view>
+          <view class="wallet-kicker">账户资产</view>
+          <view class="wallet-balance-title">
+            <text>钱包余额</text>
+            <view class="wallet-eye {{balanceVisible ? '' : 'is-hidden'}}" catchtap="toggleBalanceVisible"></view>
+          </view>
+        </view>
+        <view class="wallet-status-pill">
+          <view class="wallet-status-shield"></view>
+          <text>安全保障</text>
         </view>
       </view>
+
       <view class="wallet-amount-line">
-        <text class="wallet-amount-symbol">¥</text>
-        <text class="wallet-amount">{{wallet.balanceText}}</text>
+        <text class="wallet-amount-symbol" wx:if="{{balanceVisible}}">¥</text>
+        <text class="wallet-amount">{{balanceVisible ? wallet.balanceText : '****'}}</text>
+      </view>
+
+      <view class="wallet-balance-desc">{{summary.syncText}}</view>
+
+      <view class="wallet-summary-grid">
+        <view class="wallet-summary-item">
+          <view class="wallet-summary-label">近期支出</view>
+          <view class="wallet-summary-value">{{balanceVisible ? summary.spendText : '****'}}</view>
+        </view>
+        <view class="wallet-summary-divider"></view>
+        <view class="wallet-summary-item">
+          <view class="wallet-summary-label">退款入账</view>
+          <view class="wallet-summary-value wallet-summary-value--refund">{{balanceVisible ? summary.refundText : '****'}}</view>
+        </view>
+        <view class="wallet-summary-divider"></view>
+        <view class="wallet-summary-item">
+          <view class="wallet-summary-label">交易笔数</view>
+          <view class="wallet-summary-value">{{balanceVisible ? summary.countText : '****'}}</view>
+        </view>
       </view>
     </view>
 
     <view class="wallet-section-head">
       <view class="wallet-title-wrap">
         <view class="wallet-section-icon"></view>
-        <view class="wallet-section-title">流水明细</view>
+        <view>
+          <view class="wallet-section-title">流水明细</view>
+          <view class="wallet-section-desc">按最近支付时间排序</view>
+        </view>
       </view>
-      <view class="wallet-soft-pill">{{records.length}} 条</view>
+      <view class="wallet-section-actions">
+        <view class="wallet-filter-pill">
+          <text>{{summary.filterLabel}}</text>
+          <view class="wallet-filter-caret"></view>
+        </view>
+        <view class="wallet-soft-count">{{records.length}}条</view>
+      </view>
     </view>
 
     <view class="wallet-ledger-panel">
@@ -31,18 +68,32 @@
           data-id="{{item.orderId}}"
           bindtap="openRecord"
         >
-          <view class="wallet-record-mark {{item.markerClass}}">{{item.marker}}</view>
+          <view class="wallet-record-mark {{item.markerClass}}">
+            <text>{{item.marker}}</text>
+          </view>
           <view class="wallet-record-copy">
-            <view class="wallet-record-title">{{item.title}}</view>
-            <view class="wallet-record-desc">{{item.desc}}</view>
+            <view class="wallet-record-title-line">
+              <view class="wallet-record-title">{{item.title}}</view>
+              <view class="wallet-record-status {{item.statusClass}}">{{item.statusText}}</view>
+            </view>
+            <view class="wallet-record-desc">
+              <text>{{item.serviceLabel}}</text>
+              <text class="wallet-record-dot">·</text>
+              <text>{{item.desc}}</text>
+            </view>
           </view>
           <view class="wallet-record-side">
-            <view class="wallet-record-amount {{item.amountClass}}">{{item.amountText}}</view>
-            <view class="wallet-record-time">{{item.time}}</view>
+            <view class="wallet-record-time">
+              <text>{{item.date}}</text>
+              <text>{{item.clock}}</text>
+            </view>
+            <view class="wallet-record-amount {{item.amountClass}}">{{balanceVisible ? item.amountText : '****'}}</view>
           </view>
+          <view class="wallet-record-chevron"></view>
         </view>
       </block>
       <view wx:else class="wallet-empty">
+        <view class="wallet-empty__icon"></view>
         <view class="wallet-empty__title">暂无流水</view>
         <view class="wallet-empty__desc">完成支付或退款后，这里会显示明细。</view>
       </view>

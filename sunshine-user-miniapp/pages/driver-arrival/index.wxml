@@ -1,4 +1,4 @@
-<view class="home-page" wx:if="{{order}}">
+<view class="home-page page-enter" wx:if="{{order}}">
   <map
     class="home-map"
     longitude="{{longitude}}"

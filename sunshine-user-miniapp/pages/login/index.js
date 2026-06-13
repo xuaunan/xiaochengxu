@@ -1,5 +1,6 @@
 const { fetchProfile, login, register } = require('../../utils/api')
 const { ROLE_CODE } = require('../../utils/constants')
+const { navigateBackSilky, redirectToSilky, switchTabSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -16,8 +17,10 @@ Page({
   onShow() {
     const app = getApp()
     if (app.globalData.userStore.loggedIn) {
-      wx.switchTab({
+      switchTabSilky(this, {
         url: '/pages/home/index'
+      }, {
+        selector: '.login-page'
       })
     }
   },
@@ -68,11 +71,15 @@ Page({
   goBack() {
     const pages = getCurrentPages()
     if (pages.length > 1) {
-      wx.navigateBack()
+      navigateBackSilky(this, {
+        selector: '.login-page'
+      })
       return
     }
-    wx.redirectTo({
+    redirectToSilky(this, {
       url: '/pages/welcome/index'
+    }, {
+      selector: '.login-page'
     })
   },
 
@@ -144,8 +151,10 @@ Page({
         icon: 'success'
       })
       setTimeout(() => {
-        wx.switchTab({
+        switchTabSilky(this, {
           url: '/pages/home/index'
+        }, {
+          selector: '.login-page'
         })
       }, 300)
     } finally {

@@ -1,5 +1,5 @@
 <view class="page-shell safe-bottom" wx:if="{{option}}">
-  <view class="page-content intl-order list-gap">
+  <view class="page-content intl-order list-gap page-enter">
     <view class="intl-order-hero">
       <view class="intl-hero-copy">
         <view class="intl-kicker">International Booking Desk</view>

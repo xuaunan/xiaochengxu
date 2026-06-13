@@ -1,7 +1,7 @@
 const { fetchCouponCenter, fetchMyCoupons, fetchOrderDetail, fetchOrderRuntime, fetchOrders } = require('../../utils/api')
 const { formatPrice, parseDateValue } = require('../../utils/format')
 const { COUPON_STATUS, ORDER_STATUS, PAY_STATUS, getPayStatusLabel, getServiceLabel } = require('../../utils/constants')
-const { runExclusive, runGuarded } = require('../../utils/page')
+const { navigateToSilky, redirectToSilky, runExclusive, runGuarded } = require('../../utils/page')
 const { buildOrderFlowUrl } = require('../../utils/order-flow')
 const {
   buildOrderTimelineSteps,
@@ -880,7 +880,7 @@ Page({
 
     const targetUrl = buildOrderFlowUrl(rawOrder)
     if (targetUrl && targetUrl !== `/pages/order-detail/index?id=${rawOrder.id}`) {
-      wx.redirectTo({
+      redirectToSilky(this, {
         url: targetUrl
       })
       return
@@ -924,11 +924,11 @@ Page({
 
   gotoComplaint() {
     if (!this.data.detail) return
-    wx.navigateTo({ url: `/pages/complaint/index?id=${this.data.detail.id}` })
+    navigateToSilky(this, { url: `/pages/complaint/index?id=${this.data.detail.id}` })
   },
 
   gotoInvoice() {
-    wx.navigateTo({ url: '/pages/invoice/index' })
+    navigateToSilky(this, { url: '/pages/invoice/index' })
   },
 
   applyRefund() {
@@ -1020,7 +1020,7 @@ Page({
       })
       return
     }
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/payment-confirm/index?id=${this.data.detail.id}`
     })
   }

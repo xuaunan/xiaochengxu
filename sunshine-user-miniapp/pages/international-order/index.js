@@ -9,6 +9,7 @@ const {
   syncOrderToCache
 } = require('../../utils/user-store')
 const { POI_LIBRARY } = require('../../utils/catalog')
+const { redirectToSilky } = require('../../utils/page')
 
 function pad(value) {
   return `${value}`.padStart(2, '0')
@@ -229,7 +230,7 @@ Page({
       }
       wx.showToast({ title: '国际行程预约成功', icon: 'success' })
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/international-orders/index' })
+        redirectToSilky(this, { url: '/pages/international-orders/index' }, { selector: '.intl-order' })
       }, 300)
     } finally {
       this.setData({ submitting: false })

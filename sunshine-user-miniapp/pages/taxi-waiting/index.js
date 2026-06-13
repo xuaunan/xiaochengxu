@@ -2,7 +2,7 @@ const { cancelOrder, fetchOrderDetail } = require('../../utils/api')
 const { buildRideOrderModel, findCachedOrder, getCarTypeMap, syncOrderToCache } = require('../../utils/user-store')
 const { ORDER_STATUS } = require('../../utils/constants')
 const { redirectToOrderFlow } = require('../../utils/order-flow')
-const { runExclusive, runGuarded } = require('../../utils/page')
+const { runExclusive, runGuarded, switchTabSilky } = require('../../utils/page')
 
 const POLL_SECONDS = 3
 
@@ -140,7 +140,7 @@ Page({
           return
         }
         getApp().setCurrentRideOrder(null)
-        wx.switchTab({
+        switchTabSilky(this, {
           url: '/pages/home/index'
         })
       }

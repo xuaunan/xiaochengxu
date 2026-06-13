@@ -1,6 +1,6 @@
 const { fetchOrders } = require('../../utils/api')
 const { buildReviewListFromOrders, syncOrdersToCache } = require('../../utils/user-store')
-const { runExclusive } = require('../../utils/page')
+const { runExclusive, switchTabSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -27,6 +27,6 @@ Page({
   },
 
   jumpToOrders() {
-    wx.switchTab({ url: '/pages/orders/index' })
+    switchTabSilky(this, { url: '/pages/orders/index' })
   }
 })

@@ -4,6 +4,7 @@ const {
   passengerConfirmCarpool
 } = require('../../utils/api')
 const { formatMyCarpool } = require('../../utils/carpool')
+const { navigateToSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -63,7 +64,7 @@ Page({
   },
 
   openDetail(e) {
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/carpool-detail/index?id=${e.currentTarget.dataset.id}`
     })
   },

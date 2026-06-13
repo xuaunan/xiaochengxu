@@ -1,7 +1,7 @@
 const { fetchOrders } = require('../../utils/api')
 const { formatOrderItem, getCarTypeMap, syncOrdersToCache } = require('../../utils/user-store')
 const { buildOrderFlowUrl } = require('../../utils/order-flow')
-const { runExclusive, runGuarded } = require('../../utils/page')
+const { navigateToSilky, runExclusive, runGuarded, switchTabSilky } = require('../../utils/page')
 
 function buildOrderList(source = [], activeType, activeStatus) {
   const carTypeMap = getCarTypeMap(getApp().globalData.userStore.home.carTypes || [])
@@ -82,13 +82,13 @@ Page({
       if (!orderId) return
       const matchedOrder = getCachedOrders().find((item) => `${item.id || ''}` === `${orderId}`) || null
       const targetUrl = buildOrderFlowUrl(matchedOrder)
-      wx.navigateTo({
+      await navigateToSilky(this, {
         url: targetUrl || `/pages/order-detail/index?id=${orderId}`
       })
     })
   },
 
   goHome() {
-    wx.switchTab({ url: '/pages/home/index' })
+    switchTabSilky(this, { url: '/pages/home/index' }, { selector: '.orders-hero' })
   }
 })

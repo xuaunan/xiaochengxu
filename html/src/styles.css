@@ -737,10 +737,72 @@ svg {
   color: #8a4b00;
 }
 
+.portal-account-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: min(260px, 46vw);
+  min-height: 48px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 18px;
+  color: var(--ink);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .94), rgba(250, 255, 253, .72)),
+    linear-gradient(135deg, rgba(255, 122, 0, .08), rgba(0, 168, 150, .06));
+  border: 1px solid rgba(255, 255, 255, .78);
+  box-shadow:
+    0 16px 34px rgba(126, 57, 0, .12),
+    0 0 0 1px rgba(255, 122, 0, .05) inset;
+  text-align: left;
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease);
+}
+
+.portal-account-chip:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 20px 42px rgba(126, 57, 0, .14),
+    0 0 0 1px rgba(255, 122, 0, .12) inset;
+}
+
+.portal-account-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  color: white;
+  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+}
+
+.portal-account-copy {
+  min-width: 0;
+}
+
+.portal-account-copy strong,
+.portal-account-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-account-copy strong {
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.portal-account-copy small {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 760;
+}
+
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, .88fr) minmax(660px, 1.12fr);
-  gap: 32px;
+  grid-template-columns: minmax(360px, .58fr) minmax(860px, 1.42fr);
+  gap: 24px;
   align-items: center;
   min-height: calc(100vh - 122px);
   padding: 38px 0 42px;
@@ -1025,6 +1087,49 @@ svg {
   perspective: 1250px;
 }
 
+.portal-command {
+  grid-template-columns: minmax(440px, 548px) minmax(272px, 292px);
+  align-items: stretch;
+  gap: 52px;
+  justify-content: end;
+}
+
+.hero-map-column,
+.hero-side-column {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.hero-map-column {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.hero-side-column {
+  align-content: center;
+  grid-template-rows: auto auto;
+  padding-top: 22px;
+}
+
+.portal-command .city-map {
+  height: 100%;
+  min-height: 628px;
+}
+
+.portal-command .city-map.has-booking-panel {
+  min-height: 584px;
+}
+
+.portal-command .booking-card {
+  align-self: stretch;
+}
+
+.portal-command .booking-card--embedded {
+  align-self: auto;
+}
+
 .tilt-card {
   transform:
     perspective(1180px)
@@ -1075,35 +1180,88 @@ svg {
   align-items: center;
   column-gap: 18px;
   width: 100%;
+  min-height: 88px;
   padding: 18px 20px;
   border-radius: 20px;
-  transform: translate3d(0, 0, 0) translateZ(30px);
+  overflow: hidden;
+  isolation: isolate;
+  color: #172033;
+  transform: translate3d(0, 0, 0);
   transform-origin: 50% 55%;
-  will-change: filter, box-shadow;
-  animation: none;
+  text-rendering: geometricPrecision;
+  will-change: transform;
 }
 
 .fleet-feed strong {
   display: block;
   margin-top: 0;
   font-size: 22px;
+  line-height: 1.12;
+  font-weight: 900;
+  letter-spacing: 0;
+  color: #162033;
 }
 
 .fleet-feed p {
   margin: 0;
-  color: var(--muted);
+  color: #526071;
   font-size: 13px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.fleet-feed .section-kicker {
+  color: #984400;
+  letter-spacing: .02em;
+}
+
+.hero-side-column .fleet-feed {
+  grid-template-columns: 1fr;
+  row-gap: 8px;
+  min-height: 126px;
+  padding: 18px;
+}
+
+.hero-side-column .fleet-feed strong {
+  font-size: 20px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.hero-side-column .fleet-feed p {
+  font-size: 12px;
+}
+
+.fleet-feed.glass-panel {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    0 18px 46px rgba(126, 57, 0, .13),
+    0 0 0 1px rgba(255, 255, 255, .62) inset;
+}
+
+.fleet-feed.glass-panel::before {
+  z-index: 0;
+  background:
+    linear-gradient(105deg, transparent 5%, rgba(255, 255, 255, .72) 38%, transparent 54%),
+    radial-gradient(circle at calc(24% + var(--px, 0) * 10%) calc(28% + var(--py, 0) * 10%), rgba(255, 122, 0, .1), transparent 18%),
+    radial-gradient(circle at calc(74% + var(--px, 0) * 10%) calc(70% + var(--py, 0) * 10%), rgba(0, 168, 150, .12), transparent 22%);
+  opacity: .44;
+  transform: translate3d(-34%, 0, 0);
+  animation: fleetFeedSheen 7.5s var(--ease) infinite;
 }
 
 .fleet-feed.interactive-border:hover {
-  transform: translate3d(0, 0, 0) translateZ(30px);
+  transform: translate3d(0, -2px, 0);
   box-shadow:
-    0 26px 72px rgba(126, 57, 0, .16),
+    0 22px 54px rgba(126, 57, 0, .15),
     0 0 0 1px rgba(255, 122, 0, .16) inset;
+  filter: none;
 }
 
 .city-map,
 .booking-card,
+.daily-checkin-card,
 .work-card,
 .feature-card,
 .role-card,
@@ -1124,7 +1282,23 @@ svg {
 }
 
 .fleet-feed.interactive-border {
-  animation: portalBorderSpin 10s linear infinite;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(250, 255, 253, .9)) padding-box,
+    conic-gradient(from var(--portal-border-angle), rgba(255, 122, 0, .1), rgba(255, 122, 0, .58), rgba(255, 255, 255, .86), rgba(0, 168, 150, .28), rgba(255, 122, 0, .1)) border-box;
+  animation:
+    portalBorderSpin 10s linear infinite,
+    fleetCardFloat 7.2s ease-in-out infinite;
+}
+
+.fleet-feed.interactive-border::after {
+  inset: 1px;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 122, 0, .1), transparent 28%, rgba(0, 168, 150, .1) 76%, transparent),
+    repeating-linear-gradient(90deg, transparent 0 88px, rgba(255, 122, 0, .08) 88px 89px, transparent 89px 176px);
+  opacity: .2;
+  mix-blend-mode: normal;
+  transform: translate3d(calc(var(--px, 0) * 5px), calc(var(--py, 0) * 4px), 0);
 }
 
 .interactive-border > * {
@@ -1220,6 +1394,38 @@ svg {
 
 .city-map.compact {
   min-height: 520px;
+}
+
+.city-map.has-booking-panel {
+  display: grid;
+  grid-template-rows: auto minmax(248px, .76fr) auto auto;
+  gap: 9px;
+}
+
+.city-map.has-booking-panel .map-topline {
+  margin-bottom: 0;
+}
+
+.city-map.has-booking-panel .miniapp-sync-shell {
+  grid-template-rows: minmax(248px, 1fr);
+  min-height: 258px;
+  margin: 0;
+  border-radius: 22px;
+}
+
+.city-map.has-booking-panel .miniapp-sync-map {
+  min-height: 258px;
+}
+
+.city-map.has-booking-panel .miniapp-sync-brand {
+  left: 18px;
+  top: 16px;
+}
+
+.map-booking-panel {
+  position: relative;
+  z-index: 3;
+  min-width: 0;
 }
 
 .map-topline,
@@ -2216,8 +2422,31 @@ svg {
   align-self: center;
 }
 
+.booking-card--embedded {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .76);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .72)),
+    linear-gradient(160deg, rgba(255, 122, 0, .05), rgba(0, 168, 150, .04));
+  box-shadow:
+    0 14px 34px rgba(31, 41, 55, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .78);
+}
+
+.booking-card--embedded::before,
+.booking-card--embedded::after {
+  display: none;
+}
+
 .booking-card:hover {
   box-shadow: 0 38px 120px rgba(126, 57, 0, .26);
+}
+
+.booking-card--embedded:hover {
+  box-shadow:
+    0 18px 42px rgba(31, 41, 55, .1),
+    inset 0 1px 0 rgba(255, 255, 255, .82);
 }
 
 .booking-card:active {
@@ -2233,6 +2462,22 @@ svg {
   gap: 18px;
   margin-bottom: 18px;
   flex-wrap: wrap;
+}
+
+.booking-card--embedded .card-head {
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.booking-card--embedded .card-head h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+
+.booking-card--embedded .price-pill {
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: 13px;
 }
 
 .card-head h2,
@@ -2256,6 +2501,19 @@ svg {
   white-space: nowrap;
 }
 
+.price-stack {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.price-stack small {
+  color: #9a4a00;
+  font-size: 12px;
+  font-weight: 860;
+  white-space: nowrap;
+}
+
 .service-tabs,
 .driver-switch,
 .role-switch {
@@ -2265,6 +2523,19 @@ svg {
   padding: 6px;
   border-radius: 16px;
   background: rgba(31, 41, 55, .06);
+}
+
+.booking-card--embedded .service-tabs {
+  gap: 8px;
+  padding: 5px;
+  border-radius: 16px;
+  background: rgba(31, 41, 55, .055);
+}
+
+.booking-card--embedded .service-tabs button {
+  min-height: 38px;
+  border-radius: 12px;
+  font-size: 13px;
 }
 
 .service-tabs button,
@@ -2305,6 +2576,12 @@ svg {
   margin: 16px 0;
 }
 
+.booking-card--embedded .field-stack {
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, .84fr) minmax(124px, .72fr);
+  gap: 8px;
+  margin: 9px 0;
+}
+
 .select-field,
 .input-field,
 .plain-field {
@@ -2325,6 +2602,65 @@ svg {
   border: 1px solid rgba(255, 255, 255, .8);
   border-radius: 16px;
   background: rgba(255, 255, 255, .55);
+}
+
+.booking-card--embedded .select-field {
+  grid-template-columns: auto minmax(34px, auto) minmax(0, 1fr);
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-color: rgba(226, 232, 240, .72);
+  background: rgba(255, 255, 255, .72);
+}
+
+.booking-card--embedded .select-field:hover,
+.booking-card--embedded .select-field:focus-within {
+  border-color: rgba(255, 122, 0, .24);
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 10px 24px rgba(255, 122, 0, .08);
+}
+
+.booking-card--embedded .select-field span {
+  white-space: nowrap;
+}
+
+.booking-card--embedded .select-field select {
+  font-size: 12px;
+}
+
+.booking-card--embedded .fare-grid {
+  gap: 8px;
+}
+
+.booking-card--embedded .mini-stat {
+  min-height: 48px;
+  padding: 7px 10px;
+  border-color: rgba(226, 232, 240, .62);
+  background: rgba(255, 255, 255, .68);
+  box-shadow: none;
+}
+
+.booking-card--embedded .mini-stat span {
+  margin-top: 0;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.booking-card--embedded .mini-stat strong {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.12;
+}
+
+.booking-card--embedded .booking-actions {
+  margin-top: 8px;
+}
+
+.booking-card--embedded .booking-actions .solid-button,
+.booking-card--embedded .booking-actions .line-button {
+  min-height: 38px;
+  padding-inline: 14px;
+  font-size: 13px;
 }
 
 .input-field {
@@ -2358,6 +2694,591 @@ svg {
   border: 1px solid rgba(255, 255, 255, .78);
   border-radius: 13px;
   background: rgba(255, 255, 255, .58);
+}
+
+.daily-checkin-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 340px;
+  padding: 26px 24px 22px;
+  text-align: center;
+  color: #182033;
+  background: #fff;
+  border: 1px solid rgba(226, 232, 240, .92);
+  border-radius: 24px;
+  box-shadow:
+    0 10px 16px rgba(15, 23, 42, .07),
+    0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.daily-checkin-card.is-compact {
+  min-height: 258px;
+  padding: 14px 14px 13px;
+  border-radius: 18px;
+}
+
+.daily-checkin-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 122, 0, .04), transparent 34%),
+    linear-gradient(90deg, rgba(248, 250, 252, .8), transparent 26%, transparent 74%, rgba(248, 250, 252, .72));
+  opacity: .75;
+}
+
+.checkin-card-visual {
+  position: relative;
+  width: 192px;
+  height: 192px;
+  margin: 0 0 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  perspective: 720px;
+  --checkin-hover-rx: 13deg;
+  --checkin-hover-ry: -22deg;
+  --checkin-hover-z: 16px;
+  transform-style: preserve-3d;
+  touch-action: manipulation;
+  will-change: transform;
+  animation: checkinSceneFloat 3.25s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+
+.daily-checkin-card.is-compact .checkin-card-visual {
+  width: 124px;
+  height: 124px;
+  margin-bottom: 10px;
+}
+
+.checkin-sparkle {
+  position: absolute;
+  z-index: 7;
+  display: block;
+  pointer-events: none;
+  color: #ffc247;
+  filter: drop-shadow(0 3px 5px rgba(255, 194, 71, .32));
+  animation: checkinSparkleGlow 2.8s ease-in-out infinite;
+}
+
+.checkin-sparkle::before,
+.checkin-sparkle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  background: currentColor;
+}
+
+.checkin-sparkle::after {
+  display: none;
+}
+
+.checkin-sparkle.is-big {
+  left: -38px;
+  top: 30px;
+  width: 20px;
+  height: 20px;
+  transform: rotate(-10deg);
+}
+
+.checkin-sparkle.is-small {
+  left: -20px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(12deg);
+  animation-delay: .42s;
+}
+
+.daily-checkin-card.is-compact .checkin-sparkle.is-big {
+  left: -30px;
+  top: 21px;
+  width: 17px;
+  height: 17px;
+}
+
+.daily-checkin-card.is-compact .checkin-sparkle.is-small {
+  left: -14px;
+  top: 7px;
+  width: 10px;
+  height: 10px;
+}
+
+.checkin-card-visual:focus-visible {
+  outline: 3px solid rgba(255, 122, 0, .28);
+  outline-offset: 6px;
+}
+
+.checkin-calendar-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  width: 158px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 122, 0, .18);
+  filter: blur(14px);
+  transform: translateX(-50%) scaleY(.52);
+  transition: transform .22s var(--ease), translate .22s var(--ease), scale .22s var(--ease), opacity .22s var(--ease);
+  animation: checkinShadowBreathe 3.4s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+
+.daily-checkin-card.is-compact .checkin-calendar-shadow {
+  bottom: 10px;
+  width: 100px;
+  height: 19px;
+  filter: blur(10px);
+}
+
+.checkin-calendar-press-wrap,
+.checkin-calendar-3d {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.checkin-calendar-press-wrap {
+  transition: transform .24s cubic-bezier(.22, 1, .36, 1), translate .24s cubic-bezier(.22, 1, .36, 1);
+}
+
+.checkin-calendar-3d {
+  will-change: transform;
+  animation: checkinCalendarIdle 3.25s cubic-bezier(.45, 0, .55, 1) infinite;
+  transition: transform .2s cubic-bezier(.22, 1, .36, 1), filter .2s cubic-bezier(.22, 1, .36, 1);
+}
+
+.checkin-card-visual:hover,
+.checkin-card-visual:focus-visible {
+  animation-play-state: paused;
+  transform: translateY(-2px);
+}
+
+.checkin-card-visual:active {
+  animation-play-state: paused;
+  transform: translateY(1px) scale(.995);
+}
+
+.checkin-card-visual:hover .checkin-calendar-press-wrap,
+.checkin-card-visual:focus-visible .checkin-calendar-press-wrap {
+  translate: 0 -6px;
+  transform: scale(1.002);
+}
+
+.checkin-card-visual:hover .checkin-calendar-3d,
+.checkin-card-visual:focus-visible .checkin-calendar-3d {
+  animation: none;
+  filter: drop-shadow(0 18px 24px rgba(15, 23, 42, .16));
+  transform:
+    translateZ(var(--checkin-hover-z, 20px))
+    rotateX(var(--checkin-hover-rx, 10deg))
+    rotateY(var(--checkin-hover-ry, -15deg));
+}
+
+.checkin-card-visual:hover .checkin-calendar-shadow,
+.checkin-card-visual:focus-visible .checkin-calendar-shadow {
+  animation: none;
+  opacity: .78;
+  transform: translateX(-50%) translateY(13px) scaleX(1.26) scaleY(.38);
+}
+
+.checkin-card-visual:active .checkin-calendar-press-wrap {
+  translate: 0 3px;
+  transform: scale(.972);
+}
+
+.checkin-card-visual:active .checkin-calendar-3d {
+  animation: none;
+  transform: rotateX(2deg) rotateY(-3deg);
+}
+
+.checkin-calendar-depth,
+.checkin-calendar-front,
+.checkin-calendar-back {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.checkin-calendar-depth {
+  background: linear-gradient(to bottom, #d65a00 35%, #e2e8f0 35%);
+}
+
+.checkin-calendar-depth.is-near {
+  transform: translateZ(-5px);
+  opacity: .72;
+}
+
+.checkin-calendar-depth.is-far {
+  transform: translateZ(-10px);
+  opacity: .52;
+}
+
+.checkin-calendar-back {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(226, 232, 240, .9);
+  background: #fff;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, .1);
+  transform: translateZ(-18px) rotateY(180deg);
+}
+
+.checkin-calendar-front {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(241, 245, 249, .96);
+  background: #fff;
+  box-shadow:
+    0 9px 16px rgba(15, 23, 42, .12),
+    0 1px 0 rgba(255, 255, 255, .9) inset;
+  transform: translateZ(0);
+}
+
+.checkin-calendar-top {
+  display: flex;
+  height: 35%;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding: 12px 36px 0;
+  background: linear-gradient(180deg, #ff8a1a, var(--brand-deep));
+  box-shadow: inset 0 -8px 16px rgba(114, 39, 0, .15);
+}
+
+.daily-checkin-card.is-compact .checkin-calendar-top {
+  padding: 8px 22px 0;
+}
+
+.checkin-calendar-ring {
+  width: 14px;
+  height: 34px;
+  margin-top: -18px;
+  border: 2px solid rgba(255, 255, 255, .92);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #cbd5e1);
+  box-shadow: 0 4px 5px rgba(15, 23, 42, .18);
+}
+
+.daily-checkin-card.is-compact .checkin-calendar-ring {
+  width: 9px;
+  height: 25px;
+  margin-top: -13px;
+}
+
+.checkin-brand-letter {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 122, 0, .14);
+  border-radius: 14px;
+  color: var(--brand);
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, .08);
+  font-size: 28px;
+  font-weight: 920;
+  font-style: italic;
+  line-height: 1;
+}
+
+.daily-checkin-card.is-compact .checkin-brand-letter {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 19px;
+}
+
+.checkin-calendar-brand-face {
+  display: flex;
+  height: 65%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 247, 237, .82);
+}
+
+.daily-checkin-card.is-compact .checkin-calendar-brand-face {
+  gap: 5px;
+}
+
+.checkin-brand-line {
+  display: block;
+  width: 42px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 122, 0, .12);
+}
+
+.daily-checkin-card.is-compact .checkin-brand-line {
+  width: 28px;
+  height: 4px;
+}
+
+.daily-checkin-card.is-compact .checkin-brand-line.is-wide {
+  width: 46px;
+}
+
+.checkin-brand-line.is-wide {
+  width: 72px;
+  background: rgba(255, 122, 0, .2);
+}
+
+.checkin-calendar-grid {
+  display: grid;
+  height: 65%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px;
+  background: #fff;
+}
+
+.daily-checkin-card.is-compact .checkin-calendar-grid {
+  gap: 5px;
+  padding: 10px;
+}
+
+.checkin-day-cell {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  border-radius: 6px;
+  background: rgba(241, 245, 249, .9);
+  transition: transform .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
+}
+
+.daily-checkin-card.is-compact .checkin-day-cell {
+  border-radius: 5px;
+}
+
+.checkin-day-cell.active {
+  position: relative;
+  border: 1px solid rgba(255, 122, 0, .22);
+  background: rgba(255, 247, 237, .94);
+}
+
+.checkin-day-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 5px rgba(255, 122, 0, .12);
+}
+
+.daily-checkin-card.is-compact .checkin-day-dot {
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 3px rgba(255, 122, 0, .12);
+}
+
+.checkin-badge {
+  position: absolute;
+  right: -16px;
+  bottom: -16px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 4px solid white;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(135deg, var(--brand-deep), #ff9b36);
+  box-shadow: 0 8px 16px rgba(126, 57, 0, .2);
+  transform: translateZ(35px);
+  transition: transform .34s cubic-bezier(.22, 1, .36, 1), box-shadow .24s var(--ease);
+}
+
+.daily-checkin-card.is-compact .checkin-badge {
+  right: -10px;
+  bottom: -10px;
+  width: 42px;
+  height: 42px;
+  border-width: 3px;
+}
+
+.daily-checkin-card.is-compact .checkin-badge svg {
+  width: 19px;
+  height: 19px;
+}
+
+.checkin-card-visual:hover .checkin-badge,
+.checkin-card-visual:focus-visible .checkin-badge {
+  box-shadow: 0 10px 18px rgba(126, 57, 0, .24);
+  transform: translateZ(35px) scale(1.006);
+}
+
+.daily-checkin-card.is-signed .checkin-day-cell.active {
+  background: rgba(255, 237, 213, .98);
+}
+
+.daily-checkin-card.is-signed .checkin-day-dot {
+  animation: checkinDotPulse 1.8s var(--ease) infinite;
+}
+
+.daily-checkin-card.is-celebrating .checkin-calendar-front {
+  animation: checkinCalendarClaim .68s var(--ease);
+}
+
+.daily-checkin-card.is-celebrating .checkin-badge {
+  animation: checkinBadgePop .68s var(--ease);
+}
+
+.daily-checkin-card.is-celebrating .checkin-day-cell.active {
+  animation: checkinDayPop .68s var(--ease);
+}
+
+.checkin-card-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.checkin-card-headline h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 860;
+}
+
+.daily-checkin-card.is-compact .checkin-card-headline h3 {
+  font-size: 20px;
+}
+
+.checkin-card-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.daily-checkin-card.is-compact .checkin-card-copy p {
+  font-size: 12.5px;
+  line-height: 1.42;
+}
+
+.checkin-card-copy strong {
+  display: inline-block;
+  margin: 0 6px;
+  color: var(--brand-deep);
+  font-size: 16px;
+  font-weight: 860;
+}
+
+.checkin-reward-title {
+  display: block;
+  margin-top: 1px;
+  color: #64748b;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.daily-checkin-card.is-compact .checkin-card-copy strong {
+  font-size: 13px;
+}
+
+.daily-checkin-card.is-compact .checkin-reward-title {
+  font-size: 11px;
+}
+
+.sign-in-button {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 22px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+  box-shadow: 0 8px 16px rgba(255, 122, 0, .24);
+  font-weight: 900;
+  letter-spacing: 0;
+  transition: transform .2s var(--ease), filter .2s var(--ease), box-shadow .2s var(--ease);
+}
+
+.daily-checkin-card.is-compact .sign-in-button {
+  min-height: 38px;
+  margin-top: 11px;
+  font-size: 13px;
+}
+
+.sign-in-button:hover {
+  transform: translateY(-2px);
+  filter: saturate(1.08);
+  box-shadow: 0 10px 18px rgba(255, 122, 0, .28);
+}
+
+.sign-in-button:active {
+  transform: translateY(0);
+}
+
+.sign-in-button .button-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 52%;
+  height: 100%;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .28), transparent);
+  animation: checkinButtonShimmer 4.2s ease-in-out infinite;
+}
+
+.sign-in-button span:first-child {
+  position: relative;
+  z-index: 1;
+}
+
+.sign-in-button:disabled {
+  cursor: default;
+  opacity: 1;
+  color: #8a4b00;
+  background: linear-gradient(135deg, rgba(255, 229, 194, .95), rgba(255, 247, 237, .94));
+  box-shadow: 0 4px 10px rgba(126, 57, 0, .08);
+  transform: none;
+}
+
+.sign-in-button:disabled .button-shimmer {
+  display: none;
+}
+
+.checkin-card-note {
+  position: relative;
+  z-index: 1;
+  margin: 12px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.daily-checkin-card.is-compact .checkin-card-note {
+  margin-top: 7px;
+  font-size: 10.5px;
+}
+
+.daily-checkin-card.is-compact .checkin-card-note span {
+  font-size: 10.5px;
+}
+
+.checkin-card-note span {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .portal-strip,
@@ -5233,20 +6154,92 @@ svg {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(31, 41, 55, .2);
-  backdrop-filter: blur(10px);
+}
+
+.modal-layer {
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 52% 48%, rgba(255, 255, 255, .54), transparent 32rem),
+    linear-gradient(135deg, rgba(255, 247, 237, .62), rgba(229, 244, 240, .58)),
+    rgba(31, 41, 55, .16);
+  backdrop-filter: blur(4px) saturate(1.06);
 }
 
 .center-screen {
   position: relative;
   min-height: 100vh;
   background: transparent;
+  backdrop-filter: none;
+}
+
+.modal-layer::before,
+.modal-layer::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.modal-layer::before {
+  width: 142vmax;
+  height: 142vmax;
+  max-width: 1680px;
+  max-height: 1680px;
+  background:
+    repeating-radial-gradient(circle, rgba(255, 122, 0, .12) 0 1px, transparent 1px 24px),
+    radial-gradient(circle, rgba(255, 255, 255, .34), transparent 62%);
+  mask-image: radial-gradient(circle, rgba(0, 0, 0, .72) 0 48%, rgba(0, 0, 0, .24) 62%, transparent 76%);
+  opacity: .42;
+  transform: translate3d(-50%, -50%, 0) rotate(-8deg);
+  animation: loginBackdropRings 24s linear infinite;
+}
+
+.modal-layer::after {
+  width: 96vmax;
+  height: 96vmax;
+  max-width: 1180px;
+  max-height: 1180px;
+  background:
+    radial-gradient(circle at 36% 42%, rgba(255, 122, 0, .18), transparent 18%),
+    radial-gradient(circle at 68% 58%, rgba(0, 168, 150, .14), transparent 20%),
+    radial-gradient(circle, rgba(255, 255, 255, .4), transparent 56%);
+  opacity: .46;
+  transform: translate3d(-50%, -50%, 0);
+  animation: loginBackdropGlow 13s var(--ease) infinite alternate;
+}
+
+.modal-layer > * {
+  position: relative;
+  z-index: 1;
 }
 
 .login-modal {
   width: min(440px, calc(100vw - 36px));
   padding: 28px;
-  overflow: visible;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .9), rgba(249, 253, 251, .72)),
+    linear-gradient(160deg, rgba(255, 122, 0, .07), rgba(0, 168, 150, .05));
+  box-shadow:
+    0 28px 74px rgba(31, 41, 55, .18),
+    0 0 0 1px rgba(255, 255, 255, .72) inset;
+}
+
+.login-modal.refract::after {
+  display: none;
+}
+
+.login-modal.glass-panel::before {
+  background:
+    radial-gradient(circle at 20% 16%, rgba(255, 255, 255, .8), transparent 30%),
+    radial-gradient(circle at 82% 72%, rgba(0, 168, 150, .12), transparent 28%),
+    linear-gradient(115deg, transparent 0 34%, rgba(255, 122, 0, .1) 48%, transparent 66%);
+  opacity: .44;
+  animation: loginPanelSheen 9s var(--ease) infinite alternate;
 }
 
 .modal-close {
@@ -5336,6 +6329,42 @@ svg {
   0% { transform: translate3d(-6%, -2%, 0) rotate(0deg); }
   50% { transform: translate3d(8%, 5%, 0) rotate(12deg) scale(1.04); }
   100% { transform: translate3d(-6%, -2%, 0) rotate(0deg); }
+}
+
+
+
+@keyframes loginBackdropRings {
+  0% {
+    transform: translate3d(-50%, -50%, 0) rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: translate3d(-50.8%, -49.2%, 0) rotate(2deg) scale(1.015);
+  }
+  100% {
+    transform: translate3d(-50%, -50%, 0) rotate(12deg) scale(1);
+  }
+}
+
+@keyframes loginBackdropGlow {
+  0% {
+    transform: translate3d(-51%, -49%, 0) scale(.98);
+    opacity: .36;
+  }
+  100% {
+    transform: translate3d(-49%, -51%, 0) scale(1.04);
+    opacity: .52;
+  }
+}
+
+@keyframes loginPanelSheen {
+  0% {
+    transform: translate3d(-2%, -1%, 0);
+    opacity: .34;
+  }
+  100% {
+    transform: translate3d(2%, 1%, 0);
+    opacity: .5;
+  }
 }
 
 @keyframes orbitSpin {
@@ -5539,6 +6568,146 @@ svg {
 @keyframes toastIn {
   from { transform: translateY(-10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+
+
+@keyframes fleetFeedSheen {
+  0%, 18% {
+    opacity: .26;
+    transform: translate3d(-38%, 0, 0);
+  }
+  46% {
+    opacity: .48;
+  }
+  78%, 100% {
+    opacity: .22;
+    transform: translate3d(38%, 0, 0);
+  }
+}
+
+@keyframes checkinCardSheen {
+  0%, 16% {
+    opacity: .38;
+    transform: translate3d(-20%, 0, 0);
+  }
+  48% {
+    opacity: .62;
+  }
+  84%, 100% {
+    opacity: .34;
+    transform: translate3d(20%, 0, 0);
+  }
+}
+
+@keyframes checkinButtonShimmer {
+  0%, 40% {
+    opacity: 0;
+    transform: translateX(0) skewX(-20deg);
+  }
+  52% {
+    opacity: .95;
+  }
+  78%, 100% {
+    opacity: 0;
+    transform: translateX(380%) skewX(-20deg);
+  }
+}
+
+@keyframes checkinSceneFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+@keyframes checkinCalendarIdle {
+  0%, 100% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  50% {
+    transform: rotateX(2.5deg) rotateY(-2.5deg);
+  }
+}
+
+@keyframes checkinCalendarFloat {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+@keyframes checkinShadowBreathe {
+  0%, 100% {
+    opacity: .82;
+    translate: 0 0;
+    scale: 1 1;
+  }
+  50% {
+    opacity: .55;
+    translate: 0 5px;
+    scale: .9 .84;
+  }
+}
+
+@keyframes checkinSparkleGlow {
+  0%, 100% {
+    opacity: .78;
+    scale: .96;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+
+@keyframes checkinCalendarClaim {
+  0% {
+    transform: translateZ(0) scale(1);
+  }
+  42% {
+    transform: translateZ(12px) scale(1.035);
+  }
+  100% {
+    transform: translateZ(0) scale(1);
+  }
+}
+
+@keyframes checkinBadgePop {
+  0% {
+    transform: translateZ(34px) scale(.84) rotate(-8deg);
+  }
+  48% {
+    transform: translateZ(48px) scale(1.14) rotate(6deg);
+  }
+  100% {
+    transform: translateZ(34px) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes checkinDayPop {
+  0% {
+    transform: scale(.92);
+  }
+  46% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes checkinDotPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(255, 122, 0, .11);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 122, 0, .18);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -5825,5 +6994,58 @@ svg {
 @keyframes topLoadWheel {
   to {
     transform: rotate(1turn);
+  }
+}
+
+
+/* Restored portal final-state responsive rules */
+@media (max-width: 1180px) {
+  .portal-command .city-map {
+    min-height: 560px;
+  }
+
+  .portal-command .city-map.has-booking-panel {
+    min-height: 620px;
+  }
+
+  .hero-side-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+    align-items: stretch;
+    align-content: start;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .portal-account-chip {
+    grid-column: span 2;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .topbar-actions .portal-account-chip {
+    min-height: 42px;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .daily-checkin-card,
+  .daily-checkin-card:hover,
+  .checkin-card-visual,
+  .checkin-card-visual:hover,
+  .checkin-card-visual:focus-visible {
+    transform: none;
+  }
+
+  .topbar-actions,
+  .hero-side-column {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-account-chip {
+    grid-column: auto;
   }
 }

@@ -7,6 +7,7 @@ const {
   getCarTypeMap,
   syncOrderToCache
 } = require('../../utils/user-store')
+const { navigateBackSilky, redirectToSilky } = require('../../utils/page')
 
 function wait(duration = 1000) {
   return new Promise((resolve) => {
@@ -358,12 +359,17 @@ Page({
       previousPage.applyRawOrder(order, {
         immediate: true
       })
-      wx.navigateBack({ delta: 1 })
+      navigateBackSilky(this, {
+        delta: 1,
+        selector: '.payment-page'
+      })
       return
     }
 
-    wx.redirectTo({
+    redirectToSilky(this, {
       url: `/pages/order-detail/index?id=${this.orderId}`
+    }, {
+      selector: '.payment-page'
     })
   }
 })

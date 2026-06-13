@@ -1,8 +1,7 @@
 .profile-page-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 48% 0%, rgba(255, 198, 128, 0.2), transparent 30%),
-    linear-gradient(180deg, #fff6ea 0%, #f7f8fc 38%, #f5f7fb 100%);
+    linear-gradient(180deg, #fffaf4 0%, #f7f8fc 34%, #f5f7fb 100%);
 }
 
 .profile-page {
@@ -14,180 +13,51 @@
 
 .profile-hero {
   position: relative;
-  min-height: 150rpx;
+  min-height: 178rpx;
   overflow: hidden;
   display: flex;
   align-items: center;
   gap: 24rpx;
-  padding: 26rpx 24rpx;
-  border-radius: 26rpx;
-  border: 1rpx solid rgba(255, 160, 74, 0.28);
-  background:
-    linear-gradient(115deg, rgba(255, 211, 157, 0.58) 0%, rgba(255, 250, 244, 0.9) 48%, rgba(255, 233, 209, 0.7) 100%),
-    #fff7ef;
-  box-shadow: 0 18rpx 42rpx rgba(210, 104, 18, 0.12);
+  padding: 34rpx 30rpx;
+  border-radius: 30rpx;
+  background: #fff7ef;
+  box-shadow: 0 20rpx 44rpx rgba(209, 117, 35, 0.12);
 }
 
-.hero-cloud,
-.hero-city,
-.hero-road,
-.hero-taxi {
+.profile-hero-bg,
+.profile-hero-tint {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
 }
 
-.hero-cloud {
-  position: absolute;
-  left: 168rpx;
-  top: 30rpx;
-  width: 96rpx;
-  height: 24rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.65);
-  opacity: 0.8;
+.profile-hero-bg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.hero-cloud::before,
-.hero-cloud::after {
-  content: "";
-  position: absolute;
-  bottom: 8rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.hero-cloud::before {
-  left: 30rpx;
-  width: 34rpx;
-  height: 34rpx;
-}
-
-.hero-cloud::after {
-  left: 56rpx;
-  width: 46rpx;
-  height: 46rpx;
-}
-
-.hero-city {
-  position: absolute;
-  right: 48rpx;
-  top: 28rpx;
-  width: 220rpx;
-  height: 118rpx;
-  opacity: 0.24;
-}
-
-.city-block {
-  position: absolute;
-  bottom: 0;
-  width: 34rpx;
-  border-radius: 8rpx 8rpx 0 0;
-  background: #ff9b3d;
-}
-
-.city-block--1 {
-  left: 20rpx;
-  height: 72rpx;
-}
-
-.city-block--2 {
-  left: 66rpx;
-  height: 104rpx;
-}
-
-.city-block--3 {
-  left: 118rpx;
-  height: 86rpx;
-}
-
-.city-block--4 {
-  left: 166rpx;
-  height: 54rpx;
-}
-
-.hero-road {
-  position: absolute;
-  right: -38rpx;
-  bottom: 12rpx;
-  width: 312rpx;
-  height: 72rpx;
-  border-top: 8rpx solid rgba(255, 255, 255, 0.74);
-  transform: rotate(-12deg);
-}
-
-.hero-road::after {
-  content: "";
-  position: absolute;
-  right: 20rpx;
-  top: 22rpx;
-  width: 180rpx;
-  border-top: 4rpx dashed rgba(255, 255, 255, 0.86);
-}
-
-.hero-taxi {
-  position: absolute;
-  right: 96rpx;
-  bottom: 50rpx;
-  width: 76rpx;
-  height: 40rpx;
-  transform: rotate(-4deg);
-}
-
-.hero-taxi__body,
-.hero-taxi__top {
-  position: absolute;
-  background: linear-gradient(180deg, #ffa232 0%, #ff7a00 100%);
-  border: 2rpx solid rgba(156, 72, 0, 0.14);
-}
-
-.hero-taxi__body {
-  left: 4rpx;
-  bottom: 8rpx;
-  width: 68rpx;
-  height: 28rpx;
-  border-radius: 12rpx 15rpx 9rpx 9rpx;
-}
-
-.hero-taxi__top {
-  left: 24rpx;
-  bottom: 28rpx;
-  width: 28rpx;
-  height: 18rpx;
-  border-radius: 12rpx 12rpx 4rpx 4rpx;
-}
-
-.hero-taxi__wheel {
-  position: absolute;
-  bottom: 3rpx;
-  width: 13rpx;
-  height: 13rpx;
-  border-radius: 50%;
-  background: #243041;
-  box-shadow: inset 0 0 0 4rpx #ffffff;
-}
-
-.hero-taxi__wheel--left {
-  left: 15rpx;
-}
-
-.hero-taxi__wheel--right {
-  right: 13rpx;
+.profile-hero-tint {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.62) 48%, rgba(255, 255, 255, 0.2) 100%),
+    linear-gradient(180deg, rgba(255, 247, 239, 0.22) 0%, rgba(255, 190, 109, 0.08) 100%);
 }
 
 .profile-avatar-wrap {
   position: relative;
   z-index: 2;
-  width: 88rpx;
-  height: 88rpx;
+  width: 94rpx;
+  height: 94rpx;
   flex-shrink: 0;
   padding: 6rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12rpx 26rpx rgba(210, 104, 18, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12rpx 26rpx rgba(210, 104, 18, 0.14);
 }
 
 .profile-avatar {
-  width: 76rpx;
-  height: 76rpx;
+  width: 82rpx;
+  height: 82rpx;
   display: block;
   border-radius: 999rpx;
   background: #fff4e8;
@@ -198,12 +68,13 @@
   z-index: 2;
   flex: 1;
   min-width: 0;
+  padding-right: 78rpx;
 }
 
 .profile-name {
   color: #172033;
-  font-size: 31rpx;
-  font-weight: 550;
+  font-size: 34rpx;
+  font-weight: 700;
   line-height: 1.12;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -213,28 +84,40 @@
 .profile-subline {
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 9rpx;
+  gap: 10rpx;
+  margin-top: 12rpx;
 }
 
 .profile-pill {
-  padding: 6rpx 12rpx;
+  padding: 7rpx 14rpx;
   border-radius: 999rpx;
   font-size: 21rpx;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.1;
 }
 
 .profile-pill--member {
   color: #ff6f00;
-  background: rgba(255, 255, 255, 0.76);
-  border: 2rpx solid rgba(255, 122, 0, 0.28);
+  background: rgba(255, 248, 240, 0.92);
+  border: 2rpx solid rgba(255, 122, 0, 0.18);
 }
 
 .profile-pill--plain {
   color: #657083;
-  background: rgba(239, 244, 251, 0.8);
-  border: 2rpx solid rgba(115, 135, 165, 0.2);
+  background: rgba(255, 255, 255, 0.76);
+  border: 2rpx solid rgba(115, 135, 165, 0.16);
+}
+
+.profile-member-badge {
+  position: absolute;
+  right: 42rpx;
+  top: 50%;
+  z-index: 2;
+  width: 60rpx;
+  height: 54rpx;
+  display: block;
+  opacity: 0.94;
+  transform: translateY(-50%);
 }
 
 .profile-assets,

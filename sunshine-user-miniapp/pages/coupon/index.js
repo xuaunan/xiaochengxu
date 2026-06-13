@@ -1,6 +1,6 @@
 const { activateMembership, fetchCouponCenter, fetchMembership, fetchMyCoupons, receiveCoupon } = require('../../utils/api')
 const { mergeCoupons } = require('../../utils/user-store')
-const { runExclusive } = require('../../utils/page')
+const { runExclusive, switchTabSilky } = require('../../utils/page')
 const { formatDate } = require('../../utils/format')
 const { COUPON_STATUS, COUPON_TYPE, getCouponScopeLabel } = require('../../utils/constants')
 
@@ -324,8 +324,10 @@ Page({
   },
 
   jumpToHome() {
-    wx.switchTab({
+    switchTabSilky(this, {
       url: '/pages/home/index'
+    }, {
+      selector: '.coupon-page'
     })
   },
 
@@ -354,8 +356,10 @@ Page({
       icon: 'success'
     })
     setTimeout(() => {
-      wx.switchTab({
+      switchTabSilky(this, {
         url: '/pages/home/index'
+      }, {
+        selector: '.coupon-page'
       })
     }, 260)
   },
