@@ -1,5 +1,5 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content list-gap">
+  <view class="page-content list-gap page-enter">
     <view class="international-list-hero">
       <view class="section-title">我的国际行程</view>
       <view class="section-subtitle">查看已预约的国际行程、接送信息和服务进度。</view>

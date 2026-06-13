@@ -452,7 +452,7 @@
   margin-top: 12rpx;
   color: #111827;
   font-size: 23rpx;
-  font-weight: 550;
+  font-weight: 400;
   line-height: 1.45;
 }
 
@@ -556,11 +556,47 @@
 }
 
 .empty-panel {
-  padding: 20rpx;
-  border-radius: 18rpx;
+  padding: 0;
+  border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.05);
-  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.045);
+  box-shadow: 0 8rpx 18rpx rgba(24, 34, 56, 0.035);
+}
+
+.empty-panel .empty-box {
+  min-height: 330rpx;
+  padding: 38rpx 32rpx 42rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.empty-panel .empty-image {
+  width: 154rpx;
+  height: 116rpx;
+}
+
+.empty-panel .empty-title {
+  margin-top: 14rpx;
+  font-size: 25rpx;
+  line-height: 1.32;
+  font-weight: 500;
+}
+
+.empty-panel .empty-desc {
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  line-height: 1.45;
+}
+
+.empty-panel .empty-button {
+  width: 210rpx;
+  height: 54rpx;
+  min-height: 54rpx;
+  margin-top: 18rpx;
+  padding: 0 24rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 18rpx rgba(255, 122, 0, 0.08);
 }
 
 .pressable-hover,

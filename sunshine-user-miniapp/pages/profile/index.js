@@ -1,7 +1,22 @@
 const { fetchOrders, fetchProfile } = require('../../utils/api')
 const { getAuthStatusLabel } = require('../../utils/constants')
 const { buildWalletView, syncOrdersToCache } = require('../../utils/user-store')
-const { runExclusive } = require('../../utils/page')
+const { navigateToSilky, reLaunchSilky, runExclusive, switchTabSilky } = require('../../utils/page')
+
+const MEMBER_BADGE_ACTIVE_SRC = '/images/profile-member-badge.png'
+const MEMBER_BADGE_MUTED_SRC = '/images/profile-member-badge-gray.png'
+
+function isMembershipActive(profile = {}, store = {}) {
+  const membership = store.membership || profile.membership || {}
+  const memberLevel = `${profile.memberLevel || membership.level || ''}`.trim()
+  const memberStatus = `${profile.memberStatus || membership.status || ''}`.trim().toUpperCase()
+  const inactiveStatuses = ['NONE', 'INACTIVE', 'EXPIRED', 'CANCELLED', 'DISABLED', 'FALSE', '0']
+  if (profile.memberActive === true || membership.active === true) return true
+  if (memberStatus === 'ACTIVE') return true
+  if (profile.memberActive === false || membership.active === false || inactiveStatuses.includes(memberStatus)) return false
+  if (memberLevel && memberLevel !== '普通用户') return true
+  return false
+}
 
 Page({
   data: {
@@ -9,6 +24,7 @@ Page({
     wallet: {},
     logoutText: '\u9000\u51fa\u767b\u5f55',
     verifiedText: '\u5f85\u5b9e\u540d\u8ba4\u8bc1',
+    memberBadgeSrc: MEMBER_BADGE_MUTED_SRC,
     menus: [
       { iconClass: 'user', title: '\u4e2a\u4eba\u8d44\u6599', url: '/pages/profileEdit/index', desc: '\u4fee\u6539\u6635\u79f0\u3001\u771f\u5b9e\u59d3\u540d\u548c\u7d27\u6025\u8054\u7cfb\u4eba' },
       { iconClass: 'shield', title: '\u5b9e\u540d\u8ba4\u8bc1', url: '/pages/auth/index', desc: '\u8eab\u4efd\u8ba4\u8bc1\u4e0e\u8d26\u53f7\u5b89\u5168' },
@@ -34,11 +50,13 @@ Page({
     const app = getApp()
     const profile = app.globalData.userStore.profile || {}
     const orders = app.globalData.userStore.orders || []
+    const memberActive = isMembershipActive(profile, app.globalData.userStore || {})
 
     this.setData({
       profile,
       wallet: buildWalletView(profile, app.globalData.userStore.coupons, orders),
-      verifiedText: getAuthStatusLabel(profile.authStatus)
+      verifiedText: getAuthStatusLabel(profile.authStatus),
+      memberBadgeSrc: memberActive ? MEMBER_BADGE_ACTIVE_SRC : MEMBER_BADGE_MUTED_SRC
     })
   },
 
@@ -57,15 +75,15 @@ Page({
 
   openMenu(e) {
     const { url } = e.currentTarget.dataset
-    wx.navigateTo({ url })
+    navigateToSilky(this, { url }, { selector: '.profile-page' })
   },
 
   openOrders() {
-    wx.switchTab({ url: '/pages/orders/index' })
+    switchTabSilky(this, { url: '/pages/orders/index' }, { selector: '.profile-page' })
   },
 
   openCoupons() {
-    wx.switchTab({ url: '/pages/coupon/index' })
+    switchTabSilky(this, { url: '/pages/coupon/index' }, { selector: '.profile-page' })
   },
 
   handleLogout() {
@@ -85,8 +103,13 @@ Page({
         if (app.clearSession) {
           app.clearSession()
         }
-        wx.reLaunch({
-          url: '/pages/login/index'
+        reLaunchSilky(this, {
+          url: '/pages/login/index',
+          fail: () => {
+            this.logoutPending = false
+          }
+        }, {
+          selector: '.profile-page'
         })
       }
     })

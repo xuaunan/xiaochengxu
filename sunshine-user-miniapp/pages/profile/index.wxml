@@ -1,20 +1,8 @@
 <view class="page-shell profile-page-shell safe-bottom">
   <view class="profile-page page-enter">
     <view class="profile-hero">
-      <view class="hero-cloud hero-cloud--left"></view>
-      <view class="hero-city">
-        <view class="city-block city-block--1"></view>
-        <view class="city-block city-block--2"></view>
-        <view class="city-block city-block--3"></view>
-        <view class="city-block city-block--4"></view>
-      </view>
-      <view class="hero-road"></view>
-      <view class="hero-taxi">
-        <view class="hero-taxi__body"></view>
-        <view class="hero-taxi__top"></view>
-        <view class="hero-taxi__wheel hero-taxi__wheel--left"></view>
-        <view class="hero-taxi__wheel hero-taxi__wheel--right"></view>
-      </view>
+      <image class="profile-hero-bg" src="/images/profile-hero-bg.png" mode="aspectFill"></image>
+      <view class="profile-hero-tint"></view>
 
       <view class="profile-avatar-wrap">
         <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
@@ -26,6 +14,7 @@
           <view class="profile-pill profile-pill--plain">{{verifiedText}}</view>
         </view>
       </view>
+      <image class="profile-member-badge" src="{{memberBadgeSrc}}" mode="aspectFit"></image>
     </view>
 
     <view class="profile-assets">

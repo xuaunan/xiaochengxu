@@ -1,6 +1,6 @@
 const { fetchMessages, fetchOrders, markMessageRead } = require('../../utils/api')
 const { buildOrderFlowUrl } = require('../../utils/order-flow')
-const { runGuarded } = require('../../utils/page')
+const { navigateToSilky, runGuarded, switchTabSilky } = require('../../utils/page')
 const { syncOrdersToCache } = require('../../utils/user-store')
 
 const TAB_ROUTES = new Set([
@@ -153,7 +153,7 @@ Page({
         wx.showToast({ title: '当前消息暂无详情页', icon: 'none' })
         return
       }
-      this.navigateToMessageTarget(targetUrl)
+      await this.navigateToMessageTarget(targetUrl)
     })
   },
 
@@ -204,10 +204,9 @@ Page({
   navigateToMessageTarget(url) {
     const route = `${url || ''}`.split('?')[0]
     if (TAB_ROUTES.has(route)) {
-      wx.switchTab({ url: route })
-      return
+      return switchTabSilky(this, { url: route })
     }
-    wx.navigateTo({
+    return navigateToSilky(this, {
       url,
       fail: () => {
         wx.showToast({ title: '页面打开失败', icon: 'none' })

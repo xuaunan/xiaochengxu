@@ -1,5 +1,6 @@
 const { formatDate } = require('../../utils/format')
 const { SERVICE_TYPE } = require('../../utils/constants')
+const { navigateToSilky } = require('../../utils/page')
 
 function getToday() {
   return formatDate(new Date())
@@ -182,7 +183,7 @@ Page({
       serviceType: SERVICE_TYPE.CARPOOL
     }
     getApp().updateDraft(draft)
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/address-search/index?type=${type}`
     })
   },
@@ -194,7 +195,7 @@ Page({
       serviceType: SERVICE_TYPE.CARPOOL
     }
     getApp().updateDraft(draft)
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/map-picker/index?type=${type}&source=carpool`
     })
   },
@@ -235,7 +236,7 @@ Page({
     getApp().globalData.carpoolConfirmContext = context
     wx.setStorageSync('sunshine-carpool-confirm', context)
     this.setData({ navigating: true })
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: '/pages/carpool-confirm/index',
       complete: () => {
         this.setData({ navigating: false })

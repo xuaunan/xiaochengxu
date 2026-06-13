@@ -13,7 +13,8 @@ const {
 const {
   clearSilkyTransitionTimers,
   markSilkyPageReady,
-  navigateBackSilky
+  navigateBackSilky,
+  switchTabSilky
 } = require('../../utils/page')
 
 function isValidCoordinate(latitude, longitude) {
@@ -209,25 +210,27 @@ Page({
 
   returnHomeAfterSelection() {
     clearTimeout(this.leaveTimer)
-    this.setData({
-      pageLeaving: true,
-      pageReady: true
+    switchTabSilky(this, {
+      url: '/pages/home/index',
+      fail: () => {
+        this.setData({
+          pageLeaving: false,
+          pageReady: true
+        })
+        wx.showToast({
+          title: '返回首页失败，请重试',
+          icon: 'none'
+        })
+      }
+    }, {
+      duration: 120,
+      selector: '.picker-page',
+      beforeLeave: () => {
+        this.setData({
+          pageReady: true
+        })
+      }
     })
-    this.leaveTimer = setTimeout(() => {
-      wx.switchTab({
-        url: '/pages/home/index',
-        fail: () => {
-          this.setData({
-            pageLeaving: false,
-            pageReady: true
-          })
-          wx.showToast({
-            title: '返回首页失败，请重试',
-            icon: 'none'
-          })
-        }
-      })
-    }, 120)
   },
 
   async getMapCenterLocation() {

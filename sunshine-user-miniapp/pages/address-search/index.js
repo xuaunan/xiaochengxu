@@ -14,7 +14,9 @@ const {
 } = require('../../utils/address-book')
 const {
   clearSilkyTransitionTimers,
-  markSilkyPageReady
+  markSilkyPageReady,
+  navigateToSilky,
+  switchTabSilky
 } = require('../../utils/page')
 
 function buildEmptyState(mode, keyword) {
@@ -410,30 +412,32 @@ Page({
   returnHomeSafely() {
     clearTimeout(this.leaveTimer)
     clearTimeout(this.blurTimer)
-    this.setData({
-      isInputFocused: false,
-      showSuggestionPanel: false,
-      pageLeaving: true,
-      pageReady: true
+    switchTabSilky(this, {
+      url: '/pages/home/index',
+      fail: () => {
+        this.setData({
+          pageLeaving: false,
+          pageReady: true
+        })
+        wx.showToast({
+          title: '返回首页失败，请重试',
+          icon: 'none'
+        })
+      }
+    }, {
+      duration: 120,
+      selector: '.address-page',
+      beforeLeave: () => {
+        this.setData({
+          isInputFocused: false,
+          showSuggestionPanel: false,
+          pageReady: true
+        })
+        wx.hideKeyboard({
+          complete: () => {}
+        })
+      }
     })
-    wx.hideKeyboard({
-      complete: () => {}
-    })
-    this.leaveTimer = setTimeout(() => {
-      wx.switchTab({
-        url: '/pages/home/index',
-        fail: () => {
-          this.setData({
-            pageLeaving: false,
-            pageReady: true
-          })
-          wx.showToast({
-            title: '返回首页失败，请重试',
-            icon: 'none'
-          })
-        }
-      })
-    }, 120)
   },
 
   commitAddress(point) {
@@ -505,15 +509,20 @@ Page({
 
   openMapPicker() {
     clearTimeout(this.blurTimer)
-    this.setData({
-      isInputFocused: false,
-      showSuggestionPanel: false
-    })
-    wx.hideKeyboard({
-      complete: () => {}
-    })
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/map-picker/index?type=${this.data.type}&source=search`
+    }, {
+      duration: 140,
+      selector: '.address-page',
+      beforeLeave: () => {
+        this.setData({
+          isInputFocused: false,
+          showSuggestionPanel: false
+        })
+        wx.hideKeyboard({
+          complete: () => {}
+        })
+      }
     })
   },
 

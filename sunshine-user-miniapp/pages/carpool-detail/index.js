@@ -5,6 +5,7 @@ const {
   passengerConfirmCarpool
 } = require('../../utils/api')
 const { formatCarpoolDetail } = require('../../utils/carpool')
+const { navigateToSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -49,7 +50,7 @@ Page({
       wx.showToast({ title: '当前行程暂不可申请', icon: 'none' })
       return
     }
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/carpool-apply/index?id=${trip.id}`
     })
   },

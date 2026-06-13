@@ -4,7 +4,7 @@ const { buildRideOrderModel, findCachedOrder, getCarTypeMap, syncOrderToCache } 
 const { ORDER_STATUS } = require('../../utils/constants')
 const { redirectToOrderFlow } = require('../../utils/order-flow')
 const { createSimulation } = require('../../utils/trip-simulator')
-const { runExclusive, runGuarded } = require('../../utils/page')
+const { runExclusive, runGuarded, switchTabSilky } = require('../../utils/page')
 const { requestRoute } = require('../../utils/route-planner')
 
 function normalizePoint(point = {}) {
@@ -405,8 +405,10 @@ Page({
           })
           getApp().setCurrentRideOrder(null)
           setTimeout(() => {
-            wx.switchTab({
+            switchTabSilky(this, {
               url: '/pages/home/index'
+            }, {
+              selector: '.home-page'
             })
           }, 220)
         } catch (error) {

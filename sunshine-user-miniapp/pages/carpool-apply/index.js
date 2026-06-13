@@ -1,6 +1,7 @@
 const { applyCarpool, fetchCarpoolDetail } = require('../../utils/api')
 const { formatCarpoolDetail } = require('../../utils/carpool')
 const { formatPrice } = require('../../utils/format')
+const { redirectToSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -61,7 +62,7 @@ Page({
       })
       wx.showToast({ title: '申请已提交', icon: 'success' })
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/carpool-trips/index' })
+        redirectToSilky(this, { url: '/pages/carpool-trips/index' })
       }, 300)
     } finally {
       this.setData({ submitting: false })

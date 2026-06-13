@@ -1,3 +1,5 @@
+const { navigateBackSilky, switchTabSilky } = require('../../utils/page')
+
 Component({
   properties: {
     title: {
@@ -44,10 +46,15 @@ Component({
 
   methods: {
     handleBack() {
-      wx.navigateBack({
+      const pages = getCurrentPages()
+      const activePage = pages[pages.length - 1] || null
+      navigateBackSilky(activePage, {
+        selector: '.home-page',
         fail: () => {
-          wx.switchTab({
+          switchTabSilky(activePage, {
             url: '/pages/home/index'
+          }, {
+            selector: '.home-page'
           })
         }
       })

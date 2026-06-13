@@ -1,4 +1,4 @@
-<view class="welcome-page">
+<view class="welcome-page page-enter">
   <view class="welcome-bg">
     <view class="sky-card sky-card--one"></view>
     <view class="sky-card sky-card--two"></view>

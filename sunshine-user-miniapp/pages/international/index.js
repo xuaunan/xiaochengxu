@@ -1,4 +1,5 @@
 const { buildInternationalOptions, getInternationalExchangeRate } = require('../../utils/user-store')
+const { navigateToSilky } = require('../../utils/page')
 
 Page({
   data: {
@@ -29,12 +30,14 @@ Page({
   },
 
   openOrder(e) {
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/international-order/index?id=${e.currentTarget.dataset.id}`
+    }, {
+      selector: '.intl-shell'
     })
   },
 
   openList() {
-    wx.navigateTo({ url: '/pages/international-orders/index' })
+    navigateToSilky(this, { url: '/pages/international-orders/index' }, { selector: '.intl-shell' })
   }
 })

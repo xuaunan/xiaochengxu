@@ -14,6 +14,7 @@ const {
   pickAutoCoupon,
   syncOrderToCache
 } = require('../../utils/user-store')
+const { navigateToSilky } = require('../../utils/page')
 
 function toNumber(value, fallback = 0) {
   const next = Number(value)
@@ -298,7 +299,7 @@ Page({
     const draft = context.draft || {}
     const timeRange = `${context.selectedTimeRange || '07:00-09:00'}`.split('-')
     const departTime = `${context.departDate} ${timeRange[0] || '07:00'}:00`
-    wx.navigateTo({
+    navigateToSilky(this, {
       url: `/pages/carpool-publish/index?startName=${encodeURIComponent((draft.start && draft.start.name) || '')}&endName=${encodeURIComponent((draft.end && draft.end.name) || '')}&departTime=${encodeURIComponent(departTime)}`
     })
   },
@@ -368,7 +369,7 @@ Page({
 
       wx.showToast({ title: '已开始匹配车主', icon: 'success' })
       setTimeout(() => {
-        wx.navigateTo({ url: `/pages/order-detail/index?id=${responseOrder.id}` })
+        navigateToSilky(this, { url: `/pages/order-detail/index?id=${responseOrder.id}` })
       }, 220)
     } finally {
       this.setData({ dispatching: false })

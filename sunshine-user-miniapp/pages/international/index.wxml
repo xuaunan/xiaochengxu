@@ -1,5 +1,5 @@
 <view class="page-shell intl-shell safe-bottom">
-  <view class="page-content list-gap">
+  <view class="page-content list-gap page-enter">
     <view class="intl-hero">
       <view class="intl-hero-head">
         <view class="intl-hero-copy">

@@ -1,5 +1,5 @@
 <view class="page-shell waiting-shell safe-bottom">
-  <view class="page-content">
+  <view class="page-content page-enter">
     <view class="hero-card waiting-banner">
       <view class="pill">智能派单中</view>
       <view class="waiting-title">正在为你呼叫附近司机</view>

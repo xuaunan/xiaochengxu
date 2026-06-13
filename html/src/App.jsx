@@ -59,7 +59,39 @@ import {
 
 const passengerSessionKey = 'sunshine-web-passenger-session'
 const driverSessionKey = 'sunshine-web-driver-session'
+const dailyCheckinStateKey = 'sunshine-web-daily-checkin-v1'
+const portalRoleKey = 'sunshine-web-portal-role'
 const DEFAULT_TENCENT_MAP_KEY = 'NHNBZ-F5FW3-Z4C3Q-R4WUM-ODTPE-DRFDV'
+
+const dailyCheckinRewardRange = { min: 0.5, max: 5 }
+const dailyCheckinRewardRangeText = `${formatMoney(dailyCheckinRewardRange.min)} ~ ${formatMoney(dailyCheckinRewardRange.max)}`
+const dailyCheckinRewardBands = [
+  { minCents: 50, maxCents: 99, weight: 42 },
+  { minCents: 100, maxCents: 149, weight: 26 },
+  { minCents: 150, maxCents: 199, weight: 15 },
+  { minCents: 200, maxCents: 299, weight: 10 },
+  { minCents: 300, maxCents: 399, weight: 5 },
+  { minCents: 400, maxCents: 500, weight: 2 }
+]
+
+const dailyCheckinConfig = {
+  USER: {
+    label: '乘客',
+    title: '首次打车立减金',
+    desc: '每日签到可领取',
+    rangeText: dailyCheckinRewardRangeText,
+    pendingText: '每日第一次打车自动抵扣，可与优惠券叠加',
+    usedText: '今日首单立减已使用'
+  },
+  DRIVER: {
+    label: '司机',
+    title: '首单完单奖励金',
+    desc: '每日签到可领取',
+    rangeText: dailyCheckinRewardRangeText,
+    pendingText: '每日第一次接单完成后自动入账',
+    usedText: '今日完单奖励已入账'
+  }
+}
 
 const roleMeta = {
   USER: {
@@ -86,12 +118,43 @@ function App() {
   const [loginRole, setLoginRole] = useState(null)
   const [passengerSession, setPassengerSession] = usePersistentState(passengerSessionKey, null)
   const [driverSession, setDriverSession] = usePersistentState(driverSessionKey, null)
+  const [checkinState, setCheckinState] = usePersistentState(dailyCheckinStateKey, {})
+  const [portalRole, setPortalRole] = usePersistentState(portalRoleKey, null)
+  const [portalToast, setPortalToast] = useState('')
 
   useEffect(() => {
     const listener = (event) => setMode(event.detail)
     window.addEventListener('sunshine-api-mode', listener)
     return () => window.removeEventListener('sunshine-api-mode', listener)
   }, [])
+
+  useEffect(() => {
+    const handleSessionRefresh = (event) => {
+      const session = event.detail?.session
+      if (!session?.token) return
+      if (session.roleCode === 'DRIVER') {
+        setDriverSession((value) => ({ ...(value || {}), ...session }))
+      } else {
+        setPassengerSession((value) => ({ ...(value || {}), ...session, roleCode: 'USER' }))
+      }
+    }
+    const handleSessionInvalid = (event) => {
+      const roleCode = event.detail?.roleCode
+      if (roleCode === 'DRIVER') {
+        setDriverSession(null)
+        if (view === 'driver') setLoginRole('DRIVER')
+      } else {
+        setPassengerSession(null)
+        if (view === 'passenger') setLoginRole('USER')
+      }
+    }
+    window.addEventListener('sunshine-auth-session-refresh', handleSessionRefresh)
+    window.addEventListener('sunshine-auth-session-invalid', handleSessionInvalid)
+    return () => {
+      window.removeEventListener('sunshine-auth-session-refresh', handleSessionRefresh)
+      window.removeEventListener('sunshine-auth-session-invalid', handleSessionInvalid)
+    }
+  }, [setDriverSession, setPassengerSession, view])
 
   const refreshHome = useCallback(async () => {
     try {
@@ -111,11 +174,6 @@ function App() {
     refreshHome()
   }, [refreshHome])
 
-  useEffect(() => {
-    if (driverSession) setView('driver')
-    else if (passengerSession) setView('passenger')
-  }, [])
-
   const saveBaseUrl = () => {
     setApiBase(baseUrl)
     refreshHome()
@@ -123,13 +181,14 @@ function App() {
 
   const handleLogin = async ({ roleCode, phone, password }) => {
     const data = await api.login(roleCode, phone, password)
+    const targetView = roleCode === 'DRIVER' ? 'driver' : 'passenger'
+    setPortalRole(roleCode)
     if (roleCode === 'DRIVER') {
       setDriverSession(data)
-      setView('driver')
     } else {
       setPassengerSession(data)
-      setView('passenger')
     }
+    if (view !== 'portal') setView(targetView)
     setLoginRole(null)
   }
 
@@ -141,8 +200,44 @@ function App() {
   const logout = (role) => {
     if (role === 'DRIVER') setDriverSession(null)
     if (role === 'USER') setPassengerSession(null)
+    if (portalRole === role) {
+      const fallbackRole = role === 'DRIVER'
+        ? (passengerSession ? 'USER' : null)
+        : (driverSession ? 'DRIVER' : null)
+      setPortalRole(fallbackRole)
+    }
     setView('portal')
   }
+
+  const currentPortalAccount = resolvePortalAccount(passengerSession, driverSession, portalRole)
+  const currentPortalRole = currentPortalAccount?.roleCode || portalRole || 'USER'
+  const portalCheckinBenefit = getDailyCheckinBenefit(currentPortalRole, checkinState)
+
+  const showPortalToast = useCallback((text) => {
+    setPortalToast(text)
+    window.clearTimeout(showPortalToast.timer)
+    showPortalToast.timer = window.setTimeout(() => setPortalToast(''), 2400)
+  }, [])
+
+  const claimDailyCheckin = useCallback((roleCode = currentPortalRole) => {
+    const normalizedRole = roleCode === 'DRIVER' ? 'DRIVER' : 'USER'
+    const session = normalizedRole === 'DRIVER' ? driverSession : passengerSession
+    if (!session) {
+      setLoginRole(normalizedRole)
+      return
+    }
+
+    const benefit = getDailyCheckinBenefit(normalizedRole, checkinState)
+    setPortalRole(normalizedRole)
+    if (benefit.signedToday) {
+      showPortalToast(benefit.status === 'used' ? dailyCheckinConfig[normalizedRole].usedText : '今日已签到，权益等待首单使用')
+      return
+    }
+
+    const rewardAmount = drawDailyCheckinRewardAmount()
+    setCheckinState((state) => claimDailyCheckinState(state, normalizedRole, rewardAmount))
+    showPortalToast(`签到成功，已领取 ${formatMoney(rewardAmount)} ${dailyCheckinConfig[normalizedRole].title}`)
+  }, [checkinState, currentPortalRole, driverSession, passengerSession, setCheckinState, setPortalRole, showPortalToast])
 
   return (
     <div className="app-shell">
@@ -162,6 +257,11 @@ function App() {
           onEnter={(target) => setView(target)}
           hasPassenger={Boolean(passengerSession)}
           hasDriver={Boolean(driverSession)}
+          currentAccount={currentPortalAccount}
+          currentRoleCode={currentPortalRole}
+          checkinBenefit={portalCheckinBenefit}
+          onCheckIn={claimDailyCheckin}
+          portalToast={portalToast}
         />
       )}
 
@@ -174,6 +274,8 @@ function App() {
           onLogout={() => logout('USER')}
           onBack={() => setView('portal')}
           onRefreshHome={refreshHome}
+          checkinState={checkinState}
+          setCheckinState={setCheckinState}
         />
       )}
 
@@ -184,6 +286,8 @@ function App() {
           onLogin={() => setLoginRole('DRIVER')}
           onLogout={() => logout('DRIVER')}
           onBack={() => setView('portal')}
+          checkinState={checkinState}
+          setCheckinState={setCheckinState}
         />
       )}
 
@@ -200,7 +304,22 @@ function App() {
   )
 }
 
-function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, onEnter, hasPassenger, hasDriver }) {
+function PortalPage({
+  apiMode,
+  baseUrl,
+  setBaseUrl,
+  saveBaseUrl,
+  home,
+  onLogin,
+  onEnter,
+  hasPassenger,
+  hasDriver,
+  currentAccount,
+  currentRoleCode,
+  checkinBenefit,
+  onCheckIn,
+  portalToast
+}) {
   const [booking, setBooking] = useState(defaultBooking)
   const [menu, setMenu] = useState('passenger')
   const [estimate, setEstimate] = useState(() => {
@@ -232,8 +351,17 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
         </button>
         <div className="topbar-actions">
           <ModeChip mode={apiMode.mode} message={apiMode.message} />
-          <button className="ghost-button" onClick={() => onLogin('USER')}><User size={17} />乘客登录</button>
-          <button className="solid-button" onClick={() => onLogin('DRIVER')}><CarTaxiFront size={17} />司机登录</button>
+          {currentAccount ? (
+            <PortalAccountChip
+              account={currentAccount}
+              onEnter={() => onEnter(currentRoleCode === 'DRIVER' ? 'driver' : 'passenger')}
+            />
+          ) : (
+            <>
+              <button className="ghost-button" onClick={() => onLogin('USER')}><User size={17} />乘客登录</button>
+              <button className="solid-button" onClick={() => onLogin('DRIVER')}><CarTaxiFront size={17} />司机登录</button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -265,24 +393,44 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
           </div>
         </div>
 
-        <div className="hero-stage cinematic-stage">
+        <div className="hero-stage cinematic-stage portal-command">
           <div className="stage-orbit one" />
           <div className="stage-orbit two" />
-          <CityMap booking={booking} estimate={estimate} />
-          <BookingPanel
-            title="门户叫车"
-            booking={booking}
-            setBooking={setBooking}
-            estimate={estimate}
-            carTypes={home.carTypes}
-            onPrimary={() => onLogin('USER')}
-            primaryText="登录乘客并下单"
-          />
-          <div className="fleet-feed glass-panel interactive-border">
-            <span className="section-kicker">fleet pulse</span>
-            <strong>{home.fleet?.serviceDriverCount ?? home.fleet?.busyDriverCount ?? 0} 辆车服务中</strong>
-            <p>空闲 {home.fleet?.idleDriverCount ?? 0} 辆 · 在线合计 {home.fleet?.onlineDriverCount ?? 0} 辆</p>
+          <div className="hero-map-column">
+            <CityMap
+              booking={booking}
+              estimate={estimate}
+              bookingPanel={(
+                <BookingPanel
+                  title="门户叫车"
+                  booking={booking}
+                  setBooking={setBooking}
+                  estimate={estimate}
+                  carTypes={home.carTypes}
+                  onPrimary={() => (hasPassenger ? onEnter('passenger') : onLogin('USER'))}
+                  primaryText={hasPassenger ? '进入乘客下单' : '登录乘客并下单'}
+                  benefit={currentRoleCode === 'USER' ? checkinBenefit : null}
+                  variant="embedded"
+                />
+              )}
+            />
           </div>
+          <div className="hero-side-column">
+            <DailyCheckInCard
+              account={currentAccount}
+              roleCode={currentRoleCode}
+              benefit={checkinBenefit}
+              onCheckIn={onCheckIn}
+              onLogin={onLogin}
+              compact
+            />
+            <div className="fleet-feed glass-panel interactive-border">
+              <span className="section-kicker">fleet pulse</span>
+              <strong>{home.fleet?.serviceDriverCount ?? home.fleet?.busyDriverCount ?? 0} 辆车服务中</strong>
+              <p>空闲 {home.fleet?.idleDriverCount ?? 0} 辆 · 在线合计 {home.fleet?.onlineDriverCount ?? 0} 辆</p>
+            </div>
+          </div>
+          {portalToast && <Toast text={portalToast} />}
         </div>
       </section>
 
@@ -328,6 +476,144 @@ function PortalPage({ apiMode, baseUrl, setBaseUrl, saveBaseUrl, home, onLogin, 
         />
       </section>
     </main>
+  )
+}
+
+function PortalAccountChip({ account, onEnter }) {
+  const isDriver = account?.roleCode === 'DRIVER'
+  const Icon = isDriver ? CarTaxiFront : User
+  return (
+    <button className="portal-account-chip" onClick={onEnter}>
+      <span className="portal-account-avatar"><Icon size={17} /></span>
+      <span className="portal-account-copy">
+        <strong>{account?.nickname || account?.phone || (isDriver ? '司机账户' : '乘客账户')}</strong>
+        <small>{isDriver ? '司机账户' : '乘客账户'} · 进入工作台</small>
+      </span>
+      <ChevronRight size={16} />
+    </button>
+  )
+}
+
+function DailyCheckInCard({ account, roleCode = 'USER', benefit, onCheckIn, onLogin, compact = false }) {
+  const config = dailyCheckinConfig[roleCode] || dailyCheckinConfig.USER
+  const isLoggedIn = Boolean(account)
+  const signedToday = Boolean(benefit?.signedToday)
+  const usedToday = benefit?.status === 'used'
+  const amount = signedToday ? normalizeDailyCheckinAmount(benefit?.amount) : null
+  const rewardText = signedToday ? formatMoney(amount) : config.rangeText
+  const [isCelebrating, setIsCelebrating] = useState(false)
+  const celebrationTimer = useRef(null)
+  const actionText = !isLoggedIn
+    ? '登录后签到'
+    : signedToday
+      ? (usedToday ? '今日已使用' : '今日已签到')
+      : '立即签到'
+  const visualActionText = !isLoggedIn
+    ? '登录后签到'
+    : signedToday
+      ? '查看今日签到权益'
+      : '立即签到'
+  const cardClassName = [
+    'daily-checkin-card',
+    compact ? 'is-compact' : '',
+    signedToday ? 'is-signed' : '',
+    isCelebrating ? 'is-celebrating' : ''
+  ].filter(Boolean).join(' ')
+  const triggerCheckIn = () => {
+    if (isLoggedIn && !signedToday) {
+      window.clearTimeout(celebrationTimer.current)
+      setIsCelebrating(true)
+      celebrationTimer.current = window.setTimeout(() => setIsCelebrating(false), 760)
+    }
+    return isLoggedIn ? onCheckIn(roleCode) : onLogin(roleCode)
+  }
+  const handleVisualPointerMove = (event) => {
+    const target = event.currentTarget
+    const rect = target.getBoundingClientRect()
+    const px = rect.width ? (event.clientX - rect.left) / rect.width : 0.5
+    const py = rect.height ? (event.clientY - rect.top) / rect.height : 0.5
+    const rotateY = (px - 0.5) * 48
+    const rotateX = (0.5 - py) * 38
+    target.style.setProperty('--checkin-hover-rx', `${rotateX.toFixed(2)}deg`)
+    target.style.setProperty('--checkin-hover-ry', `${rotateY.toFixed(2)}deg`)
+    target.style.setProperty('--checkin-hover-z', '20px')
+  }
+  const handleVisualPointerLeave = (event) => {
+    const target = event.currentTarget
+    target.style.setProperty('--checkin-hover-rx', '13deg')
+    target.style.setProperty('--checkin-hover-ry', '-22deg')
+    target.style.setProperty('--checkin-hover-z', '16px')
+  }
+
+  useEffect(() => () => window.clearTimeout(celebrationTimer.current), [])
+
+  return (
+    <section className={cardClassName}>
+      <button
+        type="button"
+        className="checkin-card-visual"
+        aria-label={visualActionText}
+        onClick={triggerCheckIn}
+        onPointerMove={handleVisualPointerMove}
+        onPointerLeave={handleVisualPointerLeave}
+      >
+        <span className="checkin-calendar-shadow" />
+        <span className="checkin-calendar-press-wrap">
+          <span className="checkin-calendar-3d">
+            <span className="checkin-sparkle is-big" aria-hidden="true" />
+            <span className="checkin-sparkle is-small" aria-hidden="true" />
+            <span className="checkin-calendar-depth is-near" />
+            <span className="checkin-calendar-depth is-far" />
+            <span className="checkin-calendar-back">
+              <span className="checkin-calendar-top">
+                <span className="checkin-calendar-ring" />
+                <span className="checkin-calendar-ring" />
+              </span>
+              <span className="checkin-calendar-brand-face">
+                <span className="checkin-brand-letter">S</span>
+                <span className="checkin-brand-line is-wide" />
+                <span className="checkin-brand-line" />
+              </span>
+            </span>
+            <span className="checkin-calendar-front">
+              <span className="checkin-calendar-top">
+                <span className="checkin-calendar-ring" />
+                <span className="checkin-calendar-ring" />
+              </span>
+              <span className="checkin-calendar-grid">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <span key={index} className={`checkin-day-cell ${index === 5 ? 'active' : ''}`}>
+                    {index === 5 && <span className="checkin-day-dot" />}
+                  </span>
+                ))}
+              </span>
+            </span>
+            <span className="checkin-badge"><BadgeCheck size={28} /></span>
+          </span>
+        </span>
+      </button>
+      <div className="checkin-card-copy">
+        <div className="checkin-card-headline">
+          <h3>每日签到</h3>
+        </div>
+        <p>
+          {config.desc}{' '}
+          <strong>{rewardText}</strong>
+          <span className="checkin-reward-title">{config.title}</span>
+        </p>
+      </div>
+      <button
+        className="sign-in-button"
+        disabled={isLoggedIn && signedToday}
+        onClick={triggerCheckIn}
+      >
+        <span>{actionText}</span>
+        <span className="button-shimmer" aria-hidden="true" />
+      </button>
+      <p className="checkin-card-note">
+        {usedToday ? config.usedText : config.pendingText}
+      </p>
+    </section>
   )
 }
 
@@ -891,12 +1177,19 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
   )
 }
 
-function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText }) {
+function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText, benefit = null, variant = 'standalone', lockedServiceType = false }) {
   const [busyAction, setBusyAction] = useState('')
   const tilt = useTiltCard({ maxX: 11, maxY: 16 })
   const route = calcRoute(booking.startId, booking.endId)
   const safeEstimate = estimate || estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
+  const checkinDiscount = benefit?.signedToday && benefit?.status === 'pending' ? Number(benefit.amount || 0) : 0
   const options = normalizeCarTypes(carTypes)
+  const isEmbedded = variant === 'embedded'
+  const panelClassName = [
+    'booking-card',
+    isEmbedded ? 'booking-card--embedded' : 'glass-panel refract',
+    'tilt-card'
+  ].join(' ')
 
   const update = (patch) => setBooking((value) => ({ ...value, ...patch }))
   const runAction = async (name, handler) => {
@@ -910,20 +1203,26 @@ function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstima
   }
 
   return (
-    <section className="booking-card glass-panel refract tilt-card" ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave}>
+    <section className={panelClassName} ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave}>
       <div className="card-head">
         <div>
-          <span className="section-kicker">Route composer</span>
+          {!isEmbedded && <span className="section-kicker">Route composer</span>}
           <h2>{title}</h2>
         </div>
-        <div className="price-pill">{formatMoney(safeEstimate.amount, safeEstimate.currencyCode)}</div>
+        <div className="price-stack">
+          <div className="price-pill">{formatMoney(Math.max(0, Number(safeEstimate.amount || 0) - checkinDiscount), safeEstimate.currencyCode)}</div>
+          {checkinDiscount > 0 && <small>签到立减 {formatMoney(checkinDiscount)}</small>}
+        </div>
       </div>
       <div className="service-tabs">
         {Object.values(SERVICE_TYPE).map((type) => (
           <button
             key={type}
             className={booking.serviceType === type ? 'active' : ''}
-            onClick={() => update({ serviceType: type })}
+            disabled={lockedServiceType && booking.serviceType !== type}
+            onClick={() => {
+              if (!lockedServiceType) update({ serviceType: type })
+            }}
           >
             {statusLabel[type]}
           </button>
@@ -955,7 +1254,7 @@ function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstima
       <div className="fare-grid">
         <MiniStat label="距离" value={`${safeEstimate.distanceKm || route.distanceKm} km`} />
         <MiniStat label="时间" value={`${safeEstimate.durationMin || route.durationMin} min`} />
-        <MiniStat label="币种" value={safeEstimate.currencyCode || 'CNY'} />
+        <MiniStat label="签到" value={checkinDiscount > 0 ? `-${formatMoney(checkinDiscount)}` : '未使用'} />
       </div>
       <div className="booking-actions">
         {onEstimate && (
@@ -1144,7 +1443,7 @@ function normalizeTimeline(order = {}) {
   }))
 }
 
-function CityMap({ booking, estimate, compact = false, operational = true, activeOrder = null, runtime = null }) {
+function CityMap({ booking, estimate, compact = false, operational = true, activeOrder = null, runtime = null, bookingPanel = null, preferStableMap = false }) {
   const tilt = useTiltCard({ maxX: 6, maxY: 9 })
   const route = activeOrder ? buildRouteFromOrder(activeOrder) : calcRoute(booking.startId, booking.endId)
   const fallback = activeOrder
@@ -1166,7 +1465,7 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
     delay: `${index * -0.38}s`,
     variant: index % 6
   }))
-  const mapCardClassName = `city-map map-card-v2 glass-panel ${operational ? '' : 'tilt-card'} ${compact ? 'compact' : ''} ${operational ? 'operational-map' : ''}`.replace(/\s+/g, ' ').trim()
+  const mapCardClassName = `city-map map-card-v2 glass-panel ${operational ? '' : 'tilt-card'} ${compact ? 'compact' : ''} ${operational ? 'operational-map' : ''} ${bookingPanel ? 'has-booking-panel' : ''}`.replace(/\s+/g, ' ').trim()
   const tiltProps = operational
     ? {}
     : {
@@ -1185,7 +1484,7 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
         <strong>{formatMoney(amount, currency)}</strong>
       </div>
       {operational ? (
-        <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} />
+        <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} showSummaryPanel={!bookingPanel} preferStableMap={preferStableMap} />
       ) : (
       <div className="map-canvas map-canvas-v2">
         <div className="map-road-net" aria-hidden="true">
@@ -1248,6 +1547,7 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
         </div>
       </div>
       )}
+      {bookingPanel && <div className="map-booking-panel">{bookingPanel}</div>}
       <div className="map-bottomline">
         <span><Clock size={15} />预计 {duration} 分钟</span>
         <span><Route size={15} />{distance} km</span>
@@ -1256,7 +1556,7 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
   )
 }
 
-function TencentRouteMapV2({ route, amount, currency, duration, distance, serviceType, order = null, runtime = null }) {
+function TencentRouteMapV2({ route, amount, currency, duration, distance, serviceType, order = null, runtime = null, showSummaryPanel = true, preferStableMap = false }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const [scriptReady, setScriptReady] = useState(false)
@@ -1406,40 +1706,43 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
     }
   }, [scriptReady, start, end, runtime?.driverLocation, runtime?.route, routePoints])
 
-  const useNativeMap = Boolean(mapKey && scriptReady && !scriptFailed && window.TMap?.Map)
+  const useNativeMap = Boolean(!preferStableMap && mapKey && scriptReady && !scriptFailed && window.TMap?.Map)
+  const mapSourceLabel = useNativeMap ? '腾讯地图' : (preferStableMap ? '腾讯地图路线' : '地图加载中')
 
   return (
     <div className="miniapp-sync-shell">
       <div className="miniapp-sync-map">
-        {!useNativeMap && <RealTileRouteMap route={route} runtime={runtime} order={order} routePoints={routePoints} />}
+        {(!useNativeMap || preferStableMap) && <RealTileRouteMap route={route} runtime={runtime} order={order} routePoints={routePoints} />}
         {mapKey && <div className={`tencent-map-canvas miniapp-map-native ${useNativeMap ? 'is-ready' : ''}`} ref={mapRef} />}
         <div className="miniapp-sync-brand">
           <strong>阳光出行</strong>
-          <span>{useNativeMap ? '腾讯地图' : '地图加载中'}</span>
+          <span>{mapSourceLabel}</span>
         </div>
       </div>
-      <div className="miniapp-sync-panel">
-        {order ? (
-          <ActiveMapSheet order={order} runtime={runtime} amount={amount} currency={currency} duration={duration} distance={distance} />
-        ) : (
-          <>
-            <div className="miniapp-sync-tabs">
-              <button className={serviceType === SERVICE_TYPE.TAXI ? 'active' : ''}>打车</button>
-              <button className={serviceType === SERVICE_TYPE.CARPOOL ? 'active' : ''}>顺风车</button>
-              <button className={serviceType === SERVICE_TYPE.INTERNATIONAL ? 'active' : ''}>国际出行</button>
-            </div>
-            <div className="miniapp-sync-addresses">
-              <div><span className="address-dot start" /><small>从哪里出发</small><strong>{start.name}</strong></div>
-              <div><span className="address-dot end" /><small>去哪里</small><strong>{end.name}</strong></div>
-            </div>
-            <div className="miniapp-sync-metrics">
-              <MiniStat label="预估" value={formatMoney(amount, currency)} />
-              <MiniStat label="距离" value={`${distance} km`} />
-              <MiniStat label="时间" value={`${duration} min`} />
-            </div>
-          </>
-        )}
-      </div>
+      {showSummaryPanel && (
+        <div className="miniapp-sync-panel">
+          {order ? (
+            <ActiveMapSheet order={order} runtime={runtime} amount={amount} currency={currency} duration={duration} distance={distance} />
+          ) : (
+            <>
+              <div className="miniapp-sync-tabs">
+                <button className={serviceType === SERVICE_TYPE.TAXI ? 'active' : ''}>打车</button>
+                <button className={serviceType === SERVICE_TYPE.CARPOOL ? 'active' : ''}>顺风车</button>
+                <button className={serviceType === SERVICE_TYPE.INTERNATIONAL ? 'active' : ''}>国际出行</button>
+              </div>
+              <div className="miniapp-sync-addresses">
+                <div><span className="address-dot start" /><small>从哪里出发</small><strong>{start.name}</strong></div>
+                <div><span className="address-dot end" /><small>去哪里</small><strong>{end.name}</strong></div>
+              </div>
+              <div className="miniapp-sync-metrics">
+                <MiniStat label="预估" value={formatMoney(amount, currency)} />
+                <MiniStat label="距离" value={`${distance} km`} />
+                <MiniStat label="时间" value={`${duration} min`} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -3520,6 +3823,88 @@ function usePersistentState(key, initialValue) {
     else localStorage.removeItem(key)
   }, [key, value])
   return [value, setValue]
+}
+
+function resolvePortalAccount(passengerSession, driverSession, preferredRole) {
+  if (preferredRole === 'DRIVER' && driverSession) return { ...driverSession, roleCode: 'DRIVER' }
+  if (preferredRole === 'USER' && passengerSession) return { ...passengerSession, roleCode: 'USER' }
+  if (passengerSession) return { ...passengerSession, roleCode: 'USER' }
+  if (driverSession) return { ...driverSession, roleCode: 'DRIVER' }
+  return null
+}
+
+function getLocalDateKey(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function claimDailyCheckinState(state = {}, roleCode = 'USER', rewardAmount = drawDailyCheckinRewardAmount()) {
+  const role = roleCode === 'DRIVER' ? 'DRIVER' : 'USER'
+  const today = getLocalDateKey()
+  const current = state?.[role] || {}
+  if (current.date === today) return state || {}
+  return {
+    ...(state || {}),
+    [role]: {
+      date: today,
+      amount: normalizeDailyCheckinAmount(rewardAmount),
+      status: 'pending',
+      claimedAt: new Date().toISOString()
+    }
+  }
+}
+
+function markDailyCheckinUsed(state = {}, roleCode = 'USER') {
+  const role = roleCode === 'DRIVER' ? 'DRIVER' : 'USER'
+  const current = state?.[role]
+  if (!current || current.date !== getLocalDateKey()) return state || {}
+  return {
+    ...(state || {}),
+    [role]: {
+      ...current,
+      status: 'used',
+      usedAt: new Date().toISOString()
+    }
+  }
+}
+
+function getDailyCheckinBenefit(roleCode = 'USER', state = {}) {
+  const role = roleCode === 'DRIVER' ? 'DRIVER' : 'USER'
+  const current = state?.[role] || {}
+  const signedToday = current.date === getLocalDateKey()
+  return {
+    roleCode: role,
+    amount: signedToday ? normalizeDailyCheckinAmount(current.amount) : 0,
+    status: signedToday ? (current.status || 'pending') : 'idle',
+    signedToday
+  }
+}
+
+function getUsableCheckinAmount(benefit, estimate) {
+  if (!benefit?.signedToday || benefit.status !== 'pending') return 0
+  if ((estimate?.currencyCode || 'CNY') !== 'CNY') return 0
+  return roundMoney(Math.min(normalizeDailyCheckinAmount(benefit.amount), Math.max(0, Number(estimate?.amount || 0) - 0.01)))
+}
+
+function roundMoney(value) {
+  return Number(Math.max(0, Number(value) || 0).toFixed(2))
+}
+
+function drawDailyCheckinRewardAmount() {
+  const totalWeight = dailyCheckinRewardBands.reduce((sum, band) => sum + band.weight, 0)
+  let ticket = Math.random() * totalWeight
+  const selectedBand = dailyCheckinRewardBands.find((band) => {
+    ticket -= band.weight
+    return ticket <= 0
+  }) || dailyCheckinRewardBands[0]
+  const cents = selectedBand.minCents + Math.floor(Math.random() * (selectedBand.maxCents - selectedBand.minCents + 1))
+  return normalizeDailyCheckinAmount(cents / 100)
+}
+
+function normalizeDailyCheckinAmount(value) {
+  const amount = roundMoney(value)
+  if (amount <= 0) return dailyCheckinRewardRange.min
+  return Math.min(dailyCheckinRewardRange.max, Math.max(dailyCheckinRewardRange.min, amount))
 }
 
 function normalizeCarTypes(carTypes) {

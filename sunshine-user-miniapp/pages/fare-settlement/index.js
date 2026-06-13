@@ -3,6 +3,7 @@ const { COUPON_STATUS, ORDER_STATUS, PAY_STATUS, getOrderStatusMeta } = require(
 const { formatPrice, parseDateValue } = require('../../utils/format')
 const { buildRideOrderModel, findCachedOrder, getCarTypeMap, mergeCoupons, syncOrderToCache } = require('../../utils/user-store')
 const { buildOrderFlowUrl } = require('../../utils/order-flow')
+const { navigateToSilky, redirectToSilky } = require('../../utils/page')
 
 function toNumber(value, fallback = 0) {
   const next = Number(value)
@@ -253,7 +254,7 @@ Page({
       clearPendingCouponContext(rawOrder.id, rawOrder.orderNo)
       const targetUrl = buildOrderFlowUrl(rawOrder)
       if (targetUrl && targetUrl !== `/pages/fare-settlement/index?id=${rawOrder.id}`) {
-        wx.redirectTo({ url: targetUrl })
+        redirectToSilky(this, { url: targetUrl })
         return
       }
     }
@@ -417,7 +418,7 @@ Page({
     if (!this.data.order) return
 
     if (this.data.canPay) {
-      wx.navigateTo({
+      navigateToSilky(this, {
         url: `/pages/payment-confirm/index?id=${this.data.order.id}`
       })
       return
@@ -428,7 +429,7 @@ Page({
 
   goToDetail() {
     if (!this.data.order) return
-    wx.redirectTo({
+    redirectToSilky(this, {
       url: `/pages/order-detail/index?id=${this.data.order.id}`
     })
   }
