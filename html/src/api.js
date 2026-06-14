@@ -15,6 +15,7 @@ import {
 
 const API_BASE_KEY = 'sunshine-web-api-base'
 const DEMO_DB_KEY = 'sunshine-web-demo-db-v2'
+const DEMO_DB_VERSION = 3
 const DEFAULT_API_BASE = 'http://127.0.0.1:8080'
 let backendBackoffUntil = 0
 let activeRequestCount = 0
@@ -120,6 +121,42 @@ async function parsePayload(response) {
   }
 }
 
+async function binaryRequest(path, options = {}) {
+  const { token, timeout = 3000 } = options
+  bumpApiLoading(1)
+
+  if (Date.now() < backendBackoffUntil) {
+    emitApiMode('demo', '业务服务暂不可用，当前操作使用网页离线数据')
+    try {
+      return demoInvoiceImageUrl(path)
+    } finally {
+      bumpApiLoading(-1)
+    }
+  }
+
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeout)
+  try {
+    const response = await fetch(`${getApiBase()}${path}`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal,
+      credentials: 'include'
+    })
+    if (!response.ok) throw new ApiError(`请求失败：${response.status}`, { status: response.status })
+    backendBackoffUntil = 0
+    emitApiMode('backend', '已连接业务服务')
+    return URL.createObjectURL(await response.blob())
+  } catch (error) {
+    backendBackoffUntil = Date.now() + 5000
+    emitApiMode('demo', '业务服务未连接，当前使用网页离线数据')
+    return demoInvoiceImageUrl(path)
+  } finally {
+    window.clearTimeout(timer)
+    bumpApiLoading(-1)
+  }
+}
+
 export const api = {
   login: (roleCode, phone, password) => request('/auth/login', {
     method: 'POST',
@@ -140,20 +177,28 @@ export const api = {
   orderRuntime: (token, id) => request(`/orders/${id}/runtime`, { token }),
   cancelOrder: (token, id, reason) => request(`/orders/${id}/cancel`, { method: 'POST', token, data: { reason } }),
   pickupOrder: (token, id) => request(`/orders/${id}/pickup`, { method: 'POST', token }),
-  mockPay: (token, id, amount) => request('/orders/mock-pay', {
+  mockPay: (token, id, amount, payChannel = 'WEB') => request('/orders/mock-pay', {
     method: 'POST',
     token,
-    data: { orderId: Number(id), payChannel: 'WEB', payableAmount: amount || null }
+    data: { orderId: Number(id), payChannel, payableAmount: amount || null }
   }),
-  evaluate: (token, data) => request('/orders/evaluation', { method: 'POST', token, data }),
-  complaint: (token, data) => request('/orders/complaint', { method: 'POST', token, data }),
+  evaluate: (token, data) => request('/orders/evaluation', { method: 'POST', token, data: normalizeEvaluationRequest(data) }),
+  complaint: (token, data) => request('/orders/complaint', { method: 'POST', token, data: normalizeComplaintRequest(data) }),
+  applyInvoice: (token, id, data) => request(`/orders/${id}/invoice`, { method: 'POST', token, data }),
+  invoiceImage: (token, id) => binaryRequest(`/orders/${id}/invoice/image`, { token }),
   trackHistory: (token, id) => request(`/orders/${id}/track/history`, { token }),
   reportTrack: (token, id, data) => request(`/orders/${id}/track/report`, { method: 'POST', token, data }),
   couponCenter: () => request('/coupons/center', { skipAuth: true }),
   myCoupons: (token) => request('/coupons/mine', { token }),
   receiveCoupon: (token, id) => request(`/coupons/${id}/receive`, { method: 'POST', token }),
+  membership: (token) => request('/membership', { token }),
+  activateMembership: (token) => request('/membership/activate', { method: 'POST', token }),
+  syncMembershipCoupons: (token) => request('/membership/weekly-coupons', { method: 'POST', token }),
   messages: (token) => request('/messages', { token }),
   markMessageRead: (token, id) => request(`/messages/${id}/read`, { method: 'POST', token }),
+  supportConversation: (token) => request('/support/conversation', { token }),
+  supportMessages: (token) => request('/support/messages', { token }),
+  sendSupportMessage: (token, content) => request('/support/messages', { method: 'POST', token, data: { content } }),
   carpoolSearch: (keyword = '') => request(`/carpool/search${toQuery({ keyword })}`, { skipAuth: true }),
   carpoolDetail: (id) => request(`/carpool/${id}`, { skipAuth: true }),
   carpoolMine: (token) => request('/carpool/mine', { token }),
@@ -165,6 +210,7 @@ export const api = {
   driverDashboard: (token) => request('/driver/dashboard', { token }),
   driverUpdateProfile: (token, data) => request('/driver/profile', { method: 'PUT', token, data }),
   driverStatus: (token, data) => request('/driver/service-status', { method: 'POST', token, data }),
+  driverWithdraws: (token) => request('/driver/withdraws', { token }),
   driverWaitingOrders: (token) => request('/orders/waiting', { token }),
   driverAccept: (token, id) => request(`/orders/${id}/accept`, { method: 'POST', token }),
   driverReject: (token, id, reason) => request(`/orders/${id}/reject`, { method: 'POST', token, data: { reason } }),
@@ -181,6 +227,26 @@ function toQuery(params = {}) {
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&')
   return query ? `?${query}` : ''
+}
+
+function normalizeEvaluationRequest(data = {}) {
+  const tags = Array.isArray(data.tags) && data.tags.length ? `标签：${data.tags.join('、')}` : ''
+  const content = [tags, String(data.content || '').trim()].filter(Boolean).join('\n')
+  return {
+    orderId: data.orderId,
+    score: Number(data.score || 5),
+    content
+  }
+}
+
+function normalizeComplaintRequest(data = {}) {
+  const contactPhone = String(data.contactPhone || '').trim()
+  const contactLine = contactPhone ? `联系电话：${contactPhone}` : ''
+  return {
+    orderId: data.orderId,
+    complaintType: data.complaintType || 'OTHER',
+    content: [String(data.content || '').trim(), contactLine].filter(Boolean).join('\n')
+  }
 }
 
 function demoRequest(path, options) {
@@ -250,7 +316,9 @@ function demoRequest(path, options) {
   if (url.pathname === '/coupons/center') return db.coupons
   if (url.pathname === '/carpool/search') {
     const keyword = url.searchParams.get('keyword') || ''
-    return db.carpoolTrips.filter((item) => `${item.startName}${item.endName}`.includes(keyword))
+    return db.carpoolTrips
+      .filter((item) => `${item.startName}${item.endName}`.includes(keyword))
+      .map((trip) => buildDemoSearchCarpoolTrip(db, trip))
   }
 
   const carpoolDetailMatch = url.pathname.match(/^\/carpool\/(\d+)$/)
@@ -302,10 +370,36 @@ function demoRequest(path, options) {
     return db.userCoupons
   }
 
+  if (url.pathname === '/membership') {
+    requireRole(actor, ROLE.USER)
+    return buildMembership(db, 0)
+  }
+
+  if (url.pathname === '/membership/activate' && method === 'POST') {
+    requireRole(actor, ROLE.USER)
+    db.passengerUser.memberStatus = 'ACTIVE'
+    db.passengerUser.memberLevel = '阳光会员'
+    db.passengerUser.memberOpenedAt = db.passengerUser.memberOpenedAt || nowText()
+    db.passengerUser.memberExpireAt = addDaysText(30)
+    const issuedCount = ensureDemoMemberCoupons(db, true)
+    db.messages.unshift(message('USER', '阳光会员已开通', `会员权益已同步，${issuedCount} 张专属券已放入券包。`))
+    saveDemoDb(db)
+    return buildMembership(db, issuedCount)
+  }
+
+  if (url.pathname === '/membership/weekly-coupons' && method === 'POST') {
+    requireRole(actor, ROLE.USER)
+    const issuedCount = ensureDemoMemberCoupons(db, true)
+    saveDemoDb(db)
+    return buildMembership(db, issuedCount)
+  }
+
   const receiveMatch = url.pathname.match(/^\/coupons\/(\d+)\/receive$/)
   if (receiveMatch && method === 'POST') {
     const coupon = db.coupons.find((item) => Number(item.id) === Number(receiveMatch[1]))
     if (!coupon) throw new ApiError('优惠券不存在', { code: 4004 })
+    const existing = db.userCoupons.find((item) => Number(item.couponId || item.id) === Number(coupon.id))
+    if (existing) throw new ApiError('该优惠券已领取', { code: 4006 })
     const record = {
       id: Date.now(),
       userCouponId: Date.now(),
@@ -375,10 +469,21 @@ function demoRequest(path, options) {
   if (url.pathname === '/orders/mock-pay' && method === 'POST') {
     requireRole(actor, ROLE.USER)
     const order = requireOrder(db, body.orderId)
+    const previousPayStatus = order.payStatus
     order.payStatus = PAY_STATUS.PAID
+    order.payChannel = body.payChannel || 'WEB'
+    order.paidAt = nowText()
+    if (body.payableAmount !== undefined && body.payableAmount !== null) {
+      order.payableAmount = Number(body.payableAmount)
+      order.actualAmount = Number(body.payableAmount)
+    }
+    if (previousPayStatus !== PAY_STATUS.PAID && String(order.payChannel).toUpperCase() === 'BALANCE') {
+      const paidAmount = Number(order.payableAmount || order.actualAmount || 0)
+      db.passengerUser.walletBalance = Math.max(0, Number(db.passengerUser.walletBalance || 0) - paidAmount)
+    }
     order.updatedAt = nowText()
-    addTimeline(order, '支付成功', 'success')
-    db.messages.unshift(message('USER', '支付完成', `${order.orderNo} 已完成支付。`))
+    addTimeline(order, `支付成功（${demoPayChannelText(order.payChannel)}）`, 'success')
+    db.messages.unshift(message('USER', '支付完成', `${order.orderNo} 已通过${demoPayChannelText(order.payChannel)}完成支付。`))
     saveDemoDb(db)
     return order
   }
@@ -388,8 +493,10 @@ function demoRequest(path, options) {
     const order = requireOrder(db, body.orderId)
     order.evaluationStatus = 'DONE'
     order.score = body.score
+    order.evaluationTags = Array.isArray(body.tags) ? body.tags : []
     order.evaluationContent = body.content
     addTimeline(order, `已评价 ${body.score} 星`, 'success')
+    db.messages.unshift(message('USER', '评价已提交', `${order.orderNo} 的行程评价已同步。`))
     saveDemoDb(db)
     return true
   }
@@ -398,10 +505,32 @@ function demoRequest(path, options) {
     requireRole(actor, ROLE.USER)
     const order = requireOrder(db, body.orderId)
     order.complaintStatus = 'PENDING'
+    order.complaintType = body.complaintType || 'OTHER'
+    order.complaintContactPhone = body.contactPhone || ''
     order.complaintContent = body.content
-    addTimeline(order, '投诉已提交', 'danger')
+    addTimeline(order, `投诉已提交（${demoComplaintTypeText(order.complaintType)}）`, 'danger')
+    db.messages.unshift(message('USER', '投诉已提交', `${order.orderNo} 的${demoComplaintTypeText(order.complaintType)}反馈已进入处理。`))
     saveDemoDb(db)
     return true
+  }
+
+  const invoiceMatch = url.pathname.match(/^\/orders\/(\d+)\/invoice$/)
+  if (invoiceMatch && method === 'POST') {
+    requireRole(actor, ROLE.USER)
+    const order = requireOrder(db, invoiceMatch[1])
+    if (order.orderStatus !== ORDER_STATUS.FINISHED || order.payStatus !== PAY_STATUS.PAID) {
+      throw new ApiError('仅已完成且已支付订单可以申请发票', { code: 4005 })
+    }
+    order.invoiceStatus = 'APPLIED'
+    order.invoiceTitle = body.invoiceTitle || body.title || db.passengerUser.realName || db.passengerUser.nickname
+    order.taxNo = body.taxNo || '个人无需填写'
+    order.buyerPhone = body.buyerPhone || db.passengerUser.phone
+    order.invoiceRemark = body.remark || '网页端提交电子发票申请'
+    order.invoiceAppliedAt = nowText()
+    addTimeline(order, '发票申请已提交', 'success')
+    db.messages.unshift(message('USER', '发票申请已提交', `${order.orderNo} 的电子发票申请已同步到后台。`))
+    saveDemoDb(db)
+    return order
   }
 
   const orderAction = url.pathname.match(/^\/orders\/(\d+)\/(accept|reject|start|pickup|finish|cancel|runtime)$/)
@@ -438,9 +567,15 @@ function demoRequest(path, options) {
     return buildDriverDashboard(db)
   }
 
+  if (url.pathname === '/driver/withdraws') {
+    requireRole(actor, ROLE.DRIVER)
+    return db.withdraws
+  }
+
   if (url.pathname === '/driver/profile' && method === 'PUT') {
     requireRole(actor, ROLE.DRIVER)
     db.driverUser.nickname = body.nickname || db.driverUser.nickname
+    db.driverUser.defaultLanguage = body.defaultLanguage || db.driverUser.defaultLanguage
     db.driverProfile.cityCode = body.cityCode || db.driverProfile.cityCode
     db.driverProfile.licenseNo = body.licenseNo || db.driverProfile.licenseNo
     db.messages.unshift(message('DRIVER', '司机资料已更新', '资料已更新到司机端工作台。'))
@@ -475,12 +610,38 @@ function demoRequest(path, options) {
     return { driverId: db.driverUser.id, driverAuditStatus: 1, vehicleAuditStatus: 1, canReceiveOrders: false, message: '已提交，等待管理员审核' }
   }
 
+  if (url.pathname === '/support/conversation') {
+    requireSupportRole(actor)
+    const conversation = ensureDemoSupportConversation(db, actor)
+    saveDemoDb(db)
+    return conversation
+  }
+
+  if (url.pathname === '/support/messages') {
+    requireSupportRole(actor)
+    const conversation = ensureDemoSupportConversation(db, actor)
+    if (method === 'POST') {
+      const content = String(body.content || '').trim()
+      if (!content) throw new ApiError('消息内容不能为空', { code: 4001 })
+      const item = supportMessage(conversation.id, actor.userId, actor.roleCode, content)
+      db.supportMessages.push(item)
+      conversation.status = 'OPEN'
+      conversation.lastMessage = item.content
+      conversation.lastMessageAt = item.createdAt
+      conversation.unreadForAdmin = Number(conversation.unreadForAdmin || 0) + 1
+      conversation.unreadForUser = 0
+      db.messages.unshift(message(actor.roleCode, '客服消息已发送', content))
+      saveDemoDb(db)
+      return item
+    }
+    conversation.unreadForUser = 0
+    saveDemoDb(db)
+    return db.supportMessages.filter((item) => Number(item.conversationId) === Number(conversation.id))
+  }
+
   if (url.pathname === '/carpool/mine') {
     requireRole(actor, ROLE.USER)
-    return {
-      published: db.carpoolTrips.filter((item) => item.ownerId === db.passengerUser.id),
-      applied: db.carpoolApplications
-    }
+    return buildDemoCarpoolMine(db)
   }
 
   if (url.pathname === '/carpool/publish' && method === 'POST') {
@@ -499,14 +660,33 @@ function demoRequest(path, options) {
 
   if (url.pathname === '/carpool/apply' && method === 'POST') {
     requireRole(actor, ROLE.USER)
+    const trip = db.carpoolTrips.find((item) => Number(item.id) === Number(body.tripId))
+    if (!trip) throw new ApiError('顺风车行程不存在', { code: 4004 })
+    if (Number(trip.ownerId || trip.ownerUserId) === Number(db.passengerUser.id)) {
+      throw new ApiError('不能申请自己发布的顺风车', { code: 4006 })
+    }
+    const existing = db.carpoolApplications.find((item) => Number(item.tripId) === Number(body.tripId) && Number(item.passengerUserId || item.passengerId) === Number(db.passengerUser.id) && !['CANCELLED', 'REJECTED'].includes(item.applicationStatus))
+    if (existing) throw new ApiError('已提交过该顺风车申请', { code: 4006 })
+    const companionCount = Number(body.companionCount || 0)
+    const needSeat = companionCount + 1
+    const remainSeat = Number(trip.remainSeatCount ?? trip.remainingSeatCount ?? trip.seatCount ?? 1)
+    if (needSeat > remainSeat) throw new ApiError('当前顺风车余座不足', { code: 4005 })
     const item = {
       id: Date.now(),
+      tripId: Number(body.tripId),
       applicationStatus: 'APPLIED',
+      passengerUserId: db.passengerUser.id,
       passengerId: db.passengerUser.id,
+      companionCount,
+      totalSeatCount: needSeat,
+      sharedAmount: Number(trip.sharedAmount || 0) * needSeat,
+      note: body.note || '网页端申请搭乘',
       createdAt: nowText(),
-      ...body
+      updatedAt: nowText()
     }
     db.carpoolApplications.unshift(item)
+    trip.remainSeatCount = Math.max(0, remainSeat - needSeat)
+    trip.status = trip.remainSeatCount <= 0 ? 'FULL' : 'MATCHING'
     saveDemoDb(db)
     return item
   }
@@ -514,7 +694,17 @@ function demoRequest(path, options) {
   if (url.pathname === '/carpool/owner-confirm' && method === 'POST') {
     requireRole(actor, ROLE.USER)
     const app = db.carpoolApplications.find((item) => Number(item.id) === Number(body.applicationId))
-    if (app) app.ownerConfirmStatus = body.confirmStatus || 'CONFIRMED'
+    if (app) {
+      if (String(body.action || '').toUpperCase() === 'REJECT') {
+        app.applicationStatus = 'REJECTED'
+        app.cancelReason = body.note || '车主暂时不便同行'
+      } else {
+        app.applicationStatus = 'OWNER_CONFIRMED'
+        app.ownerConfirmedAt = nowText()
+      }
+      app.note = body.note || app.note
+      app.updatedAt = nowText()
+    }
     saveDemoDb(db)
     return app || true
   }
@@ -522,7 +712,14 @@ function demoRequest(path, options) {
   if (url.pathname === '/carpool/passenger-confirm' && method === 'POST') {
     requireRole(actor, ROLE.USER)
     const app = db.carpoolApplications.find((item) => Number(item.id) === Number(body.applicationId))
-    if (app) app.passengerConfirmStatus = body.confirmStatus || 'CONFIRMED'
+    if (app) {
+      app.applicationStatus = 'CONFIRMED'
+      app.passengerConfirmedAt = nowText()
+      app.note = body.note || app.note
+      app.updatedAt = nowText()
+      const trip = db.carpoolTrips.find((item) => Number(item.id) === Number(app.tripId))
+      if (trip) trip.status = 'CONFIRMED'
+    }
     saveDemoDb(db)
     return app || true
   }
@@ -530,7 +727,17 @@ function demoRequest(path, options) {
   if (url.pathname === '/carpool/cancel' && method === 'POST') {
     requireRole(actor, ROLE.USER)
     const app = db.carpoolApplications.find((item) => Number(item.id) === Number(body.applicationId))
-    if (app) app.applicationStatus = 'CANCELLED'
+    if (app) {
+      app.applicationStatus = 'CANCELLED'
+      app.cancelReason = body.reason || '网页端取消申请'
+      app.updatedAt = nowText()
+      const trip = db.carpoolTrips.find((item) => Number(item.id) === Number(app.tripId))
+      if (trip) {
+        const released = Number(app.companionCount || 0) + 1
+        trip.remainSeatCount = Math.min(Number(trip.seatCount || released), Number(trip.remainSeatCount ?? 0) + released)
+        trip.status = trip.remainSeatCount >= Number(trip.seatCount || 0) ? 'PUBLISHED' : 'MATCHING'
+      }
+    }
     saveDemoDb(db)
     return app || true
   }
@@ -570,10 +777,74 @@ function requireDriverOrAdmin(actor) {
   if (![ROLE.DRIVER, 'ADMIN'].includes(actor.roleCode)) throw new ApiError('当前账号无权限执行该操作', { code: 4003 })
 }
 
+function requireSupportRole(actor) {
+  if (![ROLE.USER, ROLE.DRIVER].includes(actor.roleCode)) throw new ApiError('当前账号无权限执行该操作', { code: 4003 })
+}
+
 function requireOrder(db, id) {
   const order = db.orders.find((item) => Number(item.id) === Number(id))
   if (!order) throw new ApiError('订单不存在', { code: 4004 })
   return order
+}
+
+function buildMembership(db, issuedCount = 0) {
+  const user = db.passengerUser
+  const active = user.memberStatus === 'ACTIVE'
+  const weeklyCouponTotal = db.userCoupons.filter((item) => item.receiveMode === 'MEMBER_WEEKLY').length
+  return {
+    userId: user.id,
+    nickname: user.nickname,
+    phone: user.phone,
+    roleCode: ROLE.USER,
+    active,
+    memberStatus: active ? 'ACTIVE' : 'NONE',
+    memberLevel: active ? (user.memberLevel || '阳光会员') : '普通用户',
+    memberOpenedAt: user.memberOpenedAt || '',
+    memberExpireAt: user.memberExpireAt || '',
+    expireDate: user.memberExpireAt ? String(user.memberExpireAt).slice(0, 10) : '',
+    memberLastCouponWeek: user.memberLastCouponWeek || '',
+    lastSyncAt: user.memberLastCouponSyncedAt || '',
+    weeklyCouponTotal,
+    issuedCount,
+    couponRuleText: '每周自动赠送 3 张不同优惠券',
+    createdAt: user.createdAt || nowText()
+  }
+}
+
+function ensureDemoMemberCoupons(db, notify = false) {
+  if (db.passengerUser.memberStatus !== 'ACTIVE') {
+    throw new ApiError('乘客会员未开通或已过期', { code: 4005 })
+  }
+  const weekCode = currentWeekCode()
+  if (db.passengerUser.memberLastCouponWeek === weekCode) return 0
+  const templates = [
+    { id: 8101, couponName: '会员每周通用6元券', couponType: 'CASH', serviceScope: 'ALL', thresholdAmount: 20, discountAmount: 6, ruleDesc: '阳光会员每周专属券' },
+    { id: 8102, couponName: '会员每周打车8元券', couponType: 'CASH', serviceScope: 'TAXI', thresholdAmount: 30, discountAmount: 8, ruleDesc: '即时打车满30元可用' },
+    { id: 8103, couponName: '会员每周顺风车5元券', couponType: 'CASH', serviceScope: 'CARPOOL', thresholdAmount: 20, discountAmount: 5, ruleDesc: '顺风车满20元可用' }
+  ]
+  templates.forEach((template) => {
+    if (!db.coupons.some((item) => Number(item.id) === Number(template.id))) {
+      db.coupons.push({ ...template, validEndTime: '2030-12-31 23:59:59', status: 1, remainCount: 999999 })
+    }
+    db.userCoupons.unshift({
+      id: Date.now() + template.id,
+      userCouponId: Date.now() + template.id,
+      couponId: template.id,
+      couponName: template.couponName,
+      couponStatus: 'UNUSED',
+      serviceScope: template.serviceScope,
+      validStartTime: nowText(),
+      validEndTime: addDaysText(7),
+      receiveMode: 'MEMBER_WEEKLY',
+      ...template
+    })
+  })
+  db.passengerUser.memberLastCouponWeek = weekCode
+  db.passengerUser.memberLastCouponSyncedAt = nowText()
+  if (notify) {
+    db.messages.unshift(message('USER', '会员券包已同步', `本周 ${templates.length} 张会员专属券已到账。`))
+  }
+  return templates.length
 }
 
 function currentOrders(db, actor) {
@@ -581,6 +852,172 @@ function currentOrders(db, actor) {
     return db.orders.filter((item) => Number(item.driverId) === db.driverUser.id)
   }
   return db.orders.filter((item) => Number(item.userId) === db.passengerUser.id)
+}
+
+function buildDemoCarpoolMine(db) {
+  const ownerRecords = db.carpoolTrips
+    .filter((trip) => Number(trip.ownerId || trip.ownerUserId) === Number(db.passengerUser.id))
+    .map((trip) => buildDemoOwnerCarpoolRecord(db, trip))
+  const passengerRecords = db.carpoolApplications
+    .filter((application) => Number(application.passengerId || application.passengerUserId) === Number(db.passengerUser.id))
+    .map((application) => buildDemoPassengerCarpoolRecord(db, application))
+  const records = [...ownerRecords, ...passengerRecords]
+  return {
+    summary: {
+      ownerTripTotal: ownerRecords.length,
+      passengerTripTotal: passengerRecords.length,
+      pendingTotal: records.filter((item) => item.statusBucket === 'pending').length,
+      upcomingTotal: records.filter((item) => item.statusBucket === 'upcoming').length,
+      processingTotal: records.filter((item) => item.statusBucket === 'processing').length,
+      completedTotal: records.filter((item) => item.statusBucket === 'completed').length
+    },
+    ownerRecords,
+    passengerRecords
+  }
+}
+
+function buildDemoOwnerCarpoolRecord(db, trip) {
+  const applications = db.carpoolApplications
+    .filter((item) => Number(item.tripId) === Number(trip.id))
+    .map((item) => buildDemoCarpoolApplication(item, true))
+  return {
+    trip: buildDemoCarpoolTrip(trip),
+    applications,
+    statusBucket: demoCarpoolBucket(trip.status),
+    statusBucketText: demoCarpoolBucketText(demoCarpoolBucket(trip.status)),
+    departTime: trip.departTime
+  }
+}
+
+function buildDemoPassengerCarpoolRecord(db, application) {
+  const trip = db.carpoolTrips.find((item) => Number(item.id) === Number(application.tripId)) || application
+  const bucket = demoCarpoolBucket(application.applicationStatus)
+  return {
+    trip: buildDemoCarpoolTrip(trip),
+    application: buildDemoCarpoolApplication(application, false),
+    statusBucket: bucket,
+    statusBucketText: demoCarpoolBucketText(bucket),
+    departTime: trip.departTime
+  }
+}
+
+function buildDemoCarpoolTrip(trip = {}) {
+  const status = trip.status || 'PUBLISHED'
+  const seatCount = Number(trip.seatCount || 1)
+  const remainSeatCount = Number(trip.remainSeatCount ?? trip.remainingSeatCount ?? seatCount)
+  return {
+    ...trip,
+    ownerUserId: trip.ownerUserId || trip.ownerId,
+    remainSeatCount,
+    bookedSeatCount: Math.max(0, seatCount - remainSeatCount),
+    status,
+    statusText: demoCarpoolTripStatusText(status),
+    departTimeText: String(trip.departTime || '').replace('T', ' ').slice(0, 16),
+    canApply: !['FULL', 'CONFIRMED', 'CANCELLED', 'FINISHED'].includes(status)
+  }
+}
+
+function buildDemoSearchCarpoolTrip(db, trip = {}) {
+  const normalized = buildDemoCarpoolTrip(trip)
+  const ownTrip = Number(trip.ownerId || trip.ownerUserId) === Number(db.passengerUser.id)
+  const application = db.carpoolApplications.find((item) => Number(item.tripId) === Number(trip.id) && Number(item.passengerUserId || item.passengerId) === Number(db.passengerUser.id) && !['CANCELLED', 'REJECTED'].includes(item.applicationStatus))
+  return {
+    ...normalized,
+    canApply: normalized.canApply && !ownTrip && !application,
+    hasApplied: Boolean(application),
+    myApplicationStatusText: ownTrip ? '我发布的行程' : application ? demoCarpoolApplicationStatusText(application.applicationStatus) : ''
+  }
+}
+
+function buildDemoCarpoolApplication(application = {}, exposePassenger) {
+  const status = application.applicationStatus || 'APPLIED'
+  const totalSeatCount = Number(application.totalSeatCount || application.companionCount || 1)
+  return {
+    ...application,
+    totalSeatCount,
+    applicationStatus: status,
+    applicationStatusText: demoCarpoolApplicationStatusText(status),
+    statusText: demoCarpoolApplicationStatusText(status),
+    passengerName: exposePassenger ? '阳光乘客' : undefined,
+    passengerText: exposePassenger ? '阳光乘客 · 138****8888' : undefined,
+    seatText: `${totalSeatCount} 人同行`,
+    noteText: application.note || '未填写备注',
+    canOwnerApprove: status === 'APPLIED',
+    canOwnerReject: status === 'APPLIED',
+    canPassengerConfirm: status === 'OWNER_CONFIRMED',
+    canPassengerCancel: !['CANCELLED', 'REJECTED'].includes(status)
+  }
+}
+
+function demoCarpoolBucket(status) {
+  if (['CANCELLED', 'REJECTED', 'FINISHED'].includes(status)) return 'completed'
+  if (['CONFIRMED', 'PASSENGER_CONFIRMED'].includes(status)) return 'upcoming'
+  if (status === 'IN_PROGRESS') return 'processing'
+  return 'pending'
+}
+
+function demoCarpoolBucketText(bucket) {
+  return { pending: '待确认', upcoming: '待出发', processing: '行程中', completed: '已完成' }[bucket] || '待确认'
+}
+
+function demoCarpoolTripStatusText(status) {
+  return {
+    PUBLISHED: '可申请',
+    MATCHING: '拼友匹配中',
+    FULL: '座位已满',
+    CONFIRMED: '已确认成行',
+    CANCELLED: '已取消',
+    FINISHED: '已完成'
+  }[status] || status || '可申请'
+}
+
+function demoCarpoolApplicationStatusText(status) {
+  return {
+    APPLIED: '待车主确认',
+    OWNER_CONFIRMED: '待乘客确认',
+    PASSENGER_CONFIRMED: '已确认同行',
+    CONFIRMED: '已确认同行',
+    CANCELLED: '已取消',
+    REJECTED: '已拒绝'
+  }[status] || status || '待确认'
+}
+
+function ensureDemoSupportConversation(db, actor) {
+  db.supportConversations = db.supportConversations || []
+  db.supportMessages = db.supportMessages || []
+  let conversation = db.supportConversations.find((item) => Number(item.userId) === Number(actor.userId) && item.userRole === actor.roleCode)
+  if (conversation) return conversation
+  conversation = {
+    id: Date.now() + actor.userId,
+    userId: actor.userId,
+    userRole: actor.roleCode,
+    roleText: actor.roleCode === ROLE.DRIVER ? '司机' : '乘客',
+    nickname: actor.roleCode === ROLE.DRIVER ? db.driverUser.nickname : db.passengerUser.nickname,
+    phone: actor.roleCode === ROLE.DRIVER ? db.driverUser.phone : db.passengerUser.phone,
+    member: actor.roleCode === ROLE.USER && db.passengerUser.memberStatus === 'ACTIVE',
+    memberLevel: actor.roleCode === ROLE.USER ? db.passengerUser.memberLevel : '',
+    status: 'OPEN',
+    lastMessage: '已进入在线客服',
+    lastMessageAt: nowText(),
+    unreadForAdmin: 0,
+    unreadForUser: 0,
+    createdAt: nowText()
+  }
+  db.supportConversations.push(conversation)
+  db.supportMessages.push(supportMessage(conversation.id, null, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。'))
+  return conversation
+}
+
+function supportMessage(conversationId, senderId, senderRole, content) {
+  return {
+    id: Date.now() + Math.random(),
+    conversationId,
+    senderId,
+    senderRole,
+    fromAdmin: senderRole === 'ADMIN',
+    content,
+    createdAt: nowText()
+  }
 }
 
 function mutateOrderByAction(db, actor, order, action, body) {
@@ -624,10 +1061,20 @@ function mutateOrderByAction(db, actor, order, action, body) {
     return
   }
   if (action === 'cancel') {
+    const wasPaid = order.payStatus === PAY_STATUS.PAID
     order.orderStatus = ORDER_STATUS.CANCELLED
     order.cancelReason = body.reason || '网页端取消'
+    if (wasPaid) {
+      const refundAmount = Number(order.actualAmount || order.payableAmount || order.estimatedAmount || 0)
+      order.payStatus = PAY_STATUS.REFUNDED
+      order.refundedAt = nowText()
+      if (String(order.payChannel || '').toUpperCase() === 'BALANCE') {
+        db.passengerUser.walletBalance = Number(db.passengerUser.walletBalance || 0) + refundAmount
+      }
+      db.messages.unshift(message('USER', '退款已入账', `${order.orderNo} 已取消，退款 ${formatAmount(order)} 已同步到账户流水。`))
+    }
     db.driverProfile.serviceStatus = DRIVER_STATUS.ONLINE
-    addTimeline(order, '订单已取消', 'danger')
+    addTimeline(order, wasPaid ? '订单已取消，退款已同步' : '订单已取消', 'danger')
   }
 }
 
@@ -685,10 +1132,51 @@ function message(roleCode, title, content) {
   }
 }
 
+function demoInvoiceImageUrl(path) {
+  const match = String(path || '').match(/\/orders\/(\d+)\/invoice\/image/)
+  const orderId = match?.[1] || 'DEMO'
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560">
+    <rect width="960" height="560" fill="#fffaf4"/>
+    <rect x="36" y="36" width="888" height="488" rx="18" fill="#fff" stroke="#f1d7bd" stroke-width="2"/>
+    <text x="64" y="92" font-family="Microsoft YaHei, Arial" font-size="32" font-weight="700" fill="#1f2937">阳光出行电子发票</text>
+    <text x="64" y="138" font-family="Microsoft YaHei, Arial" font-size="18" fill="#64748b">订单号：${orderId}</text>
+    <line x1="64" y1="170" x2="896" y2="170" stroke="#f1d7bd"/>
+    <text x="64" y="226" font-family="Microsoft YaHei, Arial" font-size="24" fill="#1f2937">购买方：阳光乘客</text>
+    <text x="64" y="278" font-family="Microsoft YaHei, Arial" font-size="22" fill="#1f2937">项目：出行服务费</text>
+    <text x="64" y="330" font-family="Microsoft YaHei, Arial" font-size="22" fill="#1f2937">状态：网页端演示发票</text>
+    <text x="64" y="430" font-family="Microsoft YaHei, Arial" font-size="18" fill="#64748b">连接后端后会拉取真实发票 PNG。</text>
+  </svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+function demoPayChannelText(value) {
+  return {
+    WECHAT: '微信支付',
+    BALANCE: '钱包余额',
+    ALIPAY: '支付宝',
+    WEB: '网页支付'
+  }[String(value || '').toUpperCase()] || '网页支付'
+}
+
+function demoComplaintTypeText(value) {
+  return {
+    SERVICE: '服务态度',
+    ROUTE: '路线绕行',
+    PAYMENT: '费用疑问',
+    SAFETY: '安全问题',
+    OTHER: '其他反馈'
+  }[String(value || '').toUpperCase()] || '其他反馈'
+}
+
 function loadDemoDb() {
   try {
     const cached = JSON.parse(localStorage.getItem(DEMO_DB_KEY) || 'null')
-    if (cached?.version === 2) return cached
+    if (cached?.version === DEMO_DB_VERSION) return cached
+    if (cached) {
+      const upgraded = upgradeDemoDb(cached)
+      saveDemoDb(upgraded)
+      return upgraded
+    }
   } catch (error) {
     localStorage.removeItem(DEMO_DB_KEY)
   }
@@ -705,7 +1193,7 @@ function seedDemoDb() {
   const route = calcRoute('poi101', 'poi102')
   const fare = estimateLocalFare(1, SERVICE_TYPE.TAXI, route.distanceKm, route.durationMin)
   return {
-    version: 2,
+    version: DEMO_DB_VERSION,
     nextOrderId: 9003,
     nextCarpoolId: 3003,
     passengerUser: {
@@ -715,9 +1203,15 @@ function seedDemoDb() {
       nickname: demoAccounts.USER.nickname,
       roleCode: ROLE.USER,
       authStatus: 2,
+      realName: '阳光乘客',
       walletBalance: 268.8,
       emergencyContact: '王同学',
-      emergencyPhone: '13800009999'
+      emergencyPhone: '13800009999',
+      memberStatus: 'ACTIVE',
+      memberLevel: '阳光会员',
+      memberOpenedAt: '2026-05-01 09:00:00',
+      memberExpireAt: addDaysText(30),
+      memberLastCouponWeek: ''
     },
     driverUser: {
       id: 2,
@@ -810,9 +1304,11 @@ function seedDemoDb() {
         dispatchMode: 'SMART',
         remark: '已完成示例订单',
         createdAt: '2026-05-14 09:16:00',
+        paidAt: '2026-05-14 09:48:00',
         updatedAt: '2026-05-14 09:48:00',
         evaluationStatus: 'DONE',
         complaintStatus: 'NONE',
+        invoiceStatus: 'NONE',
         score: 5,
         timeline: [
           { label: '支付完成', time: '2026-05-14 09:48:00', tone: 'success' },
@@ -830,14 +1326,56 @@ function seedDemoDb() {
       message('USER', '网页门户已准备好', '乘客端可下单、领券、支付、评价、投诉和发布顺风车。'),
       message('DRIVER', '听单大厅在线', '司机端可切换在线、抢单、开始接驾、完成行程和提现。')
     ],
-    withdraws: []
+    supportConversations: [
+      { id: 7001, userId: 1, userRole: ROLE.USER, roleText: '乘客', nickname: demoAccounts.USER.nickname, phone: demoAccounts.USER.phone, member: true, memberLevel: '阳光会员', status: 'OPEN', lastMessage: '您好，阳光出行客服已接入。', lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() },
+      { id: 7002, userId: 2, userRole: ROLE.DRIVER, roleText: '司机', nickname: demoAccounts.DRIVER.nickname, phone: demoAccounts.DRIVER.phone, member: false, memberLevel: '', status: 'OPEN', lastMessage: '司机端客服通道已接入。', lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() }
+    ],
+    supportMessages: [
+      supportMessage(7001, null, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。'),
+      supportMessage(7002, null, 'ADMIN', '司机端客服通道已接入，听单、提现、资质问题都可以在这里反馈。')
+    ],
+    withdraws: [
+      { id: 6001, driverId: 2, applyAmount: 188, bankName: '中国银行', bankAccount: '6222 **** 2026', status: 'PENDING', createdAt: '2026-05-14 18:20:00' }
+    ]
   }
+}
+
+function upgradeDemoDb(db) {
+  const upgraded = { ...seedDemoDb(), ...db, version: DEMO_DB_VERSION }
+  upgraded.passengerUser = { ...seedDemoDb().passengerUser, ...(db.passengerUser || {}) }
+  upgraded.driverUser = { ...seedDemoDb().driverUser, ...(db.driverUser || {}) }
+  upgraded.driverProfile = { ...seedDemoDb().driverProfile, ...(db.driverProfile || {}) }
+  upgraded.vehicle = { ...seedDemoDb().vehicle, ...(db.vehicle || {}) }
+  upgraded.coupons = Array.isArray(db.coupons) ? db.coupons : seedDemoDb().coupons
+  upgraded.userCoupons = Array.isArray(db.userCoupons) ? db.userCoupons : []
+  upgraded.orders = Array.isArray(db.orders) ? db.orders : seedDemoDb().orders
+  upgraded.carpoolTrips = Array.isArray(db.carpoolTrips) ? db.carpoolTrips : seedDemoDb().carpoolTrips
+  upgraded.carpoolApplications = Array.isArray(db.carpoolApplications) ? db.carpoolApplications : []
+  upgraded.messages = Array.isArray(db.messages) ? db.messages : seedDemoDb().messages
+  upgraded.withdraws = Array.isArray(db.withdraws) ? db.withdraws : seedDemoDb().withdraws
+  upgraded.supportConversations = Array.isArray(db.supportConversations) ? db.supportConversations : seedDemoDb().supportConversations
+  upgraded.supportMessages = Array.isArray(db.supportMessages) ? db.supportMessages : seedDemoDb().supportMessages
+  return upgraded
 }
 
 function nowText() {
   const date = new Date()
   const pad = (value) => String(value).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function addDaysText(days) {
+  const date = new Date()
+  date.setDate(date.getDate() + Number(days || 0))
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function currentWeekCode() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), 0, 1)
+  const day = Math.floor((now - start) / 86400000)
+  return `${now.getFullYear()}-W${String(Math.ceil((day + start.getDay() + 1) / 7)).padStart(2, '0')}`
 }
 
 function formatAmount(order) {
