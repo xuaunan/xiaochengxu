@@ -10,6 +10,8 @@ import {
   Clock,
   CreditCard,
   DollarSign,
+  Eye,
+  EyeOff,
   Flag,
   Globe,
   HelpCircle,
@@ -58,10 +60,142 @@ import {
 } from './data'
 
 const passengerSessionKey = 'sunshine-web-passenger-session'
+const passengerSettingsKey = 'sunshine-web-passenger-settings-v1'
 const driverSessionKey = 'sunshine-web-driver-session'
+const driverSettingsKey = 'sunshine-web-driver-settings-v1'
 const dailyCheckinStateKey = 'sunshine-web-daily-checkin-v1'
 const portalRoleKey = 'sunshine-web-portal-role'
 const DEFAULT_TENCENT_MAP_KEY = 'NHNBZ-F5FW3-Z4C3Q-R4WUM-ODTPE-DRFDV'
+
+const driverDefaultSettings = {
+  listenMode: false,
+  autoAccept: false,
+  voiceBroadcast: true,
+  voiceStyle: 'default',
+  trackMode: 'DEMO',
+  manualResting: false,
+  listeningSince: 0
+}
+
+const passengerDefaultSettings = {
+  pushEnabled: true,
+  autoUseCoupon: true,
+  tripRemind: true,
+  invoiceRemind: true,
+  privacyMask: true,
+  emergencyShare: false
+}
+
+const driverTrackModeOptions = [
+  ['DEMO', '智能路线', '司机接单后显示在上车点附近，并按规划路线接驾。'],
+  ['REAL', '真实轨迹', '使用司机真实定位作为接驾位置并更新轨迹。']
+]
+
+const driverVoiceStyleOptions = [
+  ['default', '播音声音'],
+  ['original-default', '默认声音'],
+  ['gentle-female', '亲切自然女声'],
+  ['sunny-energetic', '阳光活力男声'],
+  ['mature-man', '稳重大叔声音'],
+  ['playful', '儿童声音'],
+  ['original-playful', '搞怪声音']
+]
+
+const passengerPaymentMethods = [
+  ['WECHAT', '微信支付', '推荐，和小程序支付入口一致'],
+  ['BALANCE', '钱包余额', '优先扣除账户余额'],
+  ['ALIPAY', '支付宝', '适合企业或个人出行报销']
+]
+
+const passengerReviewTags = ['接驾及时', '车内整洁', '路线清晰', '服务礼貌']
+
+const complaintTypeOptions = [
+  ['SERVICE', '服务态度'],
+  ['ROUTE', '路线绕行'],
+  ['PAYMENT', '费用疑问'],
+  ['SAFETY', '安全问题'],
+  ['OTHER', '其他反馈']
+]
+
+const orderTypeTabs = [
+  ['ALL', '全部业务'],
+  [SERVICE_TYPE.TAXI, '即时打车'],
+  [SERVICE_TYPE.CARPOOL, '顺风车'],
+  [SERVICE_TYPE.INTERNATIONAL, '国际出行']
+]
+
+const orderStatusTabs = [
+  ['ALL', '全部状态'],
+  ['COMPLETED', '已完成'],
+  ['WAITING_PAY', '待支付'],
+  ['PROCESSING', '进行中'],
+  ['DISPATCHING', '待接单'],
+  ['CANCELLED', '已取消']
+]
+
+const driverRejectReasonOptions = [
+  '距离较远，暂不方便接驾',
+  '车辆临时调整，暂不接单',
+  '乘客上车点不便停车',
+  '当前路况拥堵，无法准时到达'
+]
+
+const internationalOptions = [
+  {
+    id: 'int001',
+    titleZh: '香港机场接送',
+    titleEn: 'Hong Kong Airport Transfer',
+    routeCode: 'SZX-HKG',
+    countryText: '中国香港',
+    startName: '深圳湾口岸，中国深圳',
+    endName: '香港国际机场，中国香港',
+    basePrice: 88,
+    currency: '美元',
+    vehicle: '跨境商务七座',
+    durationText: '约 90 分钟',
+    distanceText: '58 km',
+    badge: '热门接送机',
+    inclusions: ['中文司机', '行李协助', '航班延误等待', '跨境路线备案'],
+    documents: ['港澳通行证/护照', '航班号或落地时间'],
+    notice: '支持港澳跨境接送、优惠券抵扣与中文下单'
+  },
+  {
+    id: 'int002',
+    titleZh: '澳门商务包车',
+    titleEn: 'Macau Business Charter',
+    routeCode: 'SZX-MFM',
+    countryText: '中国澳门',
+    startName: '深圳湾口岸，中国深圳',
+    endName: '澳门渔人码头，中国澳门',
+    basePrice: 128,
+    currency: '美元',
+    vehicle: '豪华商务七座',
+    durationText: '约 96 分钟',
+    distanceText: '65 km',
+    badge: '商务包车',
+    inclusions: ['专属车辆', '多点等待', '商务发票资料', '中英双语沟通'],
+    documents: ['港澳通行证/护照', '企业或联系人信息'],
+    notice: '适合跨境商务接待、会议用车与多点等待'
+  },
+  {
+    id: 'int003',
+    titleZh: '沪港商务接驳',
+    titleEn: 'Shanghai-HK Business Link',
+    routeCode: 'PVG-HKG',
+    countryText: '跨境商务',
+    startName: '上海浦东国际机场，中国上海',
+    endName: '香港国际机场，中国香港',
+    basePrice: 168,
+    currency: '美元',
+    vehicle: '高端商务车',
+    durationText: '按预约航班衔接',
+    distanceText: '跨城联运',
+    badge: '企业预约',
+    inclusions: ['航班接续提醒', '企业账单', '专属客服', '行程资料归档'],
+    documents: ['联系人电话', '航班/会议信息'],
+    notice: '面向企业客户的预约接驳，支持行程资料归档'
+  }
+]
 
 const dailyCheckinRewardRange = { min: 0.5, max: 5 }
 const dailyCheckinRewardRangeText = `${formatMoney(dailyCheckinRewardRange.min)} ~ ${formatMoney(dailyCheckinRewardRange.max)}`
@@ -772,24 +906,34 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   const [coupons, setCoupons] = useState([])
   const [couponCenter, setCouponCenter] = useState(home.couponCenter || [])
   const [messages, setMessages] = useState([])
+  const [membership, setMembership] = useState(null)
+  const [supportConversation, setSupportConversation] = useState(null)
+  const [supportMessages, setSupportMessages] = useState([])
   const [profile, setProfile] = useState(null)
   const [carpool, setCarpool] = useState({ list: [], mine: null })
   const [activeRuntime, setActiveRuntime] = useState(null)
+  const [passengerSettings, setPassengerSettings] = usePersistentState(passengerSettingsKey, passengerDefaultSettings)
+  const [focusOrderId, setFocusOrderId] = useState('')
+  const [syncMeta, setSyncMeta] = useState({ lastSyncAt: 0, degradedCount: 0, totalCount: 0 })
   const [toast, setToast] = useState('')
   const token = session?.token
   const activeRideOrder = useMemo(() => pickActiveRideOrder(orders), [orders])
 
   const load = useCallback(async () => {
     if (!token) return
-    const [profileData, orderData, mineCoupons, centerCoupons, msgData, carpoolList, myCarpool] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       api.profile(token),
       api.orders(token),
       api.myCoupons(token),
       api.couponCenter(),
       api.messages(token),
       api.carpoolSearch(''),
-      api.carpoolMine(token)
+      api.carpoolMine(token),
+      api.membership(token),
+      api.supportConversation(token),
+      api.supportMessages(token)
     ])
+    const [profileData, orderData, mineCoupons, centerCoupons, msgData, carpoolList, myCarpool, membershipData, supportData, supportMessageData] = results
     if (profileData.status === 'fulfilled') setProfile(profileData.value)
     if (orderData.status === 'fulfilled') setOrders(normalizeList(orderData.value))
     if (mineCoupons.status === 'fulfilled') setCoupons(normalizeList(mineCoupons.value))
@@ -797,6 +941,14 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     if (msgData.status === 'fulfilled') setMessages(normalizeList(msgData.value))
     if (carpoolList.status === 'fulfilled') setCarpool((value) => ({ ...value, list: normalizeList(carpoolList.value) }))
     if (myCarpool.status === 'fulfilled') setCarpool((value) => ({ ...value, mine: myCarpool.value }))
+    if (membershipData.status === 'fulfilled') setMembership(membershipData.value)
+    if (supportData.status === 'fulfilled') setSupportConversation(supportData.value)
+    if (supportMessageData.status === 'fulfilled') setSupportMessages(normalizeList(supportMessageData.value))
+    setSyncMeta({
+      lastSyncAt: Date.now(),
+      degradedCount: results.filter((item) => item.status === 'rejected').length,
+      totalCount: results.length
+    })
   }, [token])
 
   useEffect(() => {
@@ -829,6 +981,12 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   }, [activeRideOrder?.id, token])
 
   useEffect(() => {
+    if (!token) return undefined
+    const timer = window.setInterval(load, activeRideOrder?.id ? 12000 : 18000)
+    return () => window.clearInterval(timer)
+  }, [activeRideOrder?.id, load, token])
+
+  useEffect(() => {
     let cancelled = false
     const route = calcRoute(booking.startId, booking.endId)
     api.estimate({
@@ -859,6 +1017,13 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     }
   }
 
+  const updatePassengerSettings = useCallback((patch) => {
+    setPassengerSettings((current) => normalizePassengerSettings({
+      ...current,
+      ...(typeof patch === 'function' ? patch(current) : patch)
+    }))
+  }, [setPassengerSettings])
+
   const estimateRide = async () => {
     const route = calcRoute(booking.startId, booking.endId)
     const data = await api.estimate({
@@ -878,9 +1043,14 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     setTab('ride')
   }, '订单已提交，地图已切换到实时派单状态')
 
-  const createInternationalRide = () => run(async () => {
+  const createInternationalRide = (option = internationalOptions[0]) => run(async () => {
     const route = calcRoute(booking.startId, booking.endId)
-    const internationalBooking = { ...booking, serviceType: SERVICE_TYPE.INTERNATIONAL, endId: booking.endId || 'poi008' }
+    const internationalBooking = {
+      ...booking,
+      serviceType: SERVICE_TYPE.INTERNATIONAL,
+      endId: booking.endId || 'poi008',
+      remark: buildInternationalRemark(option, booking.remark)
+    }
     const priced = await api.estimate({
       carTypeId: internationalBooking.carTypeId,
       serviceType: SERVICE_TYPE.INTERNATIONAL,
@@ -890,7 +1060,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     const order = await api.createOrder(token, createOrderPayload(internationalBooking, priced))
     setOrders((items) => [order, ...items])
     setTab('orders')
-  }, '国际出行订单已提交，订单列表已更新')
+  }, `${option.titleZh || '国际出行'}订单已提交，订单列表已更新`)
 
   if (!session) {
     return <LoginRequired role="USER" onLogin={onLogin} onBack={onBack} />
@@ -904,18 +1074,21 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       profile={profile || session}
       tab={tab}
       setTab={setTab}
+      syncMeta={syncMeta}
       onLogout={onLogout}
       onBack={onBack}
       tabs={[
         ['ride', Navigation, '叫车'],
         ['orders', Route, '订单'],
         ['coupons', Ticket, '优惠券'],
+        ['member', BadgeCheck, '会员'],
         ['carpool', Users, '顺风车'],
         ['international', Globe, '国际'],
         ['wallet', Wallet, '钱包实名'],
-        ['support', HelpCircle, '帮助设置'],
+        ['invoice', CreditCard, '发票'],
+        ['support', MessageSquare, '客服'],
         ['messages', Bell, '消息'],
-        ['profile', Settings, '我的']
+        ['profile', Settings, '设置']
       ]}
     >
       {toast && <Toast text={toast} />}
@@ -949,7 +1122,9 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           orders={orders}
           role="USER"
           onRefresh={load}
-          onAction={(action, order) => run(() => passengerOrderAction(action, order, token), actionText(action))}
+          onOpenInvoice={() => setTab('invoice')}
+          focusOrderId={focusOrderId}
+          onAction={(action, order, payload) => run(() => passengerOrderAction(action, order, token, payload), actionText(action))}
         />
       )}
 
@@ -961,6 +1136,15 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         />
       )}
 
+      {tab === 'member' && (
+        <MembershipBoard
+          membership={membership}
+          coupons={coupons}
+          onActivate={() => run(() => api.activateMembership(token), '会员已开通')}
+          onSyncCoupons={() => run(() => api.syncMembershipCoupons(token), '会员券包已同步')}
+        />
+      )}
+
       {tab === 'carpool' && (
         <CarpoolBoard
           data={carpool}
@@ -969,7 +1153,25 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
             setCarpool((value) => ({ ...value, list: normalizeList(list) }))
           }, '顺风车列表已刷新')}
           onPublish={(form) => run(() => api.carpoolPublish(token, form), '顺风车已发布')}
-          onApply={(trip) => run(() => api.carpoolApply(token, { tripId: trip.id, companionCount: 0, note: '网页端申请搭乘' }), '已申请搭乘')}
+          onApply={(trip, payload = {}) => run(() => api.carpoolApply(token, {
+            tripId: trip.id,
+            companionCount: Number(payload.companionCount || 0),
+            note: payload.note || '网页端申请搭乘'
+          }), '已申请搭乘')}
+          onOwnerAction={(application, action) => run(() => api.carpoolOwnerConfirm(token, {
+            applicationId: application.id,
+            action,
+            note: action === 'REJECT' ? '车主暂时不便同行' : '车主已确认同行'
+          }), action === 'REJECT' ? '已拒绝申请' : '已确认乘客')}
+          onPassengerConfirm={(application) => run(() => api.carpoolPassengerConfirm(token, {
+            applicationId: application.id,
+            action: 'CONFIRM',
+            note: '乘客已确认同行'
+          }), '已确认同行')}
+          onCancel={(application) => run(() => api.carpoolCancel(token, {
+            applicationId: application.id,
+            reason: '网页端主动取消顺风车申请'
+          }), '已取消申请')}
         />
       )}
 
@@ -990,24 +1192,52 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       {tab === 'wallet' && (
         <PassengerWalletBoard
           profile={profile || session}
+          orders={orders}
+          onOpenOrder={(order) => {
+            setFocusOrderId(orderKey(order))
+            setTab('orders')
+          }}
           onProfile={(form) => run(() => api.updateProfile(token, form), '资料已更新')}
           onRealName={(form) => run(() => api.submitRealName(token, form), '实名信息已提交')}
         />
       )}
-      {tab === 'support' && (
-        <SupportBoard
+      {tab === 'invoice' && (
+        <InvoiceBoard
           orders={orders}
           profile={profile || session}
-          onComplaint={(order) => run(() => api.complaint(token, { orderId: order.id, content: '网页端帮助中心提交投诉。' }), '投诉已提交')}
-          onEvaluate={(order) => run(() => api.evaluate(token, { orderId: order.id, score: 5, content: '网页端评价：服务顺滑，接驾及时。' }), '评价已提交')}
+          onApplyInvoice={(order, form) => run(() => api.applyInvoice(token, order.id, form), '发票申请已提交')}
+          onPreviewInvoice={(order) => api.invoiceImage(token, order.id)}
+        />
+      )}
+      {tab === 'support' && (
+        <SupportChatBoard
+          conversation={supportConversation}
+          messages={supportMessages}
+          profile={profile || session}
+          role="USER"
+          onRefresh={load}
+          onSend={(content) => run(() => api.sendSupportMessage(token, content), '客服消息已发送')}
         />
       )}
       {tab === 'profile' && (
-        <ProfileBoard
-          profile={profile || session}
-          mode="USER"
-          onProfile={(form) => run(() => api.updateProfile(token, form), '资料已保存')}
-        />
+        <>
+          <ProfileBoard
+            profile={profile || session}
+            mode="USER"
+            onProfile={(form) => run(() => api.updateProfile(token, form), '资料已保存')}
+          />
+          <PassengerSettingsPanel
+            settings={passengerSettings}
+            onSettingsChange={updatePassengerSettings}
+          />
+          <SupportBoard
+            orders={orders}
+            profile={profile || session}
+            settings={passengerSettings}
+            onComplaint={(order, payload) => run(() => passengerOrderAction('complaint', order, token, payload), '投诉已提交')}
+            onEvaluate={(order, payload) => run(() => passengerOrderAction('evaluate', order, token, payload), '评价已提交')}
+          />
+        </>
       )}
     </DashboardShell>
   )
@@ -1019,26 +1249,60 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
   const [waitingOrders, setWaitingOrders] = useState([])
   const [orders, setOrders] = useState([])
   const [messages, setMessages] = useState([])
+  const [withdraws, setWithdraws] = useState([])
+  const [supportConversation, setSupportConversation] = useState(null)
+  const [supportMessages, setSupportMessages] = useState([])
+  const [driverSettings, setDriverSettings] = useState(() => readDriverSettings())
+  const [rejectDraft, setRejectDraft] = useState({ orderId: null, reason: driverRejectReasonOptions[0] })
+  const autoAcceptingRef = useRef(false)
+  const [syncMeta, setSyncMeta] = useState({ lastSyncAt: 0, degradedCount: 0, totalCount: 0 })
   const [toast, setToast] = useState('')
   const token = session?.token
+  const profile = dashboard?.profile || {}
 
   const load = useCallback(async () => {
     if (!token) return
-    const [dash, waiting, mine, msg] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       api.driverDashboard(token),
       api.driverWaitingOrders(token),
       api.orders(token),
-      api.messages(token)
+      api.messages(token),
+      api.driverWithdraws(token),
+      api.supportConversation(token),
+      api.supportMessages(token)
     ])
+    const [dash, waiting, mine, msg, withdrawData, supportData, supportMessageData] = results
     if (dash.status === 'fulfilled') setDashboard(dash.value)
     if (waiting.status === 'fulfilled') setWaitingOrders(normalizeList(waiting.value))
     if (mine.status === 'fulfilled') setOrders(normalizeList(mine.value))
     if (msg.status === 'fulfilled') setMessages(normalizeList(msg.value))
+    if (withdrawData.status === 'fulfilled') setWithdraws(normalizeList(withdrawData.value))
+    if (supportData.status === 'fulfilled') setSupportConversation(supportData.value)
+    if (supportMessageData.status === 'fulfilled') setSupportMessages(normalizeList(supportMessageData.value))
+    setSyncMeta({
+      lastSyncAt: Date.now(),
+      degradedCount: results.filter((item) => item.status === 'rejected').length,
+      totalCount: results.length
+    })
   }, [token])
 
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (!token) return undefined
+    const timer = window.setInterval(load, tab === 'listen' ? 5000 : 15000)
+    return () => window.clearInterval(timer)
+  }, [load, tab, token])
+
+  const updateDriverSettings = useCallback((patch) => {
+    setDriverSettings((current) => {
+      const next = normalizeDriverSettings({ ...current, ...(typeof patch === 'function' ? patch(current) : patch) })
+      window.localStorage.setItem(driverSettingsKey, JSON.stringify(next))
+      return next
+    })
+  }, [])
 
   const run = async (task, successText = '操作成功') => {
     try {
@@ -1052,12 +1316,52 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
     }
   }
 
+  const submitDriverReject = (order) => {
+    const reason = String(rejectDraft.reason || '').trim()
+    if (!reason) {
+      setToast('请填写拒单原因')
+      return
+    }
+    return run(async () => {
+      await api.driverReject(token, order.id, reason)
+      setRejectDraft({ orderId: null, reason: driverRejectReasonOptions[0] })
+    }, '已提交拒单原因')
+  }
+
+  useEffect(() => {
+    if (!profile.serviceStatus) return
+    const online = [DRIVER_STATUS.ONLINE, DRIVER_STATUS.BUSY].includes(profile.serviceStatus)
+    updateDriverSettings({
+      listenMode: online,
+      manualResting: profile.serviceStatus === DRIVER_STATUS.OFFLINE,
+      listeningSince: online && !driverSettings.listeningSince ? Date.now() : driverSettings.listeningSince
+    })
+  }, [profile.serviceStatus])
+
+  useEffect(() => {
+    if (!token || autoAcceptingRef.current) return
+    if (!driverSettings.autoAccept || !driverSettings.listenMode || profile.serviceStatus !== DRIVER_STATUS.ONLINE) return
+    const order = waitingOrders[0]
+    if (!order?.id) return
+    autoAcceptingRef.current = true
+    run(() => api.driverAccept(token, order.id), '已按设置自动接单')
+      .finally(() => {
+        autoAcceptingRef.current = false
+      })
+  }, [token, driverSettings.autoAccept, driverSettings.listenMode, profile.serviceStatus, waitingOrders])
+
   if (!session) {
     return <LoginRequired role="DRIVER" onLogin={onLogin} onBack={onBack} />
   }
 
-  const profile = dashboard?.profile || {}
   const user = dashboard?.user || session
+  const pendingWithdrawCount = normalizeList(withdraws.length ? withdraws : dashboard?.pendingWithdraw).filter((item) => String(item.status || '').toUpperCase() === 'PENDING').length
+  const activeDriverTrip = normalizeList(orders).find((order) => [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus))
+  const driverBusy = Boolean(activeDriverTrip) || profile.serviceStatus === DRIVER_STATUS.BUSY
+  const driverOnline = profile.serviceStatus === DRIVER_STATUS.ONLINE
+  const driverServiceText = driverBusy ? '服务中' : driverOnline ? '在线听单' : '休息中'
+  const driverServiceHint = driverBusy ? '当前行程处理中，状态会同步到乘客端和后台。' : driverOnline ? '待抢订单会实时进入右侧列表' : '上线后才会接收新订单'
+  const servicePermission = dashboard?.servicePermission || {}
 
   return (
     <DashboardShell
@@ -1067,12 +1371,14 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
       profile={user}
       tab={tab}
       setTab={setTab}
+      syncMeta={syncMeta}
       onLogout={onLogout}
       onBack={onBack}
       tabs={[
         ['listen', Radio, '听单'],
         ['orders', Route, '订单'],
         ['wallet', Wallet, '钱包资质'],
+        ['support', MessageSquare, '客服'],
         ['profile', Settings, '资料设置'],
         ['messages', Bell, '消息']
       ]}
@@ -1093,20 +1399,74 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
                 <button
                   key={status}
                   className={profile.serviceStatus === status ? 'active' : ''}
-                  onClick={() => run(() => api.driverStatus(token, {
-                    serviceStatus: status,
-                    longitude: '117.0810',
-                    latitude: '39.9820'
-                  }), `司机状态已切换为${statusLabel[status]}`)}
+                  disabled={Boolean(activeDriverTrip)}
+                  aria-pressed={profile.serviceStatus === status}
+                  title={activeDriverTrip ? '当前服务中，完成行程后再切换听单状态' : ''}
+                  onClick={() => run(async () => {
+                    await api.driverStatus(token, {
+                      serviceStatus: status,
+                      longitude: profile.lastLongitude || '117.0810',
+                      latitude: profile.lastLatitude || '39.9820'
+                    })
+                    updateDriverSettings({
+                      listenMode: status === DRIVER_STATUS.ONLINE,
+                      manualResting: status === DRIVER_STATUS.OFFLINE,
+                      listeningSince: status === DRIVER_STATUS.ONLINE ? Date.now() : 0
+                    })
+                  }, `司机状态已切换为${statusLabel[status]}`)}
                 >
                   <Power size={18} />{statusLabel[status]}
                 </button>
               ))}
             </div>
+            <div className={`driver-listen-hero ${activeDriverTrip ? 'is-busy' : driverOnline ? 'is-online' : 'is-offline'}`}>
+              <div>
+                <span>当前接单状态</span>
+                <strong>{activeDriverTrip ? '服务中' : driverOnline ? '在线听单' : '休息中'}</strong>
+                <p>{activeDriverTrip ? `${activeDriverTrip.startName} → ${activeDriverTrip.endName}` : servicePermission.message || (driverOnline ? '附近订单会自动刷新到待抢订单。' : '上线后才会收到乘客订单。')}</p>
+              </div>
+              <em>{servicePermission.canReceiveOrders === false ? '未解锁' : activeDriverTrip ? '进行中' : driverOnline ? '可接单' : '未上线'}</em>
+            </div>
+            {activeDriverTrip && (
+              <button type="button" className="driver-current-trip-card" onClick={() => setTab('orders')}>
+                <div>
+                  <span>当前进行中的行程</span>
+                  <strong>{activeDriverTrip.startName} → {activeDriverTrip.endName}</strong>
+                  <small>{driverNextActionText(activeDriverTrip)} · {formatMoney(activeDriverTrip.payableAmount || activeDriverTrip.actualAmount || activeDriverTrip.estimatedAmount, activeDriverTrip.currencyCode)}</small>
+                </div>
+                <ChevronRight size={17} />
+              </button>
+            )}
             <div className="stat-grid">
               <Metric value={dashboard?.orders?.length || orders.length || 0} label="我的订单" />
               <Metric value={formatMoney(profile.todayIncome || 0)} label="今日收入" />
               <Metric value={formatMoney(profile.withdrawableIncome || 0)} label="可提现" />
+            </div>
+            <div className="driver-listen-summary">
+              <SummaryPill icon={Zap} value={driverSettings.autoAccept ? '已开启' : '未开启'} label="自动接单" />
+              <SummaryPill icon={Bell} value={driverSettings.voiceBroadcast ? '已开启' : '未开启'} label="语音播报" />
+              <SummaryPill icon={Route} value={driverTrackModeMeta(driverSettings.trackMode).label} label="轨迹模式" />
+            </div>
+            <div className="driver-service-panel">
+              <div className={driverBusy || driverOnline ? 'active' : ''}>
+                <span>服务状态</span>
+                <strong>{driverServiceText}</strong>
+                <small>{driverServiceHint}</small>
+              </div>
+              <div>
+                <span>待抢订单</span>
+                <strong>{waitingOrders.length} 单</strong>
+                <small>{driverSettings.autoAccept ? '自动接单会处理第一单' : '手动确认后接单'}</small>
+              </div>
+              <div>
+                <span>可提现</span>
+                <strong>{formatMoney(profile.withdrawableIncome || 0)}</strong>
+                <small>{pendingWithdrawCount ? `${pendingWithdrawCount} 笔提现待审核` : '暂无待审核提现'}</small>
+              </div>
+            </div>
+            <div className="driver-inline-controls">
+              <button className={driverSettings.autoAccept ? 'active' : ''} onClick={() => updateDriverSettings({ autoAccept: !driverSettings.autoAccept })}><Zap size={15} />自动接单</button>
+              <button className={driverSettings.voiceBroadcast ? 'active' : ''} onClick={() => updateDriverSettings({ voiceBroadcast: !driverSettings.voiceBroadcast })}><Bell size={15} />语音播报</button>
             </div>
           </section>
           <section className="glass-panel work-card wide">
@@ -1117,6 +1477,11 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
               </div>
               <button className="icon-button" onClick={load}><RefreshCw size={17} /></button>
             </div>
+            <div className="driver-queue-note">
+              <span>{driverBusy ? '服务中' : driverOnline ? '在线' : '离线'}</span>
+              <strong>{waitingOrders.length ? `当前有 ${waitingOrders.length} 单可处理` : '当前没有待抢订单'}</strong>
+              <small>{driverBusy ? '完成当前行程后再处理新的待抢订单。' : driverSettings.autoAccept ? '自动接单开启时，新订单会优先自动确认。' : '手动接单时，请先确认路线和距离。'}</small>
+            </div>
             <OrderList
               orders={waitingOrders}
               empty="暂无待抢订单，乘客端下单后会出现在这里。"
@@ -1125,9 +1490,39 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
                   <button className="solid-button" onClick={() => run(() => api.driverAccept(token, order.id), '接单成功')}>
                     <CheckCircle size={16} />接单
                   </button>
-                  <button className="ghost-button" onClick={() => run(() => api.driverReject(token, order.id, '网页端暂不接单'), '已拒单')}>
+                  <button className="ghost-button" onClick={() => setRejectDraft({
+                    orderId: rejectDraft.orderId === order.id ? null : order.id,
+                    reason: rejectDraft.orderId === order.id ? driverRejectReasonOptions[0] : rejectDraft.reason || driverRejectReasonOptions[0]
+                  })}>
                     <XCircle size={16} />拒单
                   </button>
+                  {rejectDraft.orderId === order.id && (
+                    <div className="driver-reject-panel">
+                      <div className="feedback-chip-row">
+                        {driverRejectReasonOptions.map((reason) => (
+                          <button
+                            type="button"
+                            key={reason}
+                            className={rejectDraft.reason === reason ? 'active' : ''}
+                            onClick={() => setRejectDraft((draft) => ({ ...draft, reason }))}
+                          >
+                            {reason}
+                          </button>
+                        ))}
+                      </div>
+                      <label className="plain-field textarea-field">
+                        <span>拒单说明</span>
+                        <textarea
+                          value={rejectDraft.reason}
+                          onChange={(event) => setRejectDraft((draft) => ({ ...draft, reason: event.target.value }))}
+                        />
+                      </label>
+                      <div className="order-action-panel-actions">
+                        <button className="solid-button" onClick={() => submitDriverReject(order)}><XCircle size={15} />确认拒单</button>
+                        <button className="ghost-button" onClick={() => setRejectDraft({ orderId: null, reason: driverRejectReasonOptions[0] })}>取消</button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             />
@@ -1147,8 +1542,20 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
       {tab === 'wallet' && (
         <DriverWallet
           dashboard={dashboard}
+          withdraws={withdraws}
           onWithdraw={(form) => run(() => api.driverWithdraw(token, form), '提现申请已提交')}
           onCertify={(form) => run(() => api.driverCertify(token, form), '资质信息已提交')}
+        />
+      )}
+
+      {tab === 'support' && (
+        <SupportChatBoard
+          conversation={supportConversation}
+          messages={supportMessages}
+          profile={user}
+          role="DRIVER"
+          onRefresh={load}
+          onSend={(content) => run(() => api.sendSupportMessage(token, content), '客服消息已发送')}
         />
       )}
 
@@ -1157,6 +1564,20 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
           dashboard={dashboard}
           user={user}
           onProfile={(form) => run(() => api.driverUpdateProfile(token, form), '司机资料已更新')}
+          settings={driverSettings}
+          onSettingsChange={updateDriverSettings}
+          onServiceStatus={(status) => run(async () => {
+            await api.driverStatus(token, {
+              serviceStatus: status,
+              longitude: profile.lastLongitude || '117.0810',
+              latitude: profile.lastLatitude || '39.9820'
+            })
+            updateDriverSettings({
+              listenMode: status === DRIVER_STATUS.ONLINE,
+              manualResting: status === DRIVER_STATUS.OFFLINE,
+              listeningSince: status === DRIVER_STATUS.ONLINE ? Date.now() : 0
+            })
+          }, status === DRIVER_STATUS.ONLINE ? '听单模式已开启' : '听单模式已关闭')}
         />
       )}
 
@@ -1177,19 +1598,32 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
   )
 }
 
-function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText, benefit = null, variant = 'standalone', lockedServiceType = false }) {
+function BookingPanel({ title, kicker = '路线配置', booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText, benefit = null, variant = 'standalone', lockedServiceType = false }) {
   const [busyAction, setBusyAction] = useState('')
   const tilt = useTiltCard({ maxX: 11, maxY: 16 })
   const route = calcRoute(booking.startId, booking.endId)
   const safeEstimate = estimate || estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
   const checkinDiscount = benefit?.signedToday && benefit?.status === 'pending' ? Number(benefit.amount || 0) : 0
   const options = normalizeCarTypes(carTypes)
+  const selectedCarType = options.find((item) => Number(item.id) === Number(booking.carTypeId)) || options[0]
+  const payableAmount = Math.max(0, Number(safeEstimate.amount || 0) - checkinDiscount)
+  const carCards = options.map((item) => {
+    const itemEstimate = estimateLocalFare(item.id, booking.serviceType, route.distanceKm, route.durationMin)
+    const itemDiscount = Number(item.id) === Number(booking.carTypeId) ? checkinDiscount : 0
+    return {
+      ...item,
+      estimate: itemEstimate,
+      payableAmount: Math.max(0, Number(itemEstimate.amount || 0) - itemDiscount),
+      selected: Number(item.id) === Number(booking.carTypeId)
+    }
+  })
   const isEmbedded = variant === 'embedded'
   const panelClassName = [
     'booking-card',
     isEmbedded ? 'booking-card--embedded' : 'glass-panel refract',
     'tilt-card'
   ].join(' ')
+  const swapRoute = () => update({ startId: booking.endId, endId: booking.startId })
 
   const update = (patch) => setBooking((value) => ({ ...value, ...patch }))
   const runAction = async (name, handler) => {
@@ -1206,14 +1640,20 @@ function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstima
     <section className={panelClassName} ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave}>
       <div className="card-head">
         <div>
-          {!isEmbedded && <span className="section-kicker">Route composer</span>}
+          {!isEmbedded && <span className="section-kicker">{kicker}</span>}
           <h2>{title}</h2>
         </div>
         <div className="price-stack">
-          <div className="price-pill">{formatMoney(Math.max(0, Number(safeEstimate.amount || 0) - checkinDiscount), safeEstimate.currencyCode)}</div>
+          <div className="price-pill">{formatMoney(payableAmount, safeEstimate.currencyCode)}</div>
           {checkinDiscount > 0 && <small>签到立减 {formatMoney(checkinDiscount)}</small>}
         </div>
       </div>
+      {!isEmbedded && (
+        <div className="booking-notice-strip">
+          <Radio size={15} />
+          <span>预估随路线、车型和优惠自动更新。</span>
+        </div>
+      )}
       <div className="service-tabs">
         {Object.values(SERVICE_TYPE).map((type) => (
           <button
@@ -1228,34 +1668,94 @@ function BookingPanel({ title, booking, setBooking, estimate, carTypes, onEstima
           </button>
         ))}
       </div>
-      <div className="field-stack">
-        <SelectField
-          icon={Locate}
-          label="上车点"
-          value={booking.startId}
-          onChange={(value) => update({ startId: value })}
-          options={poiLibrary.map((item) => [item.id, item.name])}
-        />
-        <SelectField
-          icon={Flag}
-          label="目的地"
-          value={booking.endId}
-          onChange={(value) => update({ endId: value })}
-          options={poiLibrary.map((item) => [item.id, item.name])}
-        />
-        <SelectField
-          icon={Car}
-          label="车型"
-          value={String(booking.carTypeId)}
-          onChange={(value) => update({ carTypeId: Number(value) })}
-          options={options.map((item) => [String(item.id), getCarTypeName(item)])}
-        />
-      </div>
+      {isEmbedded ? (
+        <div className="field-stack">
+          <SelectField
+            icon={Locate}
+            label="上车点"
+            value={booking.startId}
+            onChange={(value) => update({ startId: value })}
+            options={poiLibrary.map((item) => [item.id, item.name])}
+          />
+          <SelectField
+            icon={Flag}
+            label="目的地"
+            value={booking.endId}
+            onChange={(value) => update({ endId: value })}
+            options={poiLibrary.map((item) => [item.id, item.name])}
+          />
+          <SelectField
+            icon={Car}
+            label="车型"
+            value={String(booking.carTypeId)}
+            onChange={(value) => update({ carTypeId: Number(value) })}
+            options={options.map((item) => [String(item.id), getCarTypeName(item)])}
+          />
+        </div>
+      ) : (
+        <>
+          <div className="booking-route-stack">
+            <SelectField
+              icon={Locate}
+              label="从哪里出发"
+              value={booking.startId}
+              onChange={(value) => update({ startId: value })}
+              options={poiLibrary.map((item) => [item.id, item.name])}
+            />
+            <button type="button" className="address-swap-button" onClick={swapRoute} aria-label="交换上车点和目的地">换</button>
+            <SelectField
+              icon={Flag}
+              label="去哪里"
+              value={booking.endId}
+              onChange={(value) => update({ endId: value })}
+              options={poiLibrary.map((item) => [item.id, item.name])}
+            />
+          </div>
+          <div className="booking-estimate-head">
+            <div>
+              <span>实时预估</span>
+              <small>{route.start.name} → {route.end.name}</small>
+            </div>
+            <em>{selectedCarType?.seatText || '舒适出行'}</em>
+          </div>
+        </>
+      )}
       <div className="fare-grid">
         <MiniStat label="距离" value={`${safeEstimate.distanceKm || route.distanceKm} km`} />
         <MiniStat label="时间" value={`${safeEstimate.durationMin || route.durationMin} min`} />
         <MiniStat label="签到" value={checkinDiscount > 0 ? `-${formatMoney(checkinDiscount)}` : '未使用'} />
       </div>
+      {!isEmbedded && (
+        <>
+          <div className="car-card-strip">
+            {carCards.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                className={`booking-car-card ${item.selected ? 'is-selected' : ''}`}
+                onClick={() => update({ carTypeId: Number(item.id) })}
+              >
+                <span className="booking-car-thumb">
+                  <img src={item.image || '/assets/map-driver.png'} alt={`${getCarTypeName(item)}车型`} />
+                </span>
+                <span className="booking-car-copy">
+                  <strong>{getCarTypeName(item)}</strong>
+                  <small>{item.description || getCarTypeDescription(item)}</small>
+                </span>
+                <span className="booking-car-price">
+                  {formatMoney(item.payableAmount, item.estimate.currencyCode)}
+                  {item.selected && checkinDiscount > 0 && <small>已减 {formatMoney(checkinDiscount)}</small>}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="booking-fee-breakdown">
+            <span><small>起步/时距</small>{formatMoney(safeEstimate.baseAmount || safeEstimate.amount, safeEstimate.currencyCode)}</span>
+            <span><small>远途费</small>{formatMoney(safeEstimate.longDistanceSurchargeAmount || 0, safeEstimate.currencyCode)}</span>
+            <span><small>预计支付</small>{formatMoney(payableAmount, safeEstimate.currencyCode)}</span>
+          </div>
+        </>
+      )}
       <div className="booking-actions">
         {onEstimate && (
           <button className="ghost-button" disabled={busyAction === 'estimate'} onClick={() => runAction('estimate', onEstimate)}>
@@ -1276,6 +1776,11 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
   const canCancel = [ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus)
   const canPickup = order.orderStatus === ORDER_STATUS.PICKING_UP
   const canPay = order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID
+  const isDispatching = [ORDER_STATUS.CREATED, ORDER_STATUS.DISPATCHING].includes(order.orderStatus)
+  const etaMinutes = Number(runtime?.etaMinutes || order.estimatedDurationMin || 8)
+  const nearbyDrivers = Math.max(1, Math.min(12, Math.round((Number(order.estimatedDistanceKm || runtime?.distanceKm || 4) * 1.8) + 2)))
+  const acceptMinutes = Math.max(2, Math.min(12, Math.round(etaMinutes / 2)))
+  const rideProgress = getRideProgressPercent(order)
 
   return (
     <section className="active-ride-card glass-panel refract">
@@ -1287,14 +1792,31 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
         </div>
         <StatusBadge value={order.orderStatus} />
       </div>
+      {isDispatching && (
+        <div className="dispatch-status-banner">
+          <div className="dispatch-count-ring"><span>{Math.max(12, 60 - acceptMinutes * 4)}s</span></div>
+          <div>
+            <strong>智能派单中</strong>
+            <small>系统正在把订单同步给附近空闲司机，接单后网页、后台和小程序会同步更新。</small>
+          </div>
+        </div>
+      )}
       <div className="active-route-line">
         <div><span className="address-dot start" /><small>上车点</small><strong>{order.startName}</strong></div>
         <div><span className="address-dot end" /><small>目的地</small><strong>{order.endName}</strong></div>
       </div>
       <div className="active-ride-metrics">
-        <MiniStat label="预计接驾" value={`${runtime?.etaMinutes || order.estimatedDurationMin || 8} min`} />
-        <MiniStat label="行程距离" value={`${runtime?.distanceKm || order.estimatedDistanceKm || '-'} km`} />
+        <MiniStat label={isDispatching ? '预计接单' : '预计接驾'} value={`${isDispatching ? acceptMinutes : etaMinutes} min`} />
+        <MiniStat label={isDispatching ? '附近司机' : '行程距离'} value={isDispatching ? `${nearbyDrivers} 位` : `${runtime?.distanceKm || order.estimatedDistanceKm || '-'} km`} />
         <MiniStat label="订单金额" value={formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)} />
+      </div>
+      <div className="ride-progress-panel">
+        <div className="ride-progress-head">
+          <span>{isDispatching ? '派单进度' : '路线进度'}</span>
+          <strong>{rideProgress}%</strong>
+        </div>
+        <div className="ride-progress-track"><i style={{ width: `${rideProgress}%` }} /></div>
+        <p>{isDispatching ? '取消前请留意司机接单状态，派单成功后会进入接驾流程。' : '若车辆偏离既定路线，请优先使用安全中心或联系客服。'}</p>
       </div>
       <div className="active-driver-card">
         <CarTaxiFront size={20} />
@@ -1302,6 +1824,11 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
           <strong>{order.driverId ? '李师傅已接单' : '正在匹配附近司机'}</strong>
           <span>{order.driverId ? '车辆位置会随行程进度刷新' : '司机端听单大厅接单后这里会自动变化'}</span>
         </div>
+      </div>
+      <div className="active-safety-actions">
+        <button type="button"><ShieldCheck size={15} />安全中心</button>
+        <button type="button"><Phone size={15} />紧急联系人</button>
+        <button type="button"><MessageSquare size={15} />联系客服</button>
       </div>
       <div className="active-timeline">
         {timeline.slice(0, 4).map((item, index) => (
@@ -2079,7 +2606,11 @@ function getTencentMapKey() {
   }
 }
 
-function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, onLogout, onBack, children }) {
+function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, children }) {
+  const activeTab = tabs.find(([key]) => key === tab)
+  const activeLabel = activeTab?.[2] || '工作台'
+  const syncClock = formatSyncClock(syncMeta.lastSyncAt)
+  const apiModeText = apiMode.mode === 'backend' ? '后台在线' : apiMode.mode === 'demo' ? '演示数据' : '连接中'
   return (
     <main className="dashboard-shell">
       <aside className="side-nav glass-panel">
@@ -2098,8 +2629,8 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
       </aside>
       <section className="dashboard-main">
         <header className="dashboard-header glass-panel">
-          <div>
-            <span className="section-kicker">当前账号</span>
+          <div className="dashboard-title-block">
+            <span className="section-kicker">{role} · {activeLabel}</span>
             <h1>{profile?.nickname || profile?.phone || role}</h1>
           </div>
           <div className="header-right">
@@ -2107,41 +2638,577 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
             <button className="ghost-button" onClick={onBack}>门户</button>
           </div>
         </header>
+        <div className="dashboard-sync-strip" aria-label="网页、小程序与后台同步状态">
+          <div className="dashboard-sync-item">
+            <span><RefreshCw size={14} /></span>
+            <strong>{syncClock}</strong>
+          </div>
+          <div className="dashboard-sync-item">
+            <span><ShieldCheck size={14} /></span>
+            <strong>{apiModeText}</strong>
+          </div>
+          <div className="dashboard-sync-item">
+            <span><Route size={14} /></span>
+            <strong>{activeLabel}</strong>
+          </div>
+        </div>
         {children}
       </section>
     </main>
   )
 }
 
-function OrderBoard({ orders, role, onAction, onRefresh }) {
+
+function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrderId = '' }) {
   const [listExpanded, setListExpanded] = useState(false)
-  const visibleCount = listExpanded ? orders?.length : Math.min(6, orders?.length || 0)
+  const [selectedOrderId, setSelectedOrderId] = useState(null)
+  const [typeFilter, setTypeFilter] = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const sourceOrders = normalizeList(orders)
+  const filteredOrders = useMemo(() => sourceOrders.filter((order) => {
+    const typeMatched = typeFilter === 'ALL' || order.serviceType === typeFilter
+    const statusMatched = statusFilter === 'ALL' || getOrderStatusBucket(order) === statusFilter
+    return typeMatched && statusMatched
+  }), [sourceOrders, typeFilter, statusFilter])
+  const visibleCount = listExpanded ? filteredOrders.length : Math.min(6, filteredOrders.length)
+  const selectedOrder = useMemo(() => {
+    if (!filteredOrders.length) return null
+    const target = filteredOrders.find((order) => orderKey(order) === selectedOrderId)
+    return target || filteredOrders[0]
+  }, [filteredOrders, selectedOrderId])
+  const summary = useMemo(() => buildOrderBoardSummary(sourceOrders), [sourceOrders])
+  const typeCount = (key) => key === 'ALL' ? sourceOrders.length : sourceOrders.filter((order) => order.serviceType === key).length
+  const statusCount = (key) => key === 'ALL' ? sourceOrders.length : sourceOrders.filter((order) => getOrderStatusBucket(order) === key).length
+
+  useEffect(() => {
+    if (!filteredOrders.length) {
+      setSelectedOrderId(null)
+      return
+    }
+    if (!selectedOrderId || !filteredOrders.some((order) => orderKey(order) === selectedOrderId)) {
+      setSelectedOrderId(orderKey(filteredOrders[0]))
+    }
+  }, [filteredOrders, selectedOrderId])
+
+  useEffect(() => {
+    if (!focusOrderId || !sourceOrders.length) return
+    const target = sourceOrders.find((order) => orderKey(order) === String(focusOrderId))
+    if (target) {
+      setTypeFilter('ALL')
+      setStatusFilter('ALL')
+      setSelectedOrderId(orderKey(target))
+    }
+  }, [focusOrderId, sourceOrders])
+
   return (
-    <section className="glass-panel work-card order-board-card">
+    <div className="dashboard-grid order-detail-layout">
+      <section className="glass-panel work-card order-board-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">订单</span>
+            <h2>{role === 'DRIVER' ? '司机订单' : '我的订单'} <small>{filteredOrders.length}/{sourceOrders.length}</small></h2>
+          </div>
+          <div className="order-board-actions">
+            {filteredOrders.length > 6 && (
+              <button className="order-list-toggle" onClick={() => setListExpanded((value) => !value)}>
+                {listExpanded ? '收起订单' : `展开全部 ${filteredOrders.length} 单`} <ChevronRight size={15} />
+              </button>
+            )}
+            <button className="icon-button" onClick={onRefresh}><RefreshCw size={17} /></button>
+          </div>
+        </div>
+        <div className="order-summary-strip">
+          <SummaryPill icon={Clock} label="进行中" value={`${summary.processing} 单`} />
+          <SummaryPill icon={CreditCard} label="待支付" value={`${summary.waitingPay} 单`} />
+          <SummaryPill icon={CheckCircle} label="已完成" value={`${summary.completed} 单`} />
+        </div>
+        <div className="order-filter-panel">
+          <div className="segmented-row order-filter-tabs">
+            {orderTypeTabs.map(([key, label]) => (
+              <button key={key} className={typeFilter === key ? 'active' : ''} onClick={() => setTypeFilter(key)}>
+                {label}<span>{typeCount(key)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="segmented-row order-filter-tabs status">
+            {orderStatusTabs.map(([key, label]) => (
+              <button key={key} className={statusFilter === key ? 'active' : ''} onClick={() => setStatusFilter(key)}>
+                {label}<span>{statusCount(key)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <OrderList
+          orders={filteredOrders}
+          empty={sourceOrders.length ? '当前筛选下暂无订单。' : '暂无订单。'}
+          limit={visibleCount}
+          selectedOrderId={selectedOrderId}
+          footer={(order) => (
+            <>
+              <button
+                className={`ghost-button ${orderKey(order) === orderKey(selectedOrder) ? 'is-selected' : ''}`}
+                onClick={() => setSelectedOrderId(orderKey(order))}
+              >
+                <ChevronRight size={16} />详情
+              </button>
+              <OrderActions role={role} order={order} onAction={(action, payload) => onAction(action, order, payload)} />
+            </>
+          )}
+        />
+      </section>
+      <OrderDetailPanel
+        order={selectedOrder}
+        role={role}
+        onAction={(action, payload) => selectedOrder && onAction(action, selectedOrder, payload)}
+        onOpenInvoice={onOpenInvoice}
+      />
+    </div>
+  )
+}
+
+function orderKey(order = {}) {
+  return String(order.id || order.orderNo || '')
+}
+
+function getOrderStatusBucket(order = {}) {
+  if (order.orderStatus === ORDER_STATUS.CANCELLED) return 'CANCELLED'
+  if (order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID) return 'WAITING_PAY'
+  if (order.orderStatus === ORDER_STATUS.FINISHED) return 'COMPLETED'
+  if ([ORDER_STATUS.CREATED, ORDER_STATUS.DISPATCHING].includes(order.orderStatus)) return 'DISPATCHING'
+  if ([ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus)) return 'PROCESSING'
+  return 'PROCESSING'
+}
+
+function buildOrderBoardSummary(orders = []) {
+  return normalizeList(orders).reduce((summary, order) => {
+    const bucket = getOrderStatusBucket(order)
+    if (bucket === 'PROCESSING' || bucket === 'DISPATCHING') summary.processing += 1
+    if (bucket === 'WAITING_PAY') summary.waitingPay += 1
+    if (bucket === 'COMPLETED') summary.completed += 1
+    if (order.orderStatus === ORDER_STATUS.CANCELLED) summary.cancelled += 1
+    return summary
+  }, { processing: 0, waitingPay: 0, completed: 0, cancelled: 0 })
+}
+
+function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
+  const [activeAction, setActiveAction] = useState('')
+  const [payForm, setPayForm] = useState({ payChannel: 'WECHAT' })
+  const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+  const [complaintForm, setComplaintForm] = useState({ complaintType: 'SERVICE', content: '', contactPhone: '' })
+  const [formError, setFormError] = useState('')
+  const [submittingAction, setSubmittingAction] = useState('')
+  const selectedOrderKey = orderKey(order || {})
+
+  useEffect(() => {
+    setActiveAction('')
+    setFormError('')
+    setPayForm({ payChannel: 'WECHAT' })
+    setReviewForm({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+    setComplaintForm({ complaintType: 'SERVICE', content: '', contactPhone: '' })
+  }, [selectedOrderKey])
+
+  if (!order) {
+    return <section className="glass-panel work-card order-detail-card"><EmptyState text="暂无可查看的订单详情。" /></section>
+  }
+  const amount = formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)
+  const rawAmount = Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)
+  const feeRows = buildOrderFeeRows(order)
+  const steps = buildOrderFlowSteps(order)
+  const isPassenger = role !== 'DRIVER'
+  const canPay = isPassenger && order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID
+  const canEvaluate = isPassenger && order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && !isOrderEvaluated(order)
+  const canComplain = isPassenger && order.orderStatus !== ORDER_STATUS.CANCELLED && !isOrderComplained(order)
+  const canInvoice = isPassenger && order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID
+  const canDriverStart = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.ACCEPTED
+  const canDriverPickup = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.PICKING_UP
+  const canDriverFinish = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.IN_TRIP
+  const trackCount = normalizeList(order.track || order.trackHistory || order.locations).length
+  const payMethod = passengerPaymentMethods.find(([value]) => value === payForm.payChannel) || passengerPaymentMethods[0]
+
+  const submitPay = async () => {
+    if (!canPay || submittingAction) return
+    setFormError('')
+    setSubmittingAction('pay')
+    try {
+      await onAction('pay', {
+        payChannel: payForm.payChannel,
+        payableAmount: rawAmount
+      })
+      setActiveAction('')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  const toggleReviewTag = (tag) => {
+    setReviewForm((value) => ({
+      ...value,
+      tags: value.tags.includes(tag)
+        ? value.tags.filter((item) => item !== tag)
+        : [...value.tags, tag]
+    }))
+  }
+
+  const submitReview = async () => {
+    const score = Number(reviewForm.score)
+    const content = String(reviewForm.content || '').trim() || reviewForm.tags.join('、') || '服务体验良好'
+    if (!Number.isFinite(score) || score < 1 || score > 5) {
+      setFormError('请选择 1-5 星评分')
+      return
+    }
+    if (content.length < 2) {
+      setFormError('请补充评价内容')
+      return
+    }
+    setFormError('')
+    setSubmittingAction('evaluate')
+    try {
+      await onAction('evaluate', {
+        score,
+        tags: reviewForm.tags,
+        content
+      })
+      setActiveAction('')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  const submitComplaint = async () => {
+    const content = String(complaintForm.content || '').trim()
+    const contactPhone = String(complaintForm.contactPhone || '').trim()
+    if (content.length < 6) {
+      setFormError('请至少填写 6 个字的投诉说明')
+      return
+    }
+    if (contactPhone && !isValidPhone(contactPhone)) {
+      setFormError('联系电话需要为 11 位手机号')
+      return
+    }
+    setFormError('')
+    setSubmittingAction('complaint')
+    try {
+      await onAction('complaint', {
+        complaintType: complaintForm.complaintType,
+        contactPhone,
+        content
+      })
+      setActiveAction('')
+    } finally {
+      setSubmittingAction('')
+    }
+  }
+
+  return (
+    <section className="glass-panel work-card order-detail-card">
       <div className="card-head">
         <div>
-          <span className="section-kicker">订单</span>
-          <h2>{role === 'DRIVER' ? '司机订单' : '我的订单'} <small>{orders?.length || 0}</small></h2>
+          <span className="section-kicker">订单详情</span>
+          <h2>{order.startName || '-'} <ChevronRight size={16} /> {order.endName || '-'}</h2>
         </div>
-        <div className="order-board-actions">
-          {(orders?.length || 0) > 6 && (
-            <button className="order-list-toggle" onClick={() => setListExpanded((value) => !value)}>
-              {listExpanded ? '收起订单' : `展开全部 ${orders.length} 单`} <ChevronRight size={15} />
-            </button>
-          )}
-          <button className="icon-button" onClick={onRefresh}><RefreshCw size={17} /></button>
+        <div className="order-badges">
+          <StatusBadge value={order.orderStatus} />
+          <StatusBadge value={order.payStatus} />
         </div>
       </div>
-      <OrderList
-        orders={orders}
-        empty="暂无订单。"
-        limit={visibleCount}
-        footer={(order) => (
-          <OrderActions role={role} order={order} onAction={(action) => onAction(action, order)} />
+
+      <div className="order-detail-hero">
+        <div>
+          <span>订单金额</span>
+          <strong>{amount}</strong>
+          <small>{statusLabel[order.serviceType] || order.serviceType || '出行服务'} · {order.orderNo || `#${order.id}`}</small>
+        </div>
+        <div className="order-detail-mini-map">
+          <span className="order-route-dot start" />
+          <i />
+          <span className="order-route-dot end" />
+        </div>
+      </div>
+
+      <div className="order-detail-metrics">
+        <MiniStat label="距离" value={`${order.actualDistanceKm || order.estimatedDistanceKm || '-'} km`} />
+        <MiniStat label="时间" value={`${order.actualDurationMin || order.estimatedDurationMin || '-'} min`} />
+        <MiniStat label="下单" value={formatOrderDisplayTime(order)} />
+      </div>
+
+      <div className="order-fee-breakdown-panel">
+        <div className="order-action-panel-head">
+          <span><DollarSign size={15} />费用明细</span>
+          <small>支付、退款和发票共用这笔订单金额</small>
+        </div>
+        <div className="fee-row-list">
+          {feeRows.map((item) => (
+            <div className={item.tone ? `fee-row ${item.tone}` : 'fee-row'} key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="order-flow-panel">
+        {steps.map((step, index) => (
+          <div className={`order-flow-step ${step.state}`} key={step.key}>
+            <span>{step.state === 'upcoming' ? index + 1 : '✓'}</span>
+            <p>{step.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="order-detail-info">
+        <InfoPanel title="订单信息" items={[
+          ['业务类型', statusLabel[order.serviceType] || order.serviceType || '-'],
+          ['司机信息', order.driverName || order.driverNickname || (order.driverId ? `司机 #${order.driverId}` : '待分配')],
+          ['支付状态', statusLabel[order.payStatus] || '-'],
+          ['发票状态', orderInvoiceStatusText(order)],
+          ['评价状态', orderEvaluationStatusText(order)],
+          ['投诉状态', orderComplaintStatusText(order)],
+          ['轨迹记录', trackCount ? `${trackCount} 条` : '待上报']
+        ]} />
+      </div>
+
+      {role === 'DRIVER' && <DriverTripProgressPanel order={order} trackCount={trackCount} />}
+
+      <div className="order-detail-actions">
+        {canPay && <button className="solid-button" onClick={() => setActiveAction(activeAction === 'pay' ? '' : 'pay')}><CreditCard size={16} />支付确认</button>}
+        {canEvaluate && <button className="ghost-button" onClick={() => setActiveAction(activeAction === 'evaluate' ? '' : 'evaluate')}><Star size={16} />写评价</button>}
+        {canComplain && <button className="ghost-button" onClick={() => setActiveAction(activeAction === 'complaint' ? '' : 'complaint')}><AlertTriangle size={16} />投诉反馈</button>}
+        {canInvoice && <button className="ghost-button" onClick={onOpenInvoice}><CreditCard size={16} />申请发票</button>}
+        {canDriverStart && <button className="solid-button" onClick={() => onAction('start')}><Play size={16} />开始接驾</button>}
+        {canDriverPickup && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />确认上车</button>}
+        {canDriverFinish && <button className="solid-button" onClick={() => onAction('finish')}><Flag size={16} />完成行程</button>}
+        {!canPay && !canEvaluate && !canComplain && !canInvoice && !canDriverStart && !canDriverPickup && !canDriverFinish && (
+          <span className="order-detail-done">当前订单暂无待处理操作</span>
         )}
-      />
+      </div>
+
+      {activeAction === 'pay' && (
+        <div className="order-action-panel payment-confirm-panel">
+          <div className="order-action-panel-head">
+            <span><CreditCard size={15} />支付确认</span>
+            <strong>{amount}</strong>
+          </div>
+          <div className="payment-method-grid">
+            {passengerPaymentMethods.map(([value, label, desc]) => (
+              <button
+                type="button"
+                key={value}
+                className={payForm.payChannel === value ? 'active' : ''}
+                onClick={() => setPayForm({ payChannel: value })}
+              >
+                <span>{label}</span>
+                <small>{desc}</small>
+              </button>
+            ))}
+          </div>
+          <InfoPanel title="支付核对" items={[
+            ['订单编号', order.orderNo || `#${order.id}`],
+            ['支付方式', payMethod[1]],
+            ['应付金额', amount],
+            ['费用构成', feeRows.map((item) => `${item.label}${item.value}`).join(' / ')]
+          ]} />
+          <p className="payment-safe-tip"><ShieldCheck size={14} />支付成功后钱包流水、订单支付状态和发票入口会同步更新。</p>
+          {formError && <p className="form-error-line">{formError}</p>}
+          <div className="order-action-panel-actions">
+            <button className="solid-button" disabled={submittingAction === 'pay'} onClick={submitPay}>
+              <CreditCard size={16} />{submittingAction === 'pay' ? '支付中...' : `确认支付 ${amount}`}
+            </button>
+            <button className="ghost-button" disabled={submittingAction === 'pay'} onClick={() => setActiveAction('')}>稍后处理</button>
+          </div>
+        </div>
+      )}
+
+      {activeAction === 'evaluate' && (
+        <div className="order-action-panel review-panel">
+          <div className="order-action-panel-head">
+            <span><Star size={15} />行程评价</span>
+            <small>{order.orderNo || `#${order.id}`}</small>
+          </div>
+          <div className="score-row" role="group" aria-label="评分">
+            {[1, 2, 3, 4, 5].map((score) => (
+              <button
+                type="button"
+                key={score}
+                className={reviewForm.score >= score ? 'active' : ''}
+                onClick={() => setReviewForm((value) => ({ ...value, score }))}
+              >
+                <Star size={16} />
+              </button>
+            ))}
+            <span>{reviewForm.score} 星</span>
+          </div>
+          <div className="feedback-chip-row">
+            {passengerReviewTags.map((tag) => (
+              <button
+                type="button"
+                key={tag}
+                className={reviewForm.tags.includes(tag) ? 'active' : ''}
+                onClick={() => toggleReviewTag(tag)}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+          <label className="plain-field textarea-field">
+            <span>评价内容</span>
+            <textarea
+              value={reviewForm.content}
+              maxLength={300}
+              placeholder="可以补充司机服务、路线、车内环境等体验"
+              onChange={(event) => setReviewForm((value) => ({ ...value, content: event.target.value }))}
+            />
+            <small>{reviewForm.content.length}/300</small>
+          </label>
+          {formError && <p className="form-error-line">{formError}</p>}
+          <div className="order-action-panel-actions">
+            <button className="solid-button" disabled={submittingAction === 'evaluate'} onClick={submitReview}>
+              <Star size={16} />{submittingAction === 'evaluate' ? '提交中...' : '提交评价'}
+            </button>
+            <button className="ghost-button" disabled={submittingAction === 'evaluate'} onClick={() => setActiveAction('')}>取消</button>
+          </div>
+        </div>
+      )}
+
+      {activeAction === 'complaint' && (
+        <div className="order-action-panel complaint-panel">
+          <div className="order-action-panel-head">
+            <span><AlertTriangle size={15} />投诉反馈</span>
+            <small>提交后会同步到消息和订单状态</small>
+          </div>
+          <div className="feedback-chip-row">
+            {complaintTypeOptions.map(([value, label]) => (
+              <button
+                type="button"
+                key={value}
+                className={complaintForm.complaintType === value ? 'active' : ''}
+                onClick={() => setComplaintForm((form) => ({ ...form, complaintType: value }))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="plain-field textarea-field">
+            <span>问题说明</span>
+            <textarea
+              value={complaintForm.content}
+              maxLength={300}
+              placeholder="请说明发生时间、问题经过和希望处理方式"
+              onChange={(event) => setComplaintForm((form) => ({ ...form, content: event.target.value }))}
+            />
+            <small>{complaintForm.content.length}/300</small>
+          </label>
+          <Field label="联系电话" value={complaintForm.contactPhone} onChange={(value) => setComplaintForm((form) => ({ ...form, contactPhone: value }))} />
+          {formError && <p className="form-error-line">{formError}</p>}
+          <div className="order-action-panel-actions">
+            <button className="solid-button" disabled={submittingAction === 'complaint'} onClick={submitComplaint}>
+              <AlertTriangle size={16} />{submittingAction === 'complaint' ? '提交中...' : '提交投诉'}
+            </button>
+            <button className="ghost-button" disabled={submittingAction === 'complaint'} onClick={() => setActiveAction('')}>取消</button>
+          </div>
+        </div>
+      )}
     </section>
   )
+}
+
+function DriverTripProgressPanel({ order, trackCount }) {
+  const nextAction = driverNextActionText(order)
+  const incomeAmount = order.driverIncomeAmount !== undefined && order.driverIncomeAmount !== null
+    ? Number(order.driverIncomeAmount)
+    : Number(order.actualAmount || order.payableAmount || order.estimatedAmount || 0) * 0.8
+  const income = formatMoney(incomeAmount, order.currencyCode)
+  const progress = getRideProgressPercent(order)
+  return (
+    <div className="driver-trip-progress-panel">
+      <div className="order-action-panel-head">
+        <span><Navigation size={15} />司机行程进度</span>
+        <small>{order.orderNo || `#${order.id}`}</small>
+      </div>
+      <div className="driver-trip-progress-grid">
+        <SummaryPill icon={Clock} value={nextAction} label="下一步" />
+        <SummaryPill icon={Route} value={trackCount ? `${trackCount} 条` : '待上报'} label="轨迹记录" />
+        <SummaryPill icon={DollarSign} value={income} label="预估收入" />
+      </div>
+      <div className="driver-trip-progress-track">
+        <div><span>路线进度</span><strong>{progress}%</strong></div>
+        <i><b style={{ width: `${progress}%` }} /></i>
+        <p>{order.orderStatus === ORDER_STATUS.IN_TRIP ? '保持轨迹上报，偏离路线时请主动联系乘客或客服。' : '按下一步操作推进，乘客端和后台会同步更新订单状态。'}</p>
+      </div>
+      <div className="driver-trip-checklist">
+        {[
+          ['接单', true],
+          ['开始接驾', [ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP, ORDER_STATUS.FINISHED].includes(order.orderStatus)],
+          ['确认上车', [ORDER_STATUS.IN_TRIP, ORDER_STATUS.FINISHED].includes(order.orderStatus)],
+          ['完成行程', order.orderStatus === ORDER_STATUS.FINISHED]
+        ].map(([label, done]) => (
+          <span className={done ? 'done' : ''} key={label}>
+            <CheckCircle size={14} />{label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function driverNextActionText(order = {}) {
+  if (order.orderStatus === ORDER_STATUS.ACCEPTED) return '开始接驾'
+  if (order.orderStatus === ORDER_STATUS.PICKING_UP) return '确认乘客上车'
+  if (order.orderStatus === ORDER_STATUS.IN_TRIP) return '到达后完成行程'
+  if (order.orderStatus === ORDER_STATUS.FINISHED) return order.payStatus === PAY_STATUS.PAID ? '行程已闭环' : '等待乘客支付'
+  if (order.orderStatus === ORDER_STATUS.CANCELLED) return '订单已取消'
+  return '等待接单'
+}
+
+function orderInvoiceStatusText(order = {}) {
+  const status = String(order.invoiceStatus || '').toUpperCase()
+  if (!status || status === 'NONE') return '未申请'
+  return statusLabel[status] || status
+}
+
+function orderEvaluationStatusText(order = {}) {
+  const status = String(order.evaluationStatus || '').toUpperCase()
+  if (status.startsWith('DONE')) return '已评价'
+  if (status === 'PENDING') return '待评价'
+  return '待评价'
+}
+
+function isOrderEvaluated(order = {}) {
+  return String(order.evaluationStatus || '').toUpperCase().startsWith('DONE')
+}
+
+function orderComplaintStatusText(order = {}) {
+  const status = String(order.complaintStatus || '').toUpperCase()
+  if (!status || status === 'NONE') return '无投诉'
+  if (['DONE', 'RESOLVED', 'CLOSED'].includes(status)) return '已处理'
+  return statusLabel[status] || status
+}
+
+function isOrderComplained(order = {}) {
+  const status = String(order.complaintStatus || '').toUpperCase()
+  return Boolean(status && status !== 'NONE')
+}
+
+function buildOrderFlowSteps(order = {}) {
+  if (order.orderStatus === ORDER_STATUS.CANCELLED) {
+    return [
+      { key: 'created', label: '已创建', state: 'done' },
+      { key: 'cancelled', label: '已取消', state: 'danger' }
+    ]
+  }
+  const sequence = [
+    [ORDER_STATUS.CREATED, '已创建'],
+    [ORDER_STATUS.DISPATCHING, '等待接单'],
+    [ORDER_STATUS.ACCEPTED, '司机接单'],
+    [ORDER_STATUS.PICKING_UP, '接驾中'],
+    [ORDER_STATUS.IN_TRIP, '行程中'],
+    [ORDER_STATUS.FINISHED, '已完成']
+  ]
+  const activeIndex = Math.max(0, sequence.findIndex(([status]) => status === order.orderStatus))
+  return sequence.map(([key, label], index) => ({
+    key,
+    label,
+    state: index < activeIndex ? 'done' : index === activeIndex ? 'active' : 'upcoming'
+  }))
 }
 
 function formatOrderDisplayTime(order = {}) {
@@ -2157,7 +3224,7 @@ function formatOrderDisplayTime(order = {}) {
   return value.slice(0, 16)
 }
 
-function OrderList({ orders, footer, empty, limit }) {
+function OrderList({ orders, footer, empty, limit, selectedOrderId }) {
   if (!orders?.length) return <EmptyState text={empty} />
   const visibleOrders = Number.isFinite(limit) ? orders.slice(0, limit) : orders
   return (
@@ -2166,12 +3233,11 @@ function OrderList({ orders, footer, empty, limit }) {
         const key = order.id || order.orderNo || index
         const orderTime = formatOrderDisplayTime(order)
         return (
-        <article className="order-card glass-panel compact slim" key={key}>
+        <article className={`order-card glass-panel compact slim ${orderKey(order) === selectedOrderId ? 'is-selected' : ''}`} key={key}>
           <div className="order-line">
             <div>
               <h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3>
               <p className="order-subline"><span>{order.orderNo || `#${order.id}`}</span><span>{statusLabel[order.serviceType] || order.serviceType}</span><span className="order-time">下单 {orderTime}</span></p>
-              <p>{order.orderNo || `#${order.id}`} · {statusLabel[order.serviceType] || order.serviceType} · {order.createdTime || order.createTime || '-'}</p>
             </div>
             <div className="order-badges">
               <StatusBadge value={order.orderStatus} />
@@ -2206,13 +3272,6 @@ function OrderActions({ role, order, onAction }) {
         <button className="ghost-button" onClick={() => onAction('cancel')}><XCircle size={16} />取消</button>
       )}
       {order.orderStatus === ORDER_STATUS.PICKING_UP && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />我已上车</button>}
-      {order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID && (
-        <button className="solid-button" onClick={() => onAction('pay')}><CreditCard size={16} />支付</button>
-      )}
-      {order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && order.evaluationStatus !== 'DONE' && (
-        <button className="ghost-button" onClick={() => onAction('evaluate')}><Star size={16} />评价</button>
-      )}
-      {order.orderStatus !== ORDER_STATUS.CANCELLED && <button className="ghost-button" onClick={() => onAction('complaint')}><AlertTriangle size={16} />投诉</button>}
     </>
   )
 }
@@ -2221,24 +3280,62 @@ function CouponBoard({ center, mine, onReceive }) {
   const [status, setStatus] = useState('ALL')
   const [walletExpanded, setWalletExpanded] = useState(false)
   const [centerExpanded, setCenterExpanded] = useState(false)
-  const centerList = center || []
+  const [claimingId, setClaimingId] = useState('')
+  const centerList = normalizeList(center)
   const templateMap = useMemo(() => new Map(centerList.map((coupon) => [Number(coupon.id), coupon])), [centerList])
-  const walletList = (mine || []).map((coupon) => ({ ...templateMap.get(Number(coupon.couponId)), ...coupon }))
-  const visibleWallet = status === 'ALL' ? walletList : walletList.filter((coupon) => (coupon.couponStatus || coupon.status || 'UNUSED') === status)
+  const walletList = normalizeList(mine).map((coupon) => ({ ...templateMap.get(Number(coupon.couponId)), ...coupon }))
+  const ownedCouponKeys = useMemo(() => new Set(walletList.map(couponTemplateKey).filter(Boolean)), [walletList])
+  const visibleWallet = status === 'ALL' ? walletList : walletList.filter((coupon) => normalizeCouponStatus(coupon) === status)
   const walletDisplay = walletExpanded ? visibleWallet : visibleWallet.slice(0, 5)
   const centerDisplay = centerExpanded ? centerList : centerList.slice(0, 5)
+  const usableCoupons = walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'UNUSED')
+  const expiringSoon = usableCoupons.filter((coupon) => {
+    const endMs = couponExpireMs(coupon)
+    if (!endMs) return false
+    const now = Date.now()
+    return endMs >= now && endMs - now <= 7 * 24 * 60 * 60 * 1000
+  })
+  const cashValue = usableCoupons.reduce((sum, coupon) => sum + couponCashValue(coupon), 0)
+  const nearestExpiring = expiringSoon
+    .slice()
+    .sort((left, right) => couponExpireMs(left) - couponExpireMs(right))[0]
+  const couponNotice = usableCoupons.length
+    ? nearestExpiring
+      ? `${nearestExpiring.couponName || nearestExpiring.name || '有优惠券'} 即将到期`
+      : '下单时会按设置自动匹配最优券'
+    : '先到券中心领取，再回到下单页使用'
   const statusTabs = [
     ['ALL', '全部', walletList.length],
-    ['UNUSED', '可用', walletList.filter((coupon) => (coupon.couponStatus || coupon.status || 'UNUSED') === 'UNUSED').length],
-    ['USED', '已用', walletList.filter((coupon) => (coupon.couponStatus || coupon.status) === 'USED').length],
-    ['EXPIRED', '失效', walletList.filter((coupon) => (coupon.couponStatus || coupon.status) === 'EXPIRED').length]
+    ['UNUSED', '可用', usableCoupons.length],
+    ['USED', '已用', walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'USED').length],
+    ['EXPIRED', '失效', walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'EXPIRED').length]
   ]
+  const receiveCoupon = async (coupon) => {
+    const key = couponTemplateKey(coupon)
+    if (!key || ownedCouponKeys.has(key) || claimingId) return
+    setClaimingId(key)
+    try {
+      await onReceive(coupon)
+    } finally {
+      setClaimingId('')
+    }
+  }
   return (
     <div className="dashboard-grid coupon-board">
       <section className="glass-panel work-card wide coupon-wallet">
         <div className="card-head">
-          <div><span className="section-kicker">Coupon wallet</span><h2>我的券包</h2></div>
+          <div><span className="section-kicker">优惠券</span><h2>我的券包</h2></div>
           <Ticket size={22} />
+        </div>
+        <div className="coupon-summary-grid">
+          <SummaryPill icon={Ticket} label="可用券" value={`${usableCoupons.length} 张`} />
+          <SummaryPill icon={Clock} label="7天内到期" value={`${expiringSoon.length} 张`} />
+          <SummaryPill icon={Wallet} label="现金券面额" value={formatMoney(cashValue)} />
+        </div>
+        <div className="coupon-insight-row">
+          <span>券包提醒</span>
+          <strong>{couponNotice}</strong>
+          <small>{status === 'UNUSED' ? '下单前快速确认可用券。' : '查看已用和失效记录。'}</small>
         </div>
         <div className="segmented-row coupon-tabs">
           {statusTabs.map(([key, label, count]) => (
@@ -2258,12 +3355,24 @@ function CouponBoard({ center, mine, onReceive }) {
       </section>
       <section className="glass-panel work-card coupon-center-panel">
         <div className="card-head">
-          <div><span className="section-kicker">Center</span><h2>券中心</h2></div>
+          <div><span className="section-kicker">领券</span><h2>券中心</h2></div>
           <Wallet size={21} />
         </div>
         {centerList.length ? (
           <div className="coupon-center-list">
-            {centerDisplay.map((coupon) => <CouponTicket coupon={coupon} key={coupon.id} onReceive={() => onReceive(coupon)} />)}
+            {centerDisplay.map((coupon) => {
+              const key = couponTemplateKey(coupon)
+              const claimed = ownedCouponKeys.has(key)
+              return (
+                <CouponTicket
+                  coupon={coupon}
+                  key={coupon.id}
+                  claimed={claimed}
+                  busy={claimingId === key}
+                  onReceive={() => receiveCoupon(coupon)}
+                />
+              )
+            })}
           </div>
         ) : <EmptyState text="当前暂无可领取优惠券。" />}
         {centerList.length > 5 && (
@@ -2276,15 +3385,16 @@ function CouponBoard({ center, mine, onReceive }) {
   )
 }
 
-function CouponTicket({ coupon, owned = false, onReceive }) {
+function CouponTicket({ coupon, owned = false, onReceive, claimed = false, busy = false }) {
   const discount = getCouponValue(coupon)
   const threshold = coupon.thresholdAmount || coupon.minAmount || coupon.conditionAmount || 0
-  const status = coupon.couponStatus || coupon.status || 'UNUSED'
+  const status = normalizeCouponStatus(coupon)
   const rawScope = coupon.serviceType || coupon.scope || coupon.serviceScope
   const scope = statusLabel[rawScope] || rawScope || '全场通用'
-  const validity = coupon.validEndTime || coupon.expireTime || coupon.endTime || coupon.validTo || ''
+  const validity = formatDateTimeShort(coupon.validEndTime || coupon.expireTime || coupon.endTime || coupon.validTo || '')
+  const expiring = owned && status === 'UNUSED' && isCouponExpiringSoon(coupon)
   return (
-    <article className={`coupon-ticket ${owned ? 'owned' : ''} ${discount.type === 'rate' ? 'rate' : ''}`}>
+    <article className={`coupon-ticket ${owned ? 'owned' : ''} ${discount.type === 'rate' ? 'rate' : ''} ${status !== 'UNUSED' ? 'is-disabled' : ''} ${expiring ? 'is-expiring' : ''}`}>
       <div className="coupon-ticket-value">
         {discount.type === 'cash' && <small>¥</small>}<strong>{discount.text}</strong>
       </div>
@@ -2292,6 +3402,7 @@ function CouponTicket({ coupon, owned = false, onReceive }) {
         <div className="coupon-ticket-title">
           <strong>{coupon.couponName || coupon.name || `优惠券 #${coupon.couponId || coupon.id}`}</strong>
           {owned && <StatusBadge value={status} />}
+          {expiring && <span className="coupon-expire-badge">临期</span>}
         </div>
         <p>{coupon.ruleDesc || (Number(threshold) > 0 ? `满 ${threshold} 元可用` : '无门槛可用')}</p>
         <div className="coupon-ticket-meta">
@@ -2299,9 +3410,55 @@ function CouponTicket({ coupon, owned = false, onReceive }) {
           {validity && <span>有效至 {validity}</span>}
         </div>
       </div>
-      {!owned && <button className="coupon-claim" onClick={onReceive}>领取</button>}
+      {!owned && (
+        <button className={`coupon-claim ${claimed ? 'is-claimed' : ''}`} disabled={claimed || busy} onClick={onReceive}>
+          {busy ? '领取中' : claimed ? '已领取' : '领取'}
+        </button>
+      )}
     </article>
   )
+}
+
+function couponTemplateKey(coupon = {}) {
+  const value = coupon.couponId ?? coupon.templateId ?? coupon.template_id ?? coupon.id ?? coupon.couponName ?? coupon.name
+  return value === undefined || value === null ? '' : String(value)
+}
+
+function normalizeCouponStatus(coupon = {}) {
+  return String(coupon.couponStatus || coupon.status || 'UNUSED').toUpperCase()
+}
+
+function couponExpireMs(coupon = {}) {
+  const raw = coupon.validEndTime || coupon.expireTime || coupon.endTime || coupon.validTo
+  if (!raw) return 0
+  const value = Array.isArray(raw)
+    ? new Date(raw[0], Number(raw[1]) - 1, raw[2], raw[3] || 23, raw[4] || 59, raw[5] || 59).getTime()
+    : new Date(String(raw).replace(' ', 'T')).getTime()
+  return Number.isFinite(value) ? value : 0
+}
+
+function isCouponExpiringSoon(coupon = {}) {
+  const endMs = couponExpireMs(coupon)
+  if (!endMs) return false
+  const now = Date.now()
+  return endMs >= now && endMs - now <= 7 * 24 * 60 * 60 * 1000
+}
+
+function formatDateTimeShort(value) {
+  if (!value) return ''
+  if (Array.isArray(value)) {
+    const [year, month, day, hour = 0, minute = 0] = value
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  }
+  const text = String(value).replace('T', ' ').replace(/\.\d+Z?$/, '')
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}))?/)
+  return match ? `${match[1]}${match[2] ? ` ${match[2]}` : ''}` : text.slice(0, 16)
+}
+
+function couponCashValue(coupon = {}) {
+  const discount = getCouponValue(coupon)
+  if (discount.type !== 'cash') return 0
+  return Number(String(discount.text).replace(/[^\d.]/g, '')) || 0
 }
 
 function getCouponValue(coupon = {}) {
@@ -2319,6 +3476,72 @@ function getCouponValue(coupon = {}) {
   return { type: 'rate', text: match ? `${match[1]}折` : '折扣' }
 }
 
+function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }) {
+  const active = Boolean(membership?.active || membership?.memberStatus === 'ACTIVE')
+  const memberCoupons = normalizeList(coupons).filter((coupon) => {
+    const mode = String(coupon.receiveMode || coupon.operationType || '').toUpperCase()
+    const name = `${coupon.couponName || coupon.name || ''}`
+    return mode === 'MEMBER_WEEKLY' || name.includes('会员')
+  })
+  const usableMemberCoupons = memberCoupons.filter((coupon) => normalizeCouponStatus(coupon) === 'UNUSED')
+  const expireText = membership?.expireDate || membership?.validEndTime || membership?.endTime || '-'
+  const lastSyncText = membership?.lastSyncAt || membership?.lastIssuedAt || membership?.updatedAt || '待同步'
+  const levelText = active ? membership?.memberLevel || '阳光会员' : '开通后生效'
+  return (
+    <div className="dashboard-grid member-board">
+      <section className={`glass-panel work-card member-hero-card ${active ? 'is-active' : 'is-idle'}`}>
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">会员权益</span>
+            <h2>{active ? membership?.memberLevel || '阳光会员' : '未开通会员'}</h2>
+          </div>
+          <BadgeCheck size={24} />
+        </div>
+        <div className="member-status-line">
+          <StatusBadge value={active ? 'ACTIVE' : 'NONE'} />
+          <span>{active ? `有效期至 ${expireText}` : '开通后每周自动同步专属优惠券'}</span>
+        </div>
+        <div className="member-privilege-list">
+          {[
+            ['会员等级', levelText],
+            ['权益同步', active ? lastSyncText : '开通后可同步'],
+            ['下单抵扣', usableMemberCoupons.length ? `${usableMemberCoupons.length} 张可用` : '暂无可用会员券']
+          ].map(([label, value]) => (
+            <div key={label}><span>{label}</span><strong>{value}</strong></div>
+          ))}
+        </div>
+        <div className="member-benefit-grid">
+          <SummaryPill icon={Ticket} value={`${membership?.weeklyCouponTotal || memberCoupons.length || 0} 张`} label="累计会员券" />
+          <SummaryPill icon={BadgeCheck} value={`${usableMemberCoupons.length} 张`} label="当前可用" />
+          <SummaryPill icon={RefreshCw} value={membership?.issuedCount || 0} label="本次到账" />
+        </div>
+        <div className="member-progress-list">
+          <div className={active ? 'done' : 'active'}><span>1</span><p>开通会员</p></div>
+          <div className={active && memberCoupons.length ? 'done' : active ? 'active' : ''}><span>2</span><p>同步本周券包</p></div>
+          <div className={usableMemberCoupons.length ? 'done' : ''}><span>3</span><p>下单时自动可选</p></div>
+        </div>
+        <div className="member-actions">
+          <button className="solid-button" onClick={active ? onSyncCoupons : onActivate}>
+            <Ticket size={16} />{active ? '同步本周券包' : '开通会员'}
+          </button>
+          <button className="ghost-button" disabled={!active} onClick={onSyncCoupons}><RefreshCw size={16} />刷新权益</button>
+        </div>
+        <p className="member-sync-note">上次权益同步：{lastSyncText}</p>
+      </section>
+      <section className="glass-panel work-card wide member-coupon-card">
+        <div className="card-head"><div><span className="section-kicker">会员券包</span><h2>专属优惠券</h2></div><Wallet size={21} /></div>
+        {memberCoupons.length ? (
+          <div className="coupon-wallet-list member-coupon-list">
+            {memberCoupons.slice(0, 6).map((coupon, index) => (
+              <CouponTicket coupon={coupon} key={coupon.id || coupon.userCouponId || `${coupon.couponName}-${index}`} owned />
+            ))}
+          </div>
+        ) : <EmptyState text={active ? '本周会员券尚未同步，点击同步本周券包。' : '开通会员后这里会显示每周专属券。'} />}
+      </section>
+    </div>
+  )
+}
+
 function formatOrderTime(order = {}) {
   const value = order.createdTime || order.createTime || order.orderTime || order.departTime || order.updatedAt
   if (!value) return '时间未记录'
@@ -2329,13 +3552,155 @@ function formatOrderTime(order = {}) {
   return String(value).replace('T', ' ').slice(0, 16)
 }
 
-function CarpoolBoard({ data, onSearch, onPublish, onApply }) {
+function formatDateInput(date = new Date()) {
+  const value = date instanceof Date ? date : new Date(date)
+  const safeDate = Number.isNaN(value.getTime()) ? new Date() : value
+  return `${safeDate.getFullYear()}-${String(safeDate.getMonth() + 1).padStart(2, '0')}-${String(safeDate.getDate()).padStart(2, '0')}`
+}
+
+function getCarTypeDescription(item = {}) {
+  const name = getCarTypeName(item)
+  if (name.includes('商务')) return '更宽敞，适合接送机和跨城'
+  if (name.includes('舒适')) return '空间更稳，适合多人出行'
+  return '日常通勤，响应更快'
+}
+
+function getRideProgressPercent(order = {}) {
+  if (order.orderStatus === ORDER_STATUS.CANCELLED) return 0
+  if (order.orderStatus === ORDER_STATUS.FINISHED) return 100
+  if (order.orderStatus === ORDER_STATUS.IN_TRIP) return 68
+  if (order.orderStatus === ORDER_STATUS.PICKING_UP) return 42
+  if (order.orderStatus === ORDER_STATUS.ACCEPTED) return 28
+  if (order.orderStatus === ORDER_STATUS.DISPATCHING) return 16
+  return 8
+}
+
+function buildOrderFeeRows(order = {}) {
+  const currency = order.currencyCode || 'CNY'
+  const payable = Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)
+  const estimated = Number(order.estimatedAmount || payable)
+  const actual = Number(order.actualAmount || payable)
+  const discount = Math.max(0, estimated - payable)
+  const cancelFee = Number(order.cancelFee || 0)
+  const rows = [
+    { label: '预估费用', value: formatMoney(estimated, currency) },
+    { label: '实际费用', value: formatMoney(actual || estimated, currency) }
+  ]
+  if (discount > 0) rows.push({ label: '优惠抵扣', value: `-${formatMoney(discount, currency)}`, tone: 'discount' })
+  if (cancelFee > 0) rows.push({ label: '取消费', value: formatMoney(cancelFee, currency), tone: 'warning' })
+  rows.push({ label: '应付合计', value: formatMoney(payable, currency), tone: 'total' })
+  return rows
+}
+
+function buildSupportFeedbackSummary(orders = []) {
+  return normalizeList(orders).reduce((summary, order) => {
+    const canEvaluate = order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && !isOrderEvaluated(order)
+    const canComplain = order.orderStatus !== ORDER_STATUS.CANCELLED && !isOrderComplained(order)
+    if (isOrderEvaluated(order)) summary.evaluated += 1
+    if (isOrderComplained(order)) summary.complained += 1
+    if (canEvaluate || canComplain) summary.actionable += 1
+    if (canEvaluate) summary.pending += 1
+    return summary
+  }, { evaluated: 0, complained: 0, actionable: 0, pending: 0 })
+}
+
+function maskPhone(value = '') {
+  const text = String(value || '')
+  return text.length >= 7 ? `${text.slice(0, 3)}****${text.slice(-4)}` : text
+}
+
+function dateInputMs(value) {
+  const text = String(value || '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return NaN
+  return new Date(`${text}T00:00:00`).getTime()
+}
+
+function buildPassengerWalletRecords(orders = []) {
+  return normalizeList(orders)
+    .filter((order) => [PAY_STATUS.PAID, PAY_STATUS.REFUNDED].includes(order.payStatus))
+    .sort((left, right) => walletOrderTimeMs(right) - walletOrderTimeMs(left))
+    .slice(0, 20)
+    .map((order, index) => {
+      const refunded = order.payStatus === PAY_STATUS.REFUNDED
+      const amount = Number(order.actualAmount || order.payableAmount || order.estimatedAmount || order.cancelFee || 0)
+      const timeText = formatWalletRecordTime(order)
+      return {
+        key: `wallet-${order.id || order.orderNo || index}`,
+        order,
+        orderNo: order.orderNo || `#${order.id}`,
+        title: buildWalletRouteText(order),
+        serviceLabel: statusLabel[order.serviceType] || order.serviceType || '出行服务',
+        statusText: refunded ? '已退款' : '已支付',
+        marker: refunded ? '退' : '支',
+        tone: refunded ? 'refund' : 'spend',
+        amount,
+        currencyCode: order.currencyCode || 'CNY',
+        amountText: `${refunded ? '+' : '-'}${formatMoney(amount, order.currencyCode)}`,
+        timeText
+      }
+    })
+}
+
+function buildPassengerWalletSummary(records = []) {
+  if (!records.length) {
+    return {
+      spendText: formatMoney(0),
+      refundText: formatMoney(0),
+      countText: '0 笔',
+      latestText: '等待同步'
+    }
+  }
+  return {
+    spendText: formatWalletTotals(records.filter((item) => item.tone === 'spend')),
+    refundText: formatWalletTotals(records.filter((item) => item.tone === 'refund')),
+    countText: `${records.length} 笔`,
+    latestText: records[0]?.timeText || '已同步'
+  }
+}
+
+function formatWalletTotals(records = []) {
+  const totals = records.reduce((map, item) => {
+    const currency = item.currencyCode || 'CNY'
+    map[currency] = Number(map[currency] || 0) + Number(item.amount || 0)
+    return map
+  }, {})
+  const entries = ['CNY', 'USD']
+    .filter((currency) => totals[currency])
+    .map((currency) => formatMoney(totals[currency], currency))
+  return entries.length ? entries.join(' / ') : formatMoney(0)
+}
+
+function buildWalletRouteText(order = {}) {
+  const startName = String(order.startName || '').trim()
+  const endName = String(order.endName || '').trim()
+  if (startName && endName) return `${startName} 至 ${endName}`
+  return startName || endName || order.orderNo || `订单 #${order.id || '--'}`
+}
+
+function walletOrderTimeMs(order = {}) {
+  return dateLikeToMs(order.paidAt || order.refundedAt || order.finishedAt || order.updatedAt || order.createdAt) || Number(order.id || 0)
+}
+
+function formatWalletRecordTime(order = {}) {
+  const raw = order.paidAt || order.refundedAt || order.finishedAt || order.updatedAt || order.createdAt
+  const text = formatOrderDisplayTime({ createdAt: raw })
+  return text === '-' ? '时间待同步' : text.replace(/^\d{4}-/, '')
+}
+
+function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPassengerConfirm, onCancel }) {
   const [keyword, setKeyword] = useState('')
   const [active, setActive] = useState('search')
+  const [selectedTripId, setSelectedTripId] = useState('')
+  const [publishError, setPublishError] = useState('')
+  const [applyError, setApplyError] = useState('')
+  const [applyDraft, setApplyDraft] = useState({
+    companionCount: 0,
+    note: ''
+  })
   const [form, setForm] = useState({
     startName: '燕京理工学院-南门',
     endName: '天洋广场',
-    departDate: '2026-05-15',
+    departDate: formatDateInput(),
     timeRange: '18:00-21:00',
     passengerCount: 1,
     seatCount: 3,
@@ -2347,27 +3712,92 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply }) {
   const luggageOptions = [['NO_LUGGAGE', '无行李'], ['HAS_LUGGAGE', '有行李']]
   const tollOptions = [['PASSENGER_PAYS', '乘客出高速费'], ['NEGOTIABLE', '高速费协商']]
   const timeRangeOptions = ['07:00-09:00', '09:00-12:00', '12:00-15:00', '15:00-18:00', '18:00-21:00']
-  const mine = splitCarpoolMine(data.mine)
+  const mine = splitCarpoolMine(data.mine, data.list)
+  const list = useMemo(() => normalizeList(data.list), [data.list])
+  const selectedTrip = list.find((trip) => String(trip.id) === String(selectedTripId)) || list[0] || null
   const update = (patch) => setForm((draft) => ({ ...draft, ...patch }))
   const swapAddress = () => update({ startName: form.endName, endName: form.startName })
+
+  useEffect(() => {
+    if (!selectedTripId && list[0]?.id) setSelectedTripId(String(list[0].id))
+    if (selectedTripId && list.length && !list.some((trip) => String(trip.id) === String(selectedTripId))) {
+      setSelectedTripId(String(list[0].id))
+    }
+  }, [list, selectedTripId])
+
   const submitPublish = () => {
+    const startName = form.startName.trim()
+    const endName = form.endName.trim()
+    const seatCount = Number(form.seatCount)
+    const sharedAmount = Number(form.sharedAmount)
+    if (!startName || !endName) {
+      setPublishError('请填写完整的出发地和目的地')
+      return
+    }
+    if (startName === endName) {
+      setPublishError('出发地和目的地不能相同')
+      return
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.departDate)) {
+      setPublishError('出发日期格式需要为 YYYY-MM-DD')
+      return
+    }
+    const todayMs = dateInputMs(formatDateInput())
+    const departMs = dateInputMs(form.departDate)
+    if (Number.isFinite(departMs) && departMs < todayMs) {
+      setPublishError('出发日期不能早于今天')
+      return
+    }
+    if (!Number.isFinite(seatCount) || seatCount < 1 || seatCount > 6) {
+      setPublishError('可提供座位需要在 1-6 座之间')
+      return
+    }
+    if (!Number.isFinite(sharedAmount) || sharedAmount < 0) {
+      setPublishError('分摊金额不能小于 0')
+      return
+    }
     const luggageLabel = luggageOptions.find(([key]) => key === form.luggageMode)?.[1] || '无行李'
     const tollLabel = tollOptions.find(([key]) => key === form.tollMode)?.[1] || '高速费协商'
+    setPublishError('')
     onPublish({
-      startName: form.startName,
-      endName: form.endName,
+      startName,
+      endName,
       departTime: `${form.departDate} ${form.timeRange.split('-')[0]}:00`,
-      seatCount: Number(form.seatCount || form.passengerCount || 1),
-      sharedAmount: Number(form.sharedAmount || 0),
+      seatCount,
+      sharedAmount,
       baggageRule: `${luggageLabel} · ${tollLabel}`,
       tripRemark: form.note || '网页端顺风车发布'
     })
   }
+
+  const submitApply = (trip = selectedTrip) => {
+    if (!trip?.id) {
+      setApplyError('请先选择一条可搭乘行程')
+      return
+    }
+    const companionCount = Number(applyDraft.companionCount)
+    const totalSeatCount = companionCount + 1
+    const remainSeat = carpoolRemainSeatCount(trip)
+    if (!Number.isFinite(companionCount) || companionCount < 0 || companionCount > 3) {
+      setApplyError('同行人数需要在 0-3 人之间')
+      return
+    }
+    if (Number.isFinite(remainSeat) && totalSeatCount > remainSeat) {
+      setApplyError(`当前余座仅 ${remainSeat} 座，请调整同行人数`)
+      return
+    }
+    setApplyError('')
+    onApply(trip, {
+      companionCount,
+      note: applyDraft.note.trim() || `网页端申请搭乘，合计 ${totalSeatCount} 人`
+    })
+  }
+
   return (
     <div className="dashboard-grid carpool-board">
       <section className="glass-panel work-card wide carpool-main-card">
         <div className="card-head carpool-head">
-          <div className="carpool-title-block"><span className="section-kicker">Carpool</span><h2>顺风车</h2></div>
+          <div className="carpool-title-block"><span className="section-kicker">同行</span><h2>顺风车</h2></div>
           <div className="search-line carpool-search-line">
             <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索起点或终点" />
             <button onClick={() => onSearch(keyword)}><RefreshCw size={16} />搜索</button>
@@ -2380,9 +3810,25 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply }) {
             ['mine', '我的顺风车', mine.total]
           ].map(([key, label, count]) => <button key={key} className={active === key ? 'active' : ''} onClick={() => setActive(key)}>{label}{count !== '' && <span>{count}</span>}</button>)}
         </div>
+        <div className="carpool-summary-strip">
+          <SummaryPill icon={Users} label="可搭乘行程" value={`${list.length} 条`} />
+          <SummaryPill icon={Clock} label="待确认" value={`${mine.pendingTotal} 条`} />
+          <SummaryPill icon={Route} label="当前选择" value={selectedTrip ? `${selectedTrip.startName} → ${selectedTrip.endName}` : '未选择'} />
+        </div>
         {active === 'search' && (
           <div className="carpool-trip-list">
-            {data.list?.length ? data.list.map((trip) => <CarpoolTripCard trip={trip} key={trip.id} onApply={() => onApply(trip)} />) : <EmptyState text="暂无匹配的顺风车。" />}
+            {list.length ? list.map((trip) => (
+              <CarpoolTripCard
+                trip={trip}
+                key={trip.id}
+                selected={String(selectedTrip?.id) === String(trip.id)}
+                onSelect={() => setSelectedTripId(String(trip.id))}
+                onApply={() => {
+                  setSelectedTripId(String(trip.id))
+                  setApplyError('')
+                }}
+              />
+            )) : <EmptyState text="暂无匹配的顺风车。" />}
           </div>
         )}
         {active === 'publish' && (
@@ -2402,30 +3848,69 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply }) {
             <CarpoolOptionGroup title="行李情况" value={form.luggageMode} options={luggageOptions} onChange={(value) => update({ luggageMode: value })} />
             <CarpoolOptionGroup title="高速费方案" value={form.tollMode} options={tollOptions} onChange={(value) => update({ tollMode: value })} />
             <label className="plain-field carpool-note"><span>补充说明</span><textarea value={form.note} maxLength={60} placeholder="上车点细节、是否赶时间等" onChange={(event) => update({ note: event.target.value })} /></label>
+            {publishError && <p className="form-error-line">{publishError}</p>}
             <button className="solid-button fill" onClick={submitPublish}><Send size={16} />发布顺风车</button>
           </div>
         )}
         {active === 'mine' && (
           <div className="carpool-mine-panel">
             <div className="stat-grid">
-              <Metric value={mine.published.length} label="我发布的" />
-              <Metric value={mine.applied.length} label="我申请的" />
+              <Metric value={mine.ownerRecords.length} label="我发布的" />
+              <Metric value={mine.passengerRecords.length} label="我申请的" />
+              <Metric value={mine.pendingTotal} label="待确认" />
             </div>
-            {[...mine.published, ...mine.applied].length ? [...mine.published, ...mine.applied].map((trip, index) => <CarpoolTripCard trip={trip} key={trip.id || index} muted />) : <EmptyState text="暂无顺风车记录。" />}
+            {mine.records.length ? mine.records.map((record) => (
+              <CarpoolRecordCard
+                record={record}
+                key={record.id}
+                onOwnerAction={onOwnerAction}
+                onPassengerConfirm={onPassengerConfirm}
+                onCancel={onCancel}
+              />
+            )) : <EmptyState text="暂无顺风车记录。" />}
           </div>
         )}
       </section>
       <section className="glass-panel work-card carpool-side">
-        <div className="card-head"><h2>行程偏好</h2><Users size={21} /></div>
-        <InfoPanel title="当前草稿" items={[
-          ['出发', form.startName],
-          ['到达', form.endName],
-          ['时间', `${form.departDate} ${form.timeRange}`],
-          ['人数', `${form.passengerCount} 人`]
-        ]} />
+        <div className="card-head"><h2>{active === 'search' ? '搭乘申请' : '行程偏好'}</h2><Users size={21} /></div>
+        {active === 'search' && selectedTrip ? (
+          <div className="carpool-apply-panel">
+            <InfoPanel title="已选行程" items={[
+              ['路线', `${selectedTrip.startName} → ${selectedTrip.endName}`],
+              ['出发', selectedTrip.departTimeText || selectedTrip.departTime || '-'],
+              ['余座', `${carpoolRemainSeatCount(selectedTrip)} 座`],
+              ['分摊', formatMoney(selectedTrip.sharedAmount || selectedTrip.amount || 0)]
+            ]} />
+            <label className="plain-field">
+              <span>同行人数</span>
+              <select value={applyDraft.companionCount} onChange={(event) => setApplyDraft((draft) => ({ ...draft, companionCount: Number(event.target.value) }))}>
+                {[0, 1, 2, 3].map((item) => <option key={item} value={item}>{item ? `另带 ${item} 人` : '仅我自己'}</option>)}
+              </select>
+            </label>
+            <label className="plain-field carpool-note">
+              <span>申请备注</span>
+              <textarea
+                value={applyDraft.note}
+                maxLength={80}
+                placeholder="例如：可在校门口上车，带一个小行李箱"
+                onChange={(event) => setApplyDraft((draft) => ({ ...draft, note: event.target.value }))}
+              />
+            </label>
+            {applyError && <p className="form-error-line">{applyError}</p>}
+            <button className="solid-button fill" onClick={() => submitApply(selectedTrip)}><Send size={16} />提交搭乘申请</button>
+          </div>
+        ) : (
+          <InfoPanel title="当前草稿" items={[
+            ['出发', form.startName],
+            ['到达', form.endName],
+            ['时间', `${form.departDate} ${form.timeRange}`],
+            ['人数', `${form.passengerCount} 人`]
+          ]} />
+        )}
         <InfoPanel title="我的记录" items={[
-          ['已发布', `${mine.published.length} 条`],
-          ['已申请', `${mine.applied.length} 条`],
+          ['已发布', `${mine.ownerRecords.length} 条`],
+          ['已申请', `${mine.passengerRecords.length} 条`],
+          ['待确认', `${mine.pendingTotal} 条`],
           ['可搭乘', `${data.list?.length || 0} 条`]
         ]} />
       </section>
@@ -2444,66 +3929,315 @@ function CarpoolOptionGroup({ title, value, options, onChange }) {
   )
 }
 
-function CarpoolTripCard({ trip, onApply, muted = false }) {
+function CarpoolTripCard({ trip, onApply, muted = false, selected = false, onSelect }) {
+  const canApply = trip.canApply !== false && !trip.hasApplied && !['FULL', 'CONFIRMED', 'CANCELLED', 'FINISHED'].includes(String(trip.status || trip.tripStatus || '').toUpperCase())
+  const actionText = selected ? '已选择，填写申请' : '选择行程'
   return (
-    <article className={`carpool-trip-card glass-panel ${muted ? 'muted-card' : ''}`}>
+    <article
+      className={`carpool-trip-card glass-panel ${muted ? 'muted-card' : ''} ${selected ? 'is-selected' : ''}`}
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        if (!onSelect) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect()
+        }
+      }}
+    >
       <div className="order-line">
-        <div><h3>{trip.startName} <ChevronRight size={16} /> {trip.endName}</h3><p>{trip.departTime || trip.createTime || '-'} · 余座 {trip.seatCount ?? trip.remainingSeatCount ?? '-'}</p></div>
+        <div><h3>{trip.startName} <ChevronRight size={16} /> {trip.endName}</h3><p>{trip.departTimeText || trip.departTime || trip.createTime || '-'} · 余座 {trip.remainSeatCount ?? trip.remainingSeatCount ?? trip.seatCount ?? '-'}</p></div>
         <strong>{formatMoney(trip.sharedAmount || trip.amount || 0)}</strong>
       </div>
       <div className="carpool-trip-meta">
         <span>{trip.baggageRule || '行李规则待确认'}</span>
-        <span>{statusLabel[trip.tripStatus] || trip.tripStatus || '可申请'}</span>
+        <span>{trip.statusText || carpoolTripStatusText(trip.status || trip.tripStatus)}</span>
+        {trip.myApplicationStatusText && <span>{trip.myApplicationStatusText}</span>}
       </div>
       {trip.tripRemark && <p className="muted">{trip.tripRemark}</p>}
-      {onApply && <div className="order-actions"><button className="solid-button" onClick={onApply}><Send size={16} />申请搭乘</button></div>}
+      {onApply && (
+        <div className="order-actions">
+          <button
+            className={canApply ? 'solid-button' : 'ghost-button'}
+            disabled={!canApply}
+            onClick={(event) => {
+              event.stopPropagation()
+              if (canApply) onApply()
+            }}
+          >
+            <Send size={16} />{canApply ? actionText : carpoolTripActionText(trip)}
+          </button>
+        </div>
+      )}
     </article>
   )
 }
 
-function splitCarpoolMine(payload) {
+function carpoolRemainSeatCount(trip = {}) {
+  const raw = trip.remainSeatCount ?? trip.remainingSeatCount ?? trip.availableSeatCount ?? trip.seatCount
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : '-'
+}
+
+function carpoolTripActionText(trip = {}) {
+  if (trip.hasApplied || trip.myApplicationStatusText) return trip.myApplicationStatusText || '已申请'
+  const status = String(trip.status || trip.tripStatus || '').toUpperCase()
+  return carpoolTripStatusText(status)
+}
+
+function CarpoolRecordCard({ record, onOwnerAction, onPassengerConfirm, onCancel }) {
+  const trip = record.trip || record
+  const applications = normalizeList(record.applications)
+  const application = record.application
+  return (
+    <article className="carpool-record-card glass-panel">
+      <div className="carpool-record-head">
+        <div>
+          <span>{record.roleText || (record.role === 'owner' ? '我发布' : '我申请')}</span>
+          <h3>{trip.startName || record.startName} <ChevronRight size={15} /> {trip.endName || record.endName}</h3>
+          <p>{record.departTimeText || trip.departTimeText || trip.departTime || '-'} · {record.seatText || trip.seatText || `余座 ${trip.remainSeatCount ?? trip.seatCount ?? '-'}`}</p>
+        </div>
+        <StatusBadge value={record.statusText ? null : (record.status || trip.status || application?.applicationStatus)} label={record.statusText || trip.statusText || application?.statusText || '待确认'} />
+      </div>
+      {record.role === 'owner' && (
+        <div className="carpool-application-list">
+          {applications.length ? applications.map((item) => (
+            <CarpoolApplicationRow
+              application={item}
+              key={item.id}
+              onOwnerAction={onOwnerAction}
+              onCancel={onCancel}
+            />
+          )) : <EmptyState text="暂无乘客申请，发布后会在这里处理确认。" />}
+        </div>
+      )}
+      {record.role !== 'owner' && application && (
+        <CarpoolApplicationRow
+          application={application}
+          passengerMode
+          onPassengerConfirm={onPassengerConfirm}
+          onCancel={onCancel}
+        />
+      )}
+    </article>
+  )
+}
+
+function CarpoolApplicationRow({ application, passengerMode = false, onOwnerAction, onPassengerConfirm, onCancel }) {
+  const status = application.applicationStatus || application.status
+  return (
+    <div className="carpool-application-row">
+      <div>
+        <span>{passengerMode ? '我的申请' : (application.passengerText || application.passengerName || '同行乘客')}</span>
+        <p>{application.seatText || `${Number(application.totalSeatCount || application.companionCount || 1)} 人同行`} · {application.noteText || application.note || '未填写备注'}</p>
+      </div>
+      <div className="carpool-application-actions">
+        <StatusBadge value={status} label={application.statusText || carpoolApplicationStatusText(status)} />
+        {!passengerMode && application.canOwnerApprove && <button className="solid-button" onClick={() => onOwnerAction?.(application, 'APPROVE')}>确认</button>}
+        {!passengerMode && application.canOwnerReject && <button className="ghost-button" onClick={() => onOwnerAction?.(application, 'REJECT')}>拒绝</button>}
+        {passengerMode && application.canPassengerConfirm && <button className="solid-button" onClick={() => onPassengerConfirm?.(application)}>确认同行</button>}
+        {passengerMode && application.canPassengerCancel && <button className="ghost-button" onClick={() => onCancel?.(application)}>取消</button>}
+      </div>
+    </div>
+  )
+}
+
+function splitCarpoolMine(payload, searchableTrips = []) {
   const source = payload?.data || payload || {}
-  const published = normalizeList(source.published || source.publishList || source.ownerTrips || source.trips || source.createdTrips || [])
-  const applied = normalizeList(source.applied || source.applyList || source.applications || source.joinedTrips || [])
-  return { published, applied, total: published.length + applied.length }
+  const tripLookup = new Map(normalizeList(searchableTrips).map((trip) => [Number(trip.id), trip]))
+  const ownerRecords = normalizeList(source.ownerRecords).length
+    ? normalizeList(source.ownerRecords).map(normalizeCarpoolOwnerRecord)
+    : normalizeList(source.published || source.publishList || source.ownerTrips || source.trips || source.createdTrips || []).map((trip) => normalizeCarpoolOwnerRecord({
+      trip,
+      applications: normalizeList(trip.applications || trip.applyList)
+    }))
+  const passengerRecords = normalizeList(source.passengerRecords).length
+    ? normalizeList(source.passengerRecords).map(normalizeCarpoolPassengerRecord)
+    : normalizeList(source.applied || source.applyList || source.applications || source.joinedTrips || []).map((application) => {
+      const trip = application.trip || application.carpoolTrip || tripLookup.get(Number(application.tripId))
+      return normalizeCarpoolPassengerRecord({ trip: trip || application, application })
+    })
+  const records = [...ownerRecords, ...passengerRecords]
+  const pendingTotal = Number(source.summary?.pendingTotal ?? records.filter((item) => item.statusBucket === 'pending').length)
+  return { ownerRecords, passengerRecords, records, pendingTotal, total: records.length }
+}
+
+function normalizeCarpoolOwnerRecord(item = {}) {
+  const trip = normalizeCarpoolTrip(item.trip || item)
+  const applications = normalizeList(item.applications).map(normalizeCarpoolApplication)
+  return {
+    id: `owner-${trip.id || item.id || Math.random()}`,
+    role: 'owner',
+    roleText: '我发布',
+    trip,
+    applications,
+    statusBucket: item.statusBucket || carpoolStatusBucket(trip.status),
+    statusText: item.statusBucketText || trip.statusText || carpoolTripStatusText(trip.status),
+    seatText: `已约 ${trip.bookedSeatCount || Math.max(Number(trip.seatCount || 0) - Number(trip.remainSeatCount || trip.remainingSeatCount || 0), 0)} / 共 ${trip.seatCount || '-'} 座`,
+    departTimeText: trip.departTimeText || formatOrderTime(trip)
+  }
+}
+
+function normalizeCarpoolPassengerRecord(item = {}) {
+  const trip = normalizeCarpoolTrip(item.trip || item)
+  const application = normalizeCarpoolApplication(item.application || item)
+  return {
+    id: `passenger-${application.id || trip.id || Math.random()}`,
+    role: 'passenger',
+    roleText: '我申请',
+    trip,
+    application,
+    statusBucket: item.statusBucket || carpoolStatusBucket(application.applicationStatus),
+    statusText: item.statusBucketText || application.statusText || carpoolApplicationStatusText(application.applicationStatus),
+    seatText: application.seatText,
+    departTimeText: trip.departTimeText || formatOrderTime(trip)
+  }
+}
+
+function normalizeCarpoolTrip(trip = {}) {
+  const status = trip.status || trip.tripStatus || 'PUBLISHED'
+  return {
+    ...trip,
+    startName: trip.startName || '待补充出发地',
+    endName: trip.endName || '待补充目的地',
+    departTimeText: trip.departTimeText || formatOrderTime(trip),
+    status,
+    statusText: trip.statusText || carpoolTripStatusText(status),
+    seatText: `余 ${trip.remainSeatCount ?? trip.remainingSeatCount ?? trip.seatCount ?? '-'} / 共 ${trip.seatCount ?? '-'} 座`
+  }
+}
+
+function normalizeCarpoolApplication(application = {}) {
+  const status = application.applicationStatus || application.status || 'APPLIED'
+  return {
+    ...application,
+    applicationStatus: status,
+    statusText: application.statusText || application.applicationStatusText || carpoolApplicationStatusText(status),
+    seatText: application.seatText || `${Number(application.totalSeatCount || application.companionCount || 1)} 人同行`,
+    noteText: application.noteText || application.note || '未填写备注',
+    canOwnerApprove: Boolean(application.canOwnerApprove || ['APPLIED', 'PENDING'].includes(status)),
+    canOwnerReject: Boolean(application.canOwnerReject || ['APPLIED', 'PENDING'].includes(status)),
+    canPassengerConfirm: Boolean(application.canPassengerConfirm || status === 'OWNER_CONFIRMED'),
+    canPassengerCancel: Boolean(application.canPassengerCancel || !['CANCELLED', 'REJECTED'].includes(status))
+  }
+}
+
+function carpoolTripStatusText(status) {
+  return {
+    PUBLISHED: '可申请',
+    MATCHING: '拼友匹配中',
+    FULL: '座位已满',
+    CONFIRMED: '已确认成行',
+    CANCELLED: '已取消',
+    FINISHED: '已完成'
+  }[status] || status || '可申请'
+}
+
+function carpoolApplicationStatusText(status) {
+  return {
+    APPLIED: '待车主确认',
+    OWNER_CONFIRMED: '待乘客确认',
+    PASSENGER_CONFIRMED: '已确认同行',
+    CONFIRMED: '已确认同行',
+    CANCELLED: '已取消',
+    REJECTED: '已拒绝'
+  }[status] || status || '待确认'
+}
+
+function carpoolStatusBucket(status) {
+  if (['CANCELLED', 'REJECTED', 'FINISHED'].includes(status)) return 'completed'
+  if (['CONFIRMED', 'PASSENGER_CONFIRMED'].includes(status)) return 'upcoming'
+  return 'pending'
 }
 
 function InternationalBoard({ booking, setBooking, estimate, carTypes, onSubmit }) {
+  const [selectedOptionId, setSelectedOptionId] = useState(internationalOptions[0].id)
+  const selectedOption = internationalOptions.find((item) => item.id === selectedOptionId) || internationalOptions[0]
   const internationalBooking = { ...booking, serviceType: SERVICE_TYPE.INTERNATIONAL }
   const route = calcRoute(internationalBooking.startId, internationalBooking.endId)
-  const safeEstimate = estimateLocalFare(internationalBooking.carTypeId, SERVICE_TYPE.INTERNATIONAL, route.distanceKm, route.durationMin)
+  const safeEstimate = {
+    ...estimateLocalFare(internationalBooking.carTypeId, SERVICE_TYPE.INTERNATIONAL, route.distanceKm, route.durationMin),
+    amount: selectedOption.basePrice,
+    payable: selectedOption.basePrice,
+    currencyCode: 'USD',
+    exchangeRate: 7.15
+  }
   return (
     <div className="dashboard-grid ride-workbench">
       <BookingPanel
         title="国际出行"
+        kicker="Global route"
         booking={internationalBooking}
         setBooking={setBooking}
         estimate={safeEstimate}
         carTypes={carTypes}
-        onPrimary={onSubmit}
-        primaryText="提交国际出行订单"
+        onPrimary={() => onSubmit(selectedOption)}
+        primaryText={`提交${selectedOption.titleZh}`}
       />
       <CityMap booking={internationalBooking} estimate={safeEstimate} compact />
       <section className="glass-panel work-card">
-        <div className="card-head"><h2>当前试算</h2><Globe size={21} /></div>
-        <InfoPanel title="行程费用" items={[
-          ['服务类型', statusLabel[SERVICE_TYPE.INTERNATIONAL]],
-          ['币种', safeEstimate.currencyCode],
-          ['汇率', safeEstimate.exchangeRate],
-          ['预估金额', formatMoney(safeEstimate.amount, safeEstimate.currencyCode)]
-        ]} />
+        <div className="card-head"><div><span className="section-kicker">Global Desk</span><h2>国际方案</h2></div><Globe size={21} /></div>
+        <div className="international-metric-grid">
+          <SummaryPill icon={Globe} value={internationalOptions.length} label="跨境方案" />
+          <SummaryPill icon={CreditCard} value="USD/CNY 7.15" label="参考汇率" />
+          <SummaryPill icon={MessageSquare} value="中文客服" label="服务支持" />
+        </div>
+        <div className="international-option-list">
+          {internationalOptions.map((item) => (
+            <button
+              type="button"
+              className={`international-option-card ${item.id === selectedOption.id ? 'active' : ''}`}
+              key={item.id}
+              onClick={() => setSelectedOptionId(item.id)}
+            >
+              <span className="international-route-code">{item.routeCode}</span>
+              <div>
+                <strong>{item.titleZh}</strong>
+                <small>{item.titleEn}</small>
+              </div>
+              <em>{formatMoney(item.basePrice, 'USD')}</em>
+              <p>{item.startName} → {item.endName}</p>
+              <div className="international-chip-row">
+                <span>{item.badge}</span>
+                <span>{item.vehicle}</span>
+                <span>{item.durationText}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="international-detail-grid">
+          <div><span>Currency</span><strong>{safeEstimate.currencyCode} · {safeEstimate.exchangeRate}</strong></div>
+          <div><span>Fare</span><strong>{formatMoney(safeEstimate.amount, safeEstimate.currencyCode)}</strong></div>
+          <div><span>Docs</span><strong>{selectedOption.documents.slice(0, 2).join(' / ')}</strong></div>
+        </div>
+        <div className="international-preflight-list">
+          <div>
+            <span>出行资料</span>
+            {selectedOption.documents.map((item) => <strong key={item}><CheckCircle size={14} />{item}</strong>)}
+          </div>
+          <div>
+            <span>包含服务</span>
+            {selectedOption.inclusions.slice(0, 4).map((item) => <strong key={item}><CheckCircle size={14} />{item}</strong>)}
+          </div>
+        </div>
+        <p className="international-notice">{selectedOption.notice}</p>
       </section>
     </div>
   )
 }
 
-function PassengerWalletBoard({ profile, onProfile, onRealName }) {
+function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onOpenOrder }) {
   const [editingRealName, setEditingRealName] = useState(false)
   const [editingProfile, setEditingProfile] = useState(false)
+  const [balanceVisible, setBalanceVisible] = useState(true)
+  const [profileError, setProfileError] = useState('')
+  const [realNameError, setRealNameError] = useState('')
   const [form, setForm] = useState({
     nickname: profile?.nickname || '',
     emergencyContact: profile?.emergencyContact || '',
-    emergencyPhone: profile?.emergencyPhone || ''
+    emergencyPhone: profile?.emergencyPhone || '',
+    defaultLanguage: profile?.defaultLanguage || 'zh-CN'
   })
   const [realName, setRealName] = useState({
     realName: profile?.realName || '阳光乘客',
@@ -2514,21 +4248,52 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
     setForm({
       nickname: profile?.nickname || '',
       emergencyContact: profile?.emergencyContact || '',
-      emergencyPhone: profile?.emergencyPhone || ''
+      emergencyPhone: profile?.emergencyPhone || '',
+      defaultLanguage: profile?.defaultLanguage || 'zh-CN'
     })
     setRealName({
       realName: profile?.realName || '阳光乘客',
       idCard: profile?.idCard || '110101199901010011'
     })
   }, [profile])
+  const walletRecords = useMemo(() => buildPassengerWalletRecords(orders), [orders])
+  const walletSummary = useMemo(() => buildPassengerWalletSummary(walletRecords), [walletRecords])
+  const verifiedText = profile?.authStatus === 2 ? '已实名' : '待实名'
 
   const saveRealName = async () => {
-    await onRealName(realName)
+    const realNameText = realName.realName.trim()
+    const idCard = realName.idCard.trim()
+    if (realNameText.length < 2 || realNameText.length > 20) {
+      setRealNameError('真实姓名需要 2-20 个字')
+      return
+    }
+    if (!isValidIdCard(idCard)) {
+      setRealNameError('请输入正确的身份证号')
+      return
+    }
+    setRealNameError('')
+    await onRealName({ realName: realNameText, idCard })
     setEditingRealName(false)
   }
 
   const saveProfile = async () => {
-    await onProfile(form)
+    const payload = {
+      ...form,
+      nickname: form.nickname.trim(),
+      emergencyContact: form.emergencyContact.trim(),
+      emergencyPhone: form.emergencyPhone.trim(),
+      defaultLanguage: form.defaultLanguage.trim() || 'zh-CN'
+    }
+    if (!payload.nickname) {
+      setProfileError('请填写昵称')
+      return
+    }
+    if (payload.emergencyPhone && !isValidPhone(payload.emergencyPhone)) {
+      setProfileError('紧急电话需要为 11 位手机号')
+      return
+    }
+    setProfileError('')
+    await onProfile(payload)
     setEditingProfile(false)
   }
 
@@ -2537,22 +4302,44 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
       <section className="glass-panel work-card wallet-board-card">
         <div className="card-head">
           <h2>钱包与实名</h2>
-          {editingRealName ? (
-            <button className="ghost-button compact-action" onClick={() => setEditingRealName(false)}>取消</button>
-          ) : (
-            <button className="ghost-button compact-action" onClick={() => setEditingRealName(true)}><BadgeCheck size={14} />编辑实名</button>
-          )}
+          <div className="wallet-head-actions">
+            <button className="ghost-button compact-action" onClick={() => setBalanceVisible((value) => !value)}>
+              {balanceVisible ? <EyeOff size={14} /> : <Eye size={14} />}{balanceVisible ? '隐藏余额' : '显示余额'}
+            </button>
+            {editingRealName ? (
+              <button className="ghost-button compact-action" onClick={() => setEditingRealName(false)}>取消</button>
+            ) : (
+              <button className="ghost-button compact-action" onClick={() => setEditingRealName(true)}><BadgeCheck size={14} />编辑实名</button>
+            )}
+          </div>
         </div>
-        <div className="stat-grid dashboard-stat-grid compact-stats">
-          <Metric value={formatMoney(profile?.walletBalance || 0)} label="钱包余额" />
-          <Metric value={profile?.authStatus === 2 ? '已认证' : '待认证'} label="实名状态" />
-          <Metric value="WEB" label="支付渠道" />
+        <div className="wallet-asset-hero">
+          <div className="wallet-asset-top">
+            <span>账户资产</span>
+            <em><ShieldCheck size={14} />安全保障</em>
+          </div>
+          <div className="wallet-asset-amount">
+            <small>钱包余额</small>
+            <strong>{balanceVisible ? formatMoney(profile?.walletBalance || 0) : '****'}</strong>
+          </div>
+          <p>{walletSummary.latestText} 更新。</p>
+          <div className="wallet-asset-summary">
+            <span><small>近期支出</small>{balanceVisible ? walletSummary.spendText : '****'}</span>
+            <span><small>退款入账</small>{balanceVisible ? walletSummary.refundText : '****'}</span>
+            <span><small>交易笔数</small>{balanceVisible ? walletSummary.countText : '****'}</span>
+          </div>
+        </div>
+        <div className="wallet-auth-strip">
+          <SummaryPill icon={BadgeCheck} value={verifiedText} label="实名状态" />
+          <SummaryPill icon={Lock} value={profile?.phone ? maskPhone(profile.phone) : '-'} label="安全手机" />
+          <SummaryPill icon={RefreshCw} value="实时" label="账务同步" />
         </div>
         {editingRealName ? (
           <>
             {Object.keys(realName).map((key) => (
               <Field key={key} label={fieldLabel(key)} value={realName[key]} onChange={(value) => setRealName((draft) => ({ ...draft, [key]: value }))} />
             ))}
+            {realNameError && <p className="form-error-line">{realNameError}</p>}
             <button className="solid-button fill profile-save-button" onClick={saveRealName}><BadgeCheck size={15} />提交实名</button>
           </>
         ) : (
@@ -2560,7 +4347,7 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
             {Object.keys(realName).map((key) => (
               <div className="thin-row profile-view-row" key={key}>
                 <span>{fieldLabel(key)}</span>
-                <strong>{realName[key] || '-'}</strong>
+                <strong>{key === 'idCard' ? maskIdCard(realName[key]) : realName[key] || '-'}</strong>
               </div>
             ))}
           </div>
@@ -2582,6 +4369,7 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
                 <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
               ))}
             </div>
+            {profileError && <p className="form-error-line">{profileError}</p>}
             <button className="solid-button profile-save-button" onClick={saveProfile}><ShieldCheck size={15} />保存资料</button>
           </>
         ) : (
@@ -2596,39 +4384,606 @@ function PassengerWalletBoard({ profile, onProfile, onRealName }) {
         )}
         <div className="invoice-panel">
           <CreditCard size={18} />
-          <div><strong>发票抬头</strong><p>发票信息会跟随订单支付记录展示，网页端可先保存抬头与联系方式。</p></div>
+          <div><strong>发票资料</strong><p>发票在独立入口处理。</p></div>
+        </div>
+      </section>
+      <section className="glass-panel work-card wallet-ledger-card">
+        <div className="card-head">
+          <div><span className="section-kicker">流水明细</span><h2>账户流水</h2><small>按最近支付或退款时间排序</small></div>
+          <div className="wallet-ledger-actions">
+            <span>全部流水</span>
+            <strong>{walletRecords.length} 条</strong>
+          </div>
+        </div>
+        {walletRecords.length ? (
+          <div className="wallet-record-list">
+            {walletRecords.map((record) => (
+              <button
+                type="button"
+                className="wallet-record-row"
+                key={record.key}
+                onClick={() => onOpenOrder?.(record.order)}
+              >
+                <span className={`wallet-record-mark ${record.tone}`}>{record.marker}</span>
+                <span className="wallet-record-copy">
+                  <strong>{record.title}</strong>
+                  <small>{record.serviceLabel} · {record.statusText} · {record.timeText}</small>
+                </span>
+                <span className="wallet-record-side">
+                  <strong className={record.tone}>{balanceVisible ? record.amountText : '****'}</strong>
+                  <small>{record.orderNo}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <EmptyState text="暂无流水，完成支付或退款后会自动同步到这里。" />
+        )}
+      </section>
+    </div>
+  )
+}
+
+function InvoiceBoard({ orders = [], profile, onApplyInvoice, onPreviewInvoice }) {
+  const eligibleOrders = normalizeList(orders).filter((order) => order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID)
+  const applyOrders = eligibleOrders.filter((order) => String(order.invoiceStatus || 'NONE').toUpperCase() !== 'ISSUED')
+  const issuedOrders = eligibleOrders.filter((order) => ['APPLIED', 'ISSUED'].includes(String(order.invoiceStatus || '').toUpperCase()))
+  const [invoiceTab, setInvoiceTab] = useState('apply')
+  const [selectedId, setSelectedId] = useState('')
+  const [formError, setFormError] = useState('')
+  const [previewBusy, setPreviewBusy] = useState(false)
+  const [form, setForm] = useState({
+    invoiceTitle: profile?.realName || profile?.nickname || '个人',
+    taxNo: '',
+    buyerPhone: profile?.phone || '',
+    remark: '网页端申请电子发票'
+  })
+  const [previewUrl, setPreviewUrl] = useState('')
+  const visibleOrders = invoiceTab === 'issued' ? issuedOrders : applyOrders
+  const selectedOrder = visibleOrders.find((order) => String(order.id) === String(selectedId)) || visibleOrders[0] || eligibleOrders.find((order) => String(order.id) === String(selectedId)) || eligibleOrders[0]
+
+  useEffect(() => {
+    if (visibleOrders[0]?.id && !visibleOrders.some((order) => String(order.id) === String(selectedId))) {
+      setSelectedId(String(visibleOrders[0].id))
+    }
+    if (!visibleOrders.length && eligibleOrders[0]?.id && !selectedId) setSelectedId(String(eligibleOrders[0].id))
+  }, [visibleOrders, eligibleOrders, selectedId])
+
+  useEffect(() => {
+    setForm((draft) => ({
+      ...draft,
+      invoiceTitle: draft.invoiceTitle || profile?.realName || profile?.nickname || '个人',
+      buyerPhone: draft.buyerPhone || profile?.phone || ''
+    }))
+  }, [profile])
+
+  useEffect(() => () => {
+    if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
+  }, [previewUrl])
+
+  const update = (patch) => setForm((draft) => ({ ...draft, ...patch }))
+  const selectedInvoiceStatus = String(selectedOrder?.invoiceStatus || 'NONE').toUpperCase()
+  const invoiceAppliedCount = issuedOrders.length
+  const validateInvoiceForm = () => {
+    const title = form.invoiceTitle.trim()
+    const phone = form.buyerPhone.trim()
+    const taxNo = form.taxNo.trim()
+    if (!selectedOrder) return '请先选择一笔已支付订单'
+    if (!title) return '请填写发票抬头'
+    if (phone && !isValidPhone(phone)) return '接收手机需要为 11 位手机号'
+    if (taxNo && !/^[0-9A-Z]{15,20}$/i.test(taxNo)) return '税号通常为 15-20 位数字或字母'
+    return ''
+  }
+  const apply = async () => {
+    const error = validateInvoiceForm()
+    if (error) {
+      setFormError(error)
+      return
+    }
+    setFormError('')
+    await onApplyInvoice(selectedOrder, {
+      ...form,
+      invoiceTitle: form.invoiceTitle.trim(),
+      taxNo: form.taxNo.trim(),
+      buyerPhone: form.buyerPhone.trim(),
+      remark: form.remark.trim()
+    })
+  }
+  const preview = async () => {
+    if (!selectedOrder) return
+    setPreviewBusy(true)
+    try {
+      const url = await onPreviewInvoice(selectedOrder)
+      setPreviewUrl((oldUrl) => {
+        if (oldUrl && oldUrl.startsWith('blob:')) URL.revokeObjectURL(oldUrl)
+        return url
+      })
+    } finally {
+      setPreviewBusy(false)
+    }
+  }
+
+  return (
+    <div className="dashboard-grid invoice-board">
+      <section className="glass-panel work-card invoice-picker-card">
+        <div className="card-head"><div><span className="section-kicker">电子发票</span><h2>发票中心</h2></div><CreditCard size={21} /></div>
+        <div className="invoice-summary-grid">
+          <SummaryPill icon={CreditCard} label="可开票订单" value={`${eligibleOrders.length} 单`} />
+          <SummaryPill icon={Send} label="已提交申请" value={`${invoiceAppliedCount} 单`} />
+        </div>
+        <div className="segmented-row invoice-tabs">
+          <button className={invoiceTab === 'apply' ? 'active' : ''} onClick={() => setInvoiceTab('apply')}>可申请<span>{applyOrders.length}</span></button>
+          <button className={invoiceTab === 'issued' ? 'active' : ''} onClick={() => setInvoiceTab('issued')}>我的发票<span>{issuedOrders.length}</span></button>
+        </div>
+        {eligibleOrders.length ? (
+          <>
+            <label className="plain-field">
+              <span>选择订单</span>
+              <select value={String(selectedOrder?.id || '')} onChange={(event) => setSelectedId(event.target.value)}>
+                {(visibleOrders.length ? visibleOrders : eligibleOrders).map((order) => (
+                  <option key={order.id} value={String(order.id)}>
+                    {order.orderNo || `#${order.id}`} · {formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="invoice-order-list">
+              {(visibleOrders.length ? visibleOrders : eligibleOrders).slice(0, 6).map((order) => {
+                const active = String(order.id) === String(selectedOrder?.id)
+                const invoiceStatus = String(order.invoiceStatus || 'NONE').toUpperCase()
+                return (
+                  <button className={active ? 'active' : ''} key={order.id} onClick={() => setSelectedId(String(order.id))}>
+                    <span>{statusLabel[order.serviceType] || '出行服务'}</span>
+                    <strong>{order.startName} → {order.endName}</strong>
+                    <small>{order.orderNo || `#${order.id}`} · {formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)}</small>
+                    <StatusBadge value={invoiceStatus} label={orderInvoiceStatusText(order)} />
+                  </button>
+                )
+              })}
+            </div>
+            {selectedOrder && (
+              <InfoPanel title="订单信息" items={[
+                ['路线', `${selectedOrder.startName} → ${selectedOrder.endName}`],
+                ['金额', formatMoney(selectedOrder.payableAmount || selectedOrder.actualAmount || selectedOrder.estimatedAmount, selectedOrder.currencyCode)],
+                ['发票状态', statusLabel[selectedOrder.invoiceStatus] || selectedOrder.invoiceStatus || '未申请'],
+                ['支付状态', statusLabel[selectedOrder.payStatus] || selectedOrder.payStatus]
+              ]} />
+            )}
+          </>
+        ) : <EmptyState text="暂无可开票订单，完成并支付行程后会显示在这里。" />}
+      </section>
+      <section className="glass-panel work-card wide invoice-form-card">
+        <div className="card-head"><h2>开票信息</h2><ShieldCheck size={21} /></div>
+        {selectedOrder && (
+          <div className="invoice-form-hero">
+            <div>
+              <span>当前订单</span>
+              <strong>{selectedOrder.startName} → {selectedOrder.endName}</strong>
+              <small>{orderInvoiceStatusText(selectedOrder)} · {formatMoney(selectedOrder.payableAmount || selectedOrder.actualAmount || selectedOrder.estimatedAmount, selectedOrder.currencyCode)}</small>
+            </div>
+            <StatusBadge value={selectedInvoiceStatus} label={orderInvoiceStatusText(selectedOrder)} />
+          </div>
+        )}
+        <div className="form-grid">
+          {['invoiceTitle', 'taxNo', 'buyerPhone', 'remark'].map((key) => (
+            <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => update({ [key]: value })} />
+          ))}
+        </div>
+        {formError && <p className="form-error-line">{formError}</p>}
+        <div className="invoice-actions">
+          <button className="solid-button" disabled={!selectedOrder || selectedInvoiceStatus === 'ISSUED' || invoiceTab === 'issued'} onClick={apply}>
+            <Send size={16} />{selectedInvoiceStatus === 'APPLIED' ? '更新发票申请' : selectedInvoiceStatus === 'ISSUED' ? '已开票' : '提交发票申请'}
+          </button>
+          <button className="ghost-button" disabled={!selectedOrder || previewBusy} onClick={preview}><CreditCard size={16} />{previewBusy ? '预览中...' : '预览发票'}</button>
+        </div>
+        {previewUrl && (
+          <div className="invoice-preview">
+            <img src={previewUrl} alt="电子发票预览" />
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function SupportChatBoard({ conversation, messages = [], profile, role, onRefresh, onSend }) {
+  const [draft, setDraft] = useState('')
+  const [sendError, setSendError] = useState('')
+  const [sending, setSending] = useState(false)
+  const sortedMessages = normalizeList(messages).slice().sort((left, right) => {
+    const a = dateLikeToMs(left.createdAt || left.time) || Number(left.id || 0)
+    const b = dateLikeToMs(right.createdAt || right.time) || Number(right.id || 0)
+    return a - b
+  })
+  const quickPrompts = role === 'DRIVER'
+    ? ['提现多久审核？', '听单接不到订单', '资质审核进度']
+    : ['订单费用有疑问', '发票什么时候开具', '优惠券无法使用']
+  const lastMessage = sortedMessages[sortedMessages.length - 1]
+  const mineCount = sortedMessages.filter((item) => item.senderRole === role).length
+  const send = async (overrideContent = '') => {
+    const content = (overrideContent || draft).trim()
+    if (!content) {
+      setSendError('请输入要咨询的问题')
+      return
+    }
+    setSendError('')
+    setSending(true)
+    try {
+      await onSend(content)
+      setDraft('')
+    } finally {
+      setSending(false)
+    }
+  }
+  return (
+    <div className="dashboard-grid support-chat-grid">
+      <section className="glass-panel work-card wide support-chat-card">
+        <div className="card-head">
+          <div><span className="section-kicker">在线客服</span><h2>{role === 'DRIVER' ? '司机客服会话' : '乘客客服会话'}</h2></div>
+          <button className="icon-button" onClick={onRefresh}><RefreshCw size={16} /></button>
+        </div>
+        <div className="support-chat-summary">
+          <SummaryPill icon={MessageSquare} label="会话状态" value={statusLabel[conversation?.status] || conversation?.status || '已接入'} />
+          <SummaryPill icon={Send} label="我发送的" value={`${mineCount} 条`} />
+          <SummaryPill icon={Clock} label="最近消息" value={lastMessage ? formatDateTimeShort(lastMessage.createdAt || lastMessage.time) : '暂无'} />
+        </div>
+        <div className="chat-thread">
+          {sortedMessages.length ? sortedMessages.map((item, index) => {
+            const mine = item.senderRole === role
+            return (
+              <article className={`chat-bubble ${mine ? 'mine' : 'service'}`} key={item.id || index}>
+                <div className="chat-bubble-meta">
+                  <span>{mine ? (profile?.nickname || '我') : '阳光客服'}</span>
+                  <small>{formatDateTimeShort(item.createdAt || item.time)}</small>
+                </div>
+                <p>{item.content}</p>
+              </article>
+            )
+          }) : <EmptyState text="发送消息开始沟通。" />}
+        </div>
+        <div className="quick-question-row">
+          {quickPrompts.map((item) => (
+            <button key={item} type="button" onClick={() => send(item)} disabled={sending}>{item}</button>
+          ))}
+        </div>
+        <div className="chat-composer">
+          <textarea
+            value={draft}
+            maxLength={500}
+            placeholder="输入要咨询的问题"
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault()
+                send()
+              }
+            }}
+          />
+          <button className="solid-button" disabled={sending} onClick={() => send()}><Send size={16} />{sending ? '发送中...' : '发送'}</button>
+        </div>
+        {sendError && <p className="form-error-line">{sendError}</p>}
+      </section>
+      <section className="glass-panel work-card support-profile-card">
+        <div className="card-head"><h2>会话状态</h2><MessageSquare size={21} /></div>
+        <InfoPanel title="当前会话" items={[
+          ['状态', statusLabel[conversation?.status] || conversation?.status || '已接入'],
+          ['身份', role === 'DRIVER' ? '司机' : '乘客'],
+          ['账号', profile?.phone || conversation?.phone || '-'],
+          ['会员', conversation?.member ? conversation?.memberLevel || '阳光会员' : '无']
+        ]} />
+        <div className="coverage-grid support-grid">
+          {(role === 'DRIVER'
+            ? ['听单异常', '提现进度', '资质审核', '乘客沟通']
+            : ['订单问题', '发票处理', '优惠券异常', '安全反馈']
+          ).map((item) => <span key={item}><CheckCircle size={15} />{item}</span>)}
         </div>
       </section>
     </div>
   )
 }
 
-function SupportBoard({ orders, profile, onComplaint, onEvaluate }) {
+function PassengerSettingsPanel({ settings, onSettingsChange }) {
+  const safeSettings = normalizePassengerSettings(settings)
+  const update = (key) => onSettingsChange?.({ [key]: !safeSettings[key] })
+  const enabledCount = Object.values(safeSettings).filter(Boolean).length
+  return (
+    <section className="glass-panel work-card wide passenger-settings-card">
+      <div className="card-head">
+        <div><span className="section-kicker">出行偏好</span><h2>消息与隐私设置</h2></div>
+        <Settings size={21} />
+      </div>
+      <div className="passenger-settings-summary">
+        <SummaryPill icon={Bell} value={`${enabledCount} 项`} label="已开启偏好" />
+        <SummaryPill icon={Ticket} value={safeSettings.autoUseCoupon ? '自动' : '手动'} label="优惠券匹配" />
+        <SummaryPill icon={Lock} value={safeSettings.privacyMask ? '已脱敏' : '完整显示'} label="隐私保护" />
+      </div>
+      <div className="settings-row-list grouped-settings-list">
+        <div className="setting-group-panel">
+          <div className="setting-group-title">通知</div>
+          <PassengerSettingRow
+            icon={Bell}
+            title="消息通知"
+            desc="订单、支付、客服提醒。"
+            checked={safeSettings.pushEnabled}
+            onToggle={() => update('pushEnabled')}
+          />
+          <PassengerSettingRow
+            icon={Route}
+            title="行程提醒"
+            desc="接驾、上车、到达提醒。"
+            checked={safeSettings.tripRemind}
+            onToggle={() => update('tripRemind')}
+          />
+        </div>
+        <div className="setting-group-panel">
+          <div className="setting-group-title">优惠与发票</div>
+          <PassengerSettingRow
+            icon={Ticket}
+            title="自动匹配优惠券"
+            desc="优先使用可用券。"
+            checked={safeSettings.autoUseCoupon}
+            onToggle={() => update('autoUseCoupon')}
+          />
+          <PassengerSettingRow
+            icon={CreditCard}
+            title="发票提醒"
+            desc="可开票时提醒。"
+            checked={safeSettings.invoiceRemind}
+            onToggle={() => update('invoiceRemind')}
+          />
+        </div>
+        <div className="setting-group-panel">
+          <div className="setting-group-title">安全隐私</div>
+          <PassengerSettingRow
+            icon={Lock}
+            title="隐私脱敏"
+            desc="敏感信息默认隐藏。"
+            checked={safeSettings.privacyMask}
+            onToggle={() => update('privacyMask')}
+          />
+          <PassengerSettingRow
+            icon={ShieldCheck}
+            title="紧急共享"
+            desc="必要时共享行程摘要。"
+            checked={safeSettings.emergencyShare}
+            onToggle={() => update('emergencyShare')}
+          />
+        </div>
+      </div>
+      <p className="settings-sync-note">偏好已保存到网页端。</p>
+    </section>
+  )
+}
+
+function PassengerSettingRow({ icon: Icon, title, desc, checked, onToggle }) {
+  return (
+    <button type="button" className="passenger-setting-row" onClick={onToggle}>
+      <span className="passenger-setting-icon"><Icon size={16} /></span>
+      <span className="passenger-setting-copy">
+        <strong>{title}</strong>
+        <small>{desc}</small>
+      </span>
+      <span className={`toggle-pill ${checked ? 'is-on' : ''}`} aria-hidden="true"><i /></span>
+    </button>
+  )
+}
+
+function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
   const candidates = orders?.length ? orders : []
+  const safeSettings = normalizePassengerSettings(settings)
+  const [activeFeedback, setActiveFeedback] = useState(null)
+  const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+  const [complaintForm, setComplaintForm] = useState({ complaintType: 'SERVICE', content: '', contactPhone: profile?.phone || '' })
+  const [feedbackError, setFeedbackError] = useState('')
+  const [submittingFeedback, setSubmittingFeedback] = useState(false)
+  const feedbackSummary = useMemo(() => buildSupportFeedbackSummary(candidates), [candidates])
+  const complaintHistory = candidates.filter((order) => isOrderComplained(order)).slice(0, 4)
+  const reviewHistory = candidates.filter((order) => isOrderEvaluated(order)).slice(0, 4)
+
+  const openFeedback = (action, order) => {
+    setActiveFeedback({ action, order })
+    setFeedbackError('')
+    setReviewForm({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+    setComplaintForm({ complaintType: 'SERVICE', content: '', contactPhone: profile?.phone || '' })
+  }
+
+  const toggleSupportReviewTag = (tag) => {
+    setReviewForm((value) => ({
+      ...value,
+      tags: value.tags.includes(tag)
+        ? value.tags.filter((item) => item !== tag)
+        : [...value.tags, tag]
+    }))
+  }
+
+  const submitSupportReview = async () => {
+    const order = activeFeedback?.order
+    const score = Number(reviewForm.score)
+    const content = String(reviewForm.content || '').trim() || reviewForm.tags.join('、') || '服务体验良好'
+    if (!order) {
+      setFeedbackError('请先选择要评价的订单')
+      return
+    }
+    if (!Number.isFinite(score) || score < 1 || score > 5) {
+      setFeedbackError('请选择 1-5 星评分')
+      return
+    }
+    setSubmittingFeedback(true)
+    try {
+      await onEvaluate?.(order, { score, tags: reviewForm.tags, content })
+      setActiveFeedback(null)
+      setFeedbackError('')
+    } finally {
+      setSubmittingFeedback(false)
+    }
+  }
+
+  const submitSupportComplaint = async () => {
+    const order = activeFeedback?.order
+    const content = String(complaintForm.content || '').trim()
+    const contactPhone = String(complaintForm.contactPhone || '').trim()
+    if (!order) {
+      setFeedbackError('请先选择要投诉的订单')
+      return
+    }
+    if (content.length < 6) {
+      setFeedbackError('请至少填写 6 个字的投诉说明')
+      return
+    }
+    if (contactPhone && !isValidPhone(contactPhone)) {
+      setFeedbackError('联系电话需要为 11 位手机号')
+      return
+    }
+    setSubmittingFeedback(true)
+    try {
+      await onComplaint?.(order, {
+        complaintType: complaintForm.complaintType,
+        contactPhone,
+        content
+      })
+      setActiveFeedback(null)
+      setFeedbackError('')
+    } finally {
+      setSubmittingFeedback(false)
+    }
+  }
+
   return (
     <div className="dashboard-grid">
       <section className="glass-panel work-card wide">
         <div className="card-head"><div><span className="section-kicker">服务反馈</span><h2>评价投诉</h2></div><MessageSquare size={21} /></div>
+        <div className="support-feedback-hero">
+          <div>
+            <span>反馈中心</span>
+            <strong>{feedbackSummary.actionable} 单可处理</strong>
+            <p>评价、投诉会同步到订单。</p>
+          </div>
+          <div className="support-feedback-metrics">
+            <SummaryPill icon={Star} label="已评价" value={`${feedbackSummary.evaluated} 单`} />
+            <SummaryPill icon={AlertTriangle} label="已投诉" value={`${feedbackSummary.complained} 单`} />
+            <SummaryPill icon={Clock} label="待反馈" value={`${feedbackSummary.pending} 单`} />
+          </div>
+        </div>
         {candidates.length ? (
           <div className="order-list support-order-list">
             {candidates.slice(0, 4).map((order) => (
-              <article className="order-card glass-panel support-order-card" key={order.id || order.orderNo}>
+              <article className={`order-card glass-panel support-order-card ${activeFeedback?.order && orderKey(activeFeedback.order) === orderKey(order) ? 'is-active' : ''}`} key={order.id || order.orderNo}>
                 <div className="order-line">
                   <div>
                     <h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3>
                     <p>{order.orderNo || `#${order.id}`}</p>
                     <p className="order-time-line"><Clock size={13} />{formatOrderTime(order)}</p>
+                    <p className="support-feedback-status-row">
+                      <span>{orderEvaluationStatusText(order)}</span>
+                      <span>{orderComplaintStatusText(order)}</span>
+                    </p>
                   </div>
                   <StatusBadge value={order.orderStatus} />
                 </div>
                 <div className="order-actions">
-                  <button className="ghost-button" onClick={() => onEvaluate(order)}><Star size={16} />评价</button>
-                  <button className="ghost-button" onClick={() => onComplaint(order)}><AlertTriangle size={16} />投诉</button>
+                  <button
+                    className="ghost-button"
+                    disabled={!(order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && !isOrderEvaluated(order))}
+                    onClick={() => openFeedback('evaluate', order)}
+                  >
+                    <Star size={16} />评价
+                  </button>
+                  <button
+                    className="ghost-button"
+                    disabled={order.orderStatus === ORDER_STATUS.CANCELLED || isOrderComplained(order)}
+                    onClick={() => openFeedback('complaint', order)}
+                  >
+                    <AlertTriangle size={16} />投诉
+                  </button>
                 </div>
               </article>
             ))}
           </div>
         ) : <EmptyState text="暂无可评价订单，完成一次行程后会出现在这里。" />}
+        {activeFeedback?.action === 'evaluate' && (
+          <div className="order-action-panel support-feedback-panel">
+            <div className="order-action-panel-head">
+              <span><Star size={15} />评价订单</span>
+              <small>{activeFeedback.order?.orderNo || `#${activeFeedback.order?.id}`}</small>
+            </div>
+            <div className="score-row" role="group" aria-label="个人中心评价评分">
+              {[1, 2, 3, 4, 5].map((score) => (
+                <button
+                  type="button"
+                  key={score}
+                  className={reviewForm.score >= score ? 'active' : ''}
+                  onClick={() => setReviewForm((value) => ({ ...value, score }))}
+                >
+                  <Star size={16} />
+                </button>
+              ))}
+              <span>{reviewForm.score} 星</span>
+            </div>
+            <div className="feedback-chip-row">
+              {passengerReviewTags.map((tag) => (
+                <button
+                  type="button"
+                  key={tag}
+                  className={reviewForm.tags.includes(tag) ? 'active' : ''}
+                  onClick={() => toggleSupportReviewTag(tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            <label className="plain-field textarea-field">
+              <span>评价内容</span>
+            <textarea
+                value={reviewForm.content}
+                maxLength={300}
+                placeholder="补充本次行程体验"
+                onChange={(event) => setReviewForm((value) => ({ ...value, content: event.target.value }))}
+              />
+              <small>{reviewForm.content.length}/300</small>
+            </label>
+            {feedbackError && <p className="form-error-line">{feedbackError}</p>}
+            <div className="order-action-panel-actions">
+              <button className="solid-button" disabled={submittingFeedback} onClick={submitSupportReview}><Star size={16} />{submittingFeedback ? '提交中...' : '提交评价'}</button>
+              <button className="ghost-button" disabled={submittingFeedback} onClick={() => setActiveFeedback(null)}>取消</button>
+            </div>
+          </div>
+        )}
+        {activeFeedback?.action === 'complaint' && (
+          <div className="order-action-panel support-feedback-panel">
+            <div className="order-action-panel-head">
+              <span><AlertTriangle size={15} />投诉反馈</span>
+              <small>{activeFeedback.order?.orderNo || `#${activeFeedback.order?.id}`}</small>
+            </div>
+            <div className="feedback-chip-row">
+              {complaintTypeOptions.map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={complaintForm.complaintType === value ? 'active' : ''}
+                  onClick={() => setComplaintForm((form) => ({ ...form, complaintType: value }))}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="plain-field textarea-field">
+              <span>问题说明</span>
+              <textarea
+                value={complaintForm.content}
+                maxLength={300}
+                placeholder="请说明问题经过、发生时间和希望处理方式"
+                onChange={(event) => setComplaintForm((form) => ({ ...form, content: event.target.value }))}
+              />
+              <small>{complaintForm.content.length}/300</small>
+            </label>
+            <Field label="联系电话" value={complaintForm.contactPhone} onChange={(value) => setComplaintForm((form) => ({ ...form, contactPhone: value }))} />
+            {feedbackError && <p className="form-error-line">{feedbackError}</p>}
+            <div className="order-action-panel-actions">
+              <button className="solid-button" disabled={submittingFeedback} onClick={submitSupportComplaint}><AlertTriangle size={16} />{submittingFeedback ? '提交中...' : '提交投诉'}</button>
+              <button className="ghost-button" disabled={submittingFeedback} onClick={() => setActiveFeedback(null)}>取消</button>
+            </div>
+          </div>
+        )}
       </section>
       <section className="glass-panel work-card">
         <div className="card-head"><h2>帮助与设置</h2><HelpCircle size={21} /></div>
@@ -2638,16 +4993,52 @@ function SupportBoard({ orders, profile, onComplaint, onEvaluate }) {
         <InfoPanel title="当前用户" items={[
           ['昵称', profile?.nickname || '-'],
           ['紧急联系人', profile?.emergencyContact || '-'],
-          ['消息通知', '已开启'],
+          ['消息通知', safeSettings.pushEnabled ? '已开启' : '已关闭'],
+          ['自动优惠', safeSettings.autoUseCoupon ? '已开启' : '手动选择'],
           ['服务语言', profile?.defaultLanguage || 'zh-CN']
         ]} />
+        <div className="feedback-history-panel">
+          <div className="feedback-history-head">
+            <span>处理记录</span>
+            <small>{complaintHistory.length + reviewHistory.length} 条</small>
+          </div>
+          {complaintHistory.length || reviewHistory.length ? (
+            <div className="feedback-history-list">
+              {complaintHistory.map((order) => (
+                <div className="feedback-history-row" key={`complaint-${orderKey(order)}`}>
+                  <AlertTriangle size={14} />
+                  <div>
+                    <strong>{orderComplaintStatusText(order)}</strong>
+                    <small>{order.orderNo || `#${order.id}`} · {formatOrderTime(order)}</small>
+                  </div>
+                </div>
+              ))}
+              {reviewHistory.map((order) => (
+                <div className="feedback-history-row" key={`review-${orderKey(order)}`}>
+                  <Star size={14} />
+                  <div>
+                    <strong>{orderEvaluationStatusText(order)}</strong>
+                    <small>{order.orderNo || `#${order.id}`} · {formatOrderTime(order)}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="feedback-history-empty">
+              <strong>还没有处理记录</strong>
+              <small>提交评价或投诉后可在这里查看状态。</small>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   )
 }
 
-function DriverWallet({ dashboard, onWithdraw, onCertify }) {
+function DriverWallet({ dashboard, withdraws = [], onWithdraw, onCertify }) {
   const [withdraw, setWithdraw] = useState({ applyAmount: 50, bankName: '中国银行', bankAccount: '6222 **** 2026' })
+  const [withdrawError, setWithdrawError] = useState('')
+  const [certError, setCertError] = useState('')
   const [cert, setCert] = useState({
     licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
     plateNo: dashboard?.vehicle?.plateNo || '冀R·A8888',
@@ -2661,38 +5052,201 @@ function DriverWallet({ dashboard, onWithdraw, onCertify }) {
     driverLicenseImageUrl: dashboard?.vehicle?.driverLicenseImageUrl || '/uploads/demo/driver.jpg'
   })
 
+  useEffect(() => {
+    setCert({
+      licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
+      plateNo: dashboard?.vehicle?.plateNo || '冀R·A8888',
+      brand: dashboard?.vehicle?.brand || '比亚迪',
+      modelName: dashboard?.vehicle?.modelName || '汉 EV',
+      color: dashboard?.vehicle?.color || '橙白',
+      seatCount: dashboard?.vehicle?.seatCount || 5,
+      insuranceExpireDate: dashboard?.vehicle?.insuranceExpireDate || '2026-12-31',
+      annualInspectExpireDate: dashboard?.vehicle?.annualInspectExpireDate || '2026-12-31',
+      vehicleLicenseImageUrl: dashboard?.vehicle?.vehicleLicenseImageUrl || '/uploads/demo/vehicle.jpg',
+      driverLicenseImageUrl: dashboard?.vehicle?.driverLicenseImageUrl || '/uploads/demo/driver.jpg'
+    })
+  }, [dashboard])
+
+  const visibleWithdraws = withdraws.length ? withdraws : normalizeList(dashboard?.pendingWithdraw)
+  const availableAmount = Number(dashboard?.profile?.withdrawableIncome || 0)
+  const todayIncome = Number(dashboard?.profile?.todayIncome || 0)
+  const monthIncome = Number(dashboard?.profile?.monthIncome || dashboard?.profile?.monthlyIncome || todayIncome)
+  const driverAudit = auditStatusMeta(dashboard?.profile?.auditStatus)
+  const vehicleAudit = auditStatusMeta(dashboard?.vehicle?.auditStatus)
+  const quickWithdrawAmounts = [50, 100, 200, availableAmount]
+    .filter((amount, index, list) => Number.isFinite(Number(amount)) && Number(amount) > 0 && Number(amount) <= availableAmount && list.indexOf(amount) === index)
+    .slice(0, 4)
+  const submitWithdraw = async () => {
+    const amount = Number(withdraw.applyAmount)
+    if (!amount || Number.isNaN(amount) || amount <= 0) {
+      setWithdrawError('请输入正确的提现金额')
+      return
+    }
+    if (amount > availableAmount) {
+      setWithdrawError(`提现金额不能超过 ${formatMoney(availableAmount)}`)
+      return
+    }
+    if (!String(withdraw.bankName || '').trim()) {
+      setWithdrawError('请输入开户行')
+      return
+    }
+    if (!String(withdraw.bankAccount || '').trim()) {
+      setWithdrawError('请输入银行卡号')
+      return
+    }
+    setWithdrawError('')
+    await onWithdraw({
+      applyAmount: amount,
+      bankName: String(withdraw.bankName).trim(),
+      bankAccount: String(withdraw.bankAccount).trim()
+    })
+  }
+  const submitCert = async () => {
+    const payload = Object.fromEntries(Object.entries(cert).map(([key, value]) => [key, String(value ?? '').trim()]))
+    const requiredKeys = ['licenseNo', 'plateNo', 'brand', 'modelName', 'color', 'seatCount', 'vehicleLicenseImageUrl', 'driverLicenseImageUrl']
+    const emptyKey = requiredKeys.find((key) => !payload[key])
+    if (emptyKey) {
+      setCertError(`请填写${fieldLabel(emptyKey)}`)
+      return
+    }
+    const seatCount = Number(payload.seatCount)
+    if (!Number.isFinite(seatCount) || seatCount < 4 || seatCount > 9) {
+      setCertError('座位数需要在 4-9 座之间')
+      return
+    }
+    setCertError('')
+    await onCertify({ ...payload, seatCount })
+  }
+
   return (
     <div className="dashboard-grid">
-      <section className="glass-panel work-card">
+      <section className="glass-panel work-card driver-withdraw-card">
         <div className="card-head"><h2>钱包提现</h2><DollarSign size={21} /></div>
+        <div className="driver-wallet-hero">
+          <div className="driver-wallet-hero-head">
+            <span>收益总览</span>
+            <em>收益明细</em>
+          </div>
+          <div className="driver-income-grid">
+            <div>
+              <span>今日收入</span>
+              <strong>{formatMoney(todayIncome)}</strong>
+            </div>
+            <div>
+              <span>本月收入</span>
+              <strong>{formatMoney(monthIncome)}</strong>
+            </div>
+            <div>
+              <span>可提现</span>
+              <strong>{formatMoney(availableAmount)}</strong>
+            </div>
+          </div>
+          <p>订单完结后收益自动入账，提现申请会进入后台审核并同步到司机端记录。</p>
+        </div>
         <div className="stat-grid dashboard-stat-grid compact-stats">
-          <Metric value={formatMoney(dashboard?.profile?.withdrawableIncome || 0)} label="可提现余额" />
-          <Metric value={dashboard?.pendingWithdraw?.length || 0} label="待审核提现" />
+          <Metric value={formatMoney(availableAmount)} label="可提现余额" />
+          <Metric value={visibleWithdraws.filter((item) => String(item.status || '').toUpperCase() === 'PENDING').length} label="待审核提现" />
+        </div>
+        <div className="withdraw-quick-row">
+          {quickWithdrawAmounts.map((amount) => (
+            <button
+              type="button"
+              key={amount}
+              className={Number(withdraw.applyAmount) === Number(amount) ? 'active' : ''}
+              onClick={() => setWithdraw((draft) => ({ ...draft, applyAmount: amount }))}
+            >
+              {amount === availableAmount ? '全部' : formatMoney(amount)}
+            </button>
+          ))}
         </div>
         <Field label="提现金额" value={withdraw.applyAmount} onChange={(value) => setWithdraw((draft) => ({ ...draft, applyAmount: value }))} />
         <Field label="开户行" value={withdraw.bankName} onChange={(value) => setWithdraw((draft) => ({ ...draft, bankName: value }))} />
         <Field label="银行卡号" value={withdraw.bankAccount} onChange={(value) => setWithdraw((draft) => ({ ...draft, bankAccount: value }))} />
-        <button className="solid-button fill" onClick={() => onWithdraw(withdraw)}><Wallet size={16} />提交提现</button>
+        {withdrawError && <p className="form-error-line">{withdrawError}</p>}
+        <button className="solid-button fill" onClick={submitWithdraw}><Wallet size={16} />提交提现</button>
+        <p className="withdraw-safe-note">提交后进入后台审核，审核状态会同步到司机端和后台提现记录。</p>
+      </section>
+      <section className="glass-panel work-card withdraw-record-card">
+        <div className="card-head"><h2>提现记录</h2><Clock size={21} /></div>
+        {visibleWithdraws.length ? (
+          <div className="record-list">
+            {visibleWithdraws.slice(0, 6).map((item) => (
+              <article className="record-row" key={item.id || `${item.createdAt}-${item.applyAmount}`}>
+                <div>
+                  <strong>{formatMoney(item.applyAmount || item.amount || 0)}</strong>
+                  <span>{withdrawBankName(item)} · {withdrawBankAccount(item)}</span>
+                  {(item.rejectReason || item.reject_reason) && <small>{item.rejectReason || item.reject_reason}</small>}
+                </div>
+                <div>
+                  <StatusBadge value={String(item.status || 'PENDING').toUpperCase()} label={withdrawStatusText(item)} />
+                  <small>{withdrawCreatedAt(item)}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : <EmptyState text="暂无提现记录，提交提现后会同步显示。" />}
       </section>
       <section className="glass-panel work-card wide">
         <div className="card-head"><h2>司机资质</h2><BadgeCheck size={21} /></div>
+        <div className="cert-summary-grid">
+          <SummaryPill icon={BadgeCheck} value={driverAudit.label} label="人证审核" />
+          <SummaryPill icon={Car} value={vehicleAudit.label} label="车辆审核" />
+          <SummaryPill icon={ShieldCheck} value={dashboard?.servicePermission?.message || '待同步'} label="接单权限" />
+        </div>
         <div className="form-grid">
           {Object.keys(cert).map((key) => (
             <Field key={key} label={fieldLabel(key)} value={cert[key]} onChange={(value) => setCert((draft) => ({ ...draft, [key]: value }))} />
           ))}
         </div>
-        <button className="solid-button" onClick={() => onCertify(cert)}><ShieldCheck size={16} />提交资质</button>
+        {certError && <p className="form-error-line">{certError}</p>}
+        <button className="solid-button" onClick={submitCert}><ShieldCheck size={16} />提交资质</button>
       </section>
     </div>
   )
 }
 
-function DriverProfileBoard({ dashboard, user, onProfile }) {
+function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefaultSettings, onSettingsChange, onServiceStatus }) {
+  const [profileError, setProfileError] = useState('')
   const [form, setForm] = useState({
     nickname: user?.nickname || '',
     cityCode: dashboard?.profile?.cityCode || '310100',
-    licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001'
+    licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
+    defaultLanguage: user?.defaultLanguage || 'zh-CN'
   })
+
+  useEffect(() => {
+    setForm({
+      nickname: user?.nickname || '',
+      cityCode: dashboard?.profile?.cityCode || '310100',
+      licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
+      defaultLanguage: user?.defaultLanguage || 'zh-CN'
+    })
+  }, [dashboard?.profile?.cityCode, dashboard?.profile?.licenseNo, user?.defaultLanguage, user?.nickname])
+
+  const saveProfile = async () => {
+    const payload = {
+      ...form,
+      nickname: form.nickname.trim(),
+      cityCode: form.cityCode.trim(),
+      licenseNo: form.licenseNo.trim(),
+      defaultLanguage: form.defaultLanguage.trim() || 'zh-CN'
+    }
+    if (!payload.nickname) {
+      setProfileError('请填写司机昵称')
+      return
+    }
+    if (!payload.cityCode) {
+      setProfileError('请填写服务城市')
+      return
+    }
+    if (!payload.licenseNo || payload.licenseNo.length < 6) {
+      setProfileError('请填写正确的驾驶证号')
+      return
+    }
+    setProfileError('')
+    await onProfile(payload)
+  }
+
   return (
     <div className="dashboard-grid">
       <section className="glass-panel work-card">
@@ -2700,21 +5254,134 @@ function DriverProfileBoard({ dashboard, user, onProfile }) {
         {Object.keys(form).map((key) => (
           <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
         ))}
-        <button className="solid-button fill" onClick={() => onProfile(form)}><ShieldCheck size={16} />保存司机资料</button>
+        {profileError && <p className="form-error-line">{profileError}</p>}
+        <button className="solid-button fill" onClick={saveProfile}><ShieldCheck size={16} />保存司机资料</button>
       </section>
       <section className="glass-panel work-card wide">
         <div className="card-head"><h2>设置与播报</h2><Settings size={21} /></div>
-        <div className="coverage-grid">
-          {['轨迹上报', '语音播报', '听单提醒', '自动刷新', '服务城市', '版本检查'].map((item) => <span key={item}><CheckCircle size={15} />{item}</span>)}
-        </div>
+        <DriverSettingsPanel
+          settings={settings}
+          serviceStatus={dashboard?.profile?.serviceStatus}
+          onSettingsChange={onSettingsChange}
+          onServiceStatus={onServiceStatus}
+        />
         <InfoPanel title="司机状态" items={[
           ['服务状态', statusLabel[dashboard?.profile?.serviceStatus] || '-'],
           ['今日订单', dashboard?.orders?.length || 0],
           ['资质状态', dashboard?.servicePermission?.message || '-'],
-          ['资料接口', 'PUT /driver/profile']
+          ['状态接口', 'POST /driver/service-status']
         ]} />
       </section>
     </div>
+  )
+}
+
+function DriverSettingsPanel({ settings, serviceStatus, onSettingsChange, onServiceStatus }) {
+  const [previewText, setPreviewText] = useState('')
+  const safeSettings = normalizeDriverSettings(settings)
+  const trackMeta = driverTrackModeMeta(safeSettings.trackMode)
+  const updateSetting = (patch) => onSettingsChange?.(patch)
+  const toggleListenMode = () => {
+    const nextStatus = safeSettings.listenMode ? DRIVER_STATUS.OFFLINE : DRIVER_STATUS.ONLINE
+    onServiceStatus?.(nextStatus)
+  }
+  const previewVoice = () => {
+    const label = driverVoiceStyleLabel(safeSettings.voiceStyle)
+    setPreviewText(`已试听：${label}`)
+    if (!safeSettings.voiceBroadcast) return
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(`当前声音为${label}，请确认播报效果。`)
+      utterance.lang = 'zh-CN'
+      utterance.rate = safeSettings.voiceStyle === 'playful' ? 1.08 : 0.96
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+
+  return (
+    <div className="driver-settings-panel">
+      <div className="settings-row-list">
+        <DriverSettingRow
+          icon={Radio}
+          title="听单模式"
+          desc="关闭后不再接收新订单。"
+          checked={safeSettings.listenMode}
+          onToggle={toggleListenMode}
+          meta={statusLabel[serviceStatus] || '离线'}
+        />
+        <DriverSettingRow
+          icon={Zap}
+          title="自动接单"
+          desc="听单开启后，网页端会自动接取第一条待抢订单。"
+          checked={safeSettings.autoAccept}
+          onToggle={() => updateSetting({ autoAccept: !safeSettings.autoAccept })}
+        />
+        <DriverSettingRow
+          icon={Bell}
+          title="语音播报"
+          desc="播报接驾、上车、目的地提醒和订单变化。"
+          checked={safeSettings.voiceBroadcast}
+          onToggle={() => updateSetting({ voiceBroadcast: !safeSettings.voiceBroadcast })}
+        />
+      </div>
+
+      <div className="settings-choice-panel">
+        <div>
+          <span>轨迹模式</span>
+          <p>{trackMeta.desc}</p>
+        </div>
+        <div className="choice-chip-row">
+          {driverTrackModeOptions.map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={safeSettings.trackMode === value ? 'active' : ''}
+              onClick={() => updateSetting({ trackMode: value })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <small>当前选择：{trackMeta.label}</small>
+      </div>
+
+      <div className="settings-choice-panel">
+        <div>
+          <span>播报声音</span>
+          <p>与小程序声音选项保持一致，网页端会保存当前偏好。</p>
+        </div>
+        <div className="voice-chip-grid">
+          {driverVoiceStyleOptions.map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={safeSettings.voiceStyle === value ? 'active' : ''}
+              onClick={() => updateSetting({ voiceStyle: value })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="voice-preview-row">
+          <button type="button" className="ghost-button" onClick={previewVoice}><Play size={15} />试听</button>
+          <small>{previewText || `当前选择：${driverVoiceStyleLabel(safeSettings.voiceStyle)}`}</small>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DriverSettingRow({ icon: Icon, title, desc, checked, onToggle, meta }) {
+  return (
+    <button type="button" className="driver-setting-row" onClick={onToggle}>
+      <span className="driver-setting-icon"><Icon size={16} /></span>
+      <span className="driver-setting-copy">
+        <strong>{title}</strong>
+        <small>{desc}</small>
+      </span>
+      {meta && <span className="driver-setting-meta">{meta}</span>}
+      <span className={`toggle-pill ${checked ? 'is-on' : ''}`} aria-hidden="true"><i /></span>
+    </button>
   )
 }
 
@@ -2818,6 +5485,9 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
     if (readFilter === 'UNREAD') return list.filter((item) => !item.__isRead)
     return list
   }, [list, readFilter])
+  const unreadCount = list.filter((item) => !item.__isRead).length
+  const readCount = list.length - unreadCount
+  const linkedOrderCount = list.filter((item) => item.order).length
   const limit = 4
   const hasMore = filteredList.length > limit
   const visibleMessages = expanded || !hasMore ? filteredList : filteredList.slice(0, limit)
@@ -2863,15 +5533,29 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
     }
   }
 
+  const markCurrentListRead = async () => {
+    const targets = filteredList.filter((item) => !item.__isRead)
+    if (!targets.length) return
+    setReadOverrides((value) => ({
+      ...value,
+      ...Object.fromEntries(targets.map((item) => [item.id, true]))
+    }))
+    await Promise.allSettled(targets.map((item) => onReadMessage?.(item)))
+  }
+
   return (
     <section className="glass-panel work-card message-board-card">
       <div className="card-head">
         <div><span className="section-kicker">消息</span><h2>消息中心</h2></div>
         <div className="message-head-actions">
           <div className="message-read-tabs">
-            <button className={readFilter === 'UNREAD' ? 'active is-unread' : 'is-unread'} type="button" onClick={() => setReadFilter('UNREAD')}>未读</button>
-            <button className={readFilter === 'READ' ? 'active is-read' : 'is-read'} type="button" onClick={() => setReadFilter('READ')}>已读</button>
+            <button className={readFilter === 'UNREAD' ? 'active is-unread' : 'is-unread'} type="button" onClick={() => setReadFilter('UNREAD')}>未读 <span>{unreadCount}</span></button>
+            <button className={readFilter === 'READ' ? 'active is-read' : 'is-read'} type="button" onClick={() => setReadFilter('READ')}>已读 <span>{readCount}</span></button>
+            <button className={readFilter === 'ALL' ? 'active is-read' : 'is-read'} type="button" onClick={() => setReadFilter('ALL')}>全部 <span>{list.length}</span></button>
           </div>
+          {unreadCount > 0 && (
+            <button className="message-list-toggle head-toggle" type="button" onClick={markCurrentListRead}>全部已读</button>
+          )}
           {hasMore && (
             <button className="message-list-toggle head-toggle" type="button" onClick={() => setExpanded((value) => !value)}>
               {expanded ? '收起' : `展开 ${filteredList.length} 条`}
@@ -2880,6 +5564,11 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
           )}
           <button className="icon-button" onClick={onRefresh}><RefreshCw size={15} /></button>
         </div>
+      </div>
+      <div className="message-summary-strip">
+        <SummaryPill icon={Bell} label="未读消息" value={`${unreadCount} 条`} />
+        <SummaryPill icon={Route} label="订单相关" value={`${linkedOrderCount} 条`} />
+        <SummaryPill icon={MessageSquare} label="当前筛选" value={`${filteredList.length} 条`} />
       </div>
       {filteredList.length ? (
         <>
@@ -2916,7 +5605,7 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
             ))}
           </div>
         </>
-      ) : <EmptyState text="暂无消息。" />}
+      ) : <EmptyState text={readFilter === 'UNREAD' ? '暂无未读消息。' : readFilter === 'READ' ? '暂无已读消息。' : '暂无消息。'} />}
       {messageDetailModal}
     </section>
   )
@@ -2924,11 +5613,13 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
 
 function ProfileBoard({ profile, mode, onProfile }) {
   const [editing, setEditing] = useState(false)
+  const [profileError, setProfileError] = useState('')
   const [form, setForm] = useState({
     nickname: profile?.nickname || '',
     realName: profile?.realName || '',
     emergencyContact: profile?.emergencyContact || '',
-    emergencyPhone: profile?.emergencyPhone || ''
+    emergencyPhone: profile?.emergencyPhone || '',
+    defaultLanguage: profile?.defaultLanguage || 'zh-CN'
   })
 
   useEffect(() => {
@@ -2936,13 +5627,24 @@ function ProfileBoard({ profile, mode, onProfile }) {
       nickname: profile?.nickname || '',
       realName: profile?.realName || '',
       emergencyContact: profile?.emergencyContact || '',
-      emergencyPhone: profile?.emergencyPhone || ''
+      emergencyPhone: profile?.emergencyPhone || '',
+      defaultLanguage: profile?.defaultLanguage || 'zh-CN'
     })
   }, [profile])
 
   const saveProfile = async () => {
     if (!onProfile) return
-    await onProfile(form)
+    const payload = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, String(value ?? '').trim()]))
+    if (!payload.nickname) {
+      setProfileError('请填写昵称')
+      return
+    }
+    if (payload.emergencyPhone && !isValidPhone(payload.emergencyPhone)) {
+      setProfileError('紧急电话需要为 11 位手机号')
+      return
+    }
+    setProfileError('')
+    await onProfile({ ...payload, defaultLanguage: payload.defaultLanguage || 'zh-CN' })
     setEditing(false)
   }
 
@@ -2970,6 +5672,7 @@ function ProfileBoard({ profile, mode, onProfile }) {
                 <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
               ))}
             </div>
+            {profileError && <p className="form-error-line">{profileError}</p>}
             {onProfile && (
               <button className="solid-button fill profile-save-button" onClick={saveProfile}>
                 <ShieldCheck size={15} />保存资料
@@ -3681,9 +6384,16 @@ function SelectField({ label, value, options, onChange, icon: Icon }) {
   )
 }
 
-function StatusBadge({ value }) {
+function StatusBadge({ value, label }) {
   const tone = statusTone[value] || 'muted'
-  return <span className={`status-badge ${tone}`}>{statusLabel[value] || value || '-'}</span>
+  return <span className={`status-badge ${tone}`}>{label || statusLabel[value] || value || '-'}</span>
+}
+
+function formatSyncClock(value) {
+  if (!value) return '待同步'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '待同步'
+  return date.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function ModeChip({ mode, message }) {
@@ -3697,6 +6407,19 @@ function Metric({ value, label }) {
 
 function MiniStat({ label, value }) {
   return <div className="mini-stat"><span>{label}</span><strong>{value}</strong></div>
+}
+
+function SummaryPill({ icon: Icon, label, value, hint = '' }) {
+  return (
+    <div className="summary-pill">
+      <span className="summary-pill-icon">{Icon && <Icon size={15} />}</span>
+      <div>
+        <strong>{value}</strong>
+        <small>{label}</small>
+        {hint && <em>{hint}</em>}
+      </div>
+    </div>
+  )
 }
 
 function FeatureCard({ icon: Icon, title, text }) {
@@ -3962,12 +6685,26 @@ function getCarTypeName(item) {
   return item.name || item.typeName || item.carTypeName || `车型 ${item.id}`
 }
 
-function passengerOrderAction(action, order, token) {
+function passengerOrderAction(action, order, token, payload = {}) {
   if (action === 'cancel') return api.cancelOrder(token, order.id, '乘客网页端取消')
   if (action === 'pickup') return api.pickupOrder(token, order.id)
-  if (action === 'pay') return api.mockPay(token, order.id, order.payableAmount)
-  if (action === 'evaluate') return api.evaluate(token, { orderId: order.id, score: 5, content: '网页端评价：体验顺滑，服务很好。' })
-  if (action === 'complaint') return api.complaint(token, { orderId: order.id, content: '网页端提交投诉测试。' })
+  if (action === 'pay') return api.mockPay(token, order.id, payload.payableAmount || order.payableAmount, payload.payChannel || 'WEB')
+  if (action === 'evaluate') {
+    return api.evaluate(token, {
+      orderId: order.id,
+      score: Number(payload.score || 5),
+      tags: payload.tags || [],
+      content: payload.content || '网页端评价：体验顺滑，服务很好。'
+    })
+  }
+  if (action === 'complaint') {
+    return api.complaint(token, {
+      orderId: order.id,
+      complaintType: payload.complaintType || 'OTHER',
+      contactPhone: payload.contactPhone || '',
+      content: payload.content || '网页端提交投诉反馈。'
+    })
+  }
   return Promise.resolve()
 }
 
@@ -3981,6 +6718,89 @@ function driverOrderAction(action, order, token) {
   return Promise.resolve()
 }
 
+function normalizeDriverTrackMode(value) {
+  return value === 'REAL' ? 'REAL' : 'DEMO'
+}
+
+function normalizeDriverVoiceStyle(value) {
+  return driverVoiceStyleOptions.some(([optionValue]) => optionValue === value) ? value : 'default'
+}
+
+function normalizeDriverSettings(settings = {}) {
+  return {
+    ...driverDefaultSettings,
+    ...(settings || {}),
+    listenMode: Boolean(settings.listenMode),
+    autoAccept: Boolean(settings.autoAccept),
+    voiceBroadcast: settings.voiceBroadcast !== false,
+    voiceStyle: normalizeDriverVoiceStyle(settings.voiceStyle),
+    trackMode: normalizeDriverTrackMode(settings.trackMode),
+    listeningSince: Number(settings.listeningSince || 0)
+  }
+}
+
+function normalizePassengerSettings(settings = {}) {
+  return {
+    ...passengerDefaultSettings,
+    ...(settings || {}),
+    pushEnabled: settings.pushEnabled !== false,
+    autoUseCoupon: settings.autoUseCoupon !== false,
+    tripRemind: settings.tripRemind !== false,
+    invoiceRemind: settings.invoiceRemind !== false,
+    privacyMask: settings.privacyMask !== false,
+    emergencyShare: Boolean(settings.emergencyShare)
+  }
+}
+
+function readDriverSettings() {
+  if (typeof window === 'undefined') return driverDefaultSettings
+  try {
+    return normalizeDriverSettings(JSON.parse(window.localStorage.getItem(driverSettingsKey) || 'null') || {})
+  } catch (error) {
+    window.localStorage.removeItem(driverSettingsKey)
+    return driverDefaultSettings
+  }
+}
+
+function driverTrackModeMeta(value) {
+  const mode = normalizeDriverTrackMode(value)
+  const option = driverTrackModeOptions.find(([optionValue]) => optionValue === mode) || driverTrackModeOptions[0]
+  return { value: option[0], label: option[1], desc: option[2] }
+}
+
+function driverVoiceStyleLabel(value) {
+  const option = driverVoiceStyleOptions.find(([optionValue]) => optionValue === normalizeDriverVoiceStyle(value))
+  return option?.[1] || '播音声音'
+}
+
+function buildInternationalRemark(option = {}, note = '') {
+  const payload = {
+    optionId: option.id || '',
+    routeCode: option.routeCode || '',
+    countryText: option.countryText || '',
+    titleZh: option.titleZh || '',
+    titleEn: option.titleEn || '',
+    basePrice: option.basePrice || 0,
+    currencyCode: 'USD',
+    exchangeRate: 7.15,
+    vehicle: option.vehicle || '',
+    serviceItems: option.inclusions || [],
+    documents: option.documents || [],
+    riskNotice: option.notice || '请提前确认通关证件、航班时间与目的地政策。',
+    distanceText: option.distanceText || '',
+    durationText: option.durationText || ''
+  }
+  return `[INTERNATIONAL_META]${JSON.stringify(payload)}[/INTERNATIONAL_META]${note || option.notice || ''}`
+}
+
+function auditStatusMeta(value) {
+  const status = Number(value)
+  if (status === 2) return { value: 'APPROVED', label: '已通过' }
+  if (status === 1) return { value: 'PENDING', label: '审核中' }
+  if (status < 0) return { value: 'REJECTED', label: '已驳回' }
+  return { value: 'NONE', label: '待提交' }
+}
+
 function actionText(action) {
   return {
     cancel: '订单已取消',
@@ -3991,6 +6811,53 @@ function actionText(action) {
     start: '已开始接驾',
     finish: '行程已完成'
   }[action] || '操作成功'
+}
+
+function maskBankAccount(value) {
+  const text = String(value || '').trim()
+  if (!text) return '-'
+  if (text.includes('*')) return text
+  const normalized = text.replace(/\s+/g, '')
+  if (normalized.length <= 8) return normalized
+  return `${normalized.slice(0, 4)} **** ${normalized.slice(-4)}`
+}
+
+function maskIdCard(value) {
+  const text = String(value || '').trim()
+  if (!text) return '-'
+  if (text.includes('*')) return text
+  if (text.length < 8) return text
+  return `${text.slice(0, 4)}**********${text.slice(-4)}`
+}
+
+function isValidPhone(value) {
+  return /^1\d{10}$/.test(String(value || '').trim())
+}
+
+function isValidIdCard(value) {
+  return /^\d{17}[\dXx]$/.test(String(value || '').trim())
+}
+
+function withdrawBankName(item = {}) {
+  return item.bankName || item.bank || item.bank_name || '开户行未记录'
+}
+
+function withdrawBankAccount(item = {}) {
+  return maskBankAccount(item.bankAccountMasked || item.bankAccount || item.bankCardNo || item.cardNo || item.accountNo)
+}
+
+function withdrawStatusText(item = {}) {
+  const status = String(item.status || 'PENDING').toUpperCase()
+  return item.statusText || item.status_text || {
+    PENDING: '待审核',
+    APPROVED: '已打款',
+    REJECTED: '已驳回'
+  }[status] || statusLabel[status] || status
+}
+
+function withdrawCreatedAt(item = {}) {
+  const value = item.createdAt || item.createTime || item.created_at || item.auditedAt || item.audited_at
+  return value ? formatOrderDisplayTime({ createdAt: value }) : '-'
 }
 
 function fieldLabel(key) {
@@ -4012,6 +6879,10 @@ function fieldLabel(key) {
     applyAmount: '提现金额',
     bankName: '开户行',
     bankAccount: '银行卡号',
+    invoiceTitle: '发票抬头',
+    taxNo: '税号',
+    buyerPhone: '接收手机',
+    remark: '备注',
     licenseNo: '驾驶证号',
     plateNo: '车牌号',
     brand: '品牌',
