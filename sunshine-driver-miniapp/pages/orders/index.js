@@ -1,6 +1,12 @@
 const { fetchOrders } = require('../../utils/api')
 const { mapTripOrder } = require('../../utils/driver-store')
 
+const SERVICE_ICON_PATHS = {
+  taxi: '/images/service-icons/taxi.png',
+  carpool: '/images/service-icons/carpool.png',
+  international: '/images/service-icons/international.png'
+}
+
 function getOrderTypeKey(item = {}) {
   const serviceType = `${item.serviceType || item.service_type || ''}`.toUpperCase()
   if (serviceType === 'CARPOOL') return 'carpool'
@@ -12,9 +18,9 @@ Page({
   data: {
     typeTabs: [
       { key: 'all', label: '全部' },
-      { key: 'taxi', label: '打车' },
-      { key: 'carpool', label: '顺风车' },
-      { key: 'international', label: '国际出行' }
+      { key: 'taxi', label: '打车', iconPath: SERVICE_ICON_PATHS.taxi },
+      { key: 'carpool', label: '顺风车', iconPath: SERVICE_ICON_PATHS.carpool },
+      { key: 'international', label: '国际出行', iconPath: SERVICE_ICON_PATHS.international }
     ],
     statusTabs: [
       { key: 'all', label: '全部状态' },
@@ -32,9 +38,11 @@ Page({
     const response = await fetchOrders()
     const list = (response.data || []).map((item) => {
       const mapped = mapTripOrder(item)
+      const serviceTypeKey = getOrderTypeKey(mapped)
       return {
         ...mapped,
-        serviceTypeKey: getOrderTypeKey(mapped)
+        serviceTypeKey,
+        serviceIconPath: SERVICE_ICON_PATHS[serviceTypeKey] || SERVICE_ICON_PATHS.taxi
       }
     })
     getApp().globalData.driverStore.tripOrders = list
