@@ -734,6 +734,14 @@ svg {
   text-align: left;
 }
 
+.dashboard-brand-logo {
+  display: block;
+  width: 186px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 .brand-icon,
 .login-orb {
   display: grid;
@@ -4009,6 +4017,17 @@ svg {
   min-height: calc(100vh - 36px);
   padding: 16px;
   border-radius: 28px;
+}
+
+.dashboard-shell .side-nav .brand-mark {
+  justify-content: flex-start;
+  min-height: 58px;
+  padding: 4px 2px;
+}
+
+.dashboard-shell .side-nav .dashboard-brand-logo {
+  width: 205px;
+  max-height: 62px;
 }
 
 .nav-tabs {
@@ -10383,6 +10402,11 @@ svg {
     padding: 4px 6px;
   }
 
+  .dashboard-shell .side-nav .dashboard-brand-logo {
+    width: 172px;
+    max-height: 50px;
+  }
+
   .dashboard-shell .side-nav .brand-icon {
     width: 38px;
     height: 38px;
@@ -10463,6 +10487,11 @@ svg {
 
   .dashboard-shell .side-nav .brand-mark {
     min-height: 40px;
+  }
+
+  .dashboard-shell .side-nav .dashboard-brand-logo {
+    width: 152px;
+    max-height: 44px;
   }
 
   .dashboard-shell .side-nav .brand-icon {
@@ -10646,6 +10675,43 @@ svg {
   padding: 15px;
 }
 
+.dashboard-grid.ride-workbench .city-map.map-only {
+  display: grid;
+  grid-template-rows: auto minmax(500px, 1fr) auto;
+  gap: 10px;
+}
+
+.dashboard-grid.ride-workbench .city-map.map-only .miniapp-sync-shell {
+  grid-template-rows: 1fr;
+  min-height: 500px;
+  margin: 0;
+  border-radius: 18px;
+}
+
+.dashboard-grid.ride-workbench .city-map.map-only .miniapp-sync-map {
+  min-height: 500px;
+}
+
+.dashboard-grid.ride-workbench .city-map.map-only .miniapp-sync-brand strong {
+  font-size: 15px;
+  font-weight: 740;
+}
+
+.dashboard-grid.ride-workbench .city-map.map-only .miniapp-sync-brand span {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench .city-map.map-only .map-topline strong {
+  display: none;
+}
+
+.dashboard-grid.ride-workbench .city-map.map-only .map-bottomline {
+  min-height: 28px;
+  color: #526173;
+  font-size: 12px;
+}
+
 .dashboard-grid.ride-workbench > .work-card:not(.wide) {
   padding: 18px;
 }
@@ -10656,7 +10722,35 @@ svg {
 }
 
 .dashboard-grid.ride-workbench .card-head h2 {
-  font-size: 22px;
+  font-size: 21px;
+  font-weight: 760;
+}
+
+.dashboard-grid.ride-workbench .price-pill {
+  min-height: 38px;
+  padding-inline: 13px;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.dashboard-grid.ride-workbench .price-stack small {
+  font-weight: 680;
+}
+
+.dashboard-grid.ride-workbench .booking-estimate-head span,
+.dashboard-grid.ride-workbench .booking-car-copy strong,
+.dashboard-grid.ride-workbench .booking-fee-breakdown span {
+  font-weight: 720;
+}
+
+.dashboard-grid.ride-workbench .booking-estimate-head em,
+.dashboard-grid.ride-workbench .booking-car-price {
+  font-weight: 700;
+}
+
+.dashboard-grid.ride-workbench .booking-car-copy small,
+.dashboard-grid.ride-workbench .booking-fee-breakdown small {
+  font-weight: 560;
 }
 
 .dashboard-grid.ride-workbench .booking-notice-strip {
@@ -10674,6 +10768,7 @@ svg {
 
 .dashboard-grid.ride-workbench .service-tabs button {
   min-height: 38px;
+  font-weight: 720;
 }
 
 .dashboard-grid.ride-workbench .fare-grid {
@@ -10681,13 +10776,381 @@ svg {
 }
 
 .dashboard-grid.ride-workbench .mini-stat {
-  min-height: 58px;
-  padding: 9px 10px;
+  min-height: 54px;
+  padding: 8px 10px;
   border-radius: 13px;
 }
 
 .dashboard-grid.ride-workbench .mini-stat strong {
+  font-size: 16px;
+  font-weight: 720;
+}
+
+/* Passenger ride page: make the workbench read like a taxi app, scoped away from portal. */
+.dashboard-grid.ride-workbench.real-ride {
+  position: relative;
+  display: block;
+  width: min(100%, 1280px);
+  min-height: 570px;
+  margin-top: 16px;
+}
+
+.dashboard-grid.ride-workbench.real-ride > .booking-card {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  z-index: 12;
+  display: grid;
+  gap: 12px;
+  width: min(408px, calc(100% - 36px));
+  max-height: min(620px, calc(100dvh - 186px));
+  padding: 16px;
+  overflow: auto;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .98) 0%, rgba(255, 255, 255, .94) 100%),
+    radial-gradient(circle at 0 0, rgba(255, 122, 0, .08), transparent 190px);
+  border: 1px solid rgba(255, 255, 255, .82);
+  box-shadow:
+    0 24px 52px rgba(31, 41, 55, .12),
+    0 8px 22px rgba(255, 122, 0, .07);
+}
+
+.dashboard-grid.ride-workbench.real-ride > .booking-card::-webkit-scrollbar {
+  width: 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride > .city-map {
+  position: relative;
+  width: 100%;
+  height: clamp(570px, calc(100dvh - 150px), 720px);
+  min-height: 570px;
+  padding: 10px;
+  border-radius: 28px;
+  background: #eef2f5;
+  border: 1px solid rgba(255, 255, 255, .88);
+  box-shadow:
+    0 24px 58px rgba(31, 41, 55, .1),
+    inset 0 0 0 1px rgba(255, 255, 255, .5);
+}
+
+.dashboard-grid.ride-workbench.real-ride .city-map.map-only {
+  display: block;
+  gap: 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride .city-map.map-only .miniapp-sync-shell {
+  height: 100%;
+  min-height: 100%;
+  border-radius: 24px;
+}
+
+.dashboard-grid.ride-workbench.real-ride .city-map.map-only .miniapp-sync-map {
+  height: 100%;
+  min-height: 100%;
+}
+
+.dashboard-grid.ride-workbench.real-ride .map-topline {
+  position: absolute;
+  left: auto;
+  right: 24px;
+  top: 22px;
+  z-index: 7;
+  display: inline-flex;
+  max-width: min(44%, 420px);
+  min-height: 42px;
+  margin: 0;
+  padding: 8px 13px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(255, 255, 255, .82);
+  box-shadow: 0 12px 28px rgba(31, 41, 55, .12);
+  backdrop-filter: blur(12px);
+}
+
+.dashboard-grid.ride-workbench.real-ride .map-topline span {
+  color: #20283b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-grid.ride-workbench.real-ride .map-topline small {
+  color: #7c8798;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.dashboard-grid.ride-workbench.real-ride .miniapp-sync-brand {
+  display: none;
+  left: 26px;
+  top: 84px;
+  padding: 9px 12px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid rgba(255, 255, 255, .78);
+  box-shadow: 0 10px 24px rgba(31, 41, 55, .1);
+}
+
+.dashboard-grid.ride-workbench.real-ride .miniapp-sync-brand strong {
   font-size: 17px;
+  font-weight: 700;
+}
+
+.dashboard-grid.ride-workbench.real-ride .miniapp-sync-brand span {
+  color: #6f7b8d;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-grid.ride-workbench.real-ride .map-bottomline {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 22px;
+  z-index: 7;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(255, 255, 255, .82);
+  box-shadow: 0 12px 30px rgba(31, 41, 55, .12);
+  backdrop-filter: blur(12px);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-card .card-head {
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-card .card-head h2 {
+  margin-top: 4px;
+  font-size: 22px;
+  line-height: 1.12;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-card .section-kicker {
+  color: #9a4a00;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dashboard-grid.ride-workbench.real-ride .price-pill {
+  min-height: 36px;
+  padding: 0 13px;
+  color: #fff;
+  background: #1f2937;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .service-tabs {
+  gap: 7px;
+  padding: 5px;
+  border-radius: 999px;
+  background: #f2f4f7;
+}
+
+.dashboard-grid.ride-workbench.real-ride .service-tabs button {
+  min-height: 40px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-grid.ride-workbench.real-ride .service-tabs button.active {
+  background: linear-gradient(135deg, #ff7a00 0%, #ff5f00 100%);
+  box-shadow: 0 10px 20px rgba(255, 122, 0, .2);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-route-stack {
+  gap: 8px;
+  margin: 2px 0 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride .select-field {
+  grid-template-columns: 28px 64px minmax(0, 1fr);
+  min-height: 54px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: #f7f8fc;
+  border: 1px solid rgba(31, 36, 50, .045);
+  box-shadow: none;
+}
+
+.dashboard-grid.ride-workbench.real-ride .select-field svg {
+  width: 17px;
+  height: 17px;
+  color: #ff7a00;
+}
+
+.dashboard-grid.ride-workbench.real-ride .select-field span {
+  color: #8792a5;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.dashboard-grid.ride-workbench.real-ride .select-field select {
+  color: #1f2432;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .address-swap-button {
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 15px;
+  color: #ff6b00;
+  background: #fff4e7;
+  border-color: rgba(255, 122, 0, .18);
+  box-shadow: 0 10px 22px rgba(255, 122, 0, .1);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-estimate-head {
+  align-items: center;
+  margin: 2px 0 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-estimate-head span {
+  color: #20283b;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-estimate-head small {
+  color: #7d8798;
+  font-size: 11px;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-estimate-head em {
+  padding: 6px 9px;
+  color: #9a4a00;
+  background: #fff2e2;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-grid.ride-workbench.real-ride .fare-grid {
+  gap: 7px;
+}
+
+.dashboard-grid.ride-workbench.real-ride .fare-grid .mini-stat {
+  min-height: 54px;
+  padding: 9px 10px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf5 0%, #fff6ee 100%);
+  border: 1px solid rgba(255, 122, 0, .06);
+  box-shadow: none;
+}
+
+.dashboard-grid.ride-workbench.real-ride .fare-grid .mini-stat span {
+  color: #8a94a7;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-grid.ride-workbench.real-ride .fare-grid .mini-stat strong {
+  color: #1f2432;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .car-card-strip {
+  gap: 7px;
+  margin: 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-card {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  min-height: 56px;
+  padding: 7px 10px;
+  border-radius: 17px;
+  background: #fff;
+  border-color: rgba(31, 36, 50, .055);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-card.is-selected {
+  background: linear-gradient(180deg, #fffdfa 0%, #fff6ef 100%);
+  border-color: rgba(255, 122, 0, .28);
+  box-shadow: 0 10px 22px rgba(255, 122, 0, .08);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 15px;
+  background: #fff1e5;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-thumb img {
+  width: 34px;
+  height: 27px;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-copy strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-copy small {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-car-price {
+  color: #ff6600;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-fee-breakdown {
+  gap: 7px;
+  margin-bottom: 0;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-fee-breakdown span {
+  padding: 7px 9px;
+  border-radius: 15px;
+  background: #fff;
+  border-color: rgba(31, 36, 50, .055);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-fee-breakdown small {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  margin: 2px -16px -16px;
+  padding: 12px 16px 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .72), #fff 42%);
+  box-shadow: 0 -10px 22px rgba(31, 41, 55, .045);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-actions .ghost-button {
+  min-width: 110px;
+  min-height: 46px;
+  border-radius: 999px;
+  color: #263142;
+  background: #f6f7fa;
+  border-color: rgba(31, 36, 50, .06);
+}
+
+.dashboard-grid.ride-workbench.real-ride .booking-actions .solid-button {
+  min-height: 46px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7a00 0%, #ff5f00 100%);
+  box-shadow: 0 12px 24px rgba(255, 122, 0, .22);
+  font-weight: 650;
 }
 
 .dashboard-shell .international-metric-grid {
@@ -10813,6 +11276,2017 @@ svg {
 .dashboard-shell .international-preflight-list div {
   padding: 9px;
   border-radius: 12px;
+}
+
+/* Member workbench repair: compact app UI, scoped away from the public portal. */
+.dashboard-shell .member-board {
+  grid-template-columns: minmax(360px, .86fr) minmax(520px, 1fr);
+  gap: 16px;
+  align-items: start;
+  width: min(100%, 1180px);
+  margin-top: 16px;
+}
+
+.dashboard-shell .member-board > * {
+  min-width: 0;
+}
+
+.dashboard-shell .member-hero-card,
+.dashboard-shell .member-coupon-card {
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.dashboard-shell .member-hero-card {
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-shell .member-board .card-head {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.dashboard-shell .member-board .card-head h2 {
+  margin-top: 4px;
+  color: #1f2937;
+  font-size: 22px;
+  line-height: 1.12;
+  font-weight: 740;
+  letter-spacing: 0;
+}
+
+.dashboard-shell .member-board .card-head svg {
+  width: 22px;
+  height: 22px;
+  color: #263142;
+}
+
+.dashboard-shell .member-status-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+  color: #526173;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.dashboard-shell .member-status-line > span:not(.status-badge) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .member-privilege-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.dashboard-shell .member-privilege-list div {
+  min-height: 54px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .58);
+  border-color: rgba(226, 232, 240, .72);
+}
+
+.dashboard-shell .member-privilege-list span {
+  color: #718096;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.dashboard-shell .member-privilege-list strong {
+  color: #263142;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-shell .member-benefit-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.dashboard-shell .member-benefit-grid .summary-pill {
+  grid-template-columns: 30px minmax(0, 1fr);
+  min-height: 52px;
+  padding: 8px 9px;
+  border-radius: 13px;
+  background: rgba(255, 250, 246, .66);
+  border: 1px solid rgba(255, 122, 0, .1);
+  box-shadow: none;
+}
+
+.dashboard-shell .member-benefit-grid .summary-pill-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.dashboard-shell .member-benefit-grid .summary-pill strong {
+  font-size: 15px;
+  font-weight: 720;
+}
+
+.dashboard-shell .member-benefit-grid .summary-pill small {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dashboard-shell .member-progress-list {
+  position: relative;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(226, 232, 240, .74);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .55);
+}
+
+.dashboard-shell .member-progress-list::before {
+  content: "";
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  top: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 122, 0, .32), rgba(226, 232, 240, .74));
+}
+
+.dashboard-shell .member-progress-list div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 30px;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.dashboard-shell .member-progress-list span {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dashboard-shell .member-progress-list p {
+  color: #526173;
+  font-size: 12px;
+  font-weight: 640;
+  white-space: nowrap;
+}
+
+.dashboard-shell .member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 2px;
+}
+
+.dashboard-shell .member-actions .solid-button,
+.dashboard-shell .member-actions .ghost-button {
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.dashboard-shell .member-coupon-card {
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-shell .member-coupon-list {
+  gap: 8px;
+  max-height: 278px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 3px;
+}
+
+.dashboard-shell .member-coupon-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.dashboard-shell .member-coupon-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .34);
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket {
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 70px;
+  padding: 9px 11px;
+  border-radius: 13px;
+  border-color: rgba(255, 207, 166, .74);
+  background:
+    radial-gradient(circle at 58px 0, transparent 9px, rgba(255, 255, 255, .78) 10px),
+    radial-gradient(circle at 58px 100%, transparent 9px, rgba(255, 255, 255, .78) 10px),
+    linear-gradient(135deg, rgba(255, 250, 245, .92), rgba(255, 255, 255, .72));
+  box-shadow: none;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket::before {
+  left: 58px;
+  top: 10px;
+  bottom: 10px;
+  background: linear-gradient(180deg, transparent, rgba(255, 122, 0, .22), transparent);
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-value {
+  min-width: 0;
+  justify-content: flex-start;
+  padding-left: 3px;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-value small {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-value strong {
+  font-size: 22px;
+  font-weight: 740;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket.rate .coupon-ticket-value strong {
+  font-size: 18px;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-value.coupon-value-benefit {
+  align-items: center;
+  justify-content: center;
+  padding-left: 0;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-value.coupon-value-benefit strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #a34200;
+  background: rgba(255, 122, 0, .12);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 720;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  justify-content: initial;
+  gap: 6px;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-title strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-title .status-badge,
+.dashboard-shell .member-coupon-list .coupon-expire-badge {
+  min-height: 20px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket p {
+  margin: 2px 0 5px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-meta {
+  gap: 5px;
+}
+
+.dashboard-shell .member-coupon-list .coupon-ticket-meta span {
+  padding: 0;
+  color: #7a8798;
+  background: transparent;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  .dashboard-shell .member-board {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 760px;
+    margin-top: 14px;
+  }
+
+  .dashboard-shell .member-hero-card,
+  .dashboard-shell .member-coupon-card {
+    padding: 16px;
+  }
+
+  .dashboard-shell .member-privilege-list,
+  .dashboard-shell .member-benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .member-progress-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .dashboard-shell .member-progress-list::before {
+    left: 20px;
+    right: 20px;
+    top: 25px;
+  }
+
+  .dashboard-shell .member-progress-list p {
+    white-space: normal;
+  }
+
+  .dashboard-shell .member-coupon-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 8px;
+    min-height: 66px;
+    padding: 8px 9px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket::before {
+    display: block;
+    left: 52px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-value strong {
+    font-size: 19px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket.rate .coupon-ticket-value strong {
+    font-size: 17px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-value.coupon-value-benefit strong {
+    width: 40px;
+    min-height: 22px;
+    padding-inline: 5px;
+    font-size: 10px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-title {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-title .status-badge,
+  .dashboard-shell .member-coupon-list .coupon-expire-badge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-shell .member-board {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .dashboard-shell .member-hero-card,
+  .dashboard-shell .member-coupon-card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .dashboard-shell .member-board .card-head h2 {
+    font-size: 20px;
+  }
+
+  .dashboard-shell .member-status-line {
+    font-size: 12px;
+  }
+
+  .dashboard-shell .member-privilege-list,
+  .dashboard-shell .member-benefit-grid,
+  .dashboard-shell .member-progress-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-shell .member-privilege-list div {
+    min-height: 48px;
+    padding: 7px 8px;
+  }
+
+  .dashboard-shell .member-privilege-list span {
+    font-size: 10px;
+  }
+
+  .dashboard-shell .member-privilege-list strong {
+    font-size: 12px;
+  }
+
+  .dashboard-shell .member-benefit-grid .summary-pill {
+    grid-template-columns: 24px minmax(0, 1fr);
+    min-height: 46px;
+    padding: 7px;
+  }
+
+  .dashboard-shell .member-benefit-grid .summary-pill-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+
+  .dashboard-shell .member-benefit-grid .summary-pill strong {
+    font-size: 13px;
+  }
+
+  .dashboard-shell .member-benefit-grid .summary-pill small {
+    font-size: 9px;
+  }
+
+  .dashboard-shell .member-progress-list {
+    gap: 0;
+    padding: 9px 8px;
+  }
+
+  .dashboard-shell .member-progress-list::before {
+    left: 20px;
+    right: 20px;
+    top: 21px;
+  }
+
+  .dashboard-shell .member-progress-list div {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .dashboard-shell .member-progress-list span {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+
+  .dashboard-shell .member-progress-list p {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket {
+    grid-template-columns: 48px minmax(0, 1fr);
+    min-height: 56px;
+    padding: 7px 8px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket::before {
+    display: block;
+    left: 48px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-value strong {
+    font-size: 16px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-value.coupon-value-benefit strong {
+    width: 38px;
+    min-height: 21px;
+    padding-inline: 4px;
+    font-size: 10px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-title strong {
+    font-size: 12px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-title {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-title .status-badge,
+  .dashboard-shell .member-coupon-list .coupon-expire-badge {
+    justify-self: auto;
+    min-height: 18px;
+    padding: 0 6px;
+    font-size: 9px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket p {
+    margin: 1px 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-meta {
+    gap: 3px;
+  }
+
+  .dashboard-shell .member-coupon-list .coupon-ticket-meta span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+}
+
+/* Passenger coupon page: web workbench shell with miniapp-matched coupon cards. */
+.dashboard-shell .miniapp-coupon-board {
+  display: grid;
+  grid-template-columns: minmax(0, 398px) minmax(0, 398px);
+  gap: 12px;
+  align-items: start;
+  width: min(100%, 828px);
+  margin-top: 12px;
+}
+
+.dashboard-shell .miniapp-coupon-board > * {
+  min-width: 0;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-panel {
+  grid-column: 1 / -1;
+  position: relative;
+  min-height: 96px;
+  padding: 18px 22px;
+  overflow: hidden;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 87% 5%, rgba(255, 223, 190, .66), transparent 160px),
+    linear-gradient(135deg, #fff7ef 0%, #fffdf9 76%);
+  border: 1px solid rgba(255, 210, 170, .52);
+  box-shadow: 0 12px 26px rgba(115, 70, 28, .06);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-panel h2 {
+  margin: 0;
+  color: #283246;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-panel p {
+  margin: 7px 0 0;
+  color: #788294;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-wallet {
+  position: absolute;
+  right: 24px;
+  top: 11px;
+  width: 126px;
+  height: 82px;
+  pointer-events: none;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-ticket {
+  position: absolute;
+  top: 0;
+  width: 50px;
+  height: 58px;
+  border-radius: 8px;
+  color: #ff7b1a;
+  background: linear-gradient(180deg, #ffe9ac 0%, #ffd477 100%);
+  box-shadow: 0 8px 18px rgba(255, 151, 48, .16);
+  font-size: 20px;
+  line-height: 58px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-ticket.left {
+  left: 20px;
+  transform: rotate(7deg);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-ticket.right {
+  left: 58px;
+  top: 7px;
+  transform: rotate(-9deg);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-ticket::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 9px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 154, 44, .22);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-wallet-body {
+  position: absolute;
+  left: 32px;
+  right: 0;
+  bottom: 2px;
+  height: 66px;
+  border-radius: 15px 15px 20px 20px;
+  background: linear-gradient(145deg, #ff9b3d 0%, #ff6c20 100%);
+  box-shadow: 0 12px 24px rgba(255, 111, 30, .18);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-wallet-body::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  height: 13px;
+  border-radius: 12px 12px 0 0;
+  background: rgba(255, 255, 255, .17);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-coin {
+  position: absolute;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: rgba(255, 154, 44, .78);
+  background: linear-gradient(180deg, #ffdf92, #ffb84a);
+  box-shadow: 0 8px 16px rgba(255, 137, 25, .18);
+  font-size: 16px;
+  line-height: 30px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-coin.front {
+  right: 0;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-hero-coin.back {
+  right: 34px;
+  bottom: -5px;
+  opacity: .8;
+}
+
+.dashboard-shell .miniapp-coupon-tabs {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 42px;
+  padding: 0 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .98);
+  border: 1px solid rgba(31, 36, 50, .04);
+  box-shadow: 0 8px 18px rgba(42, 48, 64, .04);
+}
+
+.dashboard-shell .miniapp-coupon-tabs button {
+  position: relative;
+  min-width: 0;
+  min-height: 42px;
+  color: #7c8596;
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-tabs button.active {
+  color: #ff741e;
+}
+
+.dashboard-shell .miniapp-coupon-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+  background: #ff741e;
+  transform: translateX(-50%);
+}
+
+.dashboard-shell .miniapp-coupon-content {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 398px) minmax(0, 398px);
+  gap: 12px;
+  align-items: start;
+}
+
+.dashboard-shell .coupon-page-card {
+  min-width: 0;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .98);
+  border: 1px solid rgba(31, 36, 50, .04);
+  box-shadow: 0 10px 20px rgba(38, 45, 60, .04);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  padding-inline: 2px;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-title-wrap h3 {
+  margin: 0;
+  color: #273145;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-title-wrap small {
+  color: #98a2b3;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon {
+  position: relative;
+  width: 16px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon::before,
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateY(-50%);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon::before {
+  left: -2px;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon::after {
+  right: -2px;
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon.orange {
+  background: linear-gradient(90deg, #ff7f34, #ff9b52);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-icon.purple {
+  background: linear-gradient(90deg, #9d7cff, #b197ff);
+}
+
+.dashboard-shell .miniapp-coupon-board .coupon-section-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  color: #5c6678;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-list {
+  display: grid;
+  gap: 7px;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 64px;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  height: 66px;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid rgba(31, 36, 50, .035);
+  box-shadow: 0 6px 14px rgba(37, 45, 62, .035);
+  transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 18px rgba(37, 45, 62, .055);
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp::before {
+  display: none;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp.is-disabled {
+  opacity: .62;
+  filter: none;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp .coupon-ticket-value {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 78px;
+  min-width: 0;
+  height: 100%;
+  padding: 9px 9px 8px 12px;
+  color: #fff;
+  line-height: 1;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-theme-orange .coupon-ticket-value {
+  background: linear-gradient(90deg, #ff7f34 0%, #ff934a 56%, #ffab6e 100%);
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-theme-purple .coupon-ticket-value {
+  background: linear-gradient(90deg, #9d7cff 0%, #b197ff 56%, #cab8ff 100%);
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp .coupon-ticket-value::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  background-image: radial-gradient(circle, #fff 4px, transparent 5px);
+  background-size: 10px 11px;
+  background-position: 0 1px;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-mini-value {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  max-width: 58px;
+  min-width: 0;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-mini-value small {
+  margin: 0 1px 0 0;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-mini-value strong {
+  max-width: 38px;
+  overflow: hidden;
+  color: inherit;
+  font-size: 23px;
+  line-height: .95;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-value-rate .coupon-mini-value strong,
+.dashboard-shell .miniapp-coupon-list .coupon-value-benefit .coupon-mini-value strong {
+  max-width: 54px;
+  font-size: 15px;
+  line-height: 1.05;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-mini-value em {
+  margin-left: 2px;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-value > span {
+  position: relative;
+  z-index: 1;
+  max-width: 52px;
+  margin-top: 6px;
+  overflow: hidden;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.15;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-main {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: 8px 5px 7px 16px;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-main > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #20283b;
+  font-size: 13px;
+  line-height: 1.24;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-main p,
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-main small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-main p {
+  margin: 4px 0 0;
+  color: #7b8497;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-main small {
+  margin-top: 3px;
+  color: #8f98aa;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  min-width: 0;
+  padding: 0 9px 0 2px;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-side-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 0;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-theme-orange .coupon-side-action {
+  color: #ff6f18;
+  background: #fff1e7;
+  box-shadow: 0 5px 12px rgba(255, 116, 30, .055);
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-theme-purple .coupon-side-action {
+  color: #8d6bff;
+  background: #f4efff;
+  box-shadow: 0 5px 12px rgba(141, 112, 255, .055);
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-side-action.is-claimed,
+.dashboard-shell .miniapp-coupon-list .coupon-side-action:disabled {
+  color: #9ba4b5;
+  background: #f1f3f7;
+  box-shadow: none;
+}
+
+.dashboard-shell .miniapp-coupon-list .coupon-ticket-side span {
+  color: #ff7a1a;
+  background: #fff1e7;
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.dashboard-shell .miniapp-coupon-board .miniapp-toggle {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 30px;
+  margin-top: 2px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 180, 112, .58);
+  background: #fff1e5;
+  color: #a14b00;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dashboard-shell .miniapp-coupon-board .miniapp-toggle.purple {
+  color: #8d6bff;
+  border-color: rgba(177, 151, 255, .35);
+  background: #f4efff;
+}
+
+.dashboard-shell .miniapp-coupon-board .member-coupon-banner {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 194, 122, .38);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff6e5 0%, #fff0cf 100%);
+  color: #9a4a00;
+  text-align: left;
+  box-shadow: 0 10px 20px rgba(255, 151, 48, .08);
+}
+
+.dashboard-shell .miniapp-coupon-board .member-coupon-crown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  color: #ff8a22;
+  background: rgba(255, 255, 255, .74);
+}
+
+.dashboard-shell .miniapp-coupon-board .member-coupon-banner strong {
+  display: block;
+  overflow: hidden;
+  color: #a14b00;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-board .member-coupon-banner small {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #b26a1a;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .miniapp-coupon-board .member-coupon-banner em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: #fff;
+  background: #ff8a22;
+  font-size: 12px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Passenger order page: tighter order workbench inspired by the miniapp order center. */
+.dashboard-shell .order-detail-layout {
+  grid-template-columns: minmax(540px, 1fr) minmax(410px, .82fr);
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.dashboard-shell .order-board-card,
+.dashboard-shell .order-detail-card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .86);
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 14px 32px rgba(38, 45, 61, .055);
+}
+
+.dashboard-shell .order-board-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.dashboard-shell .order-board-head {
+  margin-bottom: 0;
+}
+
+.dashboard-shell .order-board-card h2 {
+  margin-top: 2px;
+  color: #20283b;
+  font-size: 21px;
+  line-height: 1.14;
+  font-weight: 620;
+}
+
+.dashboard-shell .order-board-card h2 small {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-board-actions {
+  gap: 7px;
+}
+
+.dashboard-shell .order-list-toggle {
+  min-height: 31px;
+  padding: 0 11px;
+  color: #a04d00;
+  background: #fff6ed;
+  border-color: rgba(255, 122, 0, .16);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-workbench-hero {
+  display: none;
+}
+
+.dashboard-shell .order-quick-strip,
+.dashboard-shell .order-mini-metric {
+  display: none;
+}
+
+.dashboard-shell .order-summary-strip {
+  display: none;
+  gap: 8px;
+  margin: 0;
+}
+
+.dashboard-shell .order-summary-strip .summary-pill {
+  grid-template-columns: 31px minmax(0, 1fr);
+  min-height: 54px;
+  padding: 9px 10px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .76);
+  box-shadow: 0 8px 18px rgba(31, 41, 55, .035);
+}
+
+.dashboard-shell .order-summary-strip .summary-pill-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 11px;
+}
+
+.dashboard-shell .order-summary-strip .summary-pill strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.dashboard-shell .order-summary-strip .summary-pill small {
+  font-weight: 500;
+}
+
+.dashboard-shell .order-filter-panel {
+  display: grid;
+  gap: 7px;
+  margin: 1px 0 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .82), rgba(250, 251, 253, .78));
+  border: 1px solid rgba(31, 36, 50, .055);
+  box-shadow: none;
+}
+
+.dashboard-shell .order-filter-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-shell .order-filter-label {
+  color: #7b8494;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-filter-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dashboard-shell .order-filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-shell .order-filter-tabs button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: #5d6879;
+  background: #fbfcfe;
+  border: 1px solid rgba(31, 36, 50, .07);
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dashboard-shell .order-filter-tabs button.active {
+  color: #f56600;
+  background: #fff2e3;
+  border-color: rgba(255, 122, 0, .36);
+  box-shadow: none;
+}
+
+.dashboard-shell .order-filter-tabs button span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .13);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-shell .compact-order-list {
+  gap: 9px;
+}
+
+.dashboard-shell .order-empty-list {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  min-height: 118px;
+  border-radius: 15px;
+  border: 1px dashed rgba(255, 122, 0, .24);
+  background: rgba(255, 255, 255, .56);
+  color: #667085;
+  text-align: center;
+}
+
+.dashboard-shell .order-empty-list strong {
+  color: #20283b;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-empty-list span {
+  color: #7b8494;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.dashboard-shell .order-card.compact.slim {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) 68px;
+  gap: 5px 10px;
+  min-height: 70px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid rgba(31, 36, 50, .05);
+  box-shadow: 0 6px 16px rgba(24, 34, 56, .028);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.dashboard-shell .order-card.compact.slim::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 176px;
+  height: 68px;
+  background: radial-gradient(circle at 0 0, rgba(255, 122, 0, .06), transparent 68%);
+  pointer-events: none;
+}
+
+.dashboard-shell .order-card.compact.slim:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 0, .18);
+  box-shadow: 0 12px 26px rgba(24, 34, 56, .065);
+}
+
+.dashboard-shell .order-card.compact.slim.is-selected {
+  border-color: rgba(255, 122, 0, .34);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(255, 249, 241, .9));
+  box-shadow: 0 10px 22px rgba(255, 122, 0, .075);
+}
+
+.dashboard-shell .order-card.compact.slim.is-clickable {
+  cursor: pointer;
+}
+
+.dashboard-shell .order-card.compact.slim .order-line {
+  position: relative;
+  z-index: 1;
+  grid-column: 1;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-shell .order-card-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-shell .order-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-shell .order-type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #ff6f00;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-card.compact.slim .order-line h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 5px;
+  min-width: 0;
+  color: #20283b;
+  font-size: 13px;
+  line-height: 1.28;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .order-type-mark {
+  position: relative;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 9px;
+  color: #ff6f00;
+  background: #fff1df;
+}
+
+.dashboard-shell .order-type-mark::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 15px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-radius: 7px 8px 4px 4px;
+  transform: translate(-50%, -18%);
+}
+
+.dashboard-shell .order-type-mark::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  bottom: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 10px 0 0 currentColor, 5px -11px 0 -1px currentColor;
+}
+
+.dashboard-shell .order-type-mark.carpool {
+  color: #07896f;
+  background: #e9f8f1;
+}
+
+.dashboard-shell .order-type-mark.international {
+  color: #5b64d8;
+  background: #eef0ff;
+}
+
+.dashboard-shell .order-card.compact.slim .order-line h3 svg {
+  flex: 0 0 auto;
+  color: #98a2b3;
+}
+
+.dashboard-shell .order-subline {
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.dashboard-shell .order-subline span {
+  min-height: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #717b8d;
+  background: rgba(100, 116, 139, .075);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-subline .order-time {
+  color: #526173;
+  background: transparent;
+  padding-inline: 0;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-card-copy .order-badges {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.dashboard-shell .order-card.compact.slim .order-badges {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.dashboard-shell .order-card.compact.slim .order-badges .status-badge {
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-slim-meta {
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  min-width: 68px;
+  gap: 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  align-items: flex-end;
+}
+
+.dashboard-shell .order-slim-meta strong {
+  color: #ff6f00;
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 650;
+}
+
+.dashboard-shell .order-actions.slim {
+  position: absolute;
+  right: 13px;
+  bottom: 9px;
+  z-index: 1;
+  justify-content: flex-end;
+  gap: 5px;
+  padding-top: 0;
+  opacity: .92;
+}
+
+.dashboard-shell .order-actions.slim:empty {
+  display: none;
+}
+
+.dashboard-shell .order-actions.slim .ghost-button,
+.dashboard-shell .order-actions.slim .solid-button {
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-actions.slim .ghost-button.is-selected {
+  color: #fff;
+  background: #ff7a00;
+  border-color: transparent;
+}
+
+.dashboard-shell .order-detail-card {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 9px;
+  padding: 16px;
+}
+
+.dashboard-shell .order-detail-card-empty {
+  min-height: 214px;
+}
+
+.dashboard-shell .order-empty-receipt {
+  min-height: 182px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 122, 0, .24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .76), rgba(255, 249, 242, .7));
+  text-align: center;
+}
+
+.dashboard-shell .order-empty-receipt span {
+  color: #8b94a7;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-empty-receipt strong {
+  color: #20283b;
+  font-size: 16px;
+  line-height: 1.22;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-empty-receipt small {
+  max-width: 23ch;
+  color: #6f7b8d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dashboard-shell .order-detail-card .card-head {
+  align-items: flex-start;
+}
+
+.dashboard-shell .order-detail-card .card-head h2 {
+  color: #20283b;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 620;
+}
+
+.dashboard-shell .order-detail-card .order-badges .status-badge {
+  min-height: 24px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-shell .order-detail-hero {
+  grid-template-columns: minmax(0, 1fr) 82px;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: 15px;
+  background:
+    linear-gradient(120deg, rgba(255, 248, 241, .96), rgba(255, 255, 255, .92)),
+    radial-gradient(circle at 100% 0, rgba(255, 122, 0, .08), transparent 120px);
+  border: 1px solid rgba(255, 122, 0, .13);
+}
+
+.dashboard-shell .order-detail-hero strong {
+  color: #20283b;
+  font-size: 24px;
+  font-weight: 650;
+}
+
+.dashboard-shell .order-detail-hero span,
+.dashboard-shell .order-detail-hero small {
+  font-weight: 400;
+}
+
+.dashboard-shell .order-detail-mini-map {
+  min-height: 58px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-shell .order-detail-metrics {
+  gap: 0;
+  overflow: hidden;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(31, 36, 50, .055);
+}
+
+.dashboard-shell .order-detail-metrics .mini-stat {
+  min-height: 50px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-shell .order-detail-metrics .mini-stat + .mini-stat {
+  border-left: 1px solid rgba(31, 36, 50, .055);
+}
+
+.dashboard-shell .order-detail-metrics .mini-stat strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.dashboard-shell .order-fee-breakdown-panel,
+.dashboard-shell .order-flow-panel,
+.dashboard-shell .order-detail-info .info-panel {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(31, 36, 50, .055);
+  box-shadow: none;
+}
+
+.dashboard-shell .order-fee-breakdown-panel {
+  padding: 11px 13px;
+}
+
+.dashboard-shell .order-action-panel-head span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-action-panel-head small {
+  display: none;
+  color: #7c8798;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.dashboard-shell .fee-row {
+  min-height: 27px;
+  font-weight: 500;
+}
+
+.dashboard-shell .fee-row strong {
+  font-weight: 650;
+}
+
+.dashboard-shell .fee-row.total strong {
+  color: #e95f00;
+  font-size: 15px;
+}
+
+.dashboard-shell .order-flow-panel {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 9px 10px 8px;
+  overflow: hidden;
+}
+
+.dashboard-shell .order-flow-step {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-height: 48px;
+  padding: 3px 4px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+
+.dashboard-shell .order-flow-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(50% + 14px);
+  right: calc(-50% + 14px);
+  top: 15px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .28);
+}
+
+.dashboard-shell .order-flow-step.done:not(:last-child)::after,
+.dashboard-shell .order-flow-step.active:not(:last-child)::after {
+  background: linear-gradient(90deg, rgba(0, 168, 150, .72), rgba(255, 122, 0, .58));
+}
+
+.dashboard-shell .order-flow-step span {
+  position: relative;
+  z-index: 1;
+  width: 23px;
+  height: 23px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-flow-step p {
+  color: #657287;
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-shell .order-detail-info .info-panel {
+  margin: 0;
+  padding: 10px 13px;
+}
+
+.dashboard-shell .order-detail-info .info-panel h3 {
+  margin: 0 0 8px;
+  color: #20283b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-detail-info .info-panel ul {
+  margin: 0;
+}
+
+.dashboard-shell .order-detail-info .info-panel li {
+  min-height: 30px;
+  padding: 5px 0;
+  border-bottom-color: rgba(31, 36, 50, .055);
+}
+
+.dashboard-shell .order-detail-info .info-panel li:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-shell .order-detail-info .info-panel span {
+  color: #7c8798;
+  font-weight: 400;
+}
+
+.dashboard-shell .order-detail-info .info-panel strong {
+  color: #20283b;
+  font-weight: 600;
+}
+
+.dashboard-shell .order-detail-actions {
+  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dashboard-shell .order-detail-actions .ghost-button,
+.dashboard-shell .order-detail-actions .solid-button,
+.dashboard-shell .order-detail-done {
+  min-height: 32px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-shell .order-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-shell .order-detail-card {
+    position: relative;
+    top: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-shell .order-board-card,
+  .dashboard-shell .order-detail-card {
+    padding: 15px;
+    border-radius: 20px;
+  }
+
+  .dashboard-shell .order-quick-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .order-summary-strip,
+  .dashboard-shell .order-detail-metrics,
+  .dashboard-shell .order-flow-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .order-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .order-filter-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .dashboard-shell .order-card.compact.slim {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-shell .order-slim-meta {
+    grid-template-columns: repeat(3, auto);
+    justify-items: start;
+  }
+
+  .dashboard-shell .order-actions.slim {
+    justify-content: flex-start;
+  }
+
+  .dashboard-shell .order-detail-hero,
+  .dashboard-shell .order-route-card {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .order-route-card i {
+    width: 3px;
+    height: 28px;
+    justify-self: start;
+    margin-left: 7px;
+  }
+
+  .dashboard-shell .order-flow-step:not(:last-child)::after {
+    display: none;
+  }
+}
+
+@media (max-width: 1120px) {
+  .dashboard-shell .miniapp-coupon-board {
+    width: min(100%, 430px);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-shell .miniapp-coupon-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .dashboard-grid.ride-workbench.real-ride {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-height: auto;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride > .booking-card {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride > .city-map {
+    min-height: 540px;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-grid.ride-workbench.real-ride {
+    gap: 12px;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride > .booking-card {
+    border-radius: 20px;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride > .city-map {
+    min-height: 520px;
+    padding: 8px;
+    border-radius: 22px;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride .city-map.map-only,
+  .dashboard-grid.ride-workbench.real-ride .city-map.map-only .miniapp-sync-shell,
+  .dashboard-grid.ride-workbench.real-ride .city-map.map-only .miniapp-sync-map {
+    min-height: 486px;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride .map-topline {
+    left: 14px;
+    right: 14px;
+    top: 14px;
+    max-width: none;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride .miniapp-sync-brand {
+    left: 14px;
+    top: 70px;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride .map-bottomline {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .dashboard-grid.ride-workbench.real-ride .booking-actions {
+    grid-template-columns: 1fr;
+    margin-inline: -16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-shell .miniapp-coupon-board {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .dashboard-shell .miniapp-coupon-board .coupon-hero-panel {
+    min-height: 102px;
+    padding: 18px 16px;
+  }
+
+  .dashboard-shell .miniapp-coupon-board .coupon-hero-panel h2 {
+    font-size: 22px;
+  }
+
+  .dashboard-shell .miniapp-coupon-board .coupon-hero-wallet {
+    right: 10px;
+    opacity: .86;
+    transform: scale(.82);
+    transform-origin: top right;
+  }
+
+  .dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp {
+    grid-template-columns: 78px minmax(0, 1fr) 62px;
+    height: 64px;
+  }
+
+  .dashboard-shell .miniapp-coupon-list .coupon-ticket-miniapp .coupon-ticket-value {
+    width: 78px;
+    padding-left: 12px;
+  }
+
+  .dashboard-shell .miniapp-coupon-list .coupon-mini-value strong {
+    font-size: 22px;
+  }
+
+  .dashboard-shell .miniapp-coupon-list .coupon-ticket-main {
+    padding-left: 15px;
+  }
+
+  .dashboard-shell .miniapp-coupon-list .coupon-ticket-side {
+    width: 62px;
+    padding-right: 8px;
+  }
+
+  .dashboard-shell .miniapp-coupon-list .coupon-side-action {
+    min-width: 45px;
+    height: 25px;
+    padding-inline: 8px;
+  }
 }
 
 .dashboard-grid.support-chat-grid {

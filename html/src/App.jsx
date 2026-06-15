@@ -41,6 +41,7 @@ import {
   Zap
 } from 'lucide-react'
 import { api, getApiBase, normalizeList, setApiBase } from './api'
+import sunshineLogo from './assets/sunshine-logo-transparent.png'
 import {
   DRIVER_STATUS,
   ORDER_STATUS,
@@ -1113,7 +1114,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
               primaryText="提交订单"
             />
           )}
-          <CityMap booking={booking} estimate={estimate} compact operational activeOrder={activeRideOrder} runtime={activeRuntime} />
+          <CityMap booking={booking} estimate={estimate} compact operational activeOrder={activeRideOrder} runtime={activeRuntime} showSummaryPanel={false} />
         </div>
       )}
 
@@ -1132,6 +1133,17 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         <CouponBoard
           center={couponCenter}
           mine={coupons}
+          membership={membership}
+          onOpenMembership={() => setTab('member')}
+          onUseCoupon={(coupon) => {
+            setBooking((current) => ({
+              ...current,
+              userCouponId: coupon.userCouponId || coupon.id
+            }))
+            setTab('ride')
+            setToast('已选择优惠券，可在叫车页下单抵扣')
+            window.setTimeout(() => setToast(''), 2200)
+          }}
           onReceive={(coupon) => run(() => api.receiveCoupon(token, coupon.id), '优惠券已领取')}
         />
       )}
@@ -1648,12 +1660,6 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
           {checkinDiscount > 0 && <small>签到立减 {formatMoney(checkinDiscount)}</small>}
         </div>
       </div>
-      {!isEmbedded && (
-        <div className="booking-notice-strip">
-          <Radio size={15} />
-          <span>预估随路线、车型和优惠自动更新。</span>
-        </div>
-      )}
       <div className="service-tabs">
         {Object.values(SERVICE_TYPE).map((type) => (
           <button
@@ -1970,7 +1976,7 @@ function normalizeTimeline(order = {}) {
   }))
 }
 
-function CityMap({ booking, estimate, compact = false, operational = true, activeOrder = null, runtime = null, bookingPanel = null, preferStableMap = false }) {
+function CityMap({ booking, estimate, compact = false, operational = true, activeOrder = null, runtime = null, bookingPanel = null, preferStableMap = false, showSummaryPanel = true }) {
   const tilt = useTiltCard({ maxX: 6, maxY: 9 })
   const route = activeOrder ? buildRouteFromOrder(activeOrder) : calcRoute(booking.startId, booking.endId)
   const fallback = activeOrder
@@ -1992,7 +1998,7 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
     delay: `${index * -0.38}s`,
     variant: index % 6
   }))
-  const mapCardClassName = `city-map map-card-v2 glass-panel ${operational ? '' : 'tilt-card'} ${compact ? 'compact' : ''} ${operational ? 'operational-map' : ''} ${bookingPanel ? 'has-booking-panel' : ''}`.replace(/\s+/g, ' ').trim()
+  const mapCardClassName = `city-map map-card-v2 glass-panel ${operational ? '' : 'tilt-card'} ${compact ? 'compact' : ''} ${operational ? 'operational-map' : ''} ${bookingPanel ? 'has-booking-panel' : ''} ${showSummaryPanel ? '' : 'map-only'}`.replace(/\s+/g, ' ').trim()
   const tiltProps = operational
     ? {}
     : {
@@ -2008,10 +2014,10 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
           <span><MapPin size={15} />{route.start.name}</span>
           <small>{operational ? '腾讯地图' : '实时调度地图'}</small>
         </div>
-        <strong>{formatMoney(amount, currency)}</strong>
+        {showSummaryPanel && <strong>{formatMoney(amount, currency)}</strong>}
       </div>
       {operational ? (
-        <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} showSummaryPanel={!bookingPanel} preferStableMap={preferStableMap} />
+        <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} showSummaryPanel={!bookingPanel && showSummaryPanel} preferStableMap={preferStableMap} />
       ) : (
       <div className="map-canvas map-canvas-v2">
         <div className="map-road-net" aria-hidden="true">
@@ -2609,14 +2615,11 @@ function getTencentMapKey() {
 function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, children }) {
   const activeTab = tabs.find(([key]) => key === tab)
   const activeLabel = activeTab?.[2] || '工作台'
-  const syncClock = formatSyncClock(syncMeta.lastSyncAt)
-  const apiModeText = apiMode.mode === 'backend' ? '后台在线' : apiMode.mode === 'demo' ? '演示数据' : '连接中'
   return (
     <main className="dashboard-shell">
       <aside className="side-nav glass-panel">
         <button className="brand-mark" onClick={onBack}>
-          <span className="brand-icon"><Icon size={24} /></span>
-          <span><strong>{role}</strong><small>业务页面</small></span>
+          <img className="dashboard-brand-logo" src={sunshineLogo} alt="阳光出行" />
         </button>
         <div className="nav-tabs">
           {tabs.map(([key, TabIcon, label]) => (
@@ -2638,20 +2641,6 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
             <button className="ghost-button" onClick={onBack}>门户</button>
           </div>
         </header>
-        <div className="dashboard-sync-strip" aria-label="网页、小程序与后台同步状态">
-          <div className="dashboard-sync-item">
-            <span><RefreshCw size={14} /></span>
-            <strong>{syncClock}</strong>
-          </div>
-          <div className="dashboard-sync-item">
-            <span><ShieldCheck size={14} /></span>
-            <strong>{apiModeText}</strong>
-          </div>
-          <div className="dashboard-sync-item">
-            <span><Route size={14} /></span>
-            <strong>{activeLabel}</strong>
-          </div>
-        </div>
         {children}
       </section>
     </main>
@@ -2676,7 +2665,6 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
     const target = filteredOrders.find((order) => orderKey(order) === selectedOrderId)
     return target || filteredOrders[0]
   }, [filteredOrders, selectedOrderId])
-  const summary = useMemo(() => buildOrderBoardSummary(sourceOrders), [sourceOrders])
   const typeCount = (key) => key === 'ALL' ? sourceOrders.length : sourceOrders.filter((order) => order.serviceType === key).length
   const statusCount = (key) => key === 'ALL' ? sourceOrders.length : sourceOrders.filter((order) => getOrderStatusBucket(order) === key).length
 
@@ -2703,7 +2691,7 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
   return (
     <div className="dashboard-grid order-detail-layout">
       <section className="glass-panel work-card order-board-card">
-        <div className="card-head">
+        <div className="card-head order-board-head">
           <div>
             <span className="section-kicker">订单</span>
             <h2>{role === 'DRIVER' ? '司机订单' : '我的订单'} <small>{filteredOrders.length}/{sourceOrders.length}</small></h2>
@@ -2717,25 +2705,26 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
             <button className="icon-button" onClick={onRefresh}><RefreshCw size={17} /></button>
           </div>
         </div>
-        <div className="order-summary-strip">
-          <SummaryPill icon={Clock} label="进行中" value={`${summary.processing} 单`} />
-          <SummaryPill icon={CreditCard} label="待支付" value={`${summary.waitingPay} 单`} />
-          <SummaryPill icon={CheckCircle} label="已完成" value={`${summary.completed} 单`} />
-        </div>
         <div className="order-filter-panel">
-          <div className="segmented-row order-filter-tabs">
-            {orderTypeTabs.map(([key, label]) => (
-              <button key={key} className={typeFilter === key ? 'active' : ''} onClick={() => setTypeFilter(key)}>
-                {label}<span>{typeCount(key)}</span>
-              </button>
-            ))}
+          <div className="order-filter-row">
+            <span className="order-filter-label">业务</span>
+            <div className="segmented-row order-filter-tabs">
+              {orderTypeTabs.map(([key, label]) => (
+                <button key={key} className={typeFilter === key ? 'active' : ''} onClick={() => setTypeFilter(key)}>
+                  {label}<span>{typeCount(key)}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="segmented-row order-filter-tabs status">
-            {orderStatusTabs.map(([key, label]) => (
-              <button key={key} className={statusFilter === key ? 'active' : ''} onClick={() => setStatusFilter(key)}>
-                {label}<span>{statusCount(key)}</span>
-              </button>
-            ))}
+          <div className="order-filter-row">
+            <span className="order-filter-label">状态</span>
+            <div className="segmented-row order-filter-tabs status">
+              {orderStatusTabs.map(([key, label]) => (
+                <button key={key} className={statusFilter === key ? 'active' : ''} onClick={() => setStatusFilter(key)}>
+                  {label}<span>{statusCount(key)}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <OrderList
@@ -2743,14 +2732,9 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
           empty={sourceOrders.length ? '当前筛选下暂无订单。' : '暂无订单。'}
           limit={visibleCount}
           selectedOrderId={selectedOrderId}
+          onSelect={(order) => setSelectedOrderId(orderKey(order))}
           footer={(order) => (
             <>
-              <button
-                className={`ghost-button ${orderKey(order) === orderKey(selectedOrder) ? 'is-selected' : ''}`}
-                onClick={() => setSelectedOrderId(orderKey(order))}
-              >
-                <ChevronRight size={16} />详情
-              </button>
               <OrderActions role={role} order={order} onAction={(action, payload) => onAction(action, order, payload)} />
             </>
           )}
@@ -2779,17 +2763,6 @@ function getOrderStatusBucket(order = {}) {
   return 'PROCESSING'
 }
 
-function buildOrderBoardSummary(orders = []) {
-  return normalizeList(orders).reduce((summary, order) => {
-    const bucket = getOrderStatusBucket(order)
-    if (bucket === 'PROCESSING' || bucket === 'DISPATCHING') summary.processing += 1
-    if (bucket === 'WAITING_PAY') summary.waitingPay += 1
-    if (bucket === 'COMPLETED') summary.completed += 1
-    if (order.orderStatus === ORDER_STATUS.CANCELLED) summary.cancelled += 1
-    return summary
-  }, { processing: 0, waitingPay: 0, completed: 0, cancelled: 0 })
-}
-
 function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
   const [activeAction, setActiveAction] = useState('')
   const [payForm, setPayForm] = useState({ payChannel: 'WECHAT' })
@@ -2808,7 +2781,15 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
   }, [selectedOrderKey])
 
   if (!order) {
-    return <section className="glass-panel work-card order-detail-card"><EmptyState text="暂无可查看的订单详情。" /></section>
+    return (
+      <section className="glass-panel work-card order-detail-card order-detail-card-empty">
+        <div className="order-empty-receipt">
+          <span>订单详情</span>
+          <strong>暂无可查看的订单</strong>
+          <small>选择左侧订单后，这里显示路线、费用、流程和售后操作。</small>
+        </div>
+      </section>
+    )
   }
   const amount = formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)
   const rawAmount = Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)
@@ -2934,7 +2915,6 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
       <div className="order-fee-breakdown-panel">
         <div className="order-action-panel-head">
           <span><DollarSign size={15} />费用明细</span>
-          <small>支付、退款和发票共用这笔订单金额</small>
         </div>
         <div className="fee-row-list">
           {feeRows.map((item) => (
@@ -2946,7 +2926,7 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
         </div>
       </div>
 
-      <div className="order-flow-panel">
+      <div className="order-flow-panel" style={{ '--order-flow-count': steps.length }}>
         {steps.map((step, index) => (
           <div className={`order-flow-step ${step.state}`} key={step.key}>
             <span>{step.state === 'upcoming' ? index + 1 : '✓'}</span>
@@ -2977,9 +2957,6 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
         {canDriverStart && <button className="solid-button" onClick={() => onAction('start')}><Play size={16} />开始接驾</button>}
         {canDriverPickup && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />确认上车</button>}
         {canDriverFinish && <button className="solid-button" onClick={() => onAction('finish')}><Flag size={16} />完成行程</button>}
-        {!canPay && !canEvaluate && !canComplain && !canInvoice && !canDriverStart && !canDriverPickup && !canDriverFinish && (
-          <span className="order-detail-done">当前订单暂无待处理操作</span>
-        )}
       </div>
 
       {activeAction === 'pay' && (
@@ -3224,24 +3201,51 @@ function formatOrderDisplayTime(order = {}) {
   return value.slice(0, 16)
 }
 
-function OrderList({ orders, footer, empty, limit, selectedOrderId }) {
-  if (!orders?.length) return <EmptyState text={empty} />
+function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect }) {
+  if (!orders?.length) {
+    return (
+      <div className="order-empty-list">
+        <strong>暂无订单</strong>
+        <span>{empty}</span>
+      </div>
+    )
+  }
   const visibleOrders = Number.isFinite(limit) ? orders.slice(0, limit) : orders
   return (
     <div className="order-list compact-order-list">
       {visibleOrders.map((order, index) => {
         const key = order.id || order.orderNo || index
         const orderTime = formatOrderDisplayTime(order)
+        const serviceKey = order.serviceType === SERVICE_TYPE.CARPOOL
+          ? 'carpool'
+          : order.serviceType === SERVICE_TYPE.INTERNATIONAL
+            ? 'international'
+            : 'taxi'
         return (
-        <article className={`order-card glass-panel compact slim ${orderKey(order) === selectedOrderId ? 'is-selected' : ''}`} key={key}>
+        <article
+          className={`order-card glass-panel compact slim ${orderKey(order) === selectedOrderId ? 'is-selected' : ''} ${onSelect ? 'is-clickable' : ''}`}
+          key={key}
+          role={onSelect ? 'button' : undefined}
+          tabIndex={onSelect ? 0 : undefined}
+          onClick={onSelect ? () => onSelect(order) : undefined}
+          onKeyDown={onSelect ? (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onSelect(order)
+            }
+          } : undefined}
+        >
           <div className="order-line">
-            <div>
+            <div className="order-card-copy">
+              <div className="order-card-topline">
+                <span className="order-type-label"><span className={`order-type-mark ${serviceKey}`} />{statusLabel[order.serviceType] || order.serviceType}</span>
+                <div className="order-badges">
+                  <StatusBadge value={order.orderStatus} />
+                  <StatusBadge value={order.payStatus} />
+                </div>
+              </div>
               <h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3>
-              <p className="order-subline"><span>{order.orderNo || `#${order.id}`}</span><span>{statusLabel[order.serviceType] || order.serviceType}</span><span className="order-time">下单 {orderTime}</span></p>
-            </div>
-            <div className="order-badges">
-              <StatusBadge value={order.orderStatus} />
-              <StatusBadge value={order.payStatus} />
+              <p className="order-subline"><span>{order.orderNo || `#${order.id}`}</span><span className="order-time">下单 {orderTime}</span></p>
             </div>
           </div>
           <div className="order-slim-meta">
@@ -3276,8 +3280,8 @@ function OrderActions({ role, order, onAction }) {
   )
 }
 
-function CouponBoard({ center, mine, onReceive }) {
-  const [status, setStatus] = useState('ALL')
+function CouponBoard({ center, mine, membership, onReceive, onOpenMembership, onUseCoupon }) {
+  const [status, setStatus] = useState('UNUSED')
   const [walletExpanded, setWalletExpanded] = useState(false)
   const [centerExpanded, setCenterExpanded] = useState(false)
   const [claimingId, setClaimingId] = useState('')
@@ -3285,30 +3289,20 @@ function CouponBoard({ center, mine, onReceive }) {
   const templateMap = useMemo(() => new Map(centerList.map((coupon) => [Number(coupon.id), coupon])), [centerList])
   const walletList = normalizeList(mine).map((coupon) => ({ ...templateMap.get(Number(coupon.couponId)), ...coupon }))
   const ownedCouponKeys = useMemo(() => new Set(walletList.map(couponTemplateKey).filter(Boolean)), [walletList])
-  const visibleWallet = status === 'ALL' ? walletList : walletList.filter((coupon) => normalizeCouponStatus(coupon) === status)
-  const walletDisplay = walletExpanded ? visibleWallet : visibleWallet.slice(0, 5)
-  const centerDisplay = centerExpanded ? centerList : centerList.slice(0, 5)
+  const visibleWallet = walletList.filter((coupon) => normalizeCouponStatus(coupon) === status)
+  const walletDisplay = walletExpanded ? visibleWallet : visibleWallet.slice(0, 2)
+  const centerDisplay = centerExpanded ? centerList : centerList.slice(0, 3)
   const usableCoupons = walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'UNUSED')
-  const expiringSoon = usableCoupons.filter((coupon) => {
-    const endMs = couponExpireMs(coupon)
-    if (!endMs) return false
-    const now = Date.now()
-    return endMs >= now && endMs - now <= 7 * 24 * 60 * 60 * 1000
-  })
-  const cashValue = usableCoupons.reduce((sum, coupon) => sum + couponCashValue(coupon), 0)
-  const nearestExpiring = expiringSoon
-    .slice()
-    .sort((left, right) => couponExpireMs(left) - couponExpireMs(right))[0]
-  const couponNotice = usableCoupons.length
-    ? nearestExpiring
-      ? `${nearestExpiring.couponName || nearestExpiring.name || '有优惠券'} 即将到期`
-      : '下单时会按设置自动匹配最优券'
-    : '先到券中心领取，再回到下单页使用'
+  const usedCoupons = walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'USED')
+  const expiredCoupons = walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'EXPIRED')
+  const activeMembership = Boolean(membership?.active || membership?.memberStatus === 'ACTIVE')
+  const memberDesc = activeMembership
+    ? `有效期至 ${membership?.expireDate || membership?.validEndTime || membership?.endTime || '--'} · 每周3张不同优惠券`
+    : '每周赠送3张不同优惠券 · 优先客服'
   const statusTabs = [
-    ['ALL', '全部', walletList.length],
-    ['UNUSED', '可用', usableCoupons.length],
-    ['USED', '已用', walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'USED').length],
-    ['EXPIRED', '失效', walletList.filter((coupon) => normalizeCouponStatus(coupon) === 'EXPIRED').length]
+    ['UNUSED', '可使用', usableCoupons.length],
+    ['USED', '已使用', usedCoupons.length],
+    ['EXPIRED', '已过期', expiredCoupons.length]
   ]
   const receiveCoupon = async (coupon) => {
     const key = couponTemplateKey(coupon)
@@ -3321,71 +3315,106 @@ function CouponBoard({ center, mine, onReceive }) {
     }
   }
   return (
-    <div className="dashboard-grid coupon-board">
-      <section className="glass-panel work-card wide coupon-wallet">
-        <div className="card-head">
-          <div><span className="section-kicker">优惠券</span><h2>我的券包</h2></div>
-          <Ticket size={22} />
+    <div className="coupon-board miniapp-coupon-board">
+      <section className="coupon-page-card coupon-hero-panel">
+        <div>
+          <h2>优惠券中心</h2>
+          <p>领券购物更优惠</p>
         </div>
-        <div className="coupon-summary-grid">
-          <SummaryPill icon={Ticket} label="可用券" value={`${usableCoupons.length} 张`} />
-          <SummaryPill icon={Clock} label="7天内到期" value={`${expiringSoon.length} 张`} />
-          <SummaryPill icon={Wallet} label="现金券面额" value={formatMoney(cashValue)} />
+        <div className="coupon-hero-wallet" aria-hidden="true">
+          <span className="coupon-hero-ticket left">%</span>
+          <span className="coupon-hero-ticket right">券</span>
+          <span className="coupon-hero-wallet-body" />
+          <span className="coupon-hero-coin front">¥</span>
+          <span className="coupon-hero-coin back">+</span>
         </div>
-        <div className="coupon-insight-row">
-          <span>券包提醒</span>
-          <strong>{couponNotice}</strong>
-          <small>{status === 'UNUSED' ? '下单前快速确认可用券。' : '查看已用和失效记录。'}</small>
-        </div>
-        <div className="segmented-row coupon-tabs">
-          {statusTabs.map(([key, label, count]) => (
-            <button key={key} className={status === key ? 'active' : ''} onClick={() => setStatus(key)}>{label}<span>{count}</span></button>
-          ))}
-        </div>
-        {visibleWallet.length ? (
-          <div className="coupon-wallet-list">
-            {walletDisplay.map((coupon, index) => <CouponTicket coupon={coupon} key={coupon.id || coupon.userCouponId || `${coupon.couponId}-${index}`} owned />)}
-          </div>
-        ) : <EmptyState text="暂无对应优惠券。" />}
-        {visibleWallet.length > 5 && (
-          <button className="coupon-list-toggle" onClick={() => setWalletExpanded((value) => !value)}>
-            {walletExpanded ? '收起券包' : `展开全部 ${visibleWallet.length} 张`} <ChevronRight size={14} />
-          </button>
-        )}
       </section>
-      <section className="glass-panel work-card coupon-center-panel">
-        <div className="card-head">
-          <div><span className="section-kicker">领券</span><h2>券中心</h2></div>
-          <Wallet size={21} />
-        </div>
-        {centerList.length ? (
-          <div className="coupon-center-list">
-            {centerDisplay.map((coupon) => {
-              const key = couponTemplateKey(coupon)
-              const claimed = ownedCouponKeys.has(key)
-              return (
+
+      <div className="miniapp-coupon-tabs" role="tablist" aria-label="优惠券状态">
+        {statusTabs.map(([key, label, count]) => (
+          <button key={key} className={status === key ? 'active' : ''} onClick={() => setStatus(key)}>{label} ({count})</button>
+        ))}
+      </div>
+
+      <div className="miniapp-coupon-content">
+        <section className="coupon-page-card coupon-section coupon-section-mine">
+          <div className="coupon-section-head">
+            <div className="coupon-section-title-wrap">
+              <span className="coupon-section-icon orange" />
+              <h3>我的券包</h3>
+            </div>
+            <span>{visibleWallet.length} 张{statusTabs.find(([key]) => key === status)?.[1] || '优惠券'} <ChevronRight size={14} /></span>
+          </div>
+          {visibleWallet.length ? (
+            <div className="coupon-wallet-list miniapp-coupon-list">
+              {walletDisplay.map((coupon, index) => (
                 <CouponTicket
                   coupon={coupon}
-                  key={coupon.id}
-                  claimed={claimed}
-                  busy={claimingId === key}
-                  onReceive={() => receiveCoupon(coupon)}
+                  key={coupon.id || coupon.userCouponId || `${coupon.couponId}-${index}`}
+                  owned
+                  theme="orange"
+                  variant="miniapp"
+                  onUse={() => onUseCoupon?.(coupon)}
                 />
-              )
-            })}
+              ))}
+            </div>
+          ) : <EmptyState text="暂无对应优惠券。" />}
+          {visibleWallet.length > 2 && (
+            <button className="coupon-list-toggle miniapp-toggle orange" onClick={() => setWalletExpanded((value) => !value)}>
+              {walletExpanded ? '收起' : `展开更多 (${visibleWallet.length - 2})`} <ChevronRight size={14} />
+            </button>
+          )}
+        </section>
+
+        <section className="coupon-page-card coupon-section coupon-section-center">
+          <div className="coupon-section-head">
+            <div className="coupon-section-title-wrap">
+              <span className="coupon-section-icon purple" />
+              <h3>券中心</h3>
+              <small>更多优惠券等你来领</small>
+            </div>
+            <span>{centerList.length} 张可领券 <ChevronRight size={14} /></span>
           </div>
-        ) : <EmptyState text="当前暂无可领取优惠券。" />}
-        {centerList.length > 5 && (
-          <button className="coupon-list-toggle" onClick={() => setCenterExpanded((value) => !value)}>
-            {centerExpanded ? '收起券中心' : `展开全部 ${centerList.length} 张`} <ChevronRight size={14} />
-          </button>
-        )}
-      </section>
+          {centerList.length ? (
+            <div className="coupon-center-list miniapp-coupon-list">
+              {centerDisplay.map((coupon) => {
+                const key = couponTemplateKey(coupon)
+                const claimed = ownedCouponKeys.has(key)
+                return (
+                  <CouponTicket
+                    coupon={coupon}
+                    key={coupon.id}
+                    claimed={claimed}
+                    busy={claimingId === key}
+                    onReceive={() => receiveCoupon(coupon)}
+                    theme="purple"
+                    variant="miniapp"
+                  />
+                )
+              })}
+            </div>
+          ) : <EmptyState text="当前暂无可领取优惠券。" />}
+          {centerList.length > 3 && (
+            <button className="coupon-list-toggle miniapp-toggle purple" onClick={() => setCenterExpanded((value) => !value)}>
+              {centerExpanded ? '收起' : `展开更多 (${centerList.length - 3})`} <ChevronRight size={14} />
+            </button>
+          )}
+        </section>
+
+        <button className={`member-coupon-banner ${activeMembership ? 'is-active' : ''}`} onClick={onOpenMembership}>
+          <span className="member-coupon-crown"><Sparkles size={17} /></span>
+          <span>
+            <strong>{activeMembership ? '会员已开通，专属券包已到账' : '开通会员尊享更多优惠'}</strong>
+            <small>{memberDesc}</small>
+          </span>
+          <em>{activeMembership ? '查看' : '去开通'}</em>
+        </button>
+      </div>
     </div>
   )
 }
 
-function CouponTicket({ coupon, owned = false, onReceive, claimed = false, busy = false }) {
+function CouponTicket({ coupon, owned = false, onReceive, onUse, claimed = false, busy = false, theme = owned ? 'orange' : 'purple', variant = 'default' }) {
   const discount = getCouponValue(coupon)
   const threshold = coupon.thresholdAmount || coupon.minAmount || coupon.conditionAmount || 0
   const status = normalizeCouponStatus(coupon)
@@ -3393,9 +3422,53 @@ function CouponTicket({ coupon, owned = false, onReceive, claimed = false, busy 
   const scope = statusLabel[rawScope] || rawScope || '全场通用'
   const validity = formatDateTimeShort(coupon.validEndTime || coupon.expireTime || coupon.endTime || coupon.validTo || '')
   const expiring = owned && status === 'UNUSED' && isCouponExpiringSoon(coupon)
+  const miniappMode = variant === 'miniapp'
+  const title = coupon.couponName || coupon.name || `优惠券 #${coupon.couponId || coupon.id}`
+  const rule = coupon.ruleDesc || (Number(threshold) > 0 ? `满 ${threshold} 可用` : '无门槛可用')
+  const code = coupon.couponCode || coupon.code || coupon.userCouponCode || coupon.userCouponNo || ''
+  const stock = coupon.stock ?? coupon.remainingStock ?? coupon.leftCount
+  const meta = code
+    ? `券码 ${code}`
+    : stock !== undefined && stock !== null
+      ? `库存 ${stock} · ${validity ? `有效至 ${validity}` : scope}`
+      : validity ? `有效至 ${validity}` : scope
+  const valueUnit = discount.type === 'cash' ? '元' : ''
+  const sideText = owned
+    ? status === 'UNUSED' ? '立即使用' : statusLabel[status] || status
+    : busy ? '领取中' : claimed ? '已领取' : '领取'
+  if (miniappMode) {
+    const disabled = owned && status !== 'UNUSED'
+    const actionDisabled = (!owned && (claimed || busy)) || (owned && status !== 'UNUSED')
+    return (
+      <article className={`coupon-ticket coupon-ticket-miniapp coupon-theme-${theme} coupon-value-${discount.type} ${owned ? 'owned' : ''} ${disabled ? 'is-disabled' : ''}`}>
+        <div className="coupon-ticket-value">
+          <div className="coupon-mini-value">
+            {discount.type === 'cash' && <small>¥</small>}
+            <strong>{discount.text}</strong>
+            {valueUnit && <em>{valueUnit}</em>}
+          </div>
+          <span>{scope}</span>
+        </div>
+        <div className="coupon-ticket-main">
+          <strong>{title}</strong>
+          <p>{rule}</p>
+          <small>{meta}</small>
+        </div>
+        <div className="coupon-ticket-side">
+          <button
+            className={`coupon-side-action ${actionDisabled ? 'is-claimed' : ''}`}
+            disabled={actionDisabled}
+            onClick={owned ? onUse : onReceive}
+          >
+            {sideText}
+          </button>
+        </div>
+      </article>
+    )
+  }
   return (
     <article className={`coupon-ticket ${owned ? 'owned' : ''} ${discount.type === 'rate' ? 'rate' : ''} ${status !== 'UNUSED' ? 'is-disabled' : ''} ${expiring ? 'is-expiring' : ''}`}>
-      <div className="coupon-ticket-value">
+      <div className={`coupon-ticket-value coupon-value-${discount.type}`}>
         {discount.type === 'cash' && <small>¥</small>}<strong>{discount.text}</strong>
       </div>
       <div className="coupon-ticket-main">
@@ -3463,9 +3536,10 @@ function couponCashValue(coupon = {}) {
 
 function getCouponValue(coupon = {}) {
   const couponType = coupon.couponType || coupon.type
-  const amount = coupon.discountAmount || coupon.amount || coupon.faceValue || coupon.couponAmount || 0
-  if (couponType !== 'DISCOUNT' || Number(amount) > 0) {
-    return { type: 'cash', text: Number(amount || 0).toString().replace(/\.00$/, '') }
+  const rawAmount = coupon.discountAmount ?? coupon.amount ?? coupon.faceValue ?? coupon.couponAmount
+  const amount = Number(rawAmount)
+  if (Number.isFinite(amount) && amount > 0) {
+    return { type: 'cash', text: amount.toString().replace(/\.00$/, '') }
   }
   const rawRate = coupon.discountRate ?? coupon.rate ?? coupon.discount
   const rate = Number(rawRate)
@@ -3473,7 +3547,9 @@ function getCouponValue(coupon = {}) {
     return { type: 'rate', text: `${Number((rate * 10).toFixed(1)).toString().replace(/\.0$/, '')}折` }
   }
   const match = `${coupon.couponName || ''}${coupon.ruleDesc || ''}`.match(/(\d+(?:\.\d+)?)\s*折/)
-  return { type: 'rate', text: match ? `${match[1]}折` : '折扣' }
+  if (match) return { type: 'rate', text: `${match[1]}折` }
+  if (couponType === 'DISCOUNT') return { type: 'rate', text: '折扣' }
+  return { type: 'benefit', text: Number(coupon.thresholdAmount || coupon.minAmount || coupon.conditionAmount || 0) > 0 ? '满减' : '免门槛' }
 }
 
 function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }) {
@@ -3487,6 +3563,11 @@ function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }
   const expireText = membership?.expireDate || membership?.validEndTime || membership?.endTime || '-'
   const lastSyncText = membership?.lastSyncAt || membership?.lastIssuedAt || membership?.updatedAt || '待同步'
   const levelText = active ? membership?.memberLevel || '阳光会员' : '开通后生效'
+  const progressItems = [
+    ['1', '开通会员', active ? 'done' : 'active'],
+    ['2', '同步券包', active && memberCoupons.length ? 'done' : active ? 'active' : ''],
+    ['3', '下单抵扣', usableMemberCoupons.length ? 'done' : '']
+  ]
   return (
     <div className="dashboard-grid member-board">
       <section className={`glass-panel work-card member-hero-card ${active ? 'is-active' : 'is-idle'}`}>
@@ -3516,9 +3597,9 @@ function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }
           <SummaryPill icon={RefreshCw} value={membership?.issuedCount || 0} label="本次到账" />
         </div>
         <div className="member-progress-list">
-          <div className={active ? 'done' : 'active'}><span>1</span><p>开通会员</p></div>
-          <div className={active && memberCoupons.length ? 'done' : active ? 'active' : ''}><span>2</span><p>同步本周券包</p></div>
-          <div className={usableMemberCoupons.length ? 'done' : ''}><span>3</span><p>下单时自动可选</p></div>
+          {progressItems.map(([step, label, state]) => (
+            <div className={state} key={step}><span>{step}</span><p>{label}</p></div>
+          ))}
         </div>
         <div className="member-actions">
           <button className="solid-button" onClick={active ? onSyncCoupons : onActivate}>
@@ -3526,7 +3607,6 @@ function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }
           </button>
           <button className="ghost-button" disabled={!active} onClick={onSyncCoupons}><RefreshCw size={16} />刷新权益</button>
         </div>
-        <p className="member-sync-note">上次权益同步：{lastSyncText}</p>
       </section>
       <section className="glass-panel work-card wide member-coupon-card">
         <div className="card-head"><div><span className="section-kicker">会员券包</span><h2>专属优惠券</h2></div><Wallet size={21} /></div>
@@ -4175,7 +4255,7 @@ function InternationalBoard({ booking, setBooking, estimate, carTypes, onSubmit 
         onPrimary={() => onSubmit(selectedOption)}
         primaryText={`提交${selectedOption.titleZh}`}
       />
-      <CityMap booking={internationalBooking} estimate={safeEstimate} compact />
+      <CityMap booking={internationalBooking} estimate={safeEstimate} compact showSummaryPanel={false} />
       <section className="glass-panel work-card">
         <div className="card-head"><div><span className="section-kicker">Global Desk</span><h2>国际方案</h2></div><Globe size={21} /></div>
         <div className="international-metric-grid">
