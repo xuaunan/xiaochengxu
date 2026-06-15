@@ -2,22 +2,31 @@ const { applyInvoice, downloadInvoiceImage, fetchOrders } = require('../../utils
 const { buildInvoiceList, syncOrdersToCache } = require('../../utils/user-store')
 const { runExclusive } = require('../../utils/page')
 
+const SERVICE_ICON_PATHS = {
+  taxi: '/images/service-icons/taxi.png',
+  carpool: '/images/service-icons/carpool.png',
+  international: '/images/service-icons/international.png'
+}
+
 function inferInvoiceMeta(invoice = {}) {
   const title = invoice.title || ''
   if (title.includes('顺风车')) {
     return {
       iconClass: 'carpool',
+      iconPath: SERVICE_ICON_PATHS.carpool,
       serviceTag: '顺风车'
     }
   }
   if (title.includes('国际')) {
     return {
       iconClass: 'international',
+      iconPath: SERVICE_ICON_PATHS.international,
       serviceTag: '国际出行'
     }
   }
   return {
     iconClass: 'taxi',
+    iconPath: SERVICE_ICON_PATHS.taxi,
     serviceTag: '即时打车'
   }
 }

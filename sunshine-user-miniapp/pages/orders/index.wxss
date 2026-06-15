@@ -254,6 +254,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6rpx;
   border-radius: 999rpx;
   color: #667085;
   background: #fbfcfe;
@@ -272,6 +273,12 @@
   color: #ff6f00;
   background: #fff3e7;
   border-color: rgba(255, 122, 0, 0.52);
+}
+
+.filter-chip__icon {
+  width: 25rpx;
+  height: 25rpx;
+  flex-shrink: 0;
 }
 
 .order-list {
@@ -323,91 +330,9 @@
 }
 
 .order-type__icon {
-  position: relative;
   width: 38rpx;
   height: 38rpx;
   flex-shrink: 0;
-  border-radius: 12rpx;
-  color: #ff6f00;
-  background: #fff1df;
-  box-sizing: border-box;
-}
-
-.order-type__icon--taxi::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 24rpx;
-  height: 13rpx;
-  border-radius: 8rpx 9rpx 5rpx 5rpx;
-  border: 2rpx solid currentColor;
-  box-sizing: border-box;
-  transform: translate(-50%, -10%);
-}
-
-.order-type__icon--taxi::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 4rpx;
-  height: 4rpx;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 12rpx 0 0 currentColor, 5rpx -15rpx 0 -1rpx currentColor;
-  transform: translate(-158%, 82%);
-}
-
-.order-type__icon--carpool::before,
-.order-type__icon--carpool::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.order-type__icon--carpool::before {
-  left: 50%;
-  top: 50%;
-  width: 8rpx;
-  height: 8rpx;
-  box-shadow: 13rpx 0 0 currentColor;
-  transform: translate(-128%, -122%);
-}
-
-.order-type__icon--carpool::after {
-  left: 50%;
-  top: 50%;
-  width: 14rpx;
-  height: 10rpx;
-  border-radius: 12rpx 12rpx 4rpx 4rpx;
-  box-shadow: 15rpx 0 0 currentColor;
-  transform: translate(-114%, 18%);
-}
-
-.order-type__icon--international::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 26rpx;
-  height: 5rpx;
-  border-radius: 999rpx;
-  background: currentColor;
-  transform: translate(-50%, -50%) rotate(-28deg);
-}
-
-.order-type__icon--international::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 5rpx;
-  height: 21rpx;
-  border-radius: 999rpx;
-  background: currentColor;
-  transform: translate(-50%, -50%) rotate(-28deg);
 }
 
 .order-type__text {

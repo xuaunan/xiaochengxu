@@ -41,7 +41,7 @@
       <view class="invoice-list" wx:if="{{applyList.length}}">
         <view class="invoice-card tap-scale" wx:for="{{applyList}}" wx:key="id">
           <view class="invoice-service-icon invoice-service-icon--{{item.iconClass}}">
-            <view class="invoice-service-icon__shape"></view>
+            <image class="invoice-service-icon__image" src="{{item.iconPath}}" mode="aspectFit"></image>
           </view>
           <view class="invoice-card__main">
             <view class="invoice-tag invoice-tag--{{item.iconClass}}">{{item.serviceTag}}</view>
@@ -92,7 +92,7 @@
           bindtap="viewInvoice"
         >
           <view class="invoice-issued-row__badge invoice-issued-row__badge--{{item.iconClass}}">
-            <view class="invoice-service-icon__shape"></view>
+            <image class="invoice-service-icon__image" src="{{item.iconPath}}" mode="aspectFit"></image>
           </view>
           <view class="invoice-issued-row__main">
             <view class="invoice-issued-row__top">

@@ -196,11 +196,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8rpx;
   background: #f5f6fa;
   color: #6d7688;
-  font-size: 26rpx;
+  font-size: 25rpx;
   font-weight: 700;
   transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.service-tab__icon {
+  width: 34rpx;
+  height: 34rpx;
+  flex-shrink: 0;
 }
 
 .service-tab--active {

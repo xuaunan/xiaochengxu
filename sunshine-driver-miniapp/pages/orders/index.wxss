@@ -253,6 +253,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 7rpx;
   border-radius: 999rpx;
   color: #667085;
   background: #fbfcfe;
@@ -271,6 +272,12 @@
   color: #ff6f00;
   background: #fff3e7;
   border-color: rgba(255, 122, 0, 0.52);
+}
+
+.driver-filter-chip__icon {
+  width: 28rpx;
+  height: 28rpx;
+  flex-shrink: 0;
 }
 
 .driver-order-list {
@@ -322,91 +329,9 @@
 }
 
 .driver-order-type__icon {
-  position: relative;
   width: 46rpx;
   height: 46rpx;
   flex-shrink: 0;
-  border-radius: 14rpx;
-  color: #ff6f00;
-  background: #fff1df;
-  box-sizing: border-box;
-}
-
-.driver-order-type__icon--taxi::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 27rpx;
-  height: 15rpx;
-  border-radius: 8rpx 9rpx 5rpx 5rpx;
-  border: 3rpx solid currentColor;
-  box-sizing: border-box;
-  transform: translate(-50%, -12%);
-}
-
-.driver-order-type__icon--taxi::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 5rpx;
-  height: 5rpx;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 13rpx 0 0 currentColor, 5rpx -17rpx 0 -1rpx currentColor;
-  transform: translate(-160%, 78%);
-}
-
-.driver-order-type__icon--carpool::before,
-.driver-order-type__icon--carpool::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.driver-order-type__icon--carpool::before {
-  left: 50%;
-  top: 50%;
-  width: 10rpx;
-  height: 10rpx;
-  box-shadow: 15rpx 0 0 currentColor;
-  transform: translate(-126%, -120%);
-}
-
-.driver-order-type__icon--carpool::after {
-  left: 50%;
-  top: 50%;
-  width: 16rpx;
-  height: 12rpx;
-  border-radius: 12rpx 12rpx 4rpx 4rpx;
-  box-shadow: 17rpx 0 0 currentColor;
-  transform: translate(-112%, 18%);
-}
-
-.driver-order-type__icon--international::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 30rpx;
-  height: 5rpx;
-  border-radius: 999rpx;
-  background: currentColor;
-  transform: translate(-50%, -50%) rotate(-28deg);
-}
-
-.driver-order-type__icon--international::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6rpx;
-  height: 24rpx;
-  border-radius: 999rpx;
-  background: currentColor;
-  transform: translate(-50%, -50%) rotate(-28deg);
 }
 
 .driver-order-type__text {

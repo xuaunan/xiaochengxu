@@ -36,6 +36,7 @@
             hover-class="pressable-hover"
             hover-stay-time="60"
           >
+            <image wx:if="{{item.iconPath}}" class="filter-chip__icon" src="{{item.iconPath}}" mode="aspectFit"></image>
             {{item.label}}
           </view>
         </view>
@@ -70,7 +71,7 @@
       >
         <view class="order-card__top">
           <view class="order-type">
-            <view class="order-type__icon order-type__icon--{{item.type}}"></view>
+            <image class="order-type__icon" src="{{item.iconPath}}" mode="aspectFit"></image>
             <view class="order-type__text">{{item.typeText}}</view>
           </view>
           <view class="order-status order-status--{{item.statusTag}}">{{item.statusText}}</view>

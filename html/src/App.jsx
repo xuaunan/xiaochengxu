@@ -67,6 +67,19 @@ const driverSettingsKey = 'sunshine-web-driver-settings-v1'
 const dailyCheckinStateKey = 'sunshine-web-daily-checkin-v1'
 const portalRoleKey = 'sunshine-web-portal-role'
 const DEFAULT_TENCENT_MAP_KEY = 'NHNBZ-F5FW3-Z4C3Q-R4WUM-ODTPE-DRFDV'
+const SERVICE_ICON_PATHS = {
+  [SERVICE_TYPE.TAXI]: '/assets/service-icons/taxi.png',
+  [SERVICE_TYPE.CARPOOL]: '/assets/service-icons/carpool.png',
+  [SERVICE_TYPE.INTERNATIONAL]: '/assets/service-icons/international.png',
+  taxi: '/assets/service-icons/taxi.png',
+  carpool: '/assets/service-icons/carpool.png',
+  international: '/assets/service-icons/international.png'
+}
+const serviceShortLabel = {
+  [SERVICE_TYPE.TAXI]: '打车',
+  [SERVICE_TYPE.CARPOOL]: '顺风车',
+  [SERVICE_TYPE.INTERNATIONAL]: '国际出行'
+}
 
 const driverDefaultSettings = {
   listenMode: false,
@@ -1079,12 +1092,12 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       onLogout={onLogout}
       onBack={onBack}
       tabs={[
-        ['ride', Navigation, '叫车'],
+        ['ride', SERVICE_ICON_PATHS[SERVICE_TYPE.TAXI], '叫车'],
         ['orders', Route, '订单'],
         ['coupons', Ticket, '优惠券'],
         ['member', BadgeCheck, '会员'],
-        ['carpool', Users, '顺风车'],
-        ['international', Globe, '国际'],
+        ['carpool', SERVICE_ICON_PATHS[SERVICE_TYPE.CARPOOL], '顺风车'],
+        ['international', SERVICE_ICON_PATHS[SERVICE_TYPE.INTERNATIONAL], '国际'],
         ['wallet', Wallet, '钱包实名'],
         ['invoice', CreditCard, '发票'],
         ['support', MessageSquare, '客服'],
@@ -1670,7 +1683,8 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
               if (!lockedServiceType) update({ serviceType: type })
             }}
           >
-            {statusLabel[type]}
+            <ServiceIcon type={type} className="service-tab-icon" />
+            <span>{statusLabel[type]}</span>
           </button>
         ))}
       </div>
@@ -2259,9 +2273,12 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
           ) : (
             <>
               <div className="miniapp-sync-tabs">
-                <button className={serviceType === SERVICE_TYPE.TAXI ? 'active' : ''}>打车</button>
-                <button className={serviceType === SERVICE_TYPE.CARPOOL ? 'active' : ''}>顺风车</button>
-                <button className={serviceType === SERVICE_TYPE.INTERNATIONAL ? 'active' : ''}>国际出行</button>
+                {Object.values(SERVICE_TYPE).map((type) => (
+                  <button key={type} className={serviceType === type ? 'active' : ''}>
+                    <ServiceIcon type={type} className="miniapp-service-icon" />
+                    <span>{serviceShortLabel[type]}</span>
+                  </button>
+                ))}
               </div>
               <div className="miniapp-sync-addresses">
                 <div><span className="address-dot start" /><small>从哪里出发</small><strong>{start.name}</strong></div>
@@ -2338,9 +2355,12 @@ function TencentRouteMap({ route, amount, currency, duration, distance, serviceT
       </div>
       <div className="miniapp-ride-panel">
         <div className="service-tabs miniapp-tabs">
-          <button className={serviceType === SERVICE_TYPE.TAXI ? 'active' : ''}>打车</button>
-          <button className={serviceType === SERVICE_TYPE.CARPOOL ? 'active' : ''}>顺风车</button>
-          <button className={serviceType === SERVICE_TYPE.INTERNATIONAL ? 'active' : ''}>国际出行</button>
+          {Object.values(SERVICE_TYPE).map((type) => (
+            <button key={type} className={serviceType === type ? 'active' : ''}>
+              <ServiceIcon type={type} className="miniapp-service-icon" />
+              <span>{serviceShortLabel[type]}</span>
+            </button>
+          ))}
         </div>
         <div className="miniapp-address-stack">
           <div><span className="address-dot start" /><small>从哪里出发</small><strong>{start.name}</strong></div>
@@ -2612,6 +2632,118 @@ function getTencentMapKey() {
   }
 }
 
+function SunshineMotionLogo({ className = '' }) {
+  const rootClassName = ['sunshine-motion-logo', className].filter(Boolean).join(' ')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__p2mReady = true
+    }
+  }, [])
+
+  return (
+    <span id="logo-root" className={rootClassName} role="img" aria-label="阳光出行">
+      <svg
+        className="sunshine-motion-logo__svg"
+        viewBox="0 0 1206 463"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <mask id="sunshineMotionRevealMask" maskUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <g className="sunshine-motion-logo__mask-track" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round">
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--outer-road"
+                pathLength="1"
+                d="M23 362 C94 313 194 286 333 288 C402 289 463 301 529 318"
+                strokeWidth="128"
+              />
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--inner-road"
+                pathLength="1"
+                d="M201 413 C253 337 344 315 518 353"
+                strokeWidth="104"
+              />
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--sun-core"
+                pathLength="1"
+                d="M132 273 C127 171 186 97 268 97 C350 97 410 171 405 274"
+                strokeWidth="148"
+              />
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--word"
+                pathLength="1"
+                d="M529 178 H1187"
+                strokeWidth="180"
+              />
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--tagline"
+                pathLength="1"
+                d="M535 367 H1172"
+                strokeWidth="74"
+              />
+            </g>
+            <circle className="sunshine-motion-logo__mask-sun-fill" cx="268" cy="205" r="154" fill="#fff" />
+            <rect className="sunshine-motion-logo__mask-word-fill" x="514" y="102" width="686" height="192" rx="4" fill="#fff" />
+            <rect className="sunshine-motion-logo__mask-tagline-fill" x="514" y="319" width="686" height="86" rx="3" fill="#fff" />
+            <rect className="sunshine-motion-logo__mask-sweep-fill" width="1206" height="463" fill="#fff" />
+            <g className="sunshine-motion-logo__mask-car-blockers" fill="#000">
+              <path d="M161 188 H374 C390 188 400 198 400 214 V302 H142 V224 C142 203 151 188 161 188 Z" />
+            </g>
+            <g className="sunshine-motion-logo__mask-ray-blockers" fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M128 210 L66 199" strokeWidth="52" />
+              <path d="M151 140 L98 102" strokeWidth="48" />
+              <path d="M199 98 L164 40" strokeWidth="48" />
+              <path d="M270 91 L270 24" strokeWidth="48" />
+              <path d="M341 98 L377 40" strokeWidth="48" />
+              <path d="M389 140 L452 101" strokeWidth="48" />
+              <path d="M409 210 L490 198" strokeWidth="52" />
+            </g>
+            <g className="sunshine-motion-logo__mask-car" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round">
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--car-body"
+                pathLength="1"
+                d="M170 282 C188 236 202 215 219 212 C247 207 295 207 318 212 C337 216 350 238 366 282 C322 296 214 296 170 282"
+                strokeWidth="58"
+              />
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--car-cabin"
+                pathLength="1"
+                d="M198 239 C208 216 218 207 238 206 H300 C320 207 331 217 341 240"
+                strokeWidth="42"
+              />
+              <path
+                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--car-lights"
+                pathLength="1"
+                d="M174 235 H186 M350 235 H363"
+                strokeWidth="28"
+              />
+            </g>
+            <g className="sunshine-motion-logo__mask-rays" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round">
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--1" pathLength="1" d="M128 210 L66 199" strokeWidth="42" />
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--2" pathLength="1" d="M151 140 L98 102" strokeWidth="38" />
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--3" pathLength="1" d="M199 98 L164 40" strokeWidth="38" />
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--4" pathLength="1" d="M270 91 L270 24" strokeWidth="38" />
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--5" pathLength="1" d="M341 98 L377 40" strokeWidth="38" />
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--6" pathLength="1" d="M389 140 L452 101" strokeWidth="38" />
+              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--7" pathLength="1" d="M409 210 L490 198" strokeWidth="42" />
+            </g>
+            <rect className="sunshine-motion-logo__mask-final-fill" width="1206" height="463" fill="#fff" />
+          </mask>
+        </defs>
+        <image className="sunshine-motion-logo__image" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionRevealMask)" />
+        <path
+          className="sunshine-motion-logo__glint"
+          pathLength="1"
+          d="M23 362 C94 313 194 286 333 288 C402 289 463 301 529 318"
+        />
+      </svg>
+    </span>
+  )
+}
+
 function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, children }) {
   const activeTab = tabs.find(([key]) => key === tab)
   const activeLabel = activeTab?.[2] || '工作台'
@@ -2619,12 +2751,12 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
     <main className="dashboard-shell">
       <aside className="side-nav glass-panel">
         <button className="brand-mark" onClick={onBack}>
-          <img className="dashboard-brand-logo" src={sunshineLogo} alt="阳光出行" />
+          <SunshineMotionLogo className="dashboard-brand-logo" />
         </button>
         <div className="nav-tabs">
           {tabs.map(([key, TabIcon, label]) => (
             <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
-              <TabIcon size={18} />{label}
+              <IconSlot icon={TabIcon} size={18} className="nav-tab-icon" />{label}
             </button>
           ))}
         </div>
@@ -2711,6 +2843,7 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
             <div className="segmented-row order-filter-tabs">
               {orderTypeTabs.map(([key, label]) => (
                 <button key={key} className={typeFilter === key ? 'active' : ''} onClick={() => setTypeFilter(key)}>
+                  {key !== 'ALL' && <ServiceIcon type={key} className="order-filter-service-icon" />}
                   {label}<span>{typeCount(key)}</span>
                 </button>
               ))}
@@ -3216,11 +3349,6 @@ function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect }) 
       {visibleOrders.map((order, index) => {
         const key = order.id || order.orderNo || index
         const orderTime = formatOrderDisplayTime(order)
-        const serviceKey = order.serviceType === SERVICE_TYPE.CARPOOL
-          ? 'carpool'
-          : order.serviceType === SERVICE_TYPE.INTERNATIONAL
-            ? 'international'
-            : 'taxi'
         return (
         <article
           className={`order-card glass-panel compact slim ${orderKey(order) === selectedOrderId ? 'is-selected' : ''} ${onSelect ? 'is-clickable' : ''}`}
@@ -3238,7 +3366,10 @@ function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect }) 
           <div className="order-line">
             <div className="order-card-copy">
               <div className="order-card-topline">
-                <span className="order-type-label"><span className={`order-type-mark ${serviceKey}`} />{statusLabel[order.serviceType] || order.serviceType}</span>
+                <span className="order-type-label">
+                  <ServiceIcon type={order.serviceType} className="order-type-icon" />
+                  {statusLabel[order.serviceType] || order.serviceType}
+                </span>
                 <div className="order-badges">
                   <StatusBadge value={order.orderStatus} />
                   <StatusBadge value={order.payStatus} />
@@ -3891,7 +4022,7 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
           ].map(([key, label, count]) => <button key={key} className={active === key ? 'active' : ''} onClick={() => setActive(key)}>{label}{count !== '' && <span>{count}</span>}</button>)}
         </div>
         <div className="carpool-summary-strip">
-          <SummaryPill icon={Users} label="可搭乘行程" value={`${list.length} 条`} />
+          <SummaryPill icon={SERVICE_ICON_PATHS[SERVICE_TYPE.CARPOOL]} label="可搭乘行程" value={`${list.length} 条`} />
           <SummaryPill icon={Clock} label="待确认" value={`${mine.pendingTotal} 条`} />
           <SummaryPill icon={Route} label="当前选择" value={selectedTrip ? `${selectedTrip.startName} → ${selectedTrip.endName}` : '未选择'} />
         </div>
@@ -3952,7 +4083,7 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
         )}
       </section>
       <section className="glass-panel work-card carpool-side">
-        <div className="card-head"><h2>{active === 'search' ? '搭乘申请' : '行程偏好'}</h2><Users size={21} /></div>
+        <div className="card-head"><h2>{active === 'search' ? '搭乘申请' : '行程偏好'}</h2><ServiceIcon type={SERVICE_TYPE.CARPOOL} className="card-head-service-icon" /></div>
         {active === 'search' && selectedTrip ? (
           <div className="carpool-apply-panel">
             <InfoPanel title="已选行程" items={[
@@ -4257,9 +4388,9 @@ function InternationalBoard({ booking, setBooking, estimate, carTypes, onSubmit 
       />
       <CityMap booking={internationalBooking} estimate={safeEstimate} compact showSummaryPanel={false} />
       <section className="glass-panel work-card">
-        <div className="card-head"><div><span className="section-kicker">Global Desk</span><h2>国际方案</h2></div><Globe size={21} /></div>
+        <div className="card-head"><div><span className="section-kicker">Global Desk</span><h2>国际方案</h2></div><ServiceIcon type={SERVICE_TYPE.INTERNATIONAL} className="card-head-service-icon" /></div>
         <div className="international-metric-grid">
-          <SummaryPill icon={Globe} value={internationalOptions.length} label="跨境方案" />
+          <SummaryPill icon={SERVICE_ICON_PATHS[SERVICE_TYPE.INTERNATIONAL]} value={internationalOptions.length} label="跨境方案" />
           <SummaryPill icon={CreditCard} value="USD/CNY 7.15" label="参考汇率" />
           <SummaryPill icon={MessageSquare} value="中文客服" label="服务支持" />
         </div>
@@ -4613,7 +4744,10 @@ function InvoiceBoard({ orders = [], profile, onApplyInvoice, onPreviewInvoice }
                 const invoiceStatus = String(order.invoiceStatus || 'NONE').toUpperCase()
                 return (
                   <button className={active ? 'active' : ''} key={order.id} onClick={() => setSelectedId(String(order.id))}>
-                    <span>{statusLabel[order.serviceType] || '出行服务'}</span>
+                    <span className="invoice-order-service">
+                      <ServiceIcon type={order.serviceType} className="invoice-order-service-icon" />
+                      {statusLabel[order.serviceType] || '出行服务'}
+                    </span>
                     <strong>{order.startName} → {order.endName}</strong>
                     <small>{order.orderNo || `#${order.id}`} · {formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)}</small>
                     <StatusBadge value={invoiceStatus} label={orderInvoiceStatusText(order)} />
@@ -6489,10 +6623,35 @@ function MiniStat({ label, value }) {
   return <div className="mini-stat"><span>{label}</span><strong>{value}</strong></div>
 }
 
+function serviceIconPath(type) {
+  return SERVICE_ICON_PATHS[type] || SERVICE_ICON_PATHS[String(type || '').toLowerCase()] || SERVICE_ICON_PATHS[SERVICE_TYPE.TAXI]
+}
+
+function ServiceIcon({ type, className = '', alt = '' }) {
+  return (
+    <img
+      className={['service-icon', className].filter(Boolean).join(' ')}
+      src={serviceIconPath(type)}
+      alt={alt}
+      aria-hidden={alt ? undefined : true}
+      loading="lazy"
+    />
+  )
+}
+
+function IconSlot({ icon, size = 18, className = '' }) {
+  if (!icon) return null
+  if (typeof icon === 'string') {
+    return <img className={['service-icon', className].filter(Boolean).join(' ')} src={icon} alt="" aria-hidden="true" loading="lazy" />
+  }
+  const Icon = icon
+  return <Icon size={size} />
+}
+
 function SummaryPill({ icon: Icon, label, value, hint = '' }) {
   return (
     <div className="summary-pill">
-      <span className="summary-pill-icon">{Icon && <Icon size={15} />}</span>
+      <span className="summary-pill-icon"><IconSlot icon={Icon} size={15} className="summary-pill-service-icon" /></span>
       <div>
         <strong>{value}</strong>
         <small>{label}</small>

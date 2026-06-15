@@ -36,6 +36,7 @@
             hover-class="pressable-hover"
             hover-stay-time="60"
           >
+            <image wx:if="{{item.iconPath}}" class="driver-filter-chip__icon" src="{{item.iconPath}}" mode="aspectFit"></image>
             {{item.label}}
           </view>
         </view>
@@ -70,7 +71,7 @@
       >
         <view class="driver-order-card__top">
           <view class="driver-order-type">
-            <view class="driver-order-type__icon driver-order-type__icon--{{item.serviceTypeKey}}"></view>
+            <image class="driver-order-type__icon" src="{{item.serviceIconPath}}" mode="aspectFit"></image>
             <view class="driver-order-type__text">{{item.serviceTypeLabel}}</view>
           </view>
           <view class="driver-order-status driver-order-status--{{item.status}}">{{item.statusText}}</view>

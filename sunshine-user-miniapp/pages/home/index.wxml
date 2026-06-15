@@ -30,9 +30,18 @@
 
     <scroll-view class="home-panel__content" scroll-y enhanced show-scrollbar="{{false}}">
       <view class="service-tabs">
-        <view class="service-tab {{activeService === 'taxi' ? 'service-tab--active' : ''}}" data-type="taxi" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">打车</view>
-        <view class="service-tab {{activeService === 'carpool' ? 'service-tab--active' : ''}}" data-type="carpool" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">顺风车</view>
-        <view class="service-tab {{activeService === 'international' ? 'service-tab--active' : ''}}" data-type="international" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">国际出行</view>
+        <view class="service-tab {{activeService === 'taxi' ? 'service-tab--active' : ''}}" data-type="taxi" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">
+          <image class="service-tab__icon" src="/images/service-icons/taxi.png" mode="aspectFit"></image>
+          <text>打车</text>
+        </view>
+        <view class="service-tab {{activeService === 'carpool' ? 'service-tab--active' : ''}}" data-type="carpool" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">
+          <image class="service-tab__icon" src="/images/service-icons/carpool.png" mode="aspectFit"></image>
+          <text>顺风车</text>
+        </view>
+        <view class="service-tab {{activeService === 'international' ? 'service-tab--active' : ''}}" data-type="international" bindtap="chooseService" hover-class="pressable-hover" hover-stay-time="60">
+          <image class="service-tab__icon" src="/images/service-icons/international.png" mode="aspectFit"></image>
+          <text>国际出行</text>
+        </view>
       </view>
 
       <view wx:if="{{activeRideCard}}" class="current-ride-card tap-scale" bindtap="openCurrentRide" hover-class="pressable-hover" hover-stay-time="60">
