@@ -14,11 +14,15 @@ backend.live.log
 **/project.private.config.json
 
 html/output/playwright/*.png
+html/output/playwright/
+html/output/sourcesdata-*/
 html/*-font-check.png
 sunshine-admin/*-check.png
 sunshine-admin/*-optimized.png
 sunshine-desktop/output/
 rollback-snapshots/
+.codex-output/
+参考图/
 
 .DS_Store
 Thumbs.db
