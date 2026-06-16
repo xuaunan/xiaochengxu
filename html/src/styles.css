@@ -742,7 +742,8 @@ svg {
 }
 
 .dashboard-shell .side-nav .sunshine-motion-logo {
-  --sunshine-logo-motion-duration: 2200ms;
+  --sunshine-logo-motion-duration: 2500ms;
+  --sunshine-logo-motion-seek: 0ms;
   position: relative;
   display: block;
   width: 100%;
@@ -762,135 +763,170 @@ svg {
   width: 100%;
   height: auto;
   overflow: visible;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
-.dashboard-shell .side-nav .sunshine-motion-logo__image {
-  transform-origin: 50% 52%;
-  image-rendering: auto;
+.dashboard-shell .side-nav .sunshine-motion-logo__stack {
+  isolation: isolate;
 }
 
 .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke {
-  stroke-dasharray: 1 1;
+  stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  opacity: 0;
 }
 
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-ray {
-  stroke-dasharray: 1 1;
-  stroke-dashoffset: 1;
-  opacity: 0;
-}
-
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-sun-fill,
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-word-fill,
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-tagline-fill,
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-sweep-fill,
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-final-fill {
+.dashboard-shell .side-nav .sunshine-motion-logo__mask-word,
+.dashboard-shell .side-nav .sunshine-motion-logo__mask-car-part {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
+  will-change: opacity;
 }
 
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-word-fill,
-.dashboard-shell .side-nav .sunshine-motion-logo__mask-tagline-fill {
-  transform-origin: left center;
-}
-
-.dashboard-shell .side-nav .sunshine-motion-logo__glint {
-  fill: none;
-  stroke: rgba(255, 255, 255, .86);
-  stroke-width: 10;
-  stroke-linecap: round;
-  stroke-dasharray: .055 1;
-  stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 5px rgba(255, 168, 0, .38));
+.dashboard-shell .side-nav .sunshine-motion-logo__sun-core {
   opacity: 0;
-  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity, transform;
+}
+
+.dashboard-shell .side-nav .sunshine-motion-logo__sun-rise-clip {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.dashboard-shell .side-nav .sunshine-motion-logo__layer {
+  opacity: 0;
+  transform-box: fill-box;
+  image-rendering: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity, transform;
+}
+
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--reveal {
+  opacity: 1;
+  will-change: opacity;
+}
+
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--car-soft,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--car-body,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--car-cabin,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--car-lights {
+  transform-origin: 50% 52%;
+}
+
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--word-1,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--word-2,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--word-3,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--word-4,
+.dashboard-shell .side-nav .sunshine-motion-logo__layer--tagline {
+  transform-origin: center center;
+}
+
+.dashboard-shell .side-nav .sunshine-motion-logo.is-seeking .sunshine-motion-logo__sun-core,
+.dashboard-shell .side-nav .sunshine-motion-logo.is-seeking .sunshine-motion-logo__layer,
+.dashboard-shell .side-nav .sunshine-motion-logo.is-seeking .sunshine-motion-logo__mask-stroke,
+.dashboard-shell .side-nav .sunshine-motion-logo.is-seeking .sunshine-motion-logo__mask-word,
+.dashboard-shell .side-nav .sunshine-motion-logo.is-seeking .sunshine-motion-logo__mask-car-part,
+.dashboard-shell .side-nav .sunshine-motion-logo.is-seeking .sunshine-motion-logo__sun-rise-clip {
+  animation-delay: calc(var(--sunshine-logo-motion-seek) * -1) !important;
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--outer-road {
-    animation: sunshine-logo-mask-road var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__sun-core {
+    animation: sunshine-logo-layer-sun var(--sunshine-logo-motion-duration) cubic-bezier(0.14, 0.84, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--inner-road {
-    animation: sunshine-logo-mask-road-inner var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__sun-rise-clip {
+    animation: sunshine-logo-sun-rise-mask var(--sunshine-logo-motion-duration) cubic-bezier(0.14, 0.84, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--sun-core {
-    animation: sunshine-logo-mask-sun-core var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-1 {
+    animation: sunshine-logo-mask-ray-1 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--car-body {
-    animation: sunshine-logo-mask-car-body var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-2 {
+    animation: sunshine-logo-mask-ray-2 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--car-cabin {
-    animation: sunshine-logo-mask-car-cabin var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-3 {
+    animation: sunshine-logo-mask-ray-3 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--car-lights {
-    animation: sunshine-logo-mask-car-lights var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-4 {
+    animation: sunshine-logo-mask-ray-4 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--1 {
-    animation: sunshine-logo-mask-ray-1 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-5 {
+    animation: sunshine-logo-mask-ray-5 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--2 {
-    animation: sunshine-logo-mask-ray-2 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-6 {
+    animation: sunshine-logo-mask-ray-6 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--3 {
-    animation: sunshine-logo-mask-ray-3 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--ray-7 {
+    animation: sunshine-logo-mask-ray-7 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--4 {
-    animation: sunshine-logo-mask-ray-4 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--road-outer {
+    animation: sunshine-logo-mask-road-outer var(--sunshine-logo-motion-duration) cubic-bezier(0.2, 0.92, 0.16, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--5 {
-    animation: sunshine-logo-mask-ray-5 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--road-inner {
+    animation: sunshine-logo-mask-road-inner var(--sunshine-logo-motion-duration) cubic-bezier(0.2, 0.92, 0.16, 1) both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--6 {
-    animation: sunshine-logo-mask-ray-6 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word--word-1 {
+    animation: sunshine-logo-mask-word-1 var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray--7 {
-    animation: sunshine-logo-mask-ray-7 var(--sunshine-logo-motion-duration) cubic-bezier(0.34, 0, 0.14, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word--word-2 {
+    animation: sunshine-logo-mask-word-2 var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--word {
-    animation: sunshine-logo-mask-word-track var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word--word-3 {
+    animation: sunshine-logo-mask-word-3 var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke--tagline {
-    animation: sunshine-logo-mask-tagline-track var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word--word-4 {
+    animation: sunshine-logo-mask-word-4 var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-sun-fill {
-    animation: sunshine-logo-mask-sun-fill var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word--tagline {
+    animation: sunshine-logo-mask-tagline var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word-fill {
-    animation: sunshine-logo-mask-word-fill var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-car-part--car-soft {
+    animation: sunshine-logo-mask-car-soft var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-tagline-fill {
-    animation: sunshine-logo-mask-tagline-fill var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-car-part--car-body {
+    animation: sunshine-logo-mask-car-body var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-sweep-fill {
-    animation: sunshine-logo-mask-sweep-fill var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-car-part--car-cabin {
+    animation: sunshine-logo-mask-car-cabin var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-final-fill {
-    animation: sunshine-logo-mask-final-fill var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-car-part--car-lights {
+    animation: sunshine-logo-mask-car-lights var(--sunshine-logo-motion-duration) linear both;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__glint {
-    animation: sunshine-logo-glint var(--sunshine-logo-motion-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .dashboard-shell .side-nav .sunshine-motion-logo__layer--reveal {
+    animation: sunshine-logo-layer-composite-out var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .dashboard-shell .side-nav .sunshine-motion-logo__layer--final {
+    animation: sunshine-logo-layer-final var(--sunshine-logo-motion-duration) linear both;
   }
 
   .dashboard-shell .side-nav .brand-mark:hover .sunshine-motion-logo__svg,
@@ -900,380 +936,561 @@ svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke,
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-ray,
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-sun-fill,
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word-fill,
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-tagline-fill,
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-sweep-fill,
-  .dashboard-shell .side-nav .sunshine-motion-logo__mask-final-fill {
+  .dashboard-shell .side-nav .sunshine-motion-logo__sun-core,
+  .dashboard-shell .side-nav .sunshine-motion-logo__layer {
     animation: none !important;
     opacity: 1;
-    stroke-dashoffset: 0;
   }
 
-  .dashboard-shell .side-nav .sunshine-motion-logo__glint {
-    display: none;
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-word,
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-car-part {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .dashboard-shell .side-nav .sunshine-motion-logo__sun-rise-clip {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .dashboard-shell .side-nav .sunshine-motion-logo__mask-stroke {
+    stroke-dashoffset: 0 !important;
   }
 }
 
-@keyframes sunshine-logo-mask-road {
-  0% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  6% {
-    opacity: 1;
-    stroke-dashoffset: .86;
-  }
-
-  34%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+@keyframes sunshine-logo-mask-word-1 {
+  0%, 56% { opacity: 0; }
+  64% { opacity: .66; }
+  72%, 100% { opacity: 1; }
 }
 
-@keyframes sunshine-logo-mask-road-inner {
-  0%, 8% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  14% {
-    opacity: 1;
-    stroke-dashoffset: .78;
-  }
-
-  42%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+@keyframes sunshine-logo-mask-word-2 {
+  0%, 60% { opacity: 0; }
+  68% { opacity: .66; }
+  76%, 100% { opacity: 1; }
 }
 
-@keyframes sunshine-logo-mask-sun-core {
-  0%, 10% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
+@keyframes sunshine-logo-mask-word-3 {
+  0%, 64% { opacity: 0; }
+  72% { opacity: .66; }
+  80%, 100% { opacity: 1; }
+}
 
-  18% {
-    opacity: 1;
-    stroke-dashoffset: .76;
-  }
+@keyframes sunshine-logo-mask-word-4 {
+  0%, 68% { opacity: 0; }
+  76% { opacity: .66; }
+  84%, 100% { opacity: 1; }
+}
 
-  50%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+@keyframes sunshine-logo-mask-tagline {
+  0%, 70% { opacity: 0; }
+  78% { opacity: .66; }
+  86%, 100% { opacity: 1; }
+}
+
+@keyframes sunshine-logo-mask-car-soft {
+  0%, 82% { opacity: 0; }
+  88% { opacity: .28; }
+  94%, 100% { opacity: 1; }
 }
 
 @keyframes sunshine-logo-mask-car-body {
-  0%, 56% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.22, 0.9, 0.2, 1);
-  }
-
-  64% {
-    opacity: 1;
-    stroke-dashoffset: .72;
-  }
-
-  88%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 86% { opacity: 0; }
+  92% { opacity: .66; }
+  97%, 100% { opacity: 1; }
 }
 
 @keyframes sunshine-logo-mask-car-cabin {
-  0%, 61% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.22, 0.9, 0.2, 1);
-  }
-
-  68% {
-    opacity: 1;
-    stroke-dashoffset: .68;
-  }
-
-  91%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 89% { opacity: 0; }
+  95% { opacity: .72; }
+  99%, 100% { opacity: 1; }
 }
 
 @keyframes sunshine-logo-mask-car-lights {
-  0%, 70% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.22, 0.9, 0.2, 1);
+  0%, 92% { opacity: 0; }
+  97% { opacity: .78; }
+  100% { opacity: 1; }
+}
+
+@keyframes sunshine-logo-sun-rise-mask {
+  0% {
+    transform: translate3d(0, 84px, 0) scaleY(.02);
+    animation-timing-function: cubic-bezier(0.18, 0.82, 0.18, 1);
   }
 
-  78% {
-    opacity: 1;
-    stroke-dashoffset: .48;
+  12% {
+    transform: translate3d(0, 66px, 0) scaleY(.08);
+    animation-timing-function: cubic-bezier(0.18, 0.9, 0.18, 1);
   }
 
-  93%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
+  24% {
+    transform: translate3d(0, 34px, 0) scaleY(.32);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.22, 1);
+  }
+
+  36% {
+    transform: translate3d(0, 8px, 0) scaleY(.82);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  44%, 100% {
+    transform: translate3d(0, 0, 0) scaleY(1);
   }
 }
 
 @keyframes sunshine-logo-mask-ray-1 {
-  0%, 2% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  10% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  20%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 64% { stroke-dashoffset: 1; }
+  74%, 100% { stroke-dashoffset: 0; }
 }
 
 @keyframes sunshine-logo-mask-ray-2 {
-  0%, 15% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  23% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  34%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 68% { stroke-dashoffset: 1; }
+  78%, 100% { stroke-dashoffset: 0; }
 }
 
 @keyframes sunshine-logo-mask-ray-3 {
-  0%, 28% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  36% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  48%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 72% { stroke-dashoffset: 1; }
+  82%, 100% { stroke-dashoffset: 0; }
 }
 
 @keyframes sunshine-logo-mask-ray-4 {
-  0%, 41% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  49% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  62%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 48% { stroke-dashoffset: 1; }
+  58%, 100% { stroke-dashoffset: 0; }
 }
 
 @keyframes sunshine-logo-mask-ray-5 {
-  0%, 54% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  62% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  75%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 52% { stroke-dashoffset: 1; }
+  62%, 100% { stroke-dashoffset: 0; }
 }
 
 @keyframes sunshine-logo-mask-ray-6 {
-  0%, 67% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  75% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  88%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 56% { stroke-dashoffset: 1; }
+  66%, 100% { stroke-dashoffset: 0; }
 }
 
 @keyframes sunshine-logo-mask-ray-7 {
-  0%, 80% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  88% {
-    opacity: .75;
-    stroke-dashoffset: .62;
-  }
-
-  96%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  0%, 60% { stroke-dashoffset: 1; }
+  70%, 100% { stroke-dashoffset: 0; }
 }
 
-@keyframes sunshine-logo-mask-word-track {
-  0%, 24% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  31% {
-    opacity: 1;
-    stroke-dashoffset: .82;
-  }
-
-  78%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+@keyframes sunshine-logo-mask-road-outer {
+  0%, 40% { stroke-dashoffset: 1; }
+  62%, 100% { stroke-dashoffset: 0; }
 }
 
-@keyframes sunshine-logo-mask-tagline-track {
-  0%, 42% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  49% {
-    opacity: 1;
-    stroke-dashoffset: .72;
-  }
-
-  84%, 100% {
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+@keyframes sunshine-logo-mask-road-inner {
+  0%, 46% { stroke-dashoffset: 1; }
+  68%, 100% { stroke-dashoffset: 0; }
 }
 
-@keyframes sunshine-logo-mask-sun-fill {
-  0%, 18% {
-    opacity: 0;
-    transform: scale(.94);
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
+@keyframes sunshine-logo-layer-sun {
+  0% {
+    opacity: .1;
+    transform: translate3d(0, 22px, 0) scale(.94);
+    animation-timing-function: cubic-bezier(0.18, 0.82, 0.18, 1);
   }
 
-  39% {
-    opacity: .75;
-    transform: scale(.985);
-  }
-
-  54%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes sunshine-logo-mask-word-fill {
-  0%, 36% {
-    opacity: 0;
-    transform: scaleX(.72);
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  72%, 100% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@keyframes sunshine-logo-mask-tagline-fill {
-  0%, 50% {
-    opacity: 0;
-    transform: scaleX(.78);
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  84%, 100% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@keyframes sunshine-logo-mask-sweep-fill {
-  0%, 76% {
-    opacity: 0;
-    transform: translateX(-10%) scaleX(.08);
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  88% {
-    opacity: .42;
-    transform: translateX(0) scaleX(.62);
-  }
-
-  95%, 100% {
-    opacity: .72;
-    transform: translateX(0) scaleX(1);
-  }
-}
-
-@keyframes sunshine-logo-mask-final-fill {
-  0%, 95% {
-    opacity: 0;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
-  }
-
-  98%, 100% {
-    opacity: 1;
-  }
-}
-
-@keyframes sunshine-logo-glint {
-  0%, 10% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
+  12% {
+    opacity: .24;
+    transform: translate3d(0, 16px, 0) scale(.96);
+    animation-timing-function: cubic-bezier(0.18, 0.9, 0.18, 1);
   }
 
   24% {
     opacity: .58;
+    transform: translate3d(0, 8px, 0) scale(.985);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.22, 1);
   }
 
-  48%, 100% {
+  36% {
+    opacity: 1;
+    transform: translate3d(0, -1px, 0) scale(1.01);
+    animation-timing-function: cubic-bezier(0.18, 1, 0.3, 1);
+  }
+
+  44%, 88% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  94% {
+    opacity: .84;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  100% {
     opacity: 0;
-    stroke-dashoffset: 0;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-composite-out {
+  0%, 88% {
+    opacity: 1;
+  }
+
+  94% {
+    opacity: .72;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-1 {
+  0%, 64% {
+    opacity: 0;
+    transform: translate3d(-2px, 3px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  70% {
+    opacity: .54;
+    transform: translate3d(-1px, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  76%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-2 {
+  0%, 68% {
+    opacity: 0;
+    transform: translate3d(-2px, 3px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  74% {
+    opacity: .54;
+    transform: translate3d(-1px, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  80%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-3 {
+  0%, 72% {
+    opacity: 0;
+    transform: translate3d(-1px, 3px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  78% {
+    opacity: .54;
+    transform: translate3d(-1px, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  84%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-4 {
+  0%, 48% {
+    opacity: 0;
+    transform: translate3d(0, 3px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  54% {
+    opacity: .54;
+    transform: translate3d(0, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  60%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-5 {
+  0%, 52% {
+    opacity: 0;
+    transform: translate3d(1px, 3px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  58% {
+    opacity: .54;
+    transform: translate3d(1px, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  64%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-6 {
+  0%, 56% {
+    opacity: 0;
+    transform: translate3d(2px, 3px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  62% {
+    opacity: .54;
+    transform: translate3d(1px, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  68%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-ray-7 {
+  0%, 60% {
+    opacity: 0;
+    transform: translate3d(2px, 2px, 0) scale(.84);
+    animation-timing-function: cubic-bezier(0.18, 0.86, 0.18, 1);
+  }
+
+  66% {
+    opacity: .54;
+    transform: translate3d(1px, 1px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  72%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-road-inner {
+  0%, 46% {
+    opacity: 0;
+    transform: translate3d(0, 9px, 0) scale(.975);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  58% {
+    opacity: .68;
+    transform: translate3d(0, 3px, 0) scale(.99);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  70%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-road-outer {
+  0%, 40% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(.97);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  52% {
+    opacity: .58;
+    transform: translate3d(0, 4px, 0) scale(.985);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  64%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-word-1 {
+  0%, 56% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  64% {
+    opacity: .66;
+    transform: translate3d(0, 2px, 0) scale(.995);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  72%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-word-2 {
+  0%, 60% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  68% {
+    opacity: .66;
+    transform: translate3d(0, 2px, 0) scale(.995);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  76%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-word-3 {
+  0%, 64% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  74% {
+    opacity: .66;
+    transform: translate3d(0, 2px, 0) scale(.995);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  80%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-word-4 {
+  0%, 68% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  76% {
+    opacity: .66;
+    transform: translate3d(0, 2px, 0) scale(.995);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  84%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-tagline {
+  0%, 70% {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0) scale(.97);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  78% {
+    opacity: .66;
+    transform: translate3d(0, 2px, 0) scale(.985);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  86%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-car-soft {
+  0%, 82% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(.96);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  88% {
+    opacity: .28;
+    transform: translate3d(0, 3px, 0) scale(.985);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  94%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-car-body {
+  0%, 86% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  92% {
+    opacity: .66;
+    transform: translate3d(0, 4px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  97%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-car-cabin {
+  0%, 89% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(.95);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  95% {
+    opacity: .72;
+    transform: translate3d(0, 3px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  99%, 100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-car-lights {
+  0%, 92% {
+    opacity: 0;
+    transform: translate3d(0, 3px, 0) scale(.98);
+    animation-timing-function: cubic-bezier(0.2, 0.92, 0.18, 1);
+  }
+
+  97% {
+    opacity: .78;
+    transform: translate3d(0, 1px, 0) scale(.992);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.24, 1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sunshine-logo-layer-final {
+  0%, 88% {
+    opacity: 0;
+  }
+
+  94% {
+    opacity: .58;
+  }
+
+  100% {
+    opacity: 1;
   }
 }
 
@@ -1291,7 +1508,6 @@ svg {
     transform: translateZ(0) scale(1);
   }
 }
-
 .brand-icon,
 .login-orb {
   display: grid;
@@ -4597,6 +4813,10 @@ svg {
   justify-content: flex-start;
   min-height: 58px;
   padding: 4px 2px;
+}
+
+.dashboard-shell .side-nav .brand-mark--static {
+  cursor: default;
 }
 
 .dashboard-shell .side-nav .dashboard-brand-logo {
@@ -11892,6 +12112,432 @@ svg {
   border-radius: 12px;
 }
 
+/* International travel: dedicated global-booking surface, scoped away from portal and local ride. */
+.dashboard-grid.international-workbench {
+  grid-template-columns: minmax(360px, .78fr) minmax(430px, 1fr) minmax(300px, .62fr);
+  align-items: start;
+}
+
+.dashboard-grid.international-workbench > .booking-card,
+.dashboard-grid.international-workbench > .work-card {
+  padding: 18px;
+}
+
+.dashboard-shell .international-booking-card {
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(255, 255, 255, .94)),
+    radial-gradient(circle at 6% 0, rgba(29, 78, 137, .11), transparent 210px),
+    radial-gradient(circle at 100% 12%, rgba(255, 122, 0, .1), transparent 180px);
+}
+
+.dashboard-shell .international-booking-card:hover {
+  box-shadow: var(--workspace-shadow);
+}
+
+.dashboard-shell .international-booking-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  padding: 15px;
+  border-radius: 16px;
+  color: #fff;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, .08) 1px, transparent 1px),
+    linear-gradient(135deg, #10243f 0%, #1d4e89 62%, #d96f18 100%);
+  background-size: 24px 24px, 24px 24px, auto;
+  box-shadow: 0 16px 34px rgba(16, 36, 63, .15);
+}
+
+.dashboard-shell .international-booking-hero .section-kicker {
+  color: rgba(255, 255, 255, .72);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.dashboard-shell .international-booking-hero h2 {
+  margin: 5px 0 0;
+  color: #fff;
+  font-size: 27px;
+  line-height: 1.08;
+  font-weight: 690;
+  letter-spacing: 0;
+}
+
+.dashboard-shell .international-booking-hero p {
+  max-width: 31ch;
+  margin: 7px 0 0;
+  color: rgba(255, 255, 255, .76);
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 420;
+}
+
+.dashboard-shell .international-price-card {
+  min-width: 116px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  color: #fff;
+  text-align: right;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+
+.dashboard-shell .international-price-card span,
+.dashboard-shell .international-price-card small {
+  display: block;
+  color: rgba(255, 255, 255, .72);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dashboard-shell .international-price-card strong {
+  display: block;
+  margin: 5px 0 4px;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-shell .international-route-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+  padding: 11px;
+  border-radius: 16px;
+  background: rgba(247, 250, 252, .82);
+  border: 1px solid rgba(29, 78, 137, .08);
+}
+
+.dashboard-shell .international-route-panel div {
+  min-width: 0;
+}
+
+.dashboard-shell .international-route-panel span {
+  display: block;
+  color: #75849a;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 640;
+}
+
+.dashboard-shell .international-route-panel strong {
+  display: block;
+  margin-top: 5px;
+  color: #20283b;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.dashboard-shell .international-route-panel i {
+  align-self: center;
+  justify-self: center;
+  color: #1d4e89;
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.dashboard-shell .international-summary-grid {
+  gap: 7px;
+}
+
+.dashboard-shell .international-summary-grid .mini-stat {
+  min-height: 56px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(29, 78, 137, .06);
+  box-shadow: none;
+}
+
+.dashboard-shell .international-summary-grid .mini-stat span {
+  color: #75849a;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-shell .international-summary-grid .mini-stat strong {
+  color: #20283b;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.dashboard-shell .international-form-grid,
+.dashboard-shell .international-form-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-shell .international-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-shell .international-booking-card .plain-field {
+  gap: 5px;
+  margin: 0;
+  color: #6d7a90;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.dashboard-shell .international-booking-card .plain-field input,
+.dashboard-shell .international-booking-card .plain-field textarea {
+  width: 100%;
+  min-height: 39px;
+  padding: 0 10px;
+  border: 1px solid rgba(29, 78, 137, .08);
+  border-radius: 12px;
+  color: #20283b;
+  background: rgba(255, 255, 255, .78);
+  outline: 0;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.dashboard-shell .international-booking-card .plain-field input:focus,
+.dashboard-shell .international-booking-card .plain-field textarea:focus {
+  border-color: rgba(29, 78, 137, .26);
+  box-shadow: 0 0 0 3px rgba(29, 78, 137, .08);
+}
+
+.dashboard-shell .international-booking-card .plain-field textarea {
+  min-height: 62px;
+  padding: 9px 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.dashboard-shell .international-doc-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dashboard-shell .international-doc-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: #166759;
+  background: rgba(0, 168, 150, .1);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.dashboard-shell .international-doc-strip svg {
+  color: #00a896;
+}
+
+.dashboard-shell .international-booking-card .booking-actions {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-shell .international-booking-card .booking-actions .solid-button {
+  min-height: 45px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.dashboard-shell .international-map-card {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-shell .international-map-card .city-map {
+  min-height: 500px;
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.dashboard-shell .international-map-card .map-topline {
+  margin-bottom: 8px;
+}
+
+.dashboard-shell .international-map-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard-shell .international-map-head h2 {
+  margin: 4px 0 0;
+  color: #20283b;
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.dashboard-shell .international-map-head p {
+  max-width: 48ch;
+  margin: 5px 0 0;
+  color: #66758a;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 420;
+}
+
+.dashboard-shell .international-map-head > span {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #1d4e89;
+  background: rgba(29, 78, 137, .09);
+  font-size: 12px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dashboard-shell .international-route-pass {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.dashboard-shell .international-route-pass div,
+.dashboard-shell .international-desk-summary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 9px 10px;
+  border: 1px solid rgba(29, 78, 137, .07);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .64);
+}
+
+.dashboard-shell .international-route-pass span,
+.dashboard-shell .international-desk-summary span,
+.dashboard-shell .international-desk-summary small {
+  color: #738196;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 560;
+}
+
+.dashboard-shell .international-route-pass strong,
+.dashboard-shell .international-desk-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #20283b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.dashboard-shell .international-desk-card {
+  display: grid;
+  gap: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(255, 255, 255, .88)),
+    radial-gradient(circle at 100% 0, rgba(29, 78, 137, .08), transparent 210px);
+}
+
+.dashboard-shell .international-desk-card .card-head {
+  margin-bottom: 0;
+}
+
+.dashboard-shell .international-desk-card .card-head h2 {
+  color: #20283b;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.dashboard-shell .international-desk-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.dashboard-shell .international-desk-summary div {
+  min-height: 58px;
+  background: rgba(248, 250, 252, .72);
+}
+
+.dashboard-shell .international-desk-summary strong {
+  font-size: 15px;
+}
+
+.dashboard-grid.international-workbench .international-option-list {
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.dashboard-grid.international-workbench .international-option-card {
+  padding: 10px;
+  border-radius: 14px;
+  border-color: rgba(29, 78, 137, .08);
+  background: rgba(255, 255, 255, .72);
+}
+
+.dashboard-grid.international-workbench .international-option-card:hover,
+.dashboard-grid.international-workbench .international-option-card.active {
+  border-color: rgba(255, 122, 0, .32);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 245, .96), rgba(255, 255, 255, .88));
+  box-shadow: 0 10px 20px rgba(217, 111, 24, .08);
+}
+
+.dashboard-grid.international-workbench .international-route-code {
+  color: #fff;
+  background: #1d4e89;
+  border-radius: 10px;
+}
+
+.dashboard-grid.international-workbench .international-option-card strong {
+  color: #20283b;
+  font-weight: 680;
+}
+
+.dashboard-grid.international-workbench .international-option-card em {
+  color: #e95f00;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-grid.international-workbench .international-chip-row span {
+  color: #526173;
+  background: rgba(248, 250, 252, .86);
+  font-weight: 560;
+}
+
+.dashboard-grid.international-workbench .international-detail-grid {
+  margin: 0;
+}
+
+.dashboard-grid.international-workbench .international-preflight-list {
+  margin-top: 0;
+}
+
+.dashboard-grid.international-workbench .international-notice {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 13px;
+  color: #6b4a2d;
+  background: rgba(255, 241, 223, .64);
+}
+
 /* Member workbench repair: compact app UI, scoped away from the public portal. */
 .dashboard-shell .member-board {
   grid-template-columns: minmax(360px, .86fr) minmax(520px, 1fr);
@@ -14179,5 +14825,408 @@ svg {
 
   .dashboard-shell .chat-composer textarea {
     min-height: 68px;
+  }
+}
+
+/* Passenger wallet page refinement, scoped to the wallet/real-name tab only. */
+.passenger-wallet-board {
+  grid-template-columns: minmax(390px, .82fr) minmax(560px, 1.18fr);
+  gap: 16px;
+}
+
+.passenger-wallet-board .wallet-board-card,
+.passenger-wallet-board .profile-edit-card,
+.passenger-wallet-board .wallet-ledger-card {
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(255, 255, 255, .84)),
+    rgba(255, 255, 255, .9);
+  border: 1px solid rgba(223, 229, 236, .9);
+  box-shadow: 0 10px 22px rgba(41, 31, 20, .06);
+}
+
+.passenger-wallet-board .wallet-board-card,
+.passenger-wallet-board .profile-edit-card {
+  min-height: 388px;
+  padding: 18px;
+}
+
+.passenger-wallet-board .wallet-ledger-card {
+  min-height: 234px;
+  padding: 18px 20px 20px;
+}
+
+.passenger-wallet-board .card-head {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.passenger-wallet-board .card-head h2 {
+  margin-top: 3px;
+  color: #1f2937;
+  font-size: 22px;
+  line-height: 1.16;
+  font-weight: 820;
+}
+
+.passenger-wallet-board .section-kicker {
+  color: #b45400;
+  font-size: 12px;
+  font-weight: 820;
+  text-transform: none;
+}
+
+.passenger-wallet-board .compact-action {
+  min-height: 34px;
+  border-radius: 11px;
+  color: #344054;
+  background: rgba(248, 250, 252, .88);
+  border: 1px solid rgba(226, 232, 240, .95);
+  box-shadow: none;
+}
+
+.passenger-wallet-board .compact-action:hover {
+  background: #fff;
+  border-color: rgba(255, 122, 0, .26);
+}
+
+.passenger-wallet-board .wallet-asset-hero {
+  position: relative;
+  isolation: isolate;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 14px;
+  color: #1f2937;
+  background:
+    linear-gradient(135deg, rgba(255, 248, 240, .96), rgba(255, 255, 255, .9) 58%, rgba(240, 253, 250, .88)),
+    #fff;
+  border: 1px solid rgba(255, 122, 0, .16);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.passenger-wallet-board .wallet-asset-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  width: 5px;
+  background: linear-gradient(180deg, #ff7a00, #13b8a6);
+}
+
+.passenger-wallet-board .wallet-asset-top span {
+  color: #8a4b00;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.passenger-wallet-board .wallet-asset-top em {
+  color: #17665d;
+  background: rgba(19, 184, 166, .12);
+  border: 1px solid rgba(19, 184, 166, .18);
+}
+
+.passenger-wallet-board .wallet-asset-amount {
+  gap: 5px;
+}
+
+.passenger-wallet-board .wallet-asset-amount small,
+.passenger-wallet-board .wallet-asset-summary small {
+  color: #667085;
+  font-weight: 720;
+}
+
+.passenger-wallet-board .wallet-asset-amount strong {
+  color: #111827;
+  font-size: 38px;
+  font-weight: 860;
+}
+
+.passenger-wallet-board .wallet-asset-hero p {
+  margin: -2px 0 0;
+  color: #667085;
+  font-size: 12px;
+}
+
+.passenger-wallet-board .wallet-asset-summary {
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, .2);
+}
+
+.passenger-wallet-board .wallet-asset-summary span {
+  min-height: 54px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  color: #1f2937;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(226, 232, 240, .9);
+  font-size: 14px;
+}
+
+.passenger-wallet-board .wallet-auth-strip {
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.passenger-wallet-board .summary-pill {
+  min-height: 66px;
+  padding: 10px;
+  border-radius: 13px;
+  background: rgba(248, 250, 252, .9);
+  border-color: rgba(226, 232, 240, .9);
+}
+
+.passenger-wallet-board .summary-pill-icon {
+  color: #e95f00;
+  background: rgba(255, 122, 0, .1);
+}
+
+.passenger-wallet-board .summary-pill strong {
+  color: #1f2937;
+  font-size: 15px;
+}
+
+.passenger-wallet-board .summary-pill small {
+  color: #667085;
+}
+
+.passenger-wallet-board .wallet-readonly-list {
+  gap: 7px;
+}
+
+.passenger-wallet-board .wallet-readonly-list .profile-view-row {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, .8);
+  border: 1px solid rgba(226, 232, 240, .82);
+}
+
+.passenger-wallet-board .wallet-readonly-list .profile-view-row span {
+  color: #667085;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.passenger-wallet-board .wallet-readonly-list .profile-view-row strong {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.passenger-wallet-board .profile-edit-card .wallet-readonly-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.passenger-wallet-board .profile-edit-card .wallet-readonly-list .profile-view-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: 5px;
+  min-height: 76px;
+}
+
+.passenger-wallet-board .profile-edit-card .wallet-readonly-list .profile-view-row strong {
+  max-width: 100%;
+  text-align: left;
+  font-size: 15px;
+}
+
+.passenger-wallet-board .wallet-profile-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, .9fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.passenger-wallet-board .wallet-profile-summary > span,
+.passenger-wallet-board .wallet-profile-summary > div {
+  min-height: 74px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, .86);
+  border: 1px solid rgba(226, 232, 240, .86);
+}
+
+.passenger-wallet-board .wallet-profile-summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 820;
+}
+
+.passenger-wallet-board .wallet-profile-summary > span.ready {
+  color: #146b5f;
+  background: rgba(19, 184, 166, .12);
+  border-color: rgba(19, 184, 166, .18);
+}
+
+.passenger-wallet-board .wallet-profile-summary > span.pending {
+  color: #8a4b00;
+  background: rgba(255, 122, 0, .08);
+  border-color: rgba(255, 122, 0, .14);
+}
+
+.passenger-wallet-board .wallet-profile-summary > div {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.passenger-wallet-board .wallet-profile-summary strong {
+  color: #111827;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 860;
+}
+
+.passenger-wallet-board .wallet-profile-summary small {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.passenger-wallet-board .invoice-panel {
+  margin-top: 12px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  color: #344054;
+  background: linear-gradient(135deg, rgba(248, 250, 252, .96), rgba(240, 253, 250, .74));
+  border: 1px solid rgba(226, 232, 240, .88);
+}
+
+.passenger-wallet-board .invoice-panel svg {
+  color: #13a396;
+}
+
+.passenger-wallet-board .invoice-panel strong {
+  color: #1f2937;
+}
+
+.passenger-wallet-board .invoice-panel p {
+  color: #667085;
+}
+
+.passenger-wallet-board .wallet-ledger-card .card-head small {
+  color: #667085;
+}
+
+.passenger-wallet-board .wallet-ledger-actions {
+  color: #7a3d00;
+  background: rgba(255, 122, 0, .09);
+  border: 1px solid rgba(255, 122, 0, .12);
+}
+
+.passenger-wallet-board .wallet-ledger-actions strong {
+  color: #c94e00;
+}
+
+.passenger-wallet-board .empty-state {
+  min-height: 150px;
+  border: 1px solid rgba(226, 232, 240, .95);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, .94), rgba(255, 255, 255, .82));
+  color: #667085;
+}
+
+.passenger-wallet-board .empty-state svg {
+  color: #13a396;
+}
+
+.passenger-wallet-board .wallet-empty-ledger {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 150px;
+  padding: 18px 16px;
+  border: 1px solid rgba(226, 232, 240, .95);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, .94), rgba(255, 255, 255, .82));
+  text-align: center;
+}
+
+.passenger-wallet-board .wallet-empty-ledger span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: #13a396;
+  background: rgba(19, 184, 166, .1);
+}
+
+.passenger-wallet-board .wallet-empty-ledger strong {
+  color: #1f2937;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 840;
+}
+
+.passenger-wallet-board .wallet-empty-ledger p {
+  max-width: 42ch;
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.passenger-wallet-board .wallet-record-row {
+  min-height: 64px;
+  border-color: rgba(226, 232, 240, .9);
+  border-radius: 13px;
+  background: rgba(248, 250, 252, .78);
+  box-shadow: none;
+}
+
+.passenger-wallet-board .wallet-record-row:hover {
+  border-color: rgba(255, 122, 0, .26);
+  background: #fff;
+}
+
+.passenger-wallet-board .wallet-record-mark {
+  border-radius: 12px;
+}
+
+@media (max-width: 1180px) {
+  .passenger-wallet-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .passenger-wallet-board .wallet-asset-summary,
+  .passenger-wallet-board .wallet-auth-strip,
+  .passenger-wallet-board .profile-edit-card .wallet-readonly-list {
+    grid-template-columns: 1fr;
+  }
+
+  .passenger-wallet-board .wallet-asset-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .passenger-wallet-board .wallet-asset-summary span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .passenger-wallet-board .wallet-profile-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .passenger-wallet-board .wallet-profile-summary > span {
+    grid-column: 1 / -1;
+  }
+
+  .passenger-wallet-board .wallet-head-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .passenger-wallet-board .wallet-head-actions .compact-action {
+    flex: 1 1 auto;
   }
 }

@@ -211,6 +211,12 @@ const internationalOptions = [
   }
 ]
 
+const internationalRouteFallbacks = {
+  'SZX-HKG': { startId: 'poi007', endId: 'poi008' },
+  'SZX-MFM': { startId: 'poi007', endId: 'poi009' },
+  'PVG-HKG': { startId: 'poi005', endId: 'poi008' }
+}
+
 const dailyCheckinRewardRange = { min: 0.5, max: 5 }
 const dailyCheckinRewardRangeText = `${formatMoney(dailyCheckinRewardRange.min)} ~ ${formatMoney(dailyCheckinRewardRange.max)}`
 const dailyCheckinRewardBands = [
@@ -256,13 +262,100 @@ const roleMeta = {
   }
 }
 
+const passengerTabRoutes = {
+  ride: '',
+  orders: 'orders',
+  coupons: 'coupons',
+  member: 'member',
+  carpool: 'carpool',
+  international: 'international',
+  wallet: 'wallet',
+  invoice: 'invoice',
+  support: 'support',
+  messages: 'messages',
+  profile: 'profile'
+}
+
+const driverTabRoutes = {
+  listen: '',
+  orders: 'orders',
+  wallet: 'wallet',
+  support: 'support',
+  profile: 'profile',
+  messages: 'messages'
+}
+
+function normalizePassengerTab(tab) {
+  return Object.prototype.hasOwnProperty.call(passengerTabRoutes, tab) ? tab : 'ride'
+}
+
+function normalizeDriverTab(tab) {
+  return Object.prototype.hasOwnProperty.call(driverTabRoutes, tab) ? tab : 'listen'
+}
+
+function parseAppRoute(pathname = '/') {
+  const segments = String(pathname || '/').split('/').filter(Boolean)
+  const [root, tab] = segments
+  if (root === 'passenger') {
+    return { view: 'passenger', tab: normalizePassengerTab(tab) }
+  }
+  if (root === 'driver') {
+    return { view: 'driver', tab: normalizeDriverTab(tab) }
+  }
+  return { view: 'portal', tab: null }
+}
+
+function buildAppPath(view, tab) {
+  if (view === 'passenger') {
+    const normalizedTab = normalizePassengerTab(tab)
+    return normalizedTab === 'ride' ? '/passenger' : `/passenger/${passengerTabRoutes[normalizedTab]}`
+  }
+  if (view === 'driver') {
+    const normalizedTab = normalizeDriverTab(tab)
+    return normalizedTab === 'listen' ? '/driver' : `/driver/${driverTabRoutes[normalizedTab]}`
+  }
+  return '/'
+}
+
+function useAppRoute() {
+  const [route, setRoute] = useState(() => parseAppRoute(window.location.pathname))
+
+  useEffect(() => {
+    const syncFromLocation = () => setRoute(parseAppRoute(window.location.pathname))
+    window.addEventListener('popstate', syncFromLocation)
+    return () => window.removeEventListener('popstate', syncFromLocation)
+  }, [])
+
+  useEffect(() => {
+    const canonicalPath = buildAppPath(route.view, route.tab)
+    if (window.location.pathname !== canonicalPath) {
+      window.history.replaceState({}, '', `${canonicalPath}${window.location.search}${window.location.hash}`)
+    }
+  }, [route.tab, route.view])
+
+  const navigate = useCallback((view, tab = null, { replace = false } = {}) => {
+    const pathname = buildAppPath(view, tab)
+    const nextUrl = `${pathname}${window.location.search}${window.location.hash}`
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (nextUrl === currentUrl) {
+      setRoute(parseAppRoute(pathname))
+      return
+    }
+    window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl)
+    setRoute(parseAppRoute(pathname))
+  }, [])
+
+  return [route, navigate]
+}
+
 function App() {
   usePointerVars()
   const topLoader = useTopLoadBar()
   const [apiMode, setMode] = useState({ mode: 'checking', message: '正在连接业务服务' })
   const [baseUrl, setBaseUrlState] = useState(getApiBase())
   const [home, setHome] = useState({ carTypes: fallbackCarTypes, couponCenter: [], notices: [], fleet: defaultFleetStats() })
-  const [view, setView] = useState('portal')
+  const [route, navigate] = useAppRoute()
+  const view = route.view
   const [loginRole, setLoginRole] = useState(null)
   const [passengerSession, setPassengerSession] = usePersistentState(passengerSessionKey, null)
   const [driverSession, setDriverSession] = usePersistentState(driverSessionKey, null)
@@ -336,7 +429,7 @@ function App() {
     } else {
       setPassengerSession(data)
     }
-    if (view !== 'portal') setView(targetView)
+    if (view !== 'portal') navigate(targetView, view === targetView ? route.tab : null, { replace: true })
     setLoginRole(null)
   }
 
@@ -354,7 +447,7 @@ function App() {
         : (driverSession ? 'DRIVER' : null)
       setPortalRole(fallbackRole)
     }
-    setView('portal')
+    navigate('portal', null, { replace: true })
   }
 
   const currentPortalAccount = resolvePortalAccount(passengerSession, driverSession, portalRole)
@@ -402,7 +495,7 @@ function App() {
           saveBaseUrl={saveBaseUrl}
           home={home}
           onLogin={setLoginRole}
-          onEnter={(target) => setView(target)}
+          onEnter={(target) => navigate(target)}
           hasPassenger={Boolean(passengerSession)}
           hasDriver={Boolean(driverSession)}
           currentAccount={currentPortalAccount}
@@ -420,10 +513,12 @@ function App() {
           apiMode={apiMode}
           onLogin={() => setLoginRole('USER')}
           onLogout={() => logout('USER')}
-          onBack={() => setView('portal')}
+          onBack={() => navigate('portal', null, { replace: true })}
           onRefreshHome={refreshHome}
           checkinState={checkinState}
           setCheckinState={setCheckinState}
+          initialTab={route.tab}
+          onTabChange={(tab) => navigate('passenger', tab)}
         />
       )}
 
@@ -433,9 +528,11 @@ function App() {
           apiMode={apiMode}
           onLogin={() => setLoginRole('DRIVER')}
           onLogout={() => logout('DRIVER')}
-          onBack={() => setView('portal')}
+          onBack={() => navigate('portal', null, { replace: true })}
           checkinState={checkinState}
           setCheckinState={setCheckinState}
+          initialTab={route.tab}
+          onTabChange={(tab) => navigate('driver', tab)}
         />
       )}
 
@@ -912,8 +1009,8 @@ function PortalFeatureMenu({ active, setActive, onPassenger, onDriver }) {
   )
 }
 
-function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack, onRefreshHome }) {
-  const [tab, setTab] = useState('ride')
+function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack, onRefreshHome, initialTab, onTabChange }) {
+  const [tab, setTab] = useState(() => normalizePassengerTab(initialTab))
   const [booking, setBooking] = useState(defaultBooking)
   const [estimate, setEstimate] = useState(null)
   const [orders, setOrders] = useState([])
@@ -968,6 +1065,16 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    setTab(normalizePassengerTab(initialTab))
+  }, [initialTab])
+
+  const changeTab = useCallback((nextTab) => {
+    const normalizedTab = normalizePassengerTab(nextTab)
+    setTab(normalizedTab)
+    onTabChange?.(normalizedTab)
+  }, [onTabChange])
 
   useEffect(() => {
     if (!token || !activeRideOrder?.id) {
@@ -1054,16 +1161,24 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     const priced = estimate || await estimateRide()
     const order = await api.createOrder(token, createOrderPayload(booking, priced))
     setOrders((items) => [order, ...items])
-    setTab('ride')
+    changeTab('ride')
   }, '订单已提交，地图已切换到实时派单状态')
 
-  const createInternationalRide = (option = internationalOptions[0]) => run(async () => {
-    const route = calcRoute(booking.startId, booking.endId)
+  const createInternationalRide = (option = internationalOptions[0], form = {}) => run(async () => {
+    const routeIds = resolveInternationalRouteIds(option)
+    const route = calcRoute(routeIds.startId, routeIds.endId)
     const internationalBooking = {
       ...booking,
+      carTypeId: 3,
       serviceType: SERVICE_TYPE.INTERNATIONAL,
-      endId: booking.endId || 'poi008',
-      remark: buildInternationalRemark(option, booking.remark)
+      startId: routeIds.startId,
+      endId: routeIds.endId,
+      remark: buildInternationalRemark(option, form.note || booking.remark, form, {
+        distanceKm: parseMetricNumber(option.distanceText, route.distanceKm),
+        durationMin: parseMetricNumber(option.durationText, route.durationMin),
+        amount: option.basePrice,
+        currencyCode: 'USD'
+      })
     }
     const priced = await api.estimate({
       carTypeId: internationalBooking.carTypeId,
@@ -1071,10 +1186,19 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       distanceKm: route.distanceKm,
       durationMin: route.durationMin
     }).catch(() => estimateLocalFare(internationalBooking.carTypeId, SERVICE_TYPE.INTERNATIONAL, route.distanceKm, route.durationMin))
-    const order = await api.createOrder(token, createOrderPayload(internationalBooking, priced))
+    const internationalEstimate = {
+      ...priced,
+      amount: Number(option.basePrice || priced.amount || 0),
+      payable: Number(option.basePrice || priced.payable || priced.amount || 0),
+      distanceKm: parseMetricNumber(option.distanceText, priced.distanceKm || route.distanceKm),
+      durationMin: parseMetricNumber(option.durationText, priced.durationMin || route.durationMin),
+      currencyCode: 'USD',
+      exchangeRate: 7.15
+    }
+    const order = await api.createOrder(token, createOrderPayload(internationalBooking, internationalEstimate))
     setOrders((items) => [order, ...items])
-    setTab('orders')
-  }, `${option.titleZh || '国际出行'}订单已提交，订单列表已更新`)
+    changeTab('orders')
+  }, `${option.titleZh || '国际出行'}预约已提交，国际行程已同步到订单`)
 
   if (!session) {
     return <LoginRequired role="USER" onLogin={onLogin} onBack={onBack} />
@@ -1087,10 +1211,11 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       apiMode={apiMode}
       profile={profile || session}
       tab={tab}
-      setTab={setTab}
+      setTab={changeTab}
       syncMeta={syncMeta}
       onLogout={onLogout}
       onBack={onBack}
+      onTabChange={onTabChange}
       tabs={[
         ['ride', SERVICE_ICON_PATHS[SERVICE_TYPE.TAXI], '叫车'],
         ['orders', Route, '订单'],
@@ -1136,7 +1261,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           orders={orders}
           role="USER"
           onRefresh={load}
-          onOpenInvoice={() => setTab('invoice')}
+          onOpenInvoice={() => changeTab('invoice')}
           focusOrderId={focusOrderId}
           onAction={(action, order, payload) => run(() => passengerOrderAction(action, order, token, payload), actionText(action))}
         />
@@ -1147,13 +1272,13 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           center={couponCenter}
           mine={coupons}
           membership={membership}
-          onOpenMembership={() => setTab('member')}
+          onOpenMembership={() => changeTab('member')}
           onUseCoupon={(coupon) => {
             setBooking((current) => ({
               ...current,
               userCouponId: coupon.userCouponId || coupon.id
             }))
-            setTab('ride')
+            changeTab('ride')
             setToast('已选择优惠券，可在叫车页下单抵扣')
             window.setTimeout(() => setToast(''), 2200)
           }}
@@ -1213,7 +1338,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           }}
         />
       )}
-      {tab === 'international' && <InternationalBoard booking={booking} setBooking={setBooking} estimate={estimate} carTypes={home.carTypes} onSubmit={createInternationalRide} />}
+      {tab === 'international' && <InternationalBoard booking={booking} estimate={estimate} profile={profile || session} onSubmit={createInternationalRide} />}
       {tab === 'wallet' && (
         <PassengerWalletBoard
           profile={profile || session}
@@ -1268,8 +1393,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   )
 }
 
-function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
-  const [tab, setTab] = useState('listen')
+function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialTab, onTabChange }) {
+  const [tab, setTab] = useState(() => normalizeDriverTab(initialTab))
   const [dashboard, setDashboard] = useState(null)
   const [waitingOrders, setWaitingOrders] = useState([])
   const [orders, setOrders] = useState([])
@@ -1314,6 +1439,16 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    setTab(normalizeDriverTab(initialTab))
+  }, [initialTab])
+
+  const changeTab = useCallback((nextTab) => {
+    const normalizedTab = normalizeDriverTab(nextTab)
+    setTab(normalizedTab)
+    onTabChange?.(normalizedTab)
+  }, [onTabChange])
 
   useEffect(() => {
     if (!token) return undefined
@@ -1395,10 +1530,11 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
       apiMode={apiMode}
       profile={user}
       tab={tab}
-      setTab={setTab}
+      setTab={changeTab}
       syncMeta={syncMeta}
       onLogout={onLogout}
       onBack={onBack}
+      onTabChange={onTabChange}
       tabs={[
         ['listen', Radio, '听单'],
         ['orders', Route, '订单'],
@@ -1453,7 +1589,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
               <em>{servicePermission.canReceiveOrders === false ? '未解锁' : activeDriverTrip ? '进行中' : driverOnline ? '可接单' : '未上线'}</em>
             </div>
             {activeDriverTrip && (
-              <button type="button" className="driver-current-trip-card" onClick={() => setTab('orders')}>
+              <button type="button" className="driver-current-trip-card" onClick={() => changeTab('orders')}>
                 <div>
                   <span>当前进行中的行程</span>
                   <strong>{activeDriverTrip.startName} → {activeDriverTrip.endName}</strong>
@@ -1625,7 +1761,6 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack }) {
 
 function BookingPanel({ title, kicker = '路线配置', booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText, benefit = null, variant = 'standalone', lockedServiceType = false }) {
   const [busyAction, setBusyAction] = useState('')
-  const tilt = useTiltCard({ maxX: 11, maxY: 16 })
   const route = calcRoute(booking.startId, booking.endId)
   const safeEstimate = estimate || estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
   const checkinDiscount = benefit?.signedToday && benefit?.status === 'pending' ? Number(benefit.amount || 0) : 0
@@ -1646,7 +1781,6 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
   const panelClassName = [
     'booking-card',
     isEmbedded ? 'booking-card--embedded' : 'glass-panel refract',
-    'tilt-card'
   ].join(' ')
   const swapRoute = () => update({ startId: booking.endId, endId: booking.startId })
 
@@ -1662,7 +1796,7 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
   }
 
   return (
-    <section className={panelClassName} ref={tilt.ref} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave}>
+    <section className={panelClassName}>
       <div className="card-head">
         <div>
           {!isEmbedded && <span className="section-kicker">{kicker}</span>}
@@ -2632,8 +2766,24 @@ function getTencentMapKey() {
   }
 }
 
-function SunshineMotionLogo({ className = '' }) {
+function SunshineMotionLogoLegacy({ className = '' }) {
   const rootClassName = ['sunshine-motion-logo', className].filter(Boolean).join(' ')
+  const sunPath = 'M126 287 C116 188 177 115 263 115 C350 115 410 188 400 287 Z'
+  const rayLayers = [
+    { id: 'ray-1', d: 'M128 210 L66 199', strokeWidth: 42 },
+    { id: 'ray-2', d: 'M151 140 L98 102', strokeWidth: 38 },
+    { id: 'ray-3', d: 'M199 98 L164 40', strokeWidth: 38 },
+    { id: 'ray-4', d: 'M270 91 L270 24', strokeWidth: 38 },
+    { id: 'ray-5', d: 'M341 98 L377 40', strokeWidth: 38 },
+    { id: 'ray-6', d: 'M389 140 L452 101', strokeWidth: 38 },
+    { id: 'ray-7', d: 'M409 210 L490 198', strokeWidth: 42 }
+  ]
+  const wordLayers = [
+    { id: 'word-1', char: '阳', x: 518, y: 258 },
+    { id: 'word-2', char: '光', x: 612, y: 258 },
+    { id: 'word-3', char: '出', x: 706, y: 258 },
+    { id: 'word-4', char: '行', x: 803, y: 258 }
+  ]
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -2651,111 +2801,312 @@ function SunshineMotionLogo({ className = '' }) {
         focusable="false"
       >
         <defs>
-          <mask id="sunshineMotionRevealMask" maskUnits="userSpaceOnUse">
+          <radialGradient id="sunshineMotionSunGradient" cx="34%" cy="28%" r="76%">
+            <stop offset="0%" stopColor="#ffc321" />
+            <stop offset="54%" stopColor="#ffab10" />
+            <stop offset="100%" stopColor="#ff8f05" />
+          </radialGradient>
+          <linearGradient id="sunshineMotionTextGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ff9f12" />
+            <stop offset="56%" stopColor="#ff8c07" />
+            <stop offset="100%" stopColor="#ff7a00" />
+          </linearGradient>
+          <clipPath id="sunshineMotionSunClip" clipPathUnits="userSpaceOnUse">
+            <path d={sunPath} />
+          </clipPath>
+          <mask id="sunshineMotionSunRiseMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
             <rect width="1206" height="463" fill="#000" />
-            <g className="sunshine-motion-logo__mask-track" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round">
+            <rect className="sunshine-motion-logo__sun-rise-clip" x="118" y="114" width="290" height="174" fill="#fff" />
+          </mask>
+          <mask id="sunshineMotionRoadInnerMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <path
+              className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--road-inner"
+              d="M201 413 C253 337 344 315 518 353"
+              pathLength="1"
+              fill="none"
+              stroke="#fff"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="104"
+            />
+          </mask>
+          <mask id="sunshineMotionRoadOuterMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <path
+              className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--road-outer"
+              d="M23 362 C94 313 194 286 333 288 C402 289 463 301 529 318"
+              pathLength="1"
+              fill="none"
+              stroke="#fff"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="128"
+            />
+          </mask>
+          {rayLayers.map((ray) => (
+            <mask key={ray.id} id={`sunshineMotionMask-${ray.id}`} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+              <rect width="1206" height="463" fill="#000" />
               <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--outer-road"
+                className={`sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--${ray.id}`}
+                d={ray.d}
                 pathLength="1"
-                d="M23 362 C94 313 194 286 333 288 C402 289 463 301 529 318"
-                strokeWidth="128"
+                fill="none"
+                stroke="#fff"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={ray.strokeWidth}
               />
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--inner-road"
-                pathLength="1"
-                d="M201 413 C253 337 344 315 518 353"
-                strokeWidth="104"
-              />
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--sun-core"
-                pathLength="1"
-                d="M132 273 C127 171 186 97 268 97 C350 97 410 171 405 274"
-                strokeWidth="148"
-              />
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--word"
-                pathLength="1"
-                d="M529 178 H1187"
-                strokeWidth="180"
-              />
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--tagline"
-                pathLength="1"
-                d="M535 367 H1172"
-                strokeWidth="74"
-              />
-            </g>
-            <circle className="sunshine-motion-logo__mask-sun-fill" cx="268" cy="205" r="154" fill="#fff" />
-            <rect className="sunshine-motion-logo__mask-word-fill" x="514" y="102" width="686" height="192" rx="4" fill="#fff" />
-            <rect className="sunshine-motion-logo__mask-tagline-fill" x="514" y="319" width="686" height="86" rx="3" fill="#fff" />
-            <rect className="sunshine-motion-logo__mask-sweep-fill" width="1206" height="463" fill="#fff" />
-            <g className="sunshine-motion-logo__mask-car-blockers" fill="#000">
-              <path d="M161 188 H374 C390 188 400 198 400 214 V302 H142 V224 C142 203 151 188 161 188 Z" />
-            </g>
-            <g className="sunshine-motion-logo__mask-ray-blockers" fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M128 210 L66 199" strokeWidth="52" />
-              <path d="M151 140 L98 102" strokeWidth="48" />
-              <path d="M199 98 L164 40" strokeWidth="48" />
-              <path d="M270 91 L270 24" strokeWidth="48" />
-              <path d="M341 98 L377 40" strokeWidth="48" />
-              <path d="M389 140 L452 101" strokeWidth="48" />
-              <path d="M409 210 L490 198" strokeWidth="52" />
-            </g>
-            <g className="sunshine-motion-logo__mask-car" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round">
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--car-body"
-                pathLength="1"
-                d="M170 282 C188 236 202 215 219 212 C247 207 295 207 318 212 C337 216 350 238 366 282 C322 296 214 296 170 282"
-                strokeWidth="58"
-              />
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--car-cabin"
-                pathLength="1"
-                d="M198 239 C208 216 218 207 238 206 H300 C320 207 331 217 341 240"
-                strokeWidth="42"
-              />
-              <path
-                className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--car-lights"
-                pathLength="1"
-                d="M174 235 H186 M350 235 H363"
-                strokeWidth="28"
-              />
-            </g>
-            <g className="sunshine-motion-logo__mask-rays" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round">
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--1" pathLength="1" d="M128 210 L66 199" strokeWidth="42" />
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--2" pathLength="1" d="M151 140 L98 102" strokeWidth="38" />
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--3" pathLength="1" d="M199 98 L164 40" strokeWidth="38" />
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--4" pathLength="1" d="M270 91 L270 24" strokeWidth="38" />
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--5" pathLength="1" d="M341 98 L377 40" strokeWidth="38" />
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--6" pathLength="1" d="M389 140 L452 101" strokeWidth="38" />
-              <path className="sunshine-motion-logo__mask-ray sunshine-motion-logo__mask-ray--7" pathLength="1" d="M409 210 L490 198" strokeWidth="42" />
-            </g>
-            <rect className="sunshine-motion-logo__mask-final-fill" width="1206" height="463" fill="#fff" />
+            </mask>
+          ))}
+          <mask id="sunshineMotionTaglineMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <rect x="514" y="319" width="686" height="86" rx="3" fill="#fff" />
+          </mask>
+          <mask id="sunshineMotionCarSoftMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <path d="M154 187 H379 C397 187 410 200 410 219 V306 H132 V226 C132 202 145 187 154 187 Z" fill="#fff" />
+          </mask>
+          <mask id="sunshineMotionCarBodyMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <path d="M170 282 C188 236 202 215 219 212 C247 207 295 207 318 212 C337 216 350 238 366 282 C322 296 214 296 170 282 Z" fill="#fff" />
+          </mask>
+          <mask id="sunshineMotionCarCabinMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <path d="M198 239 C208 216 218 207 238 206 H300 C320 207 331 217 341 240 Z" fill="#fff" />
+          </mask>
+          <mask id="sunshineMotionCarLightsMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <path d="M174 235 H186 M350 235 H363" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="28" />
           </mask>
         </defs>
-        <image className="sunshine-motion-logo__image" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionRevealMask)" />
-        <path
-          className="sunshine-motion-logo__glint"
-          pathLength="1"
-          d="M23 362 C94 313 194 286 333 288 C402 289 463 301 529 318"
-        />
+        <g className="sunshine-motion-logo__stack">
+          <circle
+            className="sunshine-motion-logo__sun-core"
+            cx="263"
+            cy="252"
+            r="139"
+            fill="url(#sunshineMotionSunGradient)"
+            clipPath="url(#sunshineMotionSunClip)"
+            mask="url(#sunshineMotionSunRiseMask)"
+          />
+          {rayLayers.map((ray) => (
+            <image
+              key={ray.id}
+              className={`sunshine-motion-logo__layer sunshine-motion-logo__layer--${ray.id}`}
+              href={sunshineLogo}
+              width="1206"
+              height="463"
+              mask={`url(#sunshineMotionMask-${ray.id})`}
+            />
+          ))}
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--road-inner" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionRoadInnerMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--road-outer" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionRoadOuterMask)" />
+          {wordLayers.map((word) => (
+            <text
+              key={word.id}
+              className={`sunshine-motion-logo__layer sunshine-motion-logo__layer--${word.id} sunshine-motion-logo__word`}
+              x={word.x}
+              y={word.y}
+              fill="url(#sunshineMotionTextGradient)"
+            >
+              {word.char}
+            </text>
+          ))}
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--tagline" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionTaglineMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--car-soft" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionCarSoftMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--car-body" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionCarBodyMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--car-cabin" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionCarCabinMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--car-lights" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionCarLightsMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--final" href={sunshineLogo} width="1206" height="463" />
+        </g>
       </svg>
     </span>
   )
 }
 
-function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, children }) {
+function SunshineMotionLogo({ className = '' }) {
+  const motionDurationMs = 2500
+  const sunPath = 'M126 287 C116 188 177 115 263 115 C350 115 410 188 400 287 Z'
+  const rayLayers = [
+    { id: 'ray-1', d: 'M128 210 L66 199', strokeWidth: 42 },
+    { id: 'ray-2', d: 'M151 140 L98 102', strokeWidth: 38 },
+    { id: 'ray-3', d: 'M199 98 L164 40', strokeWidth: 38 },
+    { id: 'ray-4', d: 'M270 91 L270 24', strokeWidth: 38 },
+    { id: 'ray-5', d: 'M341 98 L377 40', strokeWidth: 38 },
+    { id: 'ray-6', d: 'M389 140 L452 101', strokeWidth: 38 },
+    { id: 'ray-7', d: 'M409 210 L490 198', strokeWidth: 42 }
+  ]
+  const wordLayers = [
+    { id: 'word-1', x: 520, y: 164, width: 176, height: 174 },
+    { id: 'word-2', x: 700, y: 164, width: 160, height: 172 },
+    { id: 'word-3', x: 864, y: 164, width: 154, height: 172 },
+    { id: 'word-4', x: 1018, y: 164, width: 170, height: 176 }
+  ]
+  const { hasSeek, seekMs } = useMemo(() => {
+    if (typeof window === 'undefined') return { hasSeek: false, seekMs: 0 }
+    const params = new URLSearchParams(window.location.search)
+    const staticMode = params.get('static') === '1'
+    const rawSeek = Number(params.get('t') || '0')
+    const boundedSeek = Number.isFinite(rawSeek) ? Math.max(0, Math.min(motionDurationMs, rawSeek)) : 0
+    return {
+      hasSeek: staticMode || params.has('t'),
+      seekMs: staticMode ? motionDurationMs : boundedSeek
+    }
+  }, [])
+  const rootClassName = ['sunshine-motion-logo', className, hasSeek ? 'is-seeking' : ''].filter(Boolean).join(' ')
+  const rootStyle = useMemo(() => ({
+    '--sunshine-logo-motion-duration': `${motionDurationMs}ms`,
+    '--sunshine-logo-motion-seek': `${seekMs}ms`
+  }), [motionDurationMs, seekMs])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__p2mReady = true
+    }
+  }, [])
+
+  return (
+    <span id="logo-root" className={rootClassName} style={rootStyle} role="img" aria-label="阳光出行">
+      <svg
+        className="sunshine-motion-logo__svg"
+        viewBox="0 0 1206 463"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <radialGradient id="sunshineMotionSunGradient" cx="34%" cy="28%" r="76%">
+            <stop offset="0%" stopColor="#ffc321" />
+            <stop offset="54%" stopColor="#ffab10" />
+            <stop offset="100%" stopColor="#ff8f05" />
+          </radialGradient>
+          <clipPath id="sunshineMotionSunClip" clipPathUnits="userSpaceOnUse">
+            <path d={sunPath} />
+          </clipPath>
+          <mask id="sunshineMotionSunRiseMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            <rect className="sunshine-motion-logo__sun-rise-clip" x="110" y="118" width="312" height="180" fill="#fff" />
+          </mask>
+          <mask id="sunshineMotionRevealMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+            <rect width="1206" height="463" fill="#000" />
+            {rayLayers.map((ray) => (
+              <path
+                key={ray.id}
+                className={`sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--${ray.id}`}
+                d={ray.d}
+                pathLength="1"
+                fill="none"
+                stroke="#fff"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={ray.strokeWidth}
+              />
+            ))}
+            <path
+              className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--road-outer"
+              d="M23 362 C94 313 194 286 333 288 C402 289 463 301 529 318"
+              pathLength="1"
+              fill="none"
+              stroke="#fff"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="128"
+            />
+            <path
+              className="sunshine-motion-logo__mask-stroke sunshine-motion-logo__mask-stroke--road-inner"
+              d="M201 413 C253 337 344 315 518 353"
+              pathLength="1"
+              fill="none"
+              stroke="#fff"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="104"
+            />
+            {wordLayers.map((word) => (
+              <rect
+                key={word.id}
+                className={`sunshine-motion-logo__mask-word sunshine-motion-logo__mask-word--${word.id}`}
+                x={word.x}
+                y={word.y}
+                width={word.width}
+                height={word.height}
+                rx="4"
+                fill="#fff"
+              />
+            ))}
+            <rect
+              className="sunshine-motion-logo__mask-word sunshine-motion-logo__mask-word--tagline"
+              x="514"
+              y="319"
+              width="686"
+              height="86"
+              rx="3"
+              fill="#fff"
+            />
+            <path
+              className="sunshine-motion-logo__mask-car-part sunshine-motion-logo__mask-car-part--car-soft"
+              d="M154 187 H379 C397 187 410 200 410 219 V306 H132 V226 C132 202 145 187 154 187 Z"
+              fill="#fff"
+            />
+            <path
+              className="sunshine-motion-logo__mask-car-part sunshine-motion-logo__mask-car-part--car-body"
+              d="M170 282 C188 236 202 215 219 212 C247 207 295 207 318 212 C337 216 350 238 366 282 C322 296 214 296 170 282 Z"
+              fill="#fff"
+            />
+            <path
+              className="sunshine-motion-logo__mask-car-part sunshine-motion-logo__mask-car-part--car-cabin"
+              d="M198 239 C208 216 218 207 238 206 H300 C320 207 331 217 341 240 Z"
+              fill="#fff"
+            />
+            <path
+              className="sunshine-motion-logo__mask-car-part sunshine-motion-logo__mask-car-part--car-lights"
+              d="M174 235 H186 M350 235 H363"
+              fill="none"
+              stroke="#fff"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="28"
+            />
+          </mask>
+        </defs>
+        <g className="sunshine-motion-logo__stack">
+          <circle
+            className="sunshine-motion-logo__sun-core"
+            cx="263"
+            cy="252"
+            r="139"
+            fill="url(#sunshineMotionSunGradient)"
+            clipPath="url(#sunshineMotionSunClip)"
+            mask="url(#sunshineMotionSunRiseMask)"
+          />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--reveal" href={sunshineLogo} width="1206" height="463" mask="url(#sunshineMotionRevealMask)" />
+          <image className="sunshine-motion-logo__layer sunshine-motion-logo__layer--final" href={sunshineLogo} width="1206" height="463" />
+        </g>
+      </svg>
+    </span>
+  )
+}
+
+function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, onTabChange, children }) {
   const activeTab = tabs.find(([key]) => key === tab)
   const activeLabel = activeTab?.[2] || '工作台'
   return (
     <main className="dashboard-shell">
       <aside className="side-nav glass-panel">
-        <button className="brand-mark" onClick={onBack}>
+        <div className="brand-mark brand-mark--static" aria-hidden="true">
           <SunshineMotionLogo className="dashboard-brand-logo" />
-        </button>
+        </div>
         <div className="nav-tabs">
           {tabs.map(([key, TabIcon, label]) => (
-            <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
+            <button
+              key={key}
+              className={tab === key ? 'active' : ''}
+              onClick={() => {
+                setTab(key)
+                onTabChange?.(key)
+              }}
+            >
               <IconSlot icon={TabIcon} size={18} className="nav-tab-icon" />{label}
             </button>
           ))}
@@ -4362,37 +4713,79 @@ function carpoolStatusBucket(status) {
   return 'pending'
 }
 
-function InternationalBoard({ booking, setBooking, estimate, carTypes, onSubmit }) {
+function InternationalBoard({ booking, estimate, profile, onSubmit }) {
   const [selectedOptionId, setSelectedOptionId] = useState(internationalOptions[0].id)
   const selectedOption = internationalOptions.find((item) => item.id === selectedOptionId) || internationalOptions[0]
-  const internationalBooking = { ...booking, serviceType: SERVICE_TYPE.INTERNATIONAL }
+  const [form, setForm] = useState(() => buildInternationalForm(profile))
+  const routeIds = resolveInternationalRouteIds(selectedOption)
+  const internationalBooking = {
+    ...booking,
+    serviceType: SERVICE_TYPE.INTERNATIONAL,
+    carTypeId: 3,
+    startId: routeIds.startId,
+    endId: routeIds.endId
+  }
   const route = calcRoute(internationalBooking.startId, internationalBooking.endId)
+  const distanceKm = parseMetricNumber(selectedOption.distanceText, route.distanceKm)
+  const durationMin = parseMetricNumber(selectedOption.durationText, route.durationMin)
   const safeEstimate = {
-    ...estimateLocalFare(internationalBooking.carTypeId, SERVICE_TYPE.INTERNATIONAL, route.distanceKm, route.durationMin),
+    ...estimateLocalFare(internationalBooking.carTypeId, SERVICE_TYPE.INTERNATIONAL, distanceKm, durationMin),
     amount: selectedOption.basePrice,
     payable: selectedOption.basePrice,
+    distanceKm,
+    durationMin,
     currencyCode: 'USD',
     exchangeRate: 7.15
   }
+  const updateForm = (patch) => setForm((value) => ({ ...value, ...patch }))
+  const submit = () => onSubmit(selectedOption, form)
+
   return (
-    <div className="dashboard-grid ride-workbench">
-      <BookingPanel
-        title="国际出行"
-        kicker="Global route"
-        booking={internationalBooking}
-        setBooking={setBooking}
+    <div className="dashboard-grid ride-workbench international-workbench">
+      <InternationalBookingPanel
+        option={selectedOption}
+        form={form}
+        onFormChange={updateForm}
         estimate={safeEstimate}
-        carTypes={carTypes}
-        onPrimary={() => onSubmit(selectedOption)}
-        primaryText={`提交${selectedOption.titleZh}`}
+        onSubmit={submit}
       />
-      <CityMap booking={internationalBooking} estimate={safeEstimate} compact showSummaryPanel={false} />
-      <section className="glass-panel work-card">
-        <div className="card-head"><div><span className="section-kicker">Global Desk</span><h2>国际方案</h2></div><ServiceIcon type={SERVICE_TYPE.INTERNATIONAL} className="card-head-service-icon" /></div>
-        <div className="international-metric-grid">
-          <SummaryPill icon={SERVICE_ICON_PATHS[SERVICE_TYPE.INTERNATIONAL]} value={internationalOptions.length} label="跨境方案" />
-          <SummaryPill icon={CreditCard} value="USD/CNY 7.15" label="参考汇率" />
-          <SummaryPill icon={MessageSquare} value="中文客服" label="服务支持" />
+      <section className="glass-panel work-card international-map-card">
+        <div className="international-map-head">
+          <div>
+            <span className="section-kicker">Global route</span>
+            <h2>{selectedOption.routeCode}</h2>
+            <p>{selectedOption.startName} → {selectedOption.endName}</p>
+          </div>
+          <span>{selectedOption.countryText}</span>
+        </div>
+        <CityMap booking={internationalBooking} estimate={safeEstimate} compact showSummaryPanel={false} />
+        <div className="international-route-pass">
+          <div>
+            <span>当地时间</span>
+            <strong>{form.date} {form.time}</strong>
+          </div>
+          <div>
+            <span>服务语言</span>
+            <strong>中文服务</strong>
+          </div>
+          <div>
+            <span>参考汇率</span>
+            <strong>1 USD ≈ 7.15 CNY</strong>
+          </div>
+        </div>
+      </section>
+      <section className="glass-panel work-card international-desk-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">International Booking Desk</span>
+            <h2>国际出行</h2>
+          </div>
+          <ServiceIcon type={SERVICE_TYPE.INTERNATIONAL} className="card-head-service-icon" />
+        </div>
+        <div className="international-desk-summary">
+          <div><span>方案</span><strong>{internationalOptions.length}</strong><small>跨境线路</small></div>
+          <div><span>币种</span><strong>USD</strong><small>CNY 7.15</small></div>
+          <div><span>服务</span><strong>中文</strong><small>司机/客服</small></div>
         </div>
         <div className="international-option-list">
           {internationalOptions.map((item) => (
@@ -4438,6 +4831,106 @@ function InternationalBoard({ booking, setBooking, estimate, carTypes, onSubmit 
   )
 }
 
+function InternationalBookingPanel({ option, form, onFormChange, estimate, onSubmit }) {
+  const [busyAction, setBusyAction] = useState(false)
+  const runAction = async () => {
+    if (busyAction) return
+    setBusyAction(true)
+    try {
+      await Promise.resolve(onSubmit?.())
+    } finally {
+      window.setTimeout(() => setBusyAction(false), 180)
+    }
+  }
+
+  return (
+    <section className="booking-card glass-panel refract international-booking-card">
+      <div className="international-booking-hero">
+        <div>
+          <span className="section-kicker">Global Travel Desk</span>
+          <h2>国际出行</h2>
+          <p>机场接送、口岸通行、商务预约与多币种结算一站完成。</p>
+        </div>
+        <div className="international-price-card">
+          <span>预计支付</span>
+          <strong>{formatMoney(estimate.amount, estimate.currencyCode)}</strong>
+          <small>1 USD ≈ {estimate.exchangeRate} CNY</small>
+        </div>
+      </div>
+
+      <div className="international-route-panel">
+        <div>
+          <span>FROM</span>
+          <strong>{option.startName}</strong>
+        </div>
+        <i>→</i>
+        <div>
+          <span>TO</span>
+          <strong>{option.endName}</strong>
+        </div>
+      </div>
+
+      <div className="fare-grid international-summary-grid">
+        <MiniStat label="里程" value={`${estimate.distanceKm} km`} />
+        <MiniStat label="时长" value={`${estimate.durationMin} min`} />
+        <MiniStat label="车型" value={option.vehicle} />
+      </div>
+
+      <div className="international-form-grid">
+        <label className="plain-field">
+          <span>预约日期</span>
+          <input type="date" value={form.date} onChange={(event) => onFormChange({ date: event.target.value })} />
+        </label>
+        <label className="plain-field">
+          <span>当地时间</span>
+          <input type="time" value={form.time} onChange={(event) => onFormChange({ time: event.target.value })} />
+        </label>
+        <label className="plain-field">
+          <span>乘车人数</span>
+          <input type="number" min="1" max="6" value={form.passengerCount} onChange={(event) => onFormChange({ passengerCount: event.target.value })} />
+        </label>
+        <label className="plain-field">
+          <span>行李件数</span>
+          <input type="number" min="0" max="20" value={form.luggageCount} onChange={(event) => onFormChange({ luggageCount: event.target.value })} />
+        </label>
+      </div>
+
+      <div className="international-form-stack">
+        <label className="plain-field">
+          <span>联系人</span>
+          <input value={form.contactName} onChange={(event) => onFormChange({ contactName: event.target.value })} placeholder="请填写真实联系人" />
+        </label>
+        <label className="plain-field">
+          <span>联系电话</span>
+          <input value={form.contactPhone} onChange={(event) => onFormChange({ contactPhone: event.target.value })} placeholder="手机或国际区号电话" />
+        </label>
+        <label className="plain-field">
+          <span>航班/编号</span>
+          <input value={form.flightNo} onChange={(event) => onFormChange({ flightNo: event.target.value.toUpperCase() })} placeholder="如 CX331 / MU505" />
+        </label>
+        <label className="plain-field">
+          <span>接机牌</span>
+          <input value={form.pickupSign} onChange={(event) => onFormChange({ pickupSign: event.target.value })} placeholder="默认使用联系人姓名" />
+        </label>
+        <label className="plain-field international-note-field">
+          <span>补充需求</span>
+          <textarea value={form.note} onChange={(event) => onFormChange({ note: event.target.value })} placeholder="例如儿童座椅、航班延误、企业接待要求" />
+        </label>
+      </div>
+
+      <div className="international-doc-strip">
+        {option.documents.map((item) => <span key={item}><CheckCircle size={13} />{item}</span>)}
+      </div>
+
+      <div className="booking-actions">
+        <MagneticButton className="solid-button fill" disabled={busyAction} onClick={runAction}>
+          <Send size={17} />{busyAction ? '正在提交预约' : `确认预约${option.titleZh}`}
+        </MagneticButton>
+      </div>
+    </section>
+  )
+}
+
 function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onOpenOrder }) {
   const [editingRealName, setEditingRealName] = useState(false)
   const [editingProfile, setEditingProfile] = useState(false)
@@ -4470,6 +4963,13 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
   const walletRecords = useMemo(() => buildPassengerWalletRecords(orders), [orders])
   const walletSummary = useMemo(() => buildPassengerWalletSummary(walletRecords), [walletRecords])
   const verifiedText = profile?.authStatus === 2 ? '已实名' : '待实名'
+  const walletProfileProgress = [
+    form.nickname,
+    form.defaultLanguage,
+    profile?.phone,
+    realName.realName,
+    realName.idCard
+  ].filter(Boolean).length
 
   const saveRealName = async () => {
     const realNameText = realName.realName.trim()
@@ -4509,7 +5009,7 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
   }
 
   return (
-    <div className="dashboard-grid">
+    <div className="dashboard-grid passenger-wallet-board">
       <section className="glass-panel work-card wallet-board-card">
         <div className="card-head">
           <h2>钱包与实名</h2>
@@ -4566,12 +5066,20 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
       </section>
       <section className="glass-panel work-card wide profile-edit-card">
         <div className="card-head">
-          <h2>资料与发票入口</h2>
+          <div>
+            <span className="section-kicker">账户资料</span>
+            <h2>资料与发票入口</h2>
+          </div>
           {editingProfile ? (
             <button className="ghost-button compact-action" onClick={() => setEditingProfile(false)}>取消</button>
           ) : (
             <button className="ghost-button compact-action" onClick={() => setEditingProfile(true)}><Settings size={14} />编辑资料</button>
           )}
+        </div>
+        <div className="wallet-profile-summary" aria-label="账户资料摘要">
+          <span className={profile?.authStatus === 2 ? 'ready' : 'pending'}><BadgeCheck size={14} />{verifiedText}</span>
+          <div><strong>{walletProfileProgress}/5</strong><small>资料完整度</small></div>
+          <div><strong>{form.defaultLanguage || 'zh-CN'}</strong><small>默认语言</small></div>
         </div>
         {editingProfile ? (
           <>
@@ -4595,7 +5103,7 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
         )}
         <div className="invoice-panel">
           <CreditCard size={18} />
-          <div><strong>发票资料</strong><p>发票在独立入口处理。</p></div>
+          <div><strong>发票资料</strong><p>完成支付后，在发票页选择订单并提交抬头。</p></div>
         </div>
       </section>
       <section className="glass-panel work-card wallet-ledger-card">
@@ -4628,7 +5136,11 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
             ))}
           </div>
         ) : (
-          <EmptyState text="暂无流水，完成支付或退款后会自动同步到这里。" />
+          <div className="wallet-empty-ledger">
+            <span><CreditCard size={22} /></span>
+            <strong>暂无账户流水</strong>
+            <p>完成行程支付、退款或优惠抵扣后，明细会自动同步到这里。</p>
+          </div>
         )}
       </section>
     </div>
@@ -7012,24 +7524,93 @@ function driverVoiceStyleLabel(value) {
   return option?.[1] || '播音声音'
 }
 
-function buildInternationalRemark(option = {}, note = '') {
+function buildInternationalForm(profile = {}) {
+  const next = new Date()
+  next.setDate(next.getDate() + 1)
+  next.setHours(9, 0, 0, 0)
+  const pad = (value) => String(value).padStart(2, '0')
+  const phone = profile?.phone || demoAccounts.USER.phone || ''
+  return {
+    date: `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`,
+    time: '09:00',
+    passengerCount: 1,
+    luggageCount: 1,
+    contactName: profile?.realName || profile?.nickname || '阳光乘客',
+    contactPhone: phone,
+    flightNo: '',
+    pickupSign: '',
+    note: ''
+  }
+}
+
+function parseMetricNumber(value, fallback = 0) {
+  const match = String(value || '').match(/\d+(?:\.\d+)?/)
+  return match ? Number(match[0]) : fallback
+}
+
+function resolveInternationalRouteIds(option = {}) {
+  const fallback = internationalRouteFallbacks[option.routeCode] || internationalRouteFallbacks['SZX-HKG']
+  const findByName = (name) => {
+    const text = String(name || '').trim()
+    const shortName = text.split(/[，,]/)[0]
+    return poiLibrary.find((item) => item.name === text || item.name === shortName || text.startsWith(item.name) || item.name.startsWith(shortName))
+  }
+  return {
+    startId: findByName(option.startName)?.id || fallback.startId,
+    endId: findByName(option.endName)?.id || fallback.endId
+  }
+}
+
+function normalizeInternationalForm(form = {}) {
+  return {
+    date: String(form.date || '').trim(),
+    time: String(form.time || '').trim(),
+    passengerCount: Math.max(1, Math.min(6, Number(form.passengerCount || 1))),
+    luggageCount: Math.max(0, Math.min(20, Number(form.luggageCount || 0))),
+    contactName: String(form.contactName || '').trim(),
+    contactPhone: String(form.contactPhone || '').replace(/[^\d+]/g, '').trim(),
+    flightNo: String(form.flightNo || '').trim().toUpperCase(),
+    pickupSign: String(form.pickupSign || '').trim(),
+    note: String(form.note || '').trim()
+  }
+}
+
+function buildInternationalRemark(option = {}, note = '', form = {}, estimate = {}) {
+  const cleanForm = normalizeInternationalForm(form)
+  const appointmentTime = cleanForm.date && cleanForm.time ? `${cleanForm.date} ${cleanForm.time}:00` : ''
   const payload = {
     optionId: option.id || '',
     routeCode: option.routeCode || '',
     countryText: option.countryText || '',
+    productName: option.titleZh || '',
+    productNameEn: option.titleEn || '',
     titleZh: option.titleZh || '',
     titleEn: option.titleEn || '',
+    startName: option.startName || '',
+    endName: option.endName || '',
+    appointmentTime,
+    passengerCount: cleanForm.passengerCount,
+    contactName: cleanForm.contactName,
+    contactPhone: cleanForm.contactPhone,
+    flightNo: cleanForm.flightNo,
+    luggageCount: cleanForm.luggageCount,
+    pickupSign: cleanForm.pickupSign || cleanForm.contactName || '阳光出行',
+    languageCode: 'zh-CN',
     basePrice: option.basePrice || 0,
-    currencyCode: 'USD',
-    exchangeRate: 7.15,
+    currencyCode: estimate.currencyCode || 'USD',
+    exchangeRate: estimate.exchangeRate || 7.15,
     vehicle: option.vehicle || '',
     serviceItems: option.inclusions || [],
     documents: option.documents || [],
     riskNotice: option.notice || '请提前确认通关证件、航班时间与目的地政策。',
-    distanceText: option.distanceText || '',
-    durationText: option.durationText || ''
+    distanceText: `${estimate.distanceKm || parseMetricNumber(option.distanceText, 0)} km`,
+    durationText: `${estimate.durationMin || parseMetricNumber(option.durationText, 0)} min`,
+    amountText: formatMoney(estimate.amount || option.basePrice || 0, estimate.currencyCode || 'USD'),
+    syncStatus: 'BACKEND_ORDER',
+    submitSource: 'WEB_PASSENGER'
   }
-  return `[INTERNATIONAL_META]${JSON.stringify(payload)}[/INTERNATIONAL_META]${note || option.notice || ''}`
+  const cleanNote = String(note || '').trim()
+  return `[INTERNATIONAL_META]${JSON.stringify(payload)}[/INTERNATIONAL_META]${cleanNote ? ` ${cleanNote}` : ''}`
 }
 
 function auditStatusMeta(value) {
