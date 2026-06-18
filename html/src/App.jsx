@@ -10,10 +10,10 @@ import {
   Clock,
   CreditCard,
   DollarSign,
+  Download,
   Eye,
   EyeOff,
   Flag,
-  Globe,
   HelpCircle,
   Locate,
   Lock,
@@ -347,6 +347,7 @@ function useAppRoute() {
 
   return [route, navigate]
 }
+
 
 function App() {
   usePointerVars()
@@ -1076,6 +1077,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     onTabChange?.(normalizedTab)
   }, [onTabChange])
 
+
+
   useEffect(() => {
     if (!token || !activeRideOrder?.id) {
       setActiveRuntime(null)
@@ -1352,42 +1355,36 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         />
       )}
       {tab === 'invoice' && (
-        <InvoiceBoard
+        <InvoiceWorkbench
           orders={orders}
           profile={profile || session}
           onApplyInvoice={(order, form) => run(() => api.applyInvoice(token, order.id, form), '发票申请已提交')}
-          onPreviewInvoice={(order) => api.invoiceImage(token, order.id)}
+          onPreviewInvoice={(order) => api.invoiceAsset(token, order.id, { strict: true })}
         />
       )}
       {tab === 'support' && (
-        <SupportChatBoard
+        <SupportChatPanel
           conversation={supportConversation}
           messages={supportMessages}
           profile={profile || session}
           role="USER"
+          orders={orders}
           onRefresh={load}
           onSend={(content) => run(() => api.sendSupportMessage(token, content), '客服消息已发送')}
         />
       )}
       {tab === 'profile' && (
-        <>
+        <div className="settings-page">
+          <PassengerSettingsPanel
+            settings={passengerSettings}
+            onSettingsChange={updatePassengerSettings}
+          />
           <ProfileBoard
             profile={profile || session}
             mode="USER"
             onProfile={(form) => run(() => api.updateProfile(token, form), '资料已保存')}
           />
-          <PassengerSettingsPanel
-            settings={passengerSettings}
-            onSettingsChange={updatePassengerSettings}
-          />
-          <SupportBoard
-            orders={orders}
-            profile={profile || session}
-            settings={passengerSettings}
-            onComplaint={(order, payload) => run(() => passengerOrderAction('complaint', order, token, payload), '投诉已提交')}
-            onEvaluate={(order, payload) => run(() => passengerOrderAction('evaluate', order, token, payload), '评价已提交')}
-          />
-        </>
+        </div>
       )}
     </DashboardShell>
   )
@@ -1449,6 +1446,8 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
     setTab(normalizedTab)
     onTabChange?.(normalizedTab)
   }, [onTabChange])
+
+
 
   useEffect(() => {
     if (!token) return undefined
@@ -1710,11 +1709,12 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
       )}
 
       {tab === 'support' && (
-        <SupportChatBoard
+        <SupportChatPanel
           conversation={supportConversation}
           messages={supportMessages}
           profile={user}
           role="DRIVER"
+          orders={orders}
           onRefresh={load}
           onSend={(content) => run(() => api.sendSupportMessage(token, content), '客服消息已发送')}
         />
@@ -3091,8 +3091,11 @@ function SunshineMotionLogo({ className = '' }) {
 function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, onTabChange, children }) {
   const activeTab = tabs.find(([key]) => key === tab)
   const activeLabel = activeTab?.[2] || '工作台'
+  const titleText = tab === 'profile'
+    ? activeLabel
+    : (profile?.nickname || profile?.phone || role)
   return (
-    <main className="dashboard-shell">
+    <main className={`dashboard-shell${tab === 'support' ? ' dashboard-shell--support' : ''}`}>
       <aside className="side-nav glass-panel">
         <div className="brand-mark brand-mark--static" aria-hidden="true">
           <SunshineMotionLogo className="dashboard-brand-logo" />
@@ -3117,7 +3120,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
         <header className="dashboard-header glass-panel">
           <div className="dashboard-title-block">
             <span className="section-kicker">{role} · {activeLabel}</span>
-            <h1>{profile?.nickname || profile?.phone || role}</h1>
+            <h1>{titleText}</h1>
           </div>
           <div className="header-right">
             <ModeChip mode={apiMode.mode} message={apiMode.message} />
@@ -3626,6 +3629,34 @@ function orderInvoiceStatusText(order = {}) {
   return statusLabel[status] || status
 }
 
+function normalizeInvoiceStatus(source = {}) {
+  if (typeof source === 'string') return String(source || 'NONE').toUpperCase()
+  return String(source?.invoiceStatus || 'NONE').toUpperCase()
+}
+
+function invoiceStatusLabel(source = {}) {
+  const status = normalizeInvoiceStatus(source)
+  if (status === 'NONE') return '待开票'
+  if (status === 'APPLIED') return '处理中'
+  if (status === 'ISSUED') return '已开票'
+  if (status === 'REJECTED') return '驳回待修改'
+  return statusLabel[status] || status
+}
+
+function invoiceStatusTone(source = {}) {
+  const status = normalizeInvoiceStatus(source)
+  if (status === 'NONE') return 'active'
+  if (status === 'APPLIED') return 'waiting'
+  if (status === 'ISSUED') return 'success'
+  if (status === 'REJECTED') return 'danger'
+  return statusTone[status] || 'muted'
+}
+
+function invoiceStatusText(order = {}) {
+  return invoiceStatusLabel(order)
+}
+
+
 function orderEvaluationStatusText(order = {}) {
   const status = String(order.evaluationStatus || '').toUpperCase()
   if (status.startsWith('DONE')) return '已评价'
@@ -4100,6 +4131,64 @@ function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }
           </div>
         ) : <EmptyState text={active ? '本周会员券尚未同步，点击同步本周券包。' : '开通会员后这里会显示每周专属券。'} />}
       </section>
+
+      {false && <section className="glass-panel work-card support-profile-card support-order-panel">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">关联订单</span>
+            <h2>订单信息</h2>
+          </div>
+          <Route size={21} />
+        </div>
+
+        {relatedOrder ? (
+          <>
+            <div className="support-order-hero">
+              <div className="support-order-service">
+                <span className="support-order-service-icon">
+                  <ServiceIcon type={relatedOrder.serviceType} />
+                </span>
+                <div>
+                  <strong>{orderPanelTitle}</strong>
+                  <small>{relatedOrder.orderNo || `#${relatedOrder.id}`}</small>
+                </div>
+              </div>
+              <StatusBadge value={relatedOrder.orderStatus} />
+            </div>
+
+            <div className="support-order-route">
+              <div>
+                <span className="address-dot start" />
+                <small>上车点</small>
+                <strong>{relatedOrder.startName || '-'}</strong>
+              </div>
+              <div>
+                <span className="address-dot end" />
+                <small>目的地</small>
+                <strong>{relatedOrder.endName || '-'}</strong>
+              </div>
+            </div>
+
+            <div className="support-order-metrics">
+              <MiniStat label="订单金额" value={orderAmount} />
+              <MiniStat label="预估里程" value={orderDistance} />
+              <MiniStat label="预估时长" value={orderDuration} />
+            </div>
+
+            <InfoPanel title="订单详情" items={orderDetailItems} />
+
+            <div className="support-order-note">
+              <strong>客服会优先参考这笔订单</strong>
+              <small>{isDriver ? '处理听单、提现、资质和行程异常时，会结合当前或最近订单信息定位问题。' : '处理费用、发票、取消和行程问题时，会结合当前或最近订单信息定位问题。'}</small>
+            </div>
+          </>
+        ) : (
+          <div className="support-order-empty">
+            <EmptyState text="暂无可关联订单" />
+            <small>有订单后，这里会显示路线、金额和状态，方便客服更快定位问题。</small>
+          </div>
+        )}
+      </section>}
     </div>
   )
 }
@@ -4952,8 +5041,7 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
     setForm({
       nickname: profile?.nickname || '',
       emergencyContact: profile?.emergencyContact || '',
-      emergencyPhone: profile?.emergencyPhone || '',
-      defaultLanguage: profile?.defaultLanguage || 'zh-CN'
+      emergencyPhone: profile?.emergencyPhone || ''
     })
     setRealName({
       realName: profile?.realName || '阳光乘客',
@@ -5312,6 +5400,678 @@ function InvoiceBoard({ orders = [], profile, onApplyInvoice, onPreviewInvoice }
   )
 }
 
+function InvoiceWorkbench({ orders = [], profile, onApplyInvoice, onPreviewInvoice }) {
+  const sourceOrders = normalizeList(orders)
+  const eligibleOrders = useMemo(
+    () => sourceOrders.filter((order) => order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID),
+    [sourceOrders]
+  )
+  const actionableOrders = useMemo(
+    () => eligibleOrders.filter((order) => ['NONE', 'REJECTED'].includes(normalizeInvoiceStatus(order))),
+    [eligibleOrders]
+  )
+  const historyOrders = useMemo(
+    () => eligibleOrders.filter((order) => ['APPLIED', 'ISSUED'].includes(normalizeInvoiceStatus(order))),
+    [eligibleOrders]
+  )
+  const historyProfiles = useMemo(() => {
+    const profiles = new Map()
+    const pick = (...values) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
+    eligibleOrders.forEach((order) => {
+      const meta = order?.invoiceMeta || {}
+      const title = pick(order.invoiceTitle, meta.buyerName, meta.title)
+      if (!title) return
+      const taxNo = pick(order.taxNo, meta.buyerTaxNo, meta.taxNo)
+      const buyerPhone = pick(order.buyerPhone, meta.buyerPhone)
+      const key = [title, taxNo === '个人无需填写' ? '' : taxNo, buyerPhone].join('::')
+      const next = {
+        key,
+        title,
+        taxNo: taxNo === '个人无需填写' ? '' : taxNo,
+        buyerPhone,
+        lastUsedAt: pick(order.invoiceAppliedAt, order.invoiceHandledAt, meta.appliedAt, meta.issueAt, order.updatedAt, order.createdAt)
+      }
+      const current = profiles.get(key)
+      if (!current || (dateLikeToMs(next.lastUsedAt) || 0) > (dateLikeToMs(current.lastUsedAt) || 0)) {
+        profiles.set(key, next)
+      }
+    })
+    return Array.from(profiles.values()).sort((left, right) => (dateLikeToMs(right.lastUsedAt) || 0) - (dateLikeToMs(left.lastUsedAt) || 0))
+  }, [eligibleOrders])
+  const [invoiceTab, setInvoiceTab] = useState('apply')
+  const [selectedId, setSelectedId] = useState('')
+  const [filters, setFilters] = useState({ time: 'ALL', type: 'ALL', amount: 'ALL' })
+  const buildDraft = useCallback((order = {}) => {
+    const meta = order?.invoiceMeta || {}
+    const pick = (...values) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
+    const taxNo = pick(order.taxNo, meta.buyerTaxNo, meta.taxNo)
+    return {
+      invoiceTitle: pick(order.invoiceTitle, meta.buyerName, meta.title, profile?.realName, profile?.nickname, '个人'),
+      taxNo: taxNo === '个人无需填写' ? '' : taxNo,
+      buyerPhone: pick(order.buyerPhone, meta.buyerPhone, profile?.phone),
+      remark: pick(meta.remark, order.invoiceRemark, '网页端申请电子发票')
+    }
+  }, [profile])
+  const [form, setForm] = useState(() => buildDraft())
+  const [touched, setTouched] = useState({})
+  const [actionError, setActionError] = useState('')
+  const [applyBusy, setApplyBusy] = useState(false)
+  const [previewBusy, setPreviewBusy] = useState(false)
+  const [previewAsset, setPreviewAsset] = useState(null)
+  const scopedOrders = invoiceTab === 'history' ? historyOrders : actionableOrders
+  const visibleOrders = useMemo(() => {
+    const now = Date.now()
+    return scopedOrders.filter((order) => {
+      const amount = Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)
+      const eventTime = dateLikeToMs(order.finishedAt || order.paidAt || order.invoiceAppliedAt || order.updatedAt || order.createdAt || order.createdTime || order.createTime) || 0
+      const timeMatched = filters.time === 'ALL'
+        || (filters.time === '30D' && eventTime >= now - 30 * 24 * 60 * 60 * 1000)
+        || (filters.time === '90D' && eventTime >= now - 90 * 24 * 60 * 60 * 1000)
+        || (filters.time === '180D' && eventTime >= now - 180 * 24 * 60 * 60 * 1000)
+      const typeMatched = filters.type === 'ALL' || order.serviceType === filters.type
+      const amountMatched = filters.amount === 'ALL'
+        || (filters.amount === '0-50' && amount < 50)
+        || (filters.amount === '50-100' && amount >= 50 && amount < 100)
+        || (filters.amount === '100+' && amount >= 100)
+      return timeMatched && typeMatched && amountMatched
+    })
+  }, [filters.amount, filters.time, filters.type, scopedOrders])
+  const selectedOrder = useMemo(
+    () => visibleOrders.find((order) => String(order.id) === String(selectedId)) || visibleOrders[0] || null,
+    [selectedId, visibleOrders]
+  )
+  const selectedInvoiceStatus = normalizeInvoiceStatus(selectedOrder)
+  const selectedRejectReason = String(selectedOrder?.invoiceRejectReason || selectedOrder?.invoiceMeta?.rejectReason || selectedOrder?.invoiceMeta?.handleRemark || '').trim()
+  const canApplyInvoice = Boolean(selectedOrder) && !applyBusy && !previewBusy && !['APPLIED', 'ISSUED'].includes(selectedInvoiceStatus)
+  const canViewInvoice = Boolean(selectedOrder) && selectedInvoiceStatus === 'ISSUED'
+  const submitButtonClass = canApplyInvoice ? 'solid-button' : 'ghost-button invoice-action-button--muted'
+  const previewButtonClass = canViewInvoice ? 'solid-button invoice-action-button--primary' : 'ghost-button invoice-action-button--muted'
+  const downloadButtonClass = canViewInvoice ? 'line-button invoice-action-button--accent' : 'line-button invoice-action-button--muted'
+  const fieldErrors = useMemo(() => {
+    const title = String(form.invoiceTitle || '').trim()
+    const taxNo = String(form.taxNo || '').trim()
+    const buyerPhone = String(form.buyerPhone || '').trim()
+    const personal = !title || title === '个人' || title.includes('个人')
+    return {
+      invoiceTitle: title ? '' : '请填写发票抬头',
+      taxNo: !personal && !taxNo
+        ? '企业抬头请填写税号'
+        : taxNo && !/^[0-9A-Z]{15,20}$/i.test(taxNo)
+          ? '税号通常为 15-20 位数字或字母'
+          : '',
+      buyerPhone: !buyerPhone
+        ? '请填写接收手机'
+        : !isValidPhone(buyerPhone)
+          ? '请输入 11 位手机号'
+          : ''
+    }
+  }, [form.buyerPhone, form.invoiceTitle, form.taxNo])
+  const activeProfileKey = [String(form.invoiceTitle || '').trim(), String(form.taxNo || '').trim(), String(form.buyerPhone || '').trim()].join('::')
+
+  useEffect(() => {
+    const exists = visibleOrders.some((order) => String(order.id) === String(selectedId))
+    if (!exists) {
+      setSelectedId(visibleOrders[0]?.id ? String(visibleOrders[0].id) : '')
+    }
+  }, [selectedId, visibleOrders])
+
+  useEffect(() => {
+    setTouched({})
+    setActionError('')
+    setForm(buildDraft(selectedOrder || {}))
+  }, [buildDraft, selectedOrder?.id])
+
+  useEffect(() => {
+    if (!previewAsset?.url?.startsWith('blob:')) return undefined
+    return () => URL.revokeObjectURL(previewAsset.url)
+  }, [previewAsset])
+
+  useEffect(() => {
+    if (previewAsset && String(previewAsset.orderId) !== String(selectedOrder?.id || '')) {
+      setPreviewAsset(null)
+    }
+  }, [previewAsset, selectedOrder?.id])
+
+  const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }))
+  const updateField = (key, value) => {
+    setForm((draft) => ({ ...draft, [key]: value }))
+    setTouched((current) => ({ ...current, [key]: true }))
+    setActionError('')
+  }
+  const useHistoryProfile = (item) => {
+    setForm((draft) => ({
+      ...draft,
+      invoiceTitle: item.title,
+      taxNo: item.taxNo,
+      buyerPhone: item.buyerPhone || draft.buyerPhone
+    }))
+    setTouched((current) => ({ ...current, invoiceTitle: true, taxNo: true, buyerPhone: true }))
+    setActionError('')
+  }
+  const validateBeforeApply = () => {
+    if (!selectedOrder) return '请先选择一笔订单'
+    return fieldErrors.invoiceTitle || fieldErrors.taxNo || fieldErrors.buyerPhone || ''
+  }
+  const ensureInvoiceAsset = async () => {
+    if (!selectedOrder || selectedInvoiceStatus !== 'ISSUED') return null
+    if (previewAsset && String(previewAsset.orderId) === String(selectedOrder.id)) return previewAsset
+    setPreviewBusy(true)
+    setActionError('')
+    try {
+      const asset = await onPreviewInvoice(selectedOrder)
+      const next = { ...asset, orderId: selectedOrder.id }
+      setPreviewAsset(next)
+      return next
+    } catch (error) {
+      setActionError(error.message || '查看发票失败，请稍后重试')
+      return null
+    } finally {
+      setPreviewBusy(false)
+    }
+  }
+  const applyInvoice = async () => {
+    setTouched({ invoiceTitle: true, taxNo: true, buyerPhone: true })
+    const error = validateBeforeApply()
+    if (error) {
+      setActionError(error)
+      return
+    }
+    setApplyBusy(true)
+    setActionError('')
+    try {
+      await onApplyInvoice(selectedOrder, {
+        invoiceTitle: String(form.invoiceTitle || '').trim(),
+        taxNo: String(form.taxNo || '').trim(),
+        buyerPhone: String(form.buyerPhone || '').trim(),
+        remark: String(form.remark || '').trim()
+      })
+      setInvoiceTab('history')
+    } catch (error) {
+      setActionError(error.message || '提交申请失败，请稍后重试')
+    } finally {
+      setApplyBusy(false)
+    }
+  }
+  const downloadInvoice = async () => {
+    const asset = await ensureInvoiceAsset()
+    if (!asset) return
+    const anchor = document.createElement('a')
+    anchor.href = asset.url
+    anchor.download = asset.filename || `invoice-${selectedOrder?.id || 'download'}.png`
+    anchor.rel = 'noopener'
+    anchor.click()
+  }
+  const processingCount = historyOrders.filter((order) => normalizeInvoiceStatus(order) === 'APPLIED').length
+  const issuedCount = historyOrders.filter((order) => normalizeInvoiceStatus(order) === 'ISSUED').length
+
+  return (
+    <div className="dashboard-grid invoice-workbench">
+      <section className="glass-panel work-card invoice-center-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">电子发票</span>
+            <h2>发票中心</h2>
+            <small>已开票订单可直接查看发票，图片与小程序、后台同步。</small>
+          </div>
+          <CreditCard size={21} />
+        </div>
+
+        <div className="invoice-summary-grid invoice-summary-grid--focused invoice-summary-grid--interactive">
+          <SummaryPill
+            icon={CreditCard}
+            label="可开票订单"
+            value={`${actionableOrders.length} 单`}
+            interactive
+            active={invoiceTab === 'apply'}
+            onClick={() => setInvoiceTab('apply')}
+          />
+          <SummaryPill
+            icon={Clock}
+            label="处理中"
+            value={`${processingCount} 单`}
+            interactive
+            active={invoiceTab === 'history' && processingCount > 0}
+            onClick={() => setInvoiceTab('history')}
+          />
+          <SummaryPill
+            icon={ShieldCheck}
+            label="已开票"
+            value={`${issuedCount} 单`}
+            interactive
+            active={invoiceTab === 'history'}
+            onClick={() => setInvoiceTab('history')}
+          />
+        </div>
+
+        <div className="invoice-filter-row">
+          <label className="plain-field">
+            <span>时间</span>
+            <select value={filters.time} onChange={(event) => updateFilter('time', event.target.value)}>
+              <option value="ALL">全部时间</option>
+              <option value="30D">最近 30 天</option>
+              <option value="90D">最近 90 天</option>
+              <option value="180D">最近 180 天</option>
+            </select>
+          </label>
+          <label className="plain-field">
+            <span>订单类型</span>
+            <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)}>
+              <option value="ALL">全部类型</option>
+              <option value={SERVICE_TYPE.TAXI}>即时打车</option>
+              <option value={SERVICE_TYPE.CARPOOL}>顺风车</option>
+              <option value={SERVICE_TYPE.INTERNATIONAL}>国际出行</option>
+            </select>
+          </label>
+          <label className="plain-field">
+            <span>金额</span>
+            <select value={filters.amount} onChange={(event) => updateFilter('amount', event.target.value)}>
+              <option value="ALL">全部金额</option>
+              <option value="0-50">50 元以下</option>
+              <option value="50-100">50 - 100 元</option>
+              <option value="100+">100 元以上</option>
+            </select>
+          </label>
+        </div>
+
+        {eligibleOrders.length ? (
+          visibleOrders.length ? (
+            <div className="invoice-order-stack">
+              {visibleOrders.map((order) => {
+                const active = String(order.id) === String(selectedOrder?.id)
+                return (
+                  <button
+                    type="button"
+                    className={`invoice-order-card${active ? ' active' : ''}`}
+                    key={order.id}
+                    onClick={() => setSelectedId(String(order.id))}
+                  >
+                    <div className="invoice-order-card__head">
+                      <span className="invoice-order-card__no">{order.orderNo || `#${order.id}`}</span>
+                      <StatusBadge label={invoiceStatusText(order)} tone={invoiceStatusTone(order)} />
+                    </div>
+                    <strong className="invoice-order-card__route">{`${order.startName} → ${order.endName}`}</strong>
+                    <div className="invoice-order-card__foot">
+                      <span className="invoice-order-card__meta">
+                        <ServiceIcon type={order.serviceType} className="invoice-order-service-icon" />
+                        {(statusLabel[order.serviceType] || '出行服务')} · {formatOrderDisplayTime(order)}
+                      </span>
+                      <strong className="invoice-order-card__amount">{formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)}</strong>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <EmptyState text="当前筛选条件下暂无订单" />
+          )
+        ) : (
+          <EmptyState text="暂无可开票订单，完成并支付行程后会显示在这里。" />
+        )}
+      </section>
+
+      <section className="glass-panel work-card wide invoice-detail-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">开票操作</span>
+            <h2>开票信息</h2>
+            <small>只保留申请、查看和下载的关键操作。</small>
+          </div>
+          <ShieldCheck size={21} />
+        </div>
+
+        {selectedOrder ? (
+          <>
+            <div className="invoice-current-order">
+              <div>
+                <span>当前订单</span>
+                <strong>{`${selectedOrder.startName} → ${selectedOrder.endName}`}</strong>
+                <small>{selectedOrder.orderNo || `#${selectedOrder.id}`} · {formatMoney(selectedOrder.payableAmount || selectedOrder.actualAmount || selectedOrder.estimatedAmount, selectedOrder.currencyCode)}</small>
+              </div>
+              <StatusBadge label={invoiceStatusText(selectedOrder)} tone={invoiceStatusTone(selectedOrder)} />
+            </div>
+
+            <div className="invoice-panel-section">
+              <div className="invoice-panel-section__title">
+                <strong>发票信息</strong>
+                <small>抬头和税号会保存到当前订单，后续历史可直接带出。</small>
+              </div>
+              <div className="invoice-form-grid invoice-form-grid--two">
+                <label className={`plain-field invoice-field${touched.invoiceTitle && fieldErrors.invoiceTitle ? ' has-error' : ''}`}>
+                  <span>{fieldLabel('invoiceTitle')}</span>
+                  <input value={form.invoiceTitle || ''} onChange={(event) => updateField('invoiceTitle', event.target.value)} />
+                  {touched.invoiceTitle && fieldErrors.invoiceTitle ? <small>{fieldErrors.invoiceTitle}</small> : null}
+                </label>
+                <label className={`plain-field invoice-field${touched.taxNo && fieldErrors.taxNo ? ' has-error' : ''}`}>
+                  <span>{fieldLabel('taxNo')}</span>
+                  <input value={form.taxNo || ''} onChange={(event) => updateField('taxNo', event.target.value.toUpperCase())} />
+                  {touched.taxNo && fieldErrors.taxNo ? <small>{fieldErrors.taxNo}</small> : null}
+                </label>
+              </div>
+            </div>
+
+            <div className="invoice-panel-section">
+              <div className="invoice-panel-section__title">
+                <strong>接收信息</strong>
+                <small>发票通知会同步到填写手机号。</small>
+              </div>
+              <div className="invoice-form-grid">
+                <label className={`plain-field invoice-field${touched.buyerPhone && fieldErrors.buyerPhone ? ' has-error' : ''}`}>
+                  <span>{fieldLabel('buyerPhone')}</span>
+                  <input value={form.buyerPhone || ''} onChange={(event) => updateField('buyerPhone', event.target.value)} />
+                  {touched.buyerPhone && fieldErrors.buyerPhone ? <small>{fieldErrors.buyerPhone}</small> : null}
+                </label>
+                <label className="plain-field invoice-field">
+                  <span>{fieldLabel('remark')}</span>
+                  <textarea value={form.remark || ''} onChange={(event) => updateField('remark', event.target.value)} />
+                </label>
+              </div>
+            </div>
+
+            {historyProfiles.length ? (
+              <div className="invoice-panel-section">
+                <div className="invoice-panel-section__title">
+                  <strong>历史抬头</strong>
+                  <small>从你的真实订单开票信息里自动带出。</small>
+                </div>
+                <div className="invoice-history-list">
+                  {historyProfiles.slice(0, 6).map((item) => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      className={`invoice-history-chip${activeProfileKey === item.key ? ' active' : ''}`}
+                      onClick={() => useHistoryProfile(item)}
+                    >
+                      <strong>{item.title}</strong>
+                      <span>{item.taxNo || '个人抬头'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="invoice-panel-section invoice-panel-section--actions">
+              <div className={`invoice-status-note invoice-status-note--${invoiceStatusTone(selectedOrder)}`}>
+                {selectedInvoiceStatus === 'ISSUED'
+                  ? '发票已开具，可直接查看发票或下载。'
+                  : selectedInvoiceStatus === 'APPLIED'
+                    ? '发票申请已提交，后台处理中。'
+                    : selectedInvoiceStatus === 'REJECTED'
+                      ? (selectedRejectReason || '发票申请被驳回，请修改信息后重新提交。')
+                      : '确认抬头与手机号后即可提交申请。'}
+              </div>
+
+              <div className="invoice-actions invoice-actions--dense">
+                <button
+                  className={submitButtonClass}
+                  disabled={!canApplyInvoice}
+                  onClick={applyInvoice}
+                >
+                  <Send size={16} />{selectedInvoiceStatus === 'REJECTED' ? '重新提交申请' : '提交申请'}
+                </button>
+                <button
+                  className={previewButtonClass}
+                  disabled={previewBusy || !canViewInvoice}
+                  onClick={ensureInvoiceAsset}
+                >
+                  <Eye size={16} />{previewBusy ? '查看中...' : '查看发票'}
+                </button>
+                <button
+                  className={downloadButtonClass}
+                  disabled={previewBusy || !canViewInvoice}
+                  onClick={downloadInvoice}
+                >
+                  <Download size={16} />下载发票
+                </button>
+              </div>
+
+              {actionError ? <p className="form-error-line">{actionError}</p> : null}
+            </div>
+
+            {selectedInvoiceStatus === 'ISSUED' ? (
+              <div className="invoice-preview-card">
+                <div className="invoice-panel-section__title">
+                  <strong>发票预览</strong>
+                  <small>展示与小程序、后台一致的真实发票图片。</small>
+                </div>
+                {previewAsset ? (
+                  <a className="invoice-preview-link" href={previewAsset.url} target="_blank" rel="noreferrer">
+                    <img src={previewAsset.url} alt="电子发票预览" className="invoice-preview-image" />
+                  </a>
+                ) : (
+                  <div className="invoice-preview-placeholder">
+                    <Eye size={18} />
+                    <span>点击“查看发票”后展示真实发票图片</span>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <EmptyState text={eligibleOrders.length ? '请选择一笔订单查看开票信息' : '完成并支付订单后，可在这里申请发票。'} />
+        )}
+      </section>
+    </div>
+  )
+}
+
+
+function SupportChatPanel({ conversation, messages = [], profile, role, onRefresh, onSend, orders = [] }) {
+  const [draft, setDraft] = useState('')
+  const [sendError, setSendError] = useState('')
+  const [sending, setSending] = useState(false)
+  const threadEndRef = useRef(null)
+  const sortedMessages = normalizeList(messages).slice().sort((left, right) => {
+    const a = dateLikeToMs(left.createdAt || left.time) || Number(left.id || 0)
+    const b = dateLikeToMs(right.createdAt || right.time) || Number(right.id || 0)
+    return a - b
+  })
+  const isDriver = role === 'DRIVER'
+  const serviceName = '阳光客服'
+  const supportTitle = isDriver ? '司机客服会话' : '乘客客服会话'
+  const supportHint = isDriver ? '听单、提现与资质问题在线处理' : '订单、费用、发票与行程问题在线处理'
+  const quickPrompts = isDriver
+    ? ['提现多久到账？', '听单接不到订单', '资质审核进度', '联系乘客异常']
+    : ['司机多久到？', '如何取消订单？', '费用有疑问', '联系司机']
+  const lastMessage = sortedMessages[sortedMessages.length - 1]
+  const mineCount = sortedMessages.filter((item) => item.senderRole === role).length
+  const supportOrders = useMemo(() => normalizeList(orders).filter(Boolean), [orders])
+  const relatedOrder = useMemo(() => {
+    const activeOrder = pickActiveRideOrder(supportOrders)
+    if (activeOrder) return activeOrder
+    return supportOrders
+      .filter((item) => item.serviceType !== SERVICE_TYPE.CARPOOL)
+      .slice()
+      .sort((left, right) => {
+        const a = dateLikeToMs(left.updatedAt || left.createdAt || left.createTime || left.orderTime) || Number(left.id || 0)
+        const b = dateLikeToMs(right.updatedAt || right.createdAt || right.createTime || right.orderTime) || Number(right.id || 0)
+        return b - a
+      })[0] || supportOrders[0] || null
+  }, [supportOrders])
+  const profileName = profile?.nickname || (isDriver ? '司机' : '乘客')
+  const canSend = Boolean(draft.trim()) && !sending
+  const orderAmount = relatedOrder
+    ? formatMoney(relatedOrder.payableAmount || relatedOrder.actualAmount || relatedOrder.estimatedAmount, relatedOrder.currencyCode)
+    : '-'
+  const orderDistance = relatedOrder ? `${relatedOrder.actualDistanceKm || relatedOrder.estimatedDistanceKm || '-'} km` : '-'
+  const orderDuration = relatedOrder ? `${relatedOrder.actualDurationMin || relatedOrder.estimatedDurationMin || '-'} min` : '-'
+  const orderDetailItems = relatedOrder ? [
+    ['订单号', relatedOrder.orderNo || `#${relatedOrder.id}`],
+    ['服务类型', statusLabel[relatedOrder.serviceType] || relatedOrder.serviceType || '出行服务'],
+    ['支付状态', statusLabel[relatedOrder.payStatus] || relatedOrder.payStatus || '-'],
+    [isDriver ? '乘客备注' : '司机信息', isDriver ? (relatedOrder.remark || '未填写') : (relatedOrder.driverName || relatedOrder.driverNickname || (relatedOrder.driverId ? `司机 #${relatedOrder.driverId}` : '待分配'))],
+    ['下单时间', formatOrderDisplayTime(relatedOrder)]
+  ] : []
+  const orderPanelTitle = relatedOrder && pickActiveRideOrder([relatedOrder]) ? '当前订单' : '最近订单'
+
+  useEffect(() => {
+    threadEndRef.current?.scrollIntoView({
+      block: 'end',
+      behavior: sortedMessages.length > 4 ? 'smooth' : 'auto'
+    })
+  }, [sortedMessages.length])
+
+  const handleDraftChange = (event) => {
+    const nextValue = event.target.value
+    setDraft(nextValue)
+    if (sendError && nextValue.trim()) {
+      setSendError('')
+    }
+  }
+
+  const send = async (overrideContent = '') => {
+    const content = (overrideContent || draft).trim()
+    if (!content) {
+      setSendError('请输入要咨询的问题')
+      return
+    }
+    setSendError('')
+    setSending(true)
+    try {
+      await onSend(content)
+      setDraft('')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="dashboard-grid support-chat-grid">
+      <section className="glass-panel work-card wide support-chat-card">
+        <div className="card-head support-chat-head">
+          <div>
+            <h2>{supportTitle}</h2>
+          </div>
+          <button className="icon-button support-refresh-button" type="button" title="刷新会话" onClick={onRefresh}>
+            <RefreshCw size={16} />
+          </button>
+        </div>
+
+        <div className="support-service-bar">
+          <div className="support-service-avatar" aria-hidden="true">
+            <MessageSquare size={18} />
+          </div>
+          <div className="support-service-copy">
+            <strong>{serviceName}</strong>
+            <p>{supportHint}</p>
+          </div>
+          <div className="support-service-status">
+            <span className="support-live-pill">
+              <i className="support-live-dot" />
+              在线
+            </span>
+            <small>通常 1-3 分钟回复</small>
+          </div>
+        </div>
+
+        <div className="support-chat-summary">
+          <SummaryPill icon={MessageSquare} label="会话状态" value={statusLabel[conversation?.status] || conversation?.status || '已接入'} />
+          <SummaryPill icon={Send} label="我发送的" value={`${mineCount} 条`} />
+          <SummaryPill icon={Clock} label="最近消息" value={lastMessage ? formatDateTimeShort(lastMessage.createdAt || lastMessage.time) : '刚刚接入'} />
+        </div>
+
+        <div className="support-chat-stage">
+          <div className="chat-thread" role="log" aria-live="polite" aria-relevant="additions text">
+          {sortedMessages.length ? sortedMessages.map((item, index) => {
+            const mine = item.senderRole === role
+            const senderText = mine ? (isDriver ? '司机端' : '乘客端') : '在线'
+            return (
+              <div className={`chat-row ${mine ? 'mine' : 'service'}`} key={item.id || index}>
+                <span className={`chat-avatar ${mine ? 'mine' : 'service'}`} aria-hidden="true">
+                  {mine ? <User size={15} /> : <MessageSquare size={15} />}
+                </span>
+                <article className={`chat-bubble ${mine ? 'mine' : 'service'}`}>
+                  <div className="chat-bubble-meta">
+                    <span>{mine ? profileName : serviceName}</span>
+                    <small>{`${senderText} · ${formatDateTimeShort(item.createdAt || item.time)}`}</small>
+                  </div>
+                  <p>{item.content}</p>
+                </article>
+              </div>
+            )
+          }) : (
+            <div className="support-thread-empty">
+              <EmptyState text="发送消息开始沟通" />
+            </div>
+          )}
+            <div ref={threadEndRef} />
+          </div>
+
+          <div className="support-chat-footer">
+            <div className="support-quick-block">
+          <div className="support-inline-label">
+            <Sparkles size={14} />
+            <span>常见咨询</span>
+          </div>
+          <div className="quick-question-row">
+            {quickPrompts.map((item) => (
+              <button key={item} type="button" onClick={() => send(item)} disabled={sending}>
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="chat-composer">
+          <div className="chat-compose-field">
+            <textarea
+              value={draft}
+              maxLength={500}
+              placeholder="输入要咨询的问题"
+              onChange={handleDraftChange}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                  event.preventDefault()
+                  send()
+                }
+              }}
+            />
+            <div className="chat-compose-meta">
+              <small>{isDriver ? '提现、听单和资质问题会同步到司机端会话。' : '支持订单、费用、发票和联系司机问题。'}</small>
+              <small>{`${draft.trim().length}/500`}</small>
+            </div>
+          </div>
+          <button className="solid-button support-send-button" type="button" disabled={!canSend} onClick={() => send()}>
+            <Send size={16} />
+            {sending ? '发送中...' : '发送'}
+          </button>
+          </div>
+        </div>
+        </div>
+        {sendError && <p className="form-error-line support-chat-error">{sendError}</p>}
+      </section>
+
+      <section className="glass-panel work-card support-profile-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">会话状态</span>
+            <h2>当前会话</h2>
+          </div>
+          <MessageSquare size={21} />
+        </div>
+        <InfoPanel title="当前会话" items={[
+          ['状态', statusLabel[conversation?.status] || conversation?.status || '已接入'],
+          ['身份', isDriver ? '司机' : '乘客'],
+          ['账号', profile?.phone || conversation?.phone || '-'],
+          ['会员', conversation?.member ? conversation?.memberLevel || '阳光会员' : '普通账户']
+        ]} />
+        <div className="coverage-grid support-grid">
+          {(isDriver
+            ? ['听单异常', '提现进度', '资质审核', '联系乘客']
+            : ['订单问题', '发票处理', '优惠异常', '安全反馈']
+          ).map((item) => <span key={item}><CheckCircle size={15} />{item}</span>)}
+        </div>
+        <div className="support-contact-card">
+          <Phone size={16} />
+          <div>
+            <strong>{serviceName}</strong>
+            <small>{conversation?.lastMessageAt ? `最近更新：${formatDateTimeShort(conversation.lastMessageAt)}` : '会话记录将保留在当前账号下。'}</small>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function SupportChatBoard({ conversation, messages = [], profile, role, onRefresh, onSend }) {
   const [draft, setDraft] = useState('')
   const [sendError, setSendError] = useState('')
@@ -5411,72 +6171,96 @@ function SupportChatBoard({ conversation, messages = [], profile, role, onRefres
 function PassengerSettingsPanel({ settings, onSettingsChange }) {
   const safeSettings = normalizePassengerSettings(settings)
   const update = (key) => onSettingsChange?.({ [key]: !safeSettings[key] })
-  const enabledCount = Object.values(safeSettings).filter(Boolean).length
+  const coreSettings = [
+    {
+      key: 'pushEnabled',
+      icon: Bell,
+      title: '消息通知',
+      checked: safeSettings.pushEnabled
+    },
+    {
+      key: 'autoUseCoupon',
+      icon: Ticket,
+      title: '自动匹配优惠券',
+      checked: safeSettings.autoUseCoupon
+    }
+  ]
+  const advancedSettings = [
+    {
+      key: 'tripRemind',
+      icon: Route,
+      title: '行程提醒',
+      checked: safeSettings.tripRemind
+    },
+    {
+      key: 'invoiceRemind',
+      icon: CreditCard,
+      title: '发票提醒',
+      checked: safeSettings.invoiceRemind
+    },
+    {
+      key: 'privacyMask',
+      icon: Lock,
+      title: '隐私脱敏',
+      checked: safeSettings.privacyMask
+    },
+    {
+      key: 'emergencyShare',
+      icon: ShieldCheck,
+      title: '紧急共享',
+      checked: safeSettings.emergencyShare
+    }
+  ]
+
   return (
     <section className="glass-panel work-card wide passenger-settings-card">
-      <div className="card-head">
-        <div><span className="section-kicker">出行偏好</span><h2>消息与隐私设置</h2></div>
+      <div className="card-head settings-card-head">
+        <div>
+          <span className="section-kicker">系统设置</span>
+          <h2>出行偏好</h2>
+        </div>
         <Settings size={21} />
       </div>
-      <div className="passenger-settings-summary">
-        <SummaryPill icon={Bell} value={`${enabledCount} 项`} label="已开启偏好" />
-        <SummaryPill icon={Ticket} value={safeSettings.autoUseCoupon ? '自动' : '手动'} label="优惠券匹配" />
-        <SummaryPill icon={Lock} value={safeSettings.privacyMask ? '已脱敏' : '完整显示'} label="隐私保护" />
+      <div className="settings-stack">
+        <section className="setting-section-panel">
+          <div className="setting-section-head">
+            <div>
+              <strong>通知与优惠</strong>
+            </div>
+          </div>
+          <div className="settings-list">
+            {coreSettings.map((item) => (
+              <PassengerSettingRow
+                key={item.key}
+                icon={item.icon}
+                title={item.title}
+                desc={item.desc}
+                checked={item.checked}
+                onToggle={() => update(item.key)}
+              />
+            ))}
+          </div>
+        </section>
+        <section className="setting-section-panel">
+          <div className="setting-section-head">
+            <div>
+              <strong>出行与安全</strong>
+            </div>
+          </div>
+          <div className="settings-list">
+            {advancedSettings.map((item) => (
+              <PassengerSettingRow
+                key={item.key}
+                icon={item.icon}
+                title={item.title}
+                desc={item.desc}
+                checked={item.checked}
+                onToggle={() => update(item.key)}
+              />
+            ))}
+          </div>
+        </section>
       </div>
-      <div className="settings-row-list grouped-settings-list">
-        <div className="setting-group-panel">
-          <div className="setting-group-title">通知</div>
-          <PassengerSettingRow
-            icon={Bell}
-            title="消息通知"
-            desc="订单、支付、客服提醒。"
-            checked={safeSettings.pushEnabled}
-            onToggle={() => update('pushEnabled')}
-          />
-          <PassengerSettingRow
-            icon={Route}
-            title="行程提醒"
-            desc="接驾、上车、到达提醒。"
-            checked={safeSettings.tripRemind}
-            onToggle={() => update('tripRemind')}
-          />
-        </div>
-        <div className="setting-group-panel">
-          <div className="setting-group-title">优惠与发票</div>
-          <PassengerSettingRow
-            icon={Ticket}
-            title="自动匹配优惠券"
-            desc="优先使用可用券。"
-            checked={safeSettings.autoUseCoupon}
-            onToggle={() => update('autoUseCoupon')}
-          />
-          <PassengerSettingRow
-            icon={CreditCard}
-            title="发票提醒"
-            desc="可开票时提醒。"
-            checked={safeSettings.invoiceRemind}
-            onToggle={() => update('invoiceRemind')}
-          />
-        </div>
-        <div className="setting-group-panel">
-          <div className="setting-group-title">安全隐私</div>
-          <PassengerSettingRow
-            icon={Lock}
-            title="隐私脱敏"
-            desc="敏感信息默认隐藏。"
-            checked={safeSettings.privacyMask}
-            onToggle={() => update('privacyMask')}
-          />
-          <PassengerSettingRow
-            icon={ShieldCheck}
-            title="紧急共享"
-            desc="必要时共享行程摘要。"
-            checked={safeSettings.emergencyShare}
-            onToggle={() => update('emergencyShare')}
-          />
-        </div>
-      </div>
-      <p className="settings-sync-note">偏好已保存到网页端。</p>
     </section>
   )
 }
@@ -5487,7 +6271,7 @@ function PassengerSettingRow({ icon: Icon, title, desc, checked, onToggle }) {
       <span className="passenger-setting-icon"><Icon size={16} /></span>
       <span className="passenger-setting-copy">
         <strong>{title}</strong>
-        <small>{desc}</small>
+        {desc ? <small>{desc}</small> : null}
       </span>
       <span className={`toggle-pill ${checked ? 'is-on' : ''}`} aria-hidden="true"><i /></span>
     </button>
@@ -5575,14 +6359,21 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
   }
 
   return (
-    <div className="dashboard-grid">
+    <div className="dashboard-grid settings-support-grid">
       <section className="glass-panel work-card wide">
-        <div className="card-head"><div><span className="section-kicker">服务反馈</span><h2>评价投诉</h2></div><MessageSquare size={21} /></div>
+        <div className="card-head settings-card-head">
+          <div>
+            <span className="section-kicker">服务反馈</span>
+            <h2>评价与投诉</h2>
+            <p>常用设置在上面，订单反馈放到下半区，既保留能力，也不抢主流程注意力。</p>
+          </div>
+          <MessageSquare size={21} />
+        </div>
         <div className="support-feedback-hero">
           <div>
             <span>反馈中心</span>
             <strong>{feedbackSummary.actionable} 单可处理</strong>
-            <p>评价、投诉会同步到订单。</p>
+            <p>评价和投诉结果都会同步到订单记录，方便后续追踪。</p>
           </div>
           <div className="support-feedback-metrics">
             <SummaryPill icon={Star} label="已评价" value={`${feedbackSummary.evaluated} 单`} />
@@ -5712,7 +6503,13 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
         )}
       </section>
       <section className="glass-panel work-card">
-        <div className="card-head"><h2>帮助与设置</h2><HelpCircle size={21} /></div>
+        <div className="card-head settings-card-head settings-card-head--compact">
+          <div>
+            <span className="section-kicker">帮助入口</span>
+            <h2>帮助与记录</h2>
+          </div>
+          <HelpCircle size={21} />
+        </div>
         <div className="coverage-grid support-grid">
           {['常见问题', '紧急联系人', '隐私设置', '行程安全', '消息通知', '版本信息'].map((item) => <span key={item}><CheckCircle size={15} />{item}</span>)}
         </div>
@@ -5720,8 +6517,7 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
           ['昵称', profile?.nickname || '-'],
           ['紧急联系人', profile?.emergencyContact || '-'],
           ['消息通知', safeSettings.pushEnabled ? '已开启' : '已关闭'],
-          ['自动优惠', safeSettings.autoUseCoupon ? '已开启' : '手动选择'],
-          ['服务语言', profile?.defaultLanguage || 'zh-CN']
+          ['自动优惠', safeSettings.autoUseCoupon ? '已开启' : '手动选择']
         ]} />
         <div className="feedback-history-panel">
           <div className="feedback-history-head">
@@ -6344,8 +7140,7 @@ function ProfileBoard({ profile, mode, onProfile }) {
     nickname: profile?.nickname || '',
     realName: profile?.realName || '',
     emergencyContact: profile?.emergencyContact || '',
-    emergencyPhone: profile?.emergencyPhone || '',
-    defaultLanguage: profile?.defaultLanguage || 'zh-CN'
+    emergencyPhone: profile?.emergencyPhone || ''
   })
 
   useEffect(() => {
@@ -6357,6 +7152,13 @@ function ProfileBoard({ profile, mode, onProfile }) {
       defaultLanguage: profile?.defaultLanguage || 'zh-CN'
     })
   }, [profile])
+
+  const profileViewItems = [
+    ['昵称', form.nickname || '-'],
+    ['真实姓名', form.realName || '-'],
+    ['紧急联系人', form.emergencyContact || '-'],
+    ['紧急电话', form.emergencyPhone || '-']
+  ]
 
   const saveProfile = async () => {
     if (!onProfile) return
@@ -6370,62 +7172,80 @@ function ProfileBoard({ profile, mode, onProfile }) {
       return
     }
     setProfileError('')
-    await onProfile({ ...payload, defaultLanguage: payload.defaultLanguage || 'zh-CN' })
+    await onProfile(payload)
     setEditing(false)
   }
 
   return (
-    <div className="dashboard-grid profile-edit-grid">
-      <section className="glass-panel work-card profile-edit-card">
-        <div className="card-head">
-          <h2>资料</h2>
-          {editing ? (
-            <button className="ghost-button compact-action" onClick={() => setEditing(false)}>取消</button>
-          ) : (
-            <button className="ghost-button compact-action" onClick={() => setEditing(true)}><Settings size={14} />编辑资料</button>
-          )}
-        </div>
-        <div className="profile-readonly-row">
-          <span>手机号</span>
-          <strong>{profile?.phone || '-'}</strong>
-          <span>语言</span>
-          <strong>{profile?.defaultLanguage || 'zh-CN'}</strong>
-        </div>
-        {editing ? (
-          <>
-            <div className="profile-form-grid">
-              {Object.keys(form).map((key) => (
-                <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
-              ))}
+    <section className="glass-panel work-card settings-account-panel">
+      <div className="settings-account-head">
+        <div className="settings-account-summary">
+          <div className="settings-account-identity">
+            <span className="settings-profile-avatar">{(profile?.nickname || profile?.phone || '乘').slice(0, 1)}</span>
+            <div>
+              <span className="section-kicker">资料</span>
+              <strong>{profile?.nickname || '未设置昵称'}</strong>
+              <small>{profile?.phone || '-'}</small>
             </div>
-            {profileError && <p className="form-error-line">{profileError}</p>}
-            {onProfile && (
-              <button className="solid-button fill profile-save-button" onClick={saveProfile}>
+          </div>
+          <div className="settings-account-tags">
+            <span className={`settings-mini-badge ${profile?.authStatus === 2 ? 'is-good' : ''}`}><ShieldCheck size={14} />{profile?.authStatus === 2 ? '已认证' : '待完善实名'}</span>
+            <span className="settings-mini-badge"><Locate size={14} />{profile?.cityCode || '默认城市'}</span>
+          </div>
+        </div>
+        <div className="settings-account-actions">
+          <div className="settings-account-metrics">
+            <div><span>钱包余额</span><strong>{formatMoney(profile?.walletBalance || profile?.withdrawableIncome || 0)}</strong></div>
+          </div>
+          <button className="ghost-button compact-action" onClick={() => setEditing((value) => !value)}>
+            <Settings size={14} />{editing ? '收起编辑' : '编辑资料'}
+          </button>
+        </div>
+      </div>
+
+      {editing ? (
+        <div className="settings-account-editor">
+          <div className="card-head settings-card-head settings-card-head--compact">
+            <div>
+              <span className="section-kicker">编辑资料</span>
+              <h2>基础信息</h2>
+            </div>
+          </div>
+          <div className="profile-form-grid settings-profile-form-grid">
+            <Field label={fieldLabel('nickname')} value={form.nickname} onChange={(value) => setForm((draft) => ({ ...draft, nickname: value }))} />
+            <Field label={fieldLabel('realName')} value={form.realName} onChange={(value) => setForm((draft) => ({ ...draft, realName: value }))} />
+            <Field label={fieldLabel('emergencyContact')} value={form.emergencyContact} onChange={(value) => setForm((draft) => ({ ...draft, emergencyContact: value }))} />
+            <Field label={fieldLabel('emergencyPhone')} value={form.emergencyPhone} onChange={(value) => setForm((draft) => ({ ...draft, emergencyPhone: value }))} />
+          </div>
+          {profileError && <p className="form-error-line">{profileError}</p>}
+          {onProfile && (
+            <div className="settings-profile-actions">
+              <button className="ghost-button" onClick={() => setEditing(false)}>取消</button>
+              <button className="solid-button profile-save-button" onClick={saveProfile}>
                 <ShieldCheck size={15} />保存资料
               </button>
-            )}
-          </>
-        ) : (
-          <div className="profile-view-list">
-            {Object.keys(form).map((key) => (
-              <div className="thin-row profile-view-row" key={key}>
-                <span>{fieldLabel(key)}</span>
-                <strong>{form[key] || '-'}</strong>
+            </div>
+          )}
+        </div>
+      ) : (
+        <section className="settings-info-panel">
+          <div className="card-head settings-card-head settings-card-head--compact">
+            <div>
+              <span className="section-kicker">资料</span>
+              <h2>基础信息</h2>
+            </div>
+          </div>
+          <div className="settings-profile-list">
+            {profileViewItems.map(([label, value]) => (
+              <div className="settings-profile-list-item" key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
               </div>
             ))}
           </div>
-        )}
-      </section>
-      <section className="glass-panel work-card wide profile-account-card">
-        <div className="card-head"><h2>账户状态</h2><ShieldCheck size={21} /></div>
-        <div className="stat-grid profile-status-grid dashboard-stat-grid compact-stats">
-          <Metric value={formatMoney(profile?.walletBalance || profile?.withdrawableIncome || 0)} label={mode === 'USER' ? '钱包余额' : '可提现'} />
-          <Metric value={profile?.authStatus === 2 ? '已认证' : '待完善'} label="实名状态" />
-          <Metric value={profile?.cityCode || '默认'} label="服务城市" />
-          <Metric value={profile?.defaultLanguage || 'zh-CN'} label="语言" />
-        </div>
-      </section>
-    </div>
+        </section>
+      )}
+    </section>
   )
 }
 
@@ -7110,9 +7930,9 @@ function SelectField({ label, value, options, onChange, icon: Icon }) {
   )
 }
 
-function StatusBadge({ value, label }) {
-  const tone = statusTone[value] || 'muted'
-  return <span className={`status-badge ${tone}`}>{label || statusLabel[value] || value || '-'}</span>
+function StatusBadge({ value, label, tone }) {
+  const resolvedTone = tone || statusTone[value] || 'muted'
+  return <span className={`status-badge ${resolvedTone}`}>{label || statusLabel[value] || value || '-'}</span>
 }
 
 function formatSyncClock(value) {
@@ -7160,17 +7980,22 @@ function IconSlot({ icon, size = 18, className = '' }) {
   return <Icon size={size} />
 }
 
-function SummaryPill({ icon: Icon, label, value, hint = '' }) {
-  return (
-    <div className="summary-pill">
+function SummaryPill({ icon: Icon, label, value, hint = '', interactive = false, active = false, onClick, className = '' }) {
+  const classes = ['summary-pill', interactive ? 'summary-pill--interactive' : '', active ? 'is-active' : '', className].filter(Boolean).join(' ')
+  const content = (
+    <>
       <span className="summary-pill-icon"><IconSlot icon={Icon} size={15} className="summary-pill-service-icon" /></span>
       <div>
         <strong>{value}</strong>
         <small>{label}</small>
         {hint && <em>{hint}</em>}
       </div>
-    </div>
+    </>
   )
+  if (interactive) {
+    return <button type="button" className={classes} onClick={onClick} aria-pressed={active}>{content}</button>
+  }
+  return <div className={classes}>{content}</div>
 }
 
 function FeatureCard({ icon: Icon, title, text }) {
