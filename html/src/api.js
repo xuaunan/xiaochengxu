@@ -12,6 +12,7 @@ import {
   normalizeList,
   statusLabel
 } from './data'
+import { dispatchInvalidSession } from './auth-session.js'
 
 const API_BASE_KEY = 'sunshine-web-api-base'
 const DEMO_DB_KEY = 'sunshine-web-demo-db-v2'
@@ -100,6 +101,13 @@ async function request(path, options = {}) {
     })
   } catch (error) {
     if (error instanceof ApiError && !error.network) {
+      dispatchInvalidSession({
+        token,
+        skipAuth,
+        status: error.status,
+        code: error.code,
+        message: error.message
+      })
       throw error
     }
     backendBackoffUntil = Date.now() + 5000
@@ -148,9 +156,101 @@ async function binaryRequest(path, options = {}) {
     emitApiMode('backend', '已连接业务服务')
     return URL.createObjectURL(await response.blob())
   } catch (error) {
+    if (error instanceof ApiError) {
+      dispatchInvalidSession({
+        token,
+        skipAuth: false,
+        status: error.status,
+        code: error.code,
+        message: error.message
+      })
+      throw error
+    }
     backendBackoffUntil = Date.now() + 5000
     emitApiMode('demo', '业务服务未连接，当前使用网页离线数据')
     return demoInvoiceImageUrl(path)
+  } finally {
+    window.clearTimeout(timer)
+    bumpApiLoading(-1)
+  }
+}
+
+function invoiceBinaryFilename(path, extension = 'png') {
+  const match = String(path || '').match(/\/orders\/(\d+)\/invoice\/image/)
+  return match?.[1] ? `invoice-${match[1]}.${extension}` : `invoice.${extension}`
+}
+
+async function binaryAssetRequest(path, options = {}) {
+  const { token, timeout = 3000, strict = false } = options
+  bumpApiLoading(1)
+
+  if (Date.now() < backendBackoffUntil) {
+    emitApiMode('demo', '业务服务暂不可用，当前操作使用网页离线数据')
+    try {
+      if (strict) {
+        throw new ApiError('当前未连接后端，暂时无法查看发票', {
+          status: 503,
+          network: true
+        })
+      }
+      return {
+        url: demoInvoiceImageUrl(path),
+        filename: invoiceBinaryFilename(path, 'svg'),
+        isDemo: true
+      }
+    } finally {
+      bumpApiLoading(-1)
+    }
+  }
+
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeout)
+  try {
+    const response = await fetch(`${getApiBase()}${path}`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal,
+      credentials: 'include'
+    })
+    if (!response.ok) {
+      throw new ApiError(
+        response.status === 400 || response.status === 404
+          ? '发票暂未生成，请稍后再查看'
+          : '查看发票失败，请稍后重试',
+        { status: response.status }
+      )
+    }
+    backendBackoffUntil = 0
+    emitApiMode('backend', '已连接业务服务')
+    return {
+      url: URL.createObjectURL(await response.blob()),
+      filename: invoiceBinaryFilename(path),
+      isDemo: false
+    }
+  } catch (error) {
+    if (error instanceof ApiError) {
+      dispatchInvalidSession({
+        token,
+        skipAuth: false,
+        status: error.status,
+        code: error.code,
+        message: error.message
+      })
+      throw error
+    }
+    backendBackoffUntil = Date.now() + 5000
+    emitApiMode('demo', '业务服务未连接，当前使用网页离线数据')
+    if (strict) {
+      throw new ApiError('当前未连接后端，暂时无法查看发票', {
+        status: 503,
+        network: true
+      })
+    }
+    return {
+      url: demoInvoiceImageUrl(path),
+      filename: invoiceBinaryFilename(path, 'svg'),
+      isDemo: true
+    }
   } finally {
     window.clearTimeout(timer)
     bumpApiLoading(-1)
@@ -186,6 +286,7 @@ export const api = {
   complaint: (token, data) => request('/orders/complaint', { method: 'POST', token, data: normalizeComplaintRequest(data) }),
   applyInvoice: (token, id, data) => request(`/orders/${id}/invoice`, { method: 'POST', token, data }),
   invoiceImage: (token, id) => binaryRequest(`/orders/${id}/invoice/image`, { token }),
+  invoiceAsset: (token, id, options = {}) => binaryAssetRequest(`/orders/${id}/invoice/image`, { token, ...options }),
   trackHistory: (token, id) => request(`/orders/${id}/track/history`, { token }),
   reportTrack: (token, id, data) => request(`/orders/${id}/track/report`, { method: 'POST', token, data }),
   couponCenter: () => request('/coupons/center', { skipAuth: true }),
