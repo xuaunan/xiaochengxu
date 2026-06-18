@@ -348,6 +348,106 @@ function useAppRoute() {
   return [route, navigate]
 }
 
+function normalizeDisplayText(value) {
+  return String(value ?? '').trim()
+}
+
+function looksCorruptedText(value) {
+  const text = normalizeDisplayText(value)
+  if (!text) return false
+  return text.includes('\uFFFD') || text.includes('?') || text.includes('？')
+}
+
+function pickFirstCleanText(...values) {
+  for (const value of values) {
+    const text = normalizeDisplayText(value)
+    if (text && !looksCorruptedText(text)) return text
+  }
+  return ''
+}
+
+function safeEditableText(value) {
+  return looksCorruptedText(value) ? '' : normalizeDisplayText(value)
+}
+
+function resolveAccountDisplayName(account, fallback = '') {
+  return pickFirstCleanText(account?.nickname, account?.realName, account?.phone, fallback) || fallback
+}
+
+function resolveProfileAvatarText(account, fallback = '阳') {
+  const source = resolveAccountDisplayName(account, '') || pickFirstCleanText(account?.phone, fallback) || fallback
+  return source.slice(0, 1)
+}
+
+function profileHasCorruptedFields(profile) {
+  return ['nickname', 'realName', 'emergencyContact'].some((key) => looksCorruptedText(profile?.[key]))
+}
+
+function mergeSessionProfile(session, profile, roleCode) {
+  if (!session) return session
+  return {
+    ...session,
+    roleCode: roleCode || session.roleCode || profile?.roleCode,
+    userId: profile?.id ?? profile?.userId ?? session.userId,
+    phone: pickFirstCleanText(profile?.phone, session.phone),
+    nickname: pickFirstCleanText(profile?.nickname, profile?.realName, session.nickname, session.realName, session.phone),
+    realName: pickFirstCleanText(profile?.realName, session.realName),
+    emergencyContact: pickFirstCleanText(profile?.emergencyContact, session.emergencyContact),
+    emergencyPhone: pickFirstCleanText(profile?.emergencyPhone, session.emergencyPhone),
+    authStatus: profile?.authStatus ?? session.authStatus,
+    defaultLanguage: pickFirstCleanText(profile?.defaultLanguage, session.defaultLanguage, 'zh-CN'),
+    avatar: pickFirstCleanText(profile?.avatar, session.avatar),
+    cityCode: pickFirstCleanText(profile?.cityCode, session.cityCode),
+    authRemark: pickFirstCleanText(profile?.authRemark, session.authRemark)
+  }
+}
+
+function isSameSessionSnapshot(current, next) {
+  const keys = ['token', 'roleCode', 'userId', 'phone', 'nickname', 'realName', 'emergencyContact', 'emergencyPhone', 'authStatus', 'defaultLanguage', 'avatar', 'cityCode', 'authRemark']
+  return keys.every((key) => String(current?.[key] ?? '') === String(next?.[key] ?? ''))
+}
+
+function buildDataWarnings({ profile, syncMeta = {}, apiMode }) {
+  const warnings = []
+  if (apiMode?.mode === 'demo') {
+    warnings.push({
+      key: 'backend',
+      icon: AlertTriangle,
+      text: '当前未连接后端，页面暂时无法保证显示真实资料，请先恢复业务服务后再刷新。'
+    })
+  } else if (syncMeta?.degradedCount > 0) {
+    warnings.push({
+      key: 'sync',
+      icon: RefreshCw,
+      text: `部分业务数据同步失败（${syncMeta.degradedCount}/${syncMeta.totalCount || 0}），请刷新页面或稍后重试。`
+    })
+  }
+  if (profileHasCorruptedFields(profile)) {
+    warnings.push({
+      key: 'profile',
+      icon: AlertTriangle,
+      text: '账户资料存在异常字符，已优先展示可用信息，请在资料页重新保存或联系管理员处理。'
+    })
+  }
+  return warnings
+}
+
+function NoticeStrip({ notices = [], className = '' }) {
+  if (!notices.length) return null
+  return (
+    <div className={['status-notice-strip', className].filter(Boolean).join(' ')}>
+      {notices.map((item) => (
+        <div className="status-notice-item" key={item.key}>
+          <span className="status-notice-icon">
+            <IconSlot icon={item.icon} size={15} />
+          </span>
+          <strong>{item.text}</strong>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 
 function App() {
   usePointerVars()
@@ -397,6 +497,32 @@ function App() {
       window.removeEventListener('sunshine-auth-session-invalid', handleSessionInvalid)
     }
   }, [setDriverSession, setPassengerSession, view])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncSessionProfile = async (session, roleCode, setSession) => {
+      if (!session?.token) return
+      try {
+        const profile = await api.profileStrict(session.token)
+        if (cancelled) return
+        setSession((current) => {
+          if (!current?.token || current.token !== session.token) return current
+          const merged = mergeSessionProfile(current, profile, roleCode)
+          return isSameSessionSnapshot(current, merged) ? current : merged
+        })
+      } catch (error) {
+        // NoticeStrip handles user-facing feedback when the backend is unavailable or data stays abnormal.
+      }
+    }
+
+    syncSessionProfile(passengerSession, 'USER', setPassengerSession)
+    syncSessionProfile(driverSession, 'DRIVER', setDriverSession)
+
+    return () => {
+      cancelled = true
+    }
+  }, [driverSession?.token, passengerSession?.token, setDriverSession, setPassengerSession])
 
   const refreshHome = useCallback(async () => {
     try {
@@ -568,6 +694,7 @@ function PortalPage({
 }) {
   const [booking, setBooking] = useState(defaultBooking)
   const [menu, setMenu] = useState('passenger')
+  const portalWarnings = useMemo(() => buildDataWarnings({ profile: currentAccount, apiMode }), [apiMode, currentAccount])
   const [estimate, setEstimate] = useState(() => {
     const route = calcRoute(defaultBooking.startId, defaultBooking.endId)
     return estimateLocalFare(defaultBooking.carTypeId, defaultBooking.serviceType, route.distanceKm, route.durationMin)
@@ -610,6 +737,8 @@ function PortalPage({
           )}
         </div>
       </nav>
+
+      <NoticeStrip notices={portalWarnings} className="portal-notice-strip" />
 
       <section className="hero-grid">
         <div className="hero-copy">
@@ -728,11 +857,12 @@ function PortalPage({
 function PortalAccountChip({ account, onEnter }) {
   const isDriver = account?.roleCode === 'DRIVER'
   const Icon = isDriver ? CarTaxiFront : User
+  const accountName = resolveAccountDisplayName(account, isDriver ? '司机账户' : '乘客账户')
   return (
     <button className="portal-account-chip" onClick={onEnter}>
       <span className="portal-account-avatar"><Icon size={17} /></span>
       <span className="portal-account-copy">
-        <strong>{account?.nickname || account?.phone || (isDriver ? '司机账户' : '乘客账户')}</strong>
+        <strong>{accountName}</strong>
         <small>{isDriver ? '司机账户' : '乘客账户'} · 进入工作台</small>
       </span>
       <ChevronRight size={16} />
@@ -3090,10 +3220,11 @@ function SunshineMotionLogo({ className = '' }) {
 
 function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab, syncMeta = {}, onLogout, onBack, onTabChange, children }) {
   const activeTab = tabs.find(([key]) => key === tab)
+  const notices = buildDataWarnings({ profile, syncMeta, apiMode })
   const activeLabel = activeTab?.[2] || '工作台'
   const titleText = tab === 'profile'
     ? activeLabel
-    : (profile?.nickname || profile?.phone || role)
+    : resolveAccountDisplayName(profile, role)
   return (
     <main className={`dashboard-shell${tab === 'support' ? ' dashboard-shell--support' : ''}`}>
       <aside className="side-nav glass-panel">
@@ -3127,6 +3258,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
             <button className="ghost-button" onClick={onBack}>门户</button>
           </div>
         </header>
+        <NoticeStrip notices={notices} className="dashboard-notice-strip" />
         {children}
       </section>
     </main>
@@ -5027,25 +5159,25 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
   const [profileError, setProfileError] = useState('')
   const [realNameError, setRealNameError] = useState('')
   const [form, setForm] = useState({
-    nickname: profile?.nickname || '',
-    emergencyContact: profile?.emergencyContact || '',
+    nickname: safeEditableText(profile?.nickname),
+    emergencyContact: safeEditableText(profile?.emergencyContact),
     emergencyPhone: profile?.emergencyPhone || '',
     defaultLanguage: profile?.defaultLanguage || 'zh-CN'
   })
   const [realName, setRealName] = useState({
-    realName: profile?.realName || '阳光乘客',
-    idCard: profile?.idCard || '110101199901010011'
+    realName: safeEditableText(profile?.realName),
+    idCard: safeEditableText(profile?.idCard)
   })
 
   useEffect(() => {
     setForm({
-      nickname: profile?.nickname || '',
-      emergencyContact: profile?.emergencyContact || '',
+      nickname: safeEditableText(profile?.nickname),
+      emergencyContact: safeEditableText(profile?.emergencyContact),
       emergencyPhone: profile?.emergencyPhone || ''
     })
     setRealName({
-      realName: profile?.realName || '阳光乘客',
-      idCard: profile?.idCard || '110101199901010011'
+      realName: safeEditableText(profile?.realName),
+      idCard: safeEditableText(profile?.idCard)
     })
   }, [profile])
   const walletRecords = useMemo(() => buildPassengerWalletRecords(orders), [orders])
@@ -5244,7 +5376,7 @@ function InvoiceBoard({ orders = [], profile, onApplyInvoice, onPreviewInvoice }
   const [formError, setFormError] = useState('')
   const [previewBusy, setPreviewBusy] = useState(false)
   const [form, setForm] = useState({
-    invoiceTitle: profile?.realName || profile?.nickname || '个人',
+    invoiceTitle: pickFirstCleanText(profile?.realName, profile?.nickname, '个人'),
     taxNo: '',
     buyerPhone: profile?.phone || '',
     remark: '网页端申请电子发票'
@@ -5263,7 +5395,7 @@ function InvoiceBoard({ orders = [], profile, onApplyInvoice, onPreviewInvoice }
   useEffect(() => {
     setForm((draft) => ({
       ...draft,
-      invoiceTitle: draft.invoiceTitle || profile?.realName || profile?.nickname || '个人',
+      invoiceTitle: draft.invoiceTitle || pickFirstCleanText(profile?.realName, profile?.nickname, '个人'),
       buyerPhone: draft.buyerPhone || profile?.phone || ''
     }))
   }, [profile])
@@ -5446,7 +5578,7 @@ function InvoiceWorkbench({ orders = [], profile, onApplyInvoice, onPreviewInvoi
     const pick = (...values) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
     const taxNo = pick(order.taxNo, meta.buyerTaxNo, meta.taxNo)
     return {
-      invoiceTitle: pick(order.invoiceTitle, meta.buyerName, meta.title, profile?.realName, profile?.nickname, '个人'),
+      invoiceTitle: pick(order.invoiceTitle, meta.buyerName, meta.title, pickFirstCleanText(profile?.realName, profile?.nickname, '个人')),
       taxNo: taxNo === '个人无需填写' ? '' : taxNo,
       buyerPhone: pick(order.buyerPhone, meta.buyerPhone, profile?.phone),
       remark: pick(meta.remark, order.invoiceRemark, '网页端申请电子发票')
@@ -6119,7 +6251,7 @@ function SupportChatBoard({ conversation, messages = [], profile, role, onRefres
             return (
               <article className={`chat-bubble ${mine ? 'mine' : 'service'}`} key={item.id || index}>
                 <div className="chat-bubble-meta">
-                  <span>{mine ? (profile?.nickname || '我') : '阳光客服'}</span>
+                  <span>{mine ? resolveAccountDisplayName(profile, '我') : '阳光客服'}</span>
                   <small>{formatDateTimeShort(item.createdAt || item.time)}</small>
                 </div>
                 <p>{item.content}</p>
@@ -6514,8 +6646,8 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
           {['常见问题', '紧急联系人', '隐私设置', '行程安全', '消息通知', '版本信息'].map((item) => <span key={item}><CheckCircle size={15} />{item}</span>)}
         </div>
         <InfoPanel title="当前用户" items={[
-          ['昵称', profile?.nickname || '-'],
-          ['紧急联系人', profile?.emergencyContact || '-'],
+          ['昵称', resolveAccountDisplayName(profile, '-')],
+          ['紧急联系人', pickFirstCleanText(profile?.emergencyContact) || '-'],
           ['消息通知', safeSettings.pushEnabled ? '已开启' : '已关闭'],
           ['自动优惠', safeSettings.autoUseCoupon ? '已开启' : '手动选择']
         ]} />
@@ -6730,7 +6862,7 @@ function DriverWallet({ dashboard, withdraws = [], onWithdraw, onCertify }) {
 function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefaultSettings, onSettingsChange, onServiceStatus }) {
   const [profileError, setProfileError] = useState('')
   const [form, setForm] = useState({
-    nickname: user?.nickname || '',
+    nickname: safeEditableText(user?.nickname),
     cityCode: dashboard?.profile?.cityCode || '310100',
     licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
     defaultLanguage: user?.defaultLanguage || 'zh-CN'
@@ -6738,7 +6870,7 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
 
   useEffect(() => {
     setForm({
-      nickname: user?.nickname || '',
+      nickname: safeEditableText(user?.nickname),
       cityCode: dashboard?.profile?.cityCode || '310100',
       licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
       defaultLanguage: user?.defaultLanguage || 'zh-CN'
@@ -7137,27 +7269,30 @@ function ProfileBoard({ profile, mode, onProfile }) {
   const [editing, setEditing] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [form, setForm] = useState({
-    nickname: profile?.nickname || '',
-    realName: profile?.realName || '',
-    emergencyContact: profile?.emergencyContact || '',
+    nickname: safeEditableText(profile?.nickname),
+    realName: safeEditableText(profile?.realName),
+    emergencyContact: safeEditableText(profile?.emergencyContact),
     emergencyPhone: profile?.emergencyPhone || ''
   })
 
   useEffect(() => {
     setForm({
-      nickname: profile?.nickname || '',
-      realName: profile?.realName || '',
-      emergencyContact: profile?.emergencyContact || '',
+      nickname: safeEditableText(profile?.nickname),
+      realName: safeEditableText(profile?.realName),
+      emergencyContact: safeEditableText(profile?.emergencyContact),
       emergencyPhone: profile?.emergencyPhone || '',
       defaultLanguage: profile?.defaultLanguage || 'zh-CN'
     })
   }, [profile])
 
+  const displayNickname = resolveAccountDisplayName(profile, '')
+  const displayRealName = pickFirstCleanText(profile?.realName)
+  const displayEmergencyContact = pickFirstCleanText(profile?.emergencyContact)
   const profileViewItems = [
-    ['昵称', form.nickname || '-'],
-    ['真实姓名', form.realName || '-'],
-    ['紧急联系人', form.emergencyContact || '-'],
-    ['紧急电话', form.emergencyPhone || '-']
+    ['昵称', displayNickname || '-'],
+    ['真实姓名', displayRealName || '-'],
+    ['紧急联系人', displayEmergencyContact || '-'],
+    ['紧急电话', profile?.emergencyPhone || '-']
   ]
 
   const saveProfile = async () => {
@@ -7181,10 +7316,10 @@ function ProfileBoard({ profile, mode, onProfile }) {
       <div className="settings-account-head">
         <div className="settings-account-summary">
           <div className="settings-account-identity">
-            <span className="settings-profile-avatar">{(profile?.nickname || profile?.phone || '乘').slice(0, 1)}</span>
+            <span className="settings-profile-avatar">{resolveProfileAvatarText(profile, '乘')}</span>
             <div>
               <span className="section-kicker">资料</span>
-              <strong>{profile?.nickname || '未设置昵称'}</strong>
+              <strong>{displayNickname || '未设置昵称'}</strong>
               <small>{profile?.phone || '-'}</small>
             </div>
           </div>
@@ -8360,7 +8495,7 @@ function buildInternationalForm(profile = {}) {
     time: '09:00',
     passengerCount: 1,
     luggageCount: 1,
-    contactName: profile?.realName || profile?.nickname || '阳光乘客',
+    contactName: pickFirstCleanText(profile?.realName, profile?.nickname, '阳光乘客'),
     contactPhone: phone,
     flightNo: '',
     pickupSign: '',

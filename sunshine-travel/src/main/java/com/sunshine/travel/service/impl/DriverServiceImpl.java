@@ -24,6 +24,7 @@ import com.sunshine.travel.mapper.VehicleMapper;
 import com.sunshine.travel.mapper.WithdrawApplicationMapper;
 import com.sunshine.travel.service.DriverService;
 import com.sunshine.travel.service.support.CacheSupport;
+import com.sunshine.travel.util.ProfileFieldGuard;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -121,8 +122,8 @@ public class DriverServiceImpl implements DriverService {
     public Map<String, Object> updateProfile(DriverProfileUpdateRequest request) {
         PlatformUser user = requireDriverUser();
         DriverProfile profile = requireProfile();
-        user.setNickname(cleanRequired(request.getNickname()));
-        user.setEmergencyContact(cleanOptional(request.getEmergencyContact()));
+        user.setNickname(ProfileFieldGuard.sanitizeRequired("昵称", request.getNickname()));
+        user.setEmergencyContact(ProfileFieldGuard.sanitizeOptional("紧急联系人", request.getEmergencyContact()));
         user.setEmergencyPhone(cleanOptional(request.getEmergencyPhone()));
         platformUserMapper.updateById(user);
 

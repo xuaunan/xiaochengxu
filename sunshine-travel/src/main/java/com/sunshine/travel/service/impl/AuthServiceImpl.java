@@ -18,6 +18,7 @@ import com.sunshine.travel.mapper.PlatformUserMapper;
 import com.sunshine.travel.service.AuthService;
 import com.sunshine.travel.util.JwtUtil;
 import com.sunshine.travel.util.PasswordUtil;
+import com.sunshine.travel.util.ProfileFieldGuard;
 import com.sunshine.travel.vo.AuthLoginVO;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -56,7 +57,7 @@ public class AuthServiceImpl implements AuthService {
         PlatformUser user = new PlatformUser();
         user.setPhone(request.getPhone());
         user.setPassword(PasswordUtil.encode(request.getPassword()));
-        user.setNickname(request.getNickname());
+        user.setNickname(ProfileFieldGuard.sanitizeRequired("昵称", request.getNickname()));
         user.setRoleCode(request.getRoleCode());
         user.setOpenId("mock-" + request.getPhone() + "-" + request.getRoleCode());
         user.setAuthStatus(AuthStatus.UNVERIFIED);
@@ -117,14 +118,14 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public PlatformUser updateProfile(ProfileUpdateRequest request) {
         PlatformUser user = requireCurrentUser();
-        user.setNickname(cleanRequired(request.getNickname()));
+        user.setNickname(ProfileFieldGuard.sanitizeRequired("昵称", request.getNickname()));
         if (StringUtils.hasText(request.getAvatar())) {
             user.setAvatar(request.getAvatar().trim());
         } else if (!StringUtils.hasText(user.getAvatar())) {
             user.setAvatar("/images/avatar-user.svg");
         }
-        user.setRealName(cleanOptional(request.getRealName()));
-        user.setEmergencyContact(cleanOptional(request.getEmergencyContact()));
+        user.setRealName(ProfileFieldGuard.sanitizeOptional("真实姓名", request.getRealName()));
+        user.setEmergencyContact(ProfileFieldGuard.sanitizeOptional("紧急联系人", request.getEmergencyContact()));
         user.setEmergencyPhone(cleanOptional(request.getEmergencyPhone()));
         platformUserMapper.updateById(user);
         user.setPassword(null);
@@ -135,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public Map<String, Object> submitRealName(RealNameSubmitRequest request) {
         PlatformUser user = requireCurrentUser();
-        user.setRealName(request.getRealName());
+        user.setRealName(ProfileFieldGuard.sanitizeRequired("真实姓名", request.getRealName()));
         user.setIdCard(request.getIdCard());
         user.setAuthStatus(AuthStatus.PENDING);
         user.setAuthRemark("用户已提交实名认证，待管理员审核");
@@ -157,10 +158,6 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "用户不存在");
         }
         return user;
-    }
-
-    private String cleanRequired(String value) {
-        return value == null ? "" : value.trim();
     }
 
     private String cleanOptional(String value) {
