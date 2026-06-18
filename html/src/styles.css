@@ -1756,6 +1756,48 @@ svg {
   font-weight: 560;
 }
 
+.status-notice-strip {
+  display: grid;
+  gap: 10px;
+}
+
+.status-notice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  color: #7a3c00;
+  background: rgba(255, 247, 237, .92);
+  border: 1px solid rgba(255, 122, 0, .18);
+  box-shadow: 0 12px 28px rgba(126, 57, 0, .08);
+}
+
+.status-notice-icon {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  color: var(--brand-deep);
+  background: rgba(255, 122, 0, .12);
+}
+
+.status-notice-item strong {
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 700;
+}
+
+.portal-notice-strip {
+  margin-top: 16px;
+}
+
+.dashboard-notice-strip {
+  margin-top: 12px;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(360px, .58fr) minmax(860px, 1.42fr);

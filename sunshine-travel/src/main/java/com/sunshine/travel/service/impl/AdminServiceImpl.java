@@ -72,6 +72,7 @@ import com.sunshine.travel.service.support.OperationLogSupport;
 import com.sunshine.travel.util.InvoiceMetaUtil;
 import com.sunshine.travel.util.NoticeTimeRangeUtil;
 import com.sunshine.travel.util.PasswordUtil;
+import com.sunshine.travel.util.ProfileFieldGuard;
 import com.sunshine.travel.vo.DashboardVO;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -446,11 +447,11 @@ public class AdminServiceImpl implements AdminService {
         user.setOpenId("admin-create-" + request.getPhone() + "-" + request.getRoleCode());
         user.setPhone(request.getPhone());
         user.setPassword(PasswordUtil.encode(StringUtils.hasText(request.getPassword()) ? request.getPassword() : "123456"));
-        user.setNickname(request.getNickname());
+        user.setNickname(ProfileFieldGuard.sanitizeRequired("昵称", request.getNickname()));
         user.setRoleCode(request.getRoleCode());
-        user.setRealName(request.getRealName());
+        user.setRealName(ProfileFieldGuard.sanitizeOptional("真实姓名", request.getRealName()));
         user.setIdCard(request.getIdCard());
-        user.setEmergencyContact(request.getEmergencyContact());
+        user.setEmergencyContact(ProfileFieldGuard.sanitizeOptional("紧急联系人", request.getEmergencyContact()));
         user.setEmergencyPhone(request.getEmergencyPhone());
         user.setEnabled(request.getEnabled());
         user.setAuthStatus(StringUtils.hasText(request.getRealName()) ? AuthStatus.APPROVED : AuthStatus.UNVERIFIED);
@@ -487,10 +488,10 @@ public class AdminServiceImpl implements AdminService {
             throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "新的手机号与角色组合已存在");
         }
         user.setPhone(request.getPhone());
-        user.setNickname(request.getNickname());
-        user.setRealName(request.getRealName());
+        user.setNickname(ProfileFieldGuard.sanitizeRequired("昵称", request.getNickname()));
+        user.setRealName(ProfileFieldGuard.sanitizeOptional("真实姓名", request.getRealName()));
         user.setIdCard(request.getIdCard());
-        user.setEmergencyContact(request.getEmergencyContact());
+        user.setEmergencyContact(ProfileFieldGuard.sanitizeOptional("紧急联系人", request.getEmergencyContact()));
         user.setEmergencyPhone(request.getEmergencyPhone());
         user.setDefaultLanguage(StringUtils.hasText(request.getDefaultLanguage()) ? request.getDefaultLanguage() : user.getDefaultLanguage());
         user.setEnabled(request.getEnabled());
@@ -552,7 +553,7 @@ public class AdminServiceImpl implements AdminService {
     public Map<String, Object> updateDriver(Long driverId, AdminDriverUpdateRequest request) {
         PlatformUser user = requireUser(driverId);
         DriverProfile profile = requireDriverProfile(driverId);
-        user.setNickname(request.getNickname());
+        user.setNickname(ProfileFieldGuard.sanitizeRequired("昵称", request.getNickname()));
         platformUserMapper.updateById(user);
         profile.setCityCode(request.getCityCode());
         profile.setLicenseNo(request.getLicenseNo());

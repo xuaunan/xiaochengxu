@@ -58,7 +58,8 @@ async function request(path, options = {}) {
     token,
     skipAuth = false,
     demoRole,
-    timeout = 1200
+    timeout = 1200,
+    allowDemoFallback = true
   } = options
 
   bumpApiLoading(1)
@@ -66,6 +67,12 @@ async function request(path, options = {}) {
   if (Date.now() < backendBackoffUntil) {
     emitApiMode('demo', '业务服务暂不可用，当前操作使用网页离线数据')
     try {
+      if (!allowDemoFallback) {
+        throw new ApiError('当前未连接后端，暂时无法同步真实资料', {
+          status: 503,
+          network: true
+        })
+      }
       return demoRequest(path, { method, data, token, demoRole })
     } finally {
       bumpApiLoading(-1)
@@ -111,7 +118,13 @@ async function request(path, options = {}) {
       throw error
     }
     backendBackoffUntil = Date.now() + 5000
-    emitApiMode('demo', '业务服务未连接，当前使用网页离线数据')
+    emitApiMode('demo', '涓氬姟鏈嶅姟鏈繛鎺ワ紝褰撳墠浣跨敤缃戦〉绂荤嚎鏁版嵁')
+    if (!allowDemoFallback) {
+      throw new ApiError('当前未连接后端，暂时无法同步真实资料', {
+        status: 503,
+        network: true
+      })
+    }
     return demoRequest(path, { method, data, token, demoRole })
   } finally {
     window.clearTimeout(timer)
@@ -267,6 +280,7 @@ export const api = {
   }),
   register: (data) => request('/auth/register', { method: 'POST', skipAuth: true, data }),
   profile: (token) => request('/auth/profile', { token }),
+  profileStrict: (token) => request('/auth/profile', { token, allowDemoFallback: false, timeout: 1800 }),
   updateProfile: (token, data) => request('/auth/profile', { method: 'PUT', token, data }),
   submitRealName: (token, data) => request('/auth/real-name', { method: 'POST', token, data }),
   home: () => request('/app/home', { skipAuth: true }),
