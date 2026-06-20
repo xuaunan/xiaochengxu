@@ -16,6 +16,12 @@ backend.live.log
 html/output/playwright/*.png
 html/output/playwright/
 html/output/sourcesdata-*/
+html/output/*.png
+html/output-playwright-*.png
+html/output-playwright-*.json
+html/output-invoice-*.png
+html/output-invoice-*.bin
+html/invoice-headers.txt
 html/*-font-check.png
 sunshine-admin/*-check.png
 sunshine-admin/*-optimized.png
