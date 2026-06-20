@@ -986,6 +986,14 @@ public class OrderServiceImpl implements OrderService {
         row.put("vehicle", vehicle);
         row.put("plateNo", vehicle == null ? "" : firstNonBlank(vehicle.getPlateNo()));
         row.put("vehiclePlateNo", vehicle == null ? "" : firstNonBlank(vehicle.getPlateNo()));
+        Map<String, Object> invoiceMeta = InvoiceMetaUtil.parse(order.getRemark());
+        row.put("invoiceMeta", invoiceMeta);
+        row.put("invoiceTitle", InvoiceMetaUtil.firstText(invoiceMeta, "buyerName", "title"));
+        row.put("taxNo", InvoiceMetaUtil.firstText(invoiceMeta, "buyerTaxNo", "taxNo"));
+        row.put("buyerPhone", InvoiceMetaUtil.text(invoiceMeta, "buyerPhone"));
+        row.put("invoiceAppliedAt", firstNonBlank(InvoiceMetaUtil.text(invoiceMeta, "appliedAt"), InvoiceMetaUtil.text(invoiceMeta, "issueAt")));
+        row.put("invoiceHandledAt", InvoiceMetaUtil.text(invoiceMeta, "handledAt"));
+        row.put("invoiceRejectReason", firstNonBlank(InvoiceMetaUtil.text(invoiceMeta, "rejectReason"), InvoiceMetaUtil.text(invoiceMeta, "handleRemark")));
         row.put("carModel", vehicle == null ? "" : firstNonBlank(
                 (firstNonBlank(vehicle.getBrand()) + " " + firstNonBlank(vehicle.getModelName())).trim(),
                 vehicle.getModelName(),

@@ -41,6 +41,7 @@ import {
   Zap
 } from 'lucide-react'
 import { api, getApiBase, normalizeList, setApiBase } from './api'
+import { isAnyOrderActionPending, isOrderActionPending, orderActionPendingKey } from './interaction-state'
 import sunshineLogo from './assets/sunshine-logo-transparent.png'
 import {
   DRIVER_STATUS,
@@ -1156,6 +1157,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   const [activeRuntime, setActiveRuntime] = useState(null)
   const [passengerSettings, setPassengerSettings] = usePersistentState(passengerSettingsKey, passengerDefaultSettings)
   const [focusOrderId, setFocusOrderId] = useState('')
+  const [pendingOrderAction, setPendingOrderAction] = useState('')
+  const pendingOrderActionRef = useRef('')
   const [syncMeta, setSyncMeta] = useState({ lastSyncAt: 0, degradedCount: 0, totalCount: 0 })
   const [toast, setToast] = useState('')
   const token = session?.token
@@ -1271,6 +1274,24 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     }
   }
 
+  const runOrderAction = async (action, order, payload) => {
+    const pendingKey = orderActionPendingKey(action, order)
+    if (!pendingKey) {
+      return run(() => passengerOrderAction(action, order, token, payload), actionText(action))
+    }
+    if (pendingOrderActionRef.current === pendingKey) return undefined
+    pendingOrderActionRef.current = pendingKey
+    setPendingOrderAction(pendingKey)
+    try {
+      return await run(() => passengerOrderAction(action, order, token, payload), actionText(action))
+    } finally {
+      if (pendingOrderActionRef.current === pendingKey) {
+        pendingOrderActionRef.current = ''
+        setPendingOrderAction('')
+      }
+    }
+  }
+
   const updatePassengerSettings = useCallback((patch) => {
     setPassengerSettings((current) => normalizePassengerSettings({
       ...current,
@@ -1371,7 +1392,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
               order={activeRideOrder}
               runtime={activeRuntime}
               onRefresh={load}
-              onAction={(action) => run(() => passengerOrderAction(action, activeRideOrder, token), actionText(action))}
+              pendingActionKey={pendingOrderAction}
+              onAction={(action) => runOrderAction(action, activeRideOrder)}
             />
           ) : (
             <BookingPanel
@@ -1396,7 +1418,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           onRefresh={load}
           onOpenInvoice={() => changeTab('invoice')}
           focusOrderId={focusOrderId}
-          onAction={(action, order, payload) => run(() => passengerOrderAction(action, order, token, payload), actionText(action))}
+          pendingActionKey={pendingOrderAction}
+          onAction={runOrderAction}
         />
       )}
 
@@ -1532,6 +1555,8 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   const [driverSettings, setDriverSettings] = useState(() => readDriverSettings())
   const [rejectDraft, setRejectDraft] = useState({ orderId: null, reason: driverRejectReasonOptions[0] })
   const autoAcceptingRef = useRef(false)
+  const [pendingOrderAction, setPendingOrderAction] = useState('')
+  const pendingOrderActionRef = useRef('')
   const [syncMeta, setSyncMeta] = useState({ lastSyncAt: 0, degradedCount: 0, totalCount: 0 })
   const [toast, setToast] = useState('')
   const token = session?.token
@@ -1605,13 +1630,33 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
     }
   }
 
+  const runPendingOrderMutation = async (action, order, task, successText = actionText(action)) => {
+    const pendingKey = orderActionPendingKey(action, order)
+    if (!pendingKey) return run(task, successText)
+    if (pendingOrderActionRef.current === pendingKey) return undefined
+    pendingOrderActionRef.current = pendingKey
+    setPendingOrderAction(pendingKey)
+    try {
+      return await run(task, successText)
+    } finally {
+      if (pendingOrderActionRef.current === pendingKey) {
+        pendingOrderActionRef.current = ''
+        setPendingOrderAction('')
+      }
+    }
+  }
+
+  const runOrderAction = (action, order) => (
+    runPendingOrderMutation(action, order, () => driverOrderAction(action, order, token), actionText(action))
+  )
+
   const submitDriverReject = (order) => {
     const reason = String(rejectDraft.reason || '').trim()
     if (!reason) {
       setToast('请填写拒单原因')
       return
     }
-    return run(async () => {
+    return runPendingOrderMutation('reject', order, async () => {
       await api.driverReject(token, order.id, reason)
       setRejectDraft({ orderId: null, reason: driverRejectReasonOptions[0] })
     }, '已提交拒单原因')
@@ -1775,12 +1820,20 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
             <OrderList
               orders={waitingOrders}
               empty="暂无待抢订单，乘客端下单后会出现在这里。"
-              footer={(order) => (
+              footer={(order) => {
+                const acceptBusy = isOrderActionPending(pendingOrderAction, 'accept', order)
+                const rejectBusy = isOrderActionPending(pendingOrderAction, 'reject', order)
+                const orderActionLocked = isAnyOrderActionPending(pendingOrderAction, order)
+                return (
                 <>
-                  <button className="solid-button" onClick={() => run(() => api.driverAccept(token, order.id), '接单成功')}>
-                    <CheckCircle size={16} />接单
+                  <button
+                    className={`solid-button${acceptBusy ? ' is-busy' : ''}`}
+                    disabled={orderActionLocked}
+                    onClick={() => runPendingOrderMutation('accept', order, () => api.driverAccept(token, order.id), '接单成功')}
+                  >
+                    <CheckCircle size={16} />{acceptBusy ? '接单中' : '接单'}
                   </button>
-                  <button className="ghost-button" onClick={() => setRejectDraft({
+                  <button className="ghost-button" disabled={orderActionLocked} onClick={() => setRejectDraft({
                     orderId: rejectDraft.orderId === order.id ? null : order.id,
                     reason: rejectDraft.orderId === order.id ? driverRejectReasonOptions[0] : rejectDraft.reason || driverRejectReasonOptions[0]
                   })}>
@@ -1808,13 +1861,14 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
                         />
                       </label>
                       <div className="order-action-panel-actions">
-                        <button className="solid-button" onClick={() => submitDriverReject(order)}><XCircle size={15} />确认拒单</button>
-                        <button className="ghost-button" onClick={() => setRejectDraft({ orderId: null, reason: driverRejectReasonOptions[0] })}>取消</button>
+                        <button className={`solid-button${rejectBusy ? ' is-busy' : ''}`} disabled={orderActionLocked} onClick={() => submitDriverReject(order)}><XCircle size={15} />{rejectBusy ? '提交中' : '确认拒单'}</button>
+                        <button className="ghost-button" disabled={orderActionLocked} onClick={() => setRejectDraft({ orderId: null, reason: driverRejectReasonOptions[0] })}>取消</button>
                       </div>
                     </div>
                   )}
                 </>
-              )}
+                )
+              }}
             />
           </section>
         </div>
@@ -1825,7 +1879,8 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
           orders={orders}
           role="DRIVER"
           onRefresh={load}
-          onAction={(action, order) => run(() => driverOrderAction(action, order, token), actionText(action))}
+          pendingActionKey={pendingOrderAction}
+          onAction={runOrderAction}
         />
       )}
 
@@ -2054,12 +2109,16 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
   )
 }
 
-function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
+function ActiveRidePanel({ order, runtime, onRefresh, onAction, pendingActionKey = '' }) {
   const copy = getRideStatusCopy(order)
   const timeline = normalizeTimeline(order)
   const canCancel = [ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus)
   const canPickup = order.orderStatus === ORDER_STATUS.PICKING_UP
   const canPay = order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID
+  const cancelBusy = isOrderActionPending(pendingActionKey, 'cancel', order)
+  const pickupBusy = isOrderActionPending(pendingActionKey, 'pickup', order)
+  const payBusy = isOrderActionPending(pendingActionKey, 'pay', order)
+  const actionLocked = isAnyOrderActionPending(pendingActionKey, order)
   const isDispatching = [ORDER_STATUS.CREATED, ORDER_STATUS.DISPATCHING].includes(order.orderStatus)
   const etaMinutes = Number(runtime?.etaMinutes || order.estimatedDurationMin || 8)
   const nearbyDrivers = Math.max(1, Math.min(12, Math.round((Number(order.estimatedDistanceKm || runtime?.distanceKm || 4) * 1.8) + 2)))
@@ -2121,9 +2180,9 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction }) {
       </div>
       <div className="active-ride-actions">
         <button className="ghost-button" onClick={onRefresh}><RefreshCw size={16} />刷新状态</button>
-        {canCancel && <button className="ghost-button" onClick={() => onAction('cancel')}><XCircle size={16} />取消订单</button>}
-        {canPickup && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />我已上车</button>}
-        {canPay && <button className="solid-button" onClick={() => onAction('pay')}><CreditCard size={16} />支付</button>}
+        {canCancel && <button className={`ghost-button${cancelBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('cancel')}><XCircle size={16} />{cancelBusy ? '处理中' : '取消订单'}</button>}
+        {canPickup && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '我已上车'}</button>}
+        {canPay && <button className={`solid-button${payBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pay')}><CreditCard size={16} />{payBusy ? '支付中' : '支付'}</button>}
       </div>
     </section>
   )
@@ -3237,8 +3296,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
               key={key}
               className={tab === key ? 'active' : ''}
               onClick={() => {
-                setTab(key)
-                onTabChange?.(key)
+                if (tab !== key) setTab(key)
               }}
             >
               <IconSlot icon={TabIcon} size={18} className="nav-tab-icon" />{label}
@@ -3259,18 +3317,21 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
           </div>
         </header>
         <NoticeStrip notices={notices} className="dashboard-notice-strip" />
-        {children}
+        <div className="dashboard-view-stage" key={tab}>
+          {children}
+        </div>
       </section>
     </main>
   )
 }
 
 
-function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrderId = '' }) {
+function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrderId = '', pendingActionKey = '' }) {
   const [listExpanded, setListExpanded] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [refreshing, setRefreshing] = useState(false)
   const sourceOrders = normalizeList(orders)
   const filteredOrders = useMemo(() => sourceOrders.filter((order) => {
     const typeMatched = typeFilter === 'ALL' || order.serviceType === typeFilter
@@ -3306,6 +3367,16 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
     }
   }, [focusOrderId, sourceOrders])
 
+  const refreshOrders = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await onRefresh?.()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <div className="dashboard-grid order-detail-layout">
       <section className="glass-panel work-card order-board-card">
@@ -3320,7 +3391,14 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
                 {listExpanded ? '收起订单' : `展开全部 ${filteredOrders.length} 单`} <ChevronRight size={15} />
               </button>
             )}
-            <button className="icon-button" onClick={onRefresh}><RefreshCw size={17} /></button>
+            <button
+              className={`icon-button${refreshing ? ' is-refreshing' : ''}`}
+              disabled={refreshing}
+              title={refreshing ? '刷新中' : '刷新订单'}
+              onClick={refreshOrders}
+            >
+              <RefreshCw size={17} />
+            </button>
           </div>
         </div>
         <div className="order-filter-panel">
@@ -3354,7 +3432,7 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
           onSelect={(order) => setSelectedOrderId(orderKey(order))}
           footer={(order) => (
             <>
-              <OrderActions role={role} order={order} onAction={(action, payload) => onAction(action, order, payload)} />
+              <OrderActions role={role} order={order} pendingActionKey={pendingActionKey} onAction={(action, payload) => onAction(action, order, payload)} />
             </>
           )}
         />
@@ -3364,6 +3442,7 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
         role={role}
         onAction={(action, payload) => selectedOrder && onAction(action, selectedOrder, payload)}
         onOpenInvoice={onOpenInvoice}
+        pendingActionKey={pendingActionKey}
       />
     </div>
   )
@@ -3382,7 +3461,7 @@ function getOrderStatusBucket(order = {}) {
   return 'PROCESSING'
 }
 
-function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
+function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionKey = '' }) {
   const [activeAction, setActiveAction] = useState('')
   const [payForm, setPayForm] = useState({ payChannel: 'WECHAT' })
   const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
@@ -3422,11 +3501,15 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
   const canDriverStart = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.ACCEPTED
   const canDriverPickup = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.PICKING_UP
   const canDriverFinish = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.IN_TRIP
+  const driverStartBusy = isOrderActionPending(pendingActionKey, 'start', order)
+  const driverPickupBusy = isOrderActionPending(pendingActionKey, 'pickup', order)
+  const driverFinishBusy = isOrderActionPending(pendingActionKey, 'finish', order)
+  const orderActionLocked = isAnyOrderActionPending(pendingActionKey, order)
   const trackCount = normalizeList(order.track || order.trackHistory || order.locations).length
   const payMethod = passengerPaymentMethods.find(([value]) => value === payForm.payChannel) || passengerPaymentMethods[0]
 
   const submitPay = async () => {
-    if (!canPay || submittingAction) return
+    if (!canPay || submittingAction || orderActionLocked) return
     setFormError('')
     setSubmittingAction('pay')
     try {
@@ -3450,6 +3533,7 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
   }
 
   const submitReview = async () => {
+    if (submittingAction || orderActionLocked) return
     const score = Number(reviewForm.score)
     const content = String(reviewForm.content || '').trim() || reviewForm.tags.join('、') || '服务体验良好'
     if (!Number.isFinite(score) || score < 1 || score > 5) {
@@ -3475,6 +3559,7 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
   }
 
   const submitComplaint = async () => {
+    if (submittingAction || orderActionLocked) return
     const content = String(complaintForm.content || '').trim()
     const contactPhone = String(complaintForm.contactPhone || '').trim()
     if (content.length < 6) {
@@ -3569,13 +3654,13 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
       {role === 'DRIVER' && <DriverTripProgressPanel order={order} trackCount={trackCount} />}
 
       <div className="order-detail-actions">
-        {canPay && <button className="solid-button" onClick={() => setActiveAction(activeAction === 'pay' ? '' : 'pay')}><CreditCard size={16} />支付确认</button>}
-        {canEvaluate && <button className="ghost-button" onClick={() => setActiveAction(activeAction === 'evaluate' ? '' : 'evaluate')}><Star size={16} />写评价</button>}
-        {canComplain && <button className="ghost-button" onClick={() => setActiveAction(activeAction === 'complaint' ? '' : 'complaint')}><AlertTriangle size={16} />投诉反馈</button>}
+        {canPay && <button className="solid-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'pay' ? '' : 'pay')}><CreditCard size={16} />支付确认</button>}
+        {canEvaluate && <button className="ghost-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'evaluate' ? '' : 'evaluate')}><Star size={16} />写评价</button>}
+        {canComplain && <button className="ghost-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'complaint' ? '' : 'complaint')}><AlertTriangle size={16} />投诉反馈</button>}
         {canInvoice && <button className="ghost-button" onClick={onOpenInvoice}><CreditCard size={16} />申请发票</button>}
-        {canDriverStart && <button className="solid-button" onClick={() => onAction('start')}><Play size={16} />开始接驾</button>}
-        {canDriverPickup && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />确认上车</button>}
-        {canDriverFinish && <button className="solid-button" onClick={() => onAction('finish')}><Flag size={16} />完成行程</button>}
+        {canDriverStart && <button className={`solid-button${driverStartBusy ? ' is-busy' : ''}`} disabled={orderActionLocked} onClick={() => onAction('start')}><Play size={16} />{driverStartBusy ? '处理中' : '开始接驾'}</button>}
+        {canDriverPickup && <button className={`solid-button${driverPickupBusy ? ' is-busy' : ''}`} disabled={orderActionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{driverPickupBusy ? '处理中' : '确认上车'}</button>}
+        {canDriverFinish && <button className={`solid-button${driverFinishBusy ? ' is-busy' : ''}`} disabled={orderActionLocked} onClick={() => onAction('finish')}><Flag size={16} />{driverFinishBusy ? '处理中' : '完成行程'}</button>}
       </div>
 
       {activeAction === 'pay' && (
@@ -3606,10 +3691,10 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
           <p className="payment-safe-tip"><ShieldCheck size={14} />支付成功后钱包流水、订单支付状态和发票入口会同步更新。</p>
           {formError && <p className="form-error-line">{formError}</p>}
           <div className="order-action-panel-actions">
-            <button className="solid-button" disabled={submittingAction === 'pay'} onClick={submitPay}>
+            <button className="solid-button" disabled={submittingAction === 'pay' || orderActionLocked} onClick={submitPay}>
               <CreditCard size={16} />{submittingAction === 'pay' ? '支付中...' : `确认支付 ${amount}`}
             </button>
-            <button className="ghost-button" disabled={submittingAction === 'pay'} onClick={() => setActiveAction('')}>稍后处理</button>
+            <button className="ghost-button" disabled={submittingAction === 'pay' || orderActionLocked} onClick={() => setActiveAction('')}>稍后处理</button>
           </div>
         </div>
       )}
@@ -3657,10 +3742,10 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
           </label>
           {formError && <p className="form-error-line">{formError}</p>}
           <div className="order-action-panel-actions">
-            <button className="solid-button" disabled={submittingAction === 'evaluate'} onClick={submitReview}>
+            <button className="solid-button" disabled={submittingAction === 'evaluate' || orderActionLocked} onClick={submitReview}>
               <Star size={16} />{submittingAction === 'evaluate' ? '提交中...' : '提交评价'}
             </button>
-            <button className="ghost-button" disabled={submittingAction === 'evaluate'} onClick={() => setActiveAction('')}>取消</button>
+            <button className="ghost-button" disabled={submittingAction === 'evaluate' || orderActionLocked} onClick={() => setActiveAction('')}>取消</button>
           </div>
         </div>
       )}
@@ -3696,10 +3781,10 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice }) {
           <Field label="联系电话" value={complaintForm.contactPhone} onChange={(value) => setComplaintForm((form) => ({ ...form, contactPhone: value }))} />
           {formError && <p className="form-error-line">{formError}</p>}
           <div className="order-action-panel-actions">
-            <button className="solid-button" disabled={submittingAction === 'complaint'} onClick={submitComplaint}>
+            <button className="solid-button" disabled={submittingAction === 'complaint' || orderActionLocked} onClick={submitComplaint}>
               <AlertTriangle size={16} />{submittingAction === 'complaint' ? '提交中...' : '提交投诉'}
             </button>
-            <button className="ghost-button" disabled={submittingAction === 'complaint'} onClick={() => setActiveAction('')}>取消</button>
+            <button className="ghost-button" disabled={submittingAction === 'complaint' || orderActionLocked} onClick={() => setActiveAction('')}>取消</button>
           </div>
         </div>
       )}
@@ -3905,22 +3990,27 @@ function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect }) 
   )
 }
 
-function OrderActions({ role, order, onAction }) {
+function OrderActions({ role, order, onAction, pendingActionKey = '' }) {
+  const startBusy = isOrderActionPending(pendingActionKey, 'start', order)
+  const pickupBusy = isOrderActionPending(pendingActionKey, 'pickup', order)
+  const finishBusy = isOrderActionPending(pendingActionKey, 'finish', order)
+  const cancelBusy = isOrderActionPending(pendingActionKey, 'cancel', order)
+  const actionLocked = isAnyOrderActionPending(pendingActionKey, order)
   if (role === 'DRIVER') {
     return (
       <>
-        {order.orderStatus === ORDER_STATUS.ACCEPTED && <button className="solid-button" onClick={() => onAction('start')}><Play size={16} />开始接驾</button>}
-        {order.orderStatus === ORDER_STATUS.PICKING_UP && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />确认上车</button>}
-        {order.orderStatus === ORDER_STATUS.IN_TRIP && <button className="solid-button" onClick={() => onAction('finish')}><Flag size={16} />完成行程</button>}
+        {order.orderStatus === ORDER_STATUS.ACCEPTED && <button className={`solid-button${startBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('start')}><Play size={16} />{startBusy ? '处理中' : '开始接驾'}</button>}
+        {order.orderStatus === ORDER_STATUS.PICKING_UP && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '确认上车'}</button>}
+        {order.orderStatus === ORDER_STATUS.IN_TRIP && <button className={`solid-button${finishBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('finish')}><Flag size={16} />{finishBusy ? '处理中' : '完成行程'}</button>}
       </>
     )
   }
   return (
     <>
       {[ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus) && (
-        <button className="ghost-button" onClick={() => onAction('cancel')}><XCircle size={16} />取消</button>
+        <button className={`ghost-button${cancelBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('cancel')}><XCircle size={16} />{cancelBusy ? '处理中' : '取消'}</button>
       )}
-      {order.orderStatus === ORDER_STATUS.PICKING_UP && <button className="solid-button" onClick={() => onAction('pickup')}><Navigation size={16} />我已上车</button>}
+      {order.orderStatus === ORDER_STATUS.PICKING_UP && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '我已上车'}</button>}
     </>
   )
 }
@@ -5934,14 +6024,14 @@ function InvoiceWorkbench({ orders = [], profile, onApplyInvoice, onPreviewInvoi
 
               <div className="invoice-actions invoice-actions--dense">
                 <button
-                  className={submitButtonClass}
+                  className={`${submitButtonClass}${applyBusy ? ' is-busy' : ''}`}
                   disabled={!canApplyInvoice}
                   onClick={applyInvoice}
                 >
-                  <Send size={16} />{selectedInvoiceStatus === 'REJECTED' ? '重新提交申请' : '提交申请'}
+                  <Send size={16} />{applyBusy ? '提交中...' : selectedInvoiceStatus === 'REJECTED' ? '重新提交申请' : '提交申请'}
                 </button>
                 <button
-                  className={previewButtonClass}
+                  className={`${previewButtonClass}${previewBusy ? ' is-busy' : ''}`}
                   disabled={previewBusy || !canViewInvoice}
                   onClick={ensureInvoiceAsset}
                 >
@@ -5991,6 +6081,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
   const [draft, setDraft] = useState('')
   const [sendError, setSendError] = useState('')
   const [sending, setSending] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const threadEndRef = useRef(null)
   const sortedMessages = normalizeList(messages).slice().sort((left, right) => {
     const a = dateLikeToMs(left.createdAt || left.time) || Number(left.id || 0)
@@ -6066,6 +6157,16 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
     }
   }
 
+  const refreshConversation = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await onRefresh?.()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <div className="dashboard-grid support-chat-grid">
       <section className="glass-panel work-card wide support-chat-card">
@@ -6073,7 +6174,13 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
           <div>
             <h2>{supportTitle}</h2>
           </div>
-          <button className="icon-button support-refresh-button" type="button" title="刷新会话" onClick={onRefresh}>
+          <button
+            className={`icon-button support-refresh-button${refreshing ? ' is-refreshing' : ''}`}
+            type="button"
+            title={refreshing ? '刷新中' : '刷新会话'}
+            disabled={refreshing}
+            onClick={refreshConversation}
+          >
             <RefreshCw size={16} />
           </button>
         </div>
@@ -6861,6 +6968,7 @@ function DriverWallet({ dashboard, withdraws = [], onWithdraw, onCertify }) {
 
 function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefaultSettings, onSettingsChange, onServiceStatus }) {
   const [profileError, setProfileError] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
   const [form, setForm] = useState({
     nickname: safeEditableText(user?.nickname),
     cityCode: dashboard?.profile?.cityCode || '310100',
@@ -6878,6 +6986,7 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
   }, [dashboard?.profile?.cityCode, dashboard?.profile?.licenseNo, user?.defaultLanguage, user?.nickname])
 
   const saveProfile = async () => {
+    if (savingProfile) return
     const payload = {
       ...form,
       nickname: form.nickname.trim(),
@@ -6898,7 +7007,12 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
       return
     }
     setProfileError('')
-    await onProfile(payload)
+    setSavingProfile(true)
+    try {
+      await onProfile(payload)
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   return (
@@ -6909,7 +7023,9 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
           <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
         ))}
         {profileError && <p className="form-error-line">{profileError}</p>}
-        <button className="solid-button fill" onClick={saveProfile}><ShieldCheck size={16} />保存司机资料</button>
+        <button className={`solid-button fill${savingProfile ? ' is-busy' : ''}`} disabled={savingProfile} onClick={saveProfile}>
+          <ShieldCheck size={16} />{savingProfile ? '保存中...' : '保存司机资料'}
+        </button>
       </section>
       <section className="glass-panel work-card wide">
         <div className="card-head"><h2>设置与播报</h2><Settings size={21} /></div>
@@ -7127,6 +7243,8 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
   const [readFilter, setReadFilter] = useState('UNREAD')
   const [selectedMessage, setSelectedMessage] = useState(null)
   const [readOverrides, setReadOverrides] = useState({})
+  const [refreshing, setRefreshing] = useState(false)
+  const [markingRead, setMarkingRead] = useState(false)
   const list = useMemo(
     () => enrichMessagesWithOrders(messages || [], orders || []).map((item, index) => ({
       ...item,
@@ -7189,12 +7307,27 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
 
   const markCurrentListRead = async () => {
     const targets = filteredList.filter((item) => !item.__isRead)
-    if (!targets.length) return
+    if (!targets.length || markingRead) return
+    setMarkingRead(true)
     setReadOverrides((value) => ({
       ...value,
       ...Object.fromEntries(targets.map((item) => [item.id, true]))
     }))
-    await Promise.allSettled(targets.map((item) => onReadMessage?.(item)))
+    try {
+      await Promise.allSettled(targets.map((item) => onReadMessage?.(item)))
+    } finally {
+      setMarkingRead(false)
+    }
+  }
+
+  const refreshMessages = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await onRefresh?.()
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   return (
@@ -7208,7 +7341,9 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
             <button className={readFilter === 'ALL' ? 'active is-read' : 'is-read'} type="button" onClick={() => setReadFilter('ALL')}>全部 <span>{list.length}</span></button>
           </div>
           {unreadCount > 0 && (
-            <button className="message-list-toggle head-toggle" type="button" onClick={markCurrentListRead}>全部已读</button>
+            <button className="message-list-toggle head-toggle" type="button" disabled={markingRead} onClick={markCurrentListRead}>
+              {markingRead ? '同步中' : '全部已读'}
+            </button>
           )}
           {hasMore && (
             <button className="message-list-toggle head-toggle" type="button" onClick={() => setExpanded((value) => !value)}>
@@ -7216,7 +7351,14 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
               <ChevronRight size={12} className={expanded ? 'rotated' : ''} />
             </button>
           )}
-          <button className="icon-button" onClick={onRefresh}><RefreshCw size={15} /></button>
+          <button
+            className={`icon-button${refreshing ? ' is-refreshing' : ''}`}
+            disabled={refreshing}
+            title={refreshing ? '刷新中' : '刷新消息'}
+            onClick={refreshMessages}
+          >
+            <RefreshCw size={15} />
+          </button>
         </div>
       </div>
       <div className="message-summary-strip">
@@ -7268,6 +7410,7 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
 function ProfileBoard({ profile, mode, onProfile }) {
   const [editing, setEditing] = useState(false)
   const [profileError, setProfileError] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
   const [form, setForm] = useState({
     nickname: safeEditableText(profile?.nickname),
     realName: safeEditableText(profile?.realName),
@@ -7296,7 +7439,7 @@ function ProfileBoard({ profile, mode, onProfile }) {
   ]
 
   const saveProfile = async () => {
-    if (!onProfile) return
+    if (!onProfile || savingProfile) return
     const payload = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, String(value ?? '').trim()]))
     if (!payload.nickname) {
       setProfileError('请填写昵称')
@@ -7307,8 +7450,13 @@ function ProfileBoard({ profile, mode, onProfile }) {
       return
     }
     setProfileError('')
-    await onProfile(payload)
-    setEditing(false)
+    setSavingProfile(true)
+    try {
+      await onProfile(payload)
+      setEditing(false)
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   return (
@@ -7355,9 +7503,9 @@ function ProfileBoard({ profile, mode, onProfile }) {
           {profileError && <p className="form-error-line">{profileError}</p>}
           {onProfile && (
             <div className="settings-profile-actions">
-              <button className="ghost-button" onClick={() => setEditing(false)}>取消</button>
-              <button className="solid-button profile-save-button" onClick={saveProfile}>
-                <ShieldCheck size={15} />保存资料
+              <button className="ghost-button" disabled={savingProfile} onClick={() => setEditing(false)}>取消</button>
+              <button className={`solid-button profile-save-button${savingProfile ? ' is-busy' : ''}`} disabled={savingProfile} onClick={saveProfile}>
+                <ShieldCheck size={15} />{savingProfile ? '保存中...' : '保存资料'}
               </button>
             </div>
           )}

@@ -4976,6 +4976,50 @@ svg {
   gap: 18px;
 }
 
+.dashboard-view-stage {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-view-stage {
+    animation: dashboardViewIn .18s var(--ease) both;
+  }
+
+  .dashboard-shell .dashboard-view-stage > .dashboard-grid,
+  .dashboard-shell .dashboard-view-stage > .work-card,
+  .dashboard-shell .dashboard-view-stage > .settings-page,
+  .dashboard-shell .settings-account-editor,
+  .dashboard-shell .order-action-panel,
+  .dashboard-shell .driver-reject-panel {
+    animation: dashboardPanelIn var(--motion-med) var(--motion-ease) both;
+  }
+
+  .message-detail-modal {
+    animation: dashboardPanelIn .22s var(--ease) both;
+  }
+
+  .dashboard-shell .compact-order-list .order-card.compact.slim,
+  .dashboard-shell .invoice-order-stack .invoice-order-card,
+  .dashboard-shell .message-list .message-card,
+  .dashboard-shell .coupon-ticket,
+  .dashboard-shell .wallet-record-row,
+  .dashboard-shell .feedback-history-row {
+    animation: dashboardListItemIn var(--motion-med) var(--motion-ease) both;
+  }
+
+  .dashboard-shell .chat-row {
+    animation: dashboardBubbleIn var(--motion-med) var(--motion-ease) both;
+  }
+
+  .dashboard-shell .form-error-line,
+  .dashboard-shell .invoice-field.has-error {
+    animation: dashboardErrorPop var(--motion-med) var(--motion-ease) both;
+  }
+}
+
 .dashboard-header {
   display: flex;
   align-items: center;
@@ -11400,6 +11444,71 @@ svg {
   }
 }
 
+@keyframes dashboardViewIn {
+  from {
+    opacity: .01;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboardPanelIn {
+  from {
+    opacity: .01;
+    transform: translate3d(0, 10px, 0) scale(.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes dashboardListItemIn {
+  from {
+    opacity: .01;
+    transform: translate3d(0, 7px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes dashboardBubbleIn {
+  from {
+    opacity: .01;
+    transform: translate3d(0, 6px, 0) scale(.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes dashboardErrorPop {
+  0% {
+    opacity: .01;
+    transform: translate3d(0, -4px, 0);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translate3d(0, 1px, 0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 
 /* Restored portal final-state responsive rules */
 @media (max-width: 1180px) {
@@ -11633,6 +11742,15 @@ svg {
   opacity: .58;
   transform: none;
   box-shadow: none;
+}
+
+.dashboard-shell .ghost-button.is-busy,
+.dashboard-shell .solid-button.is-busy {
+  cursor: wait;
+}
+
+.dashboard-shell .icon-button.is-refreshing svg {
+  animation: topLoadWheel .65s linear infinite;
 }
 
 .coupon-claim.is-claimed {
@@ -12544,6 +12662,10 @@ svg {
   --workspace-radius: 20px;
   --workspace-radius-sm: 14px;
   --workspace-shadow: 0 12px 34px rgba(126, 57, 0, .11);
+  --motion-fast: .16s;
+  --motion-med: .22s;
+  --motion-slow: .3s;
+  --motion-ease: cubic-bezier(.2, .9, .2, 1);
 }
 
 .dashboard-shell .dashboard-header,
@@ -12597,9 +12719,25 @@ svg {
 }
 
 .dashboard-shell .nav-tabs button {
+  position: relative;
   border: 1px solid transparent;
   outline: 0;
   transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease);
+}
+
+.dashboard-shell .nav-tabs button::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 7px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .86);
+  opacity: 0;
+  transform: scaleX(.35);
+  transform-origin: center;
+  transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 
 .dashboard-shell .nav-tabs button:hover {
@@ -12613,6 +12751,11 @@ svg {
   border-color: rgba(255, 122, 0, .34);
   background: linear-gradient(135deg, var(--brand), var(--brand-deep));
   box-shadow: 0 10px 20px rgba(255, 122, 0, .2);
+}
+
+.dashboard-shell .nav-tabs button.active::after {
+  opacity: .9;
+  transform: scaleX(1);
 }
 
 .dashboard-shell .nav-tabs button.active:hover,
@@ -15736,6 +15879,10 @@ svg {
 .dashboard-shell .support-refresh-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(126, 57, 0, .12);
+}
+
+.dashboard-shell .support-refresh-button.is-refreshing svg {
+  animation: topLoadWheel .65s linear infinite;
 }
 
 .dashboard-shell .support-service-bar {
