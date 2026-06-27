@@ -591,21 +591,23 @@ function App() {
   const claimDailyCheckin = useCallback((roleCode = currentPortalRole) => {
     const normalizedRole = roleCode === 'DRIVER' ? 'DRIVER' : 'USER'
     const session = normalizedRole === 'DRIVER' ? driverSession : passengerSession
+    setPortalRole(normalizedRole)
     if (!session) {
+      showPortalToast('请先登录')
       setLoginRole(normalizedRole)
-      return
+      return false
     }
 
     const benefit = getDailyCheckinBenefit(normalizedRole, checkinState)
-    setPortalRole(normalizedRole)
     if (benefit.signedToday) {
       showPortalToast(benefit.status === 'used' ? dailyCheckinConfig[normalizedRole].usedText : '今日已签到，权益等待首单使用')
-      return
+      return false
     }
 
     const rewardAmount = drawDailyCheckinRewardAmount()
     setCheckinState((state) => claimDailyCheckinState(state, normalizedRole, rewardAmount))
     showPortalToast(`签到成功，已领取 ${formatMoney(rewardAmount)} ${dailyCheckinConfig[normalizedRole].title}`)
+    return true
   }, [checkinState, currentPortalRole, driverSession, passengerSession, setCheckinState, setPortalRole, showPortalToast])
 
   return (
@@ -797,7 +799,6 @@ function PortalPage({
               roleCode={currentRoleCode}
               benefit={checkinBenefit}
               onCheckIn={onCheckIn}
-              onLogin={onLogin}
               compact
             />
             <div className="fleet-feed glass-panel interactive-border">
@@ -871,7 +872,7 @@ function PortalAccountChip({ account, onEnter }) {
   )
 }
 
-function DailyCheckInCard({ account, roleCode = 'USER', benefit, onCheckIn, onLogin, compact = false }) {
+function DailyCheckInCard({ account, roleCode = 'USER', benefit, onCheckIn, compact = false }) {
   const config = dailyCheckinConfig[roleCode] || dailyCheckinConfig.USER
   const isLoggedIn = Boolean(account)
   const signedToday = Boolean(benefit?.signedToday)
@@ -897,12 +898,13 @@ function DailyCheckInCard({ account, roleCode = 'USER', benefit, onCheckIn, onLo
     isCelebrating ? 'is-celebrating' : ''
   ].filter(Boolean).join(' ')
   const triggerCheckIn = () => {
-    if (isLoggedIn && !signedToday) {
+    const didClaim = onCheckIn(roleCode)
+    if (didClaim) {
       window.clearTimeout(celebrationTimer.current)
       setIsCelebrating(true)
-      celebrationTimer.current = window.setTimeout(() => setIsCelebrating(false), 760)
+      celebrationTimer.current = window.setTimeout(() => setIsCelebrating(false), 940)
     }
-    return isLoggedIn ? onCheckIn(roleCode) : onLogin(roleCode)
+    return didClaim
   }
   const handleVisualPointerMove = (event) => {
     const target = event.currentTarget
