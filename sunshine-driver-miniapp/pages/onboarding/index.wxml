@@ -72,8 +72,8 @@
         <view class="forgot tap-scale" bindtap="handleForgotPassword">忘记密码？</view>
       </view>
 
-      <button class="driver-login-button" hover-class="button-hover" bindtap="submitLogin">
-        {{mode === 'register' ? '注册并登录' : '登录司机端'}}
+      <button class="driver-login-button" hover-class="button-hover" bindtap="submitLogin" loading="{{loginSubmitting}}" disabled="{{loginSubmitting}}">
+        {{loginSubmitting ? (mode === 'register' ? '注册中...' : '登录中...') : (mode === 'register' ? '注册并登录' : '登录司机端')}}
       </button>
 
       <view class="login-note">
@@ -245,8 +245,8 @@
 
     <view class="floating-actions floating-actions-reference">
       <button class="vehicle-secondary-button" hover-class="button-hover" bindtap="goDashboard">返回接单大厅</button>
-      <button class="vehicle-primary-button" hover-class="button-hover" bindtap="submitVehicle">
-        {{vehicleView.hasVehicle ? '确认更换车辆' : '添加车辆'}}
+      <button class="vehicle-primary-button" hover-class="button-hover" bindtap="submitVehicle" loading="{{vehicleSubmitting}}" disabled="{{vehicleSubmitting || uploadingKey}}">
+        {{vehicleSubmitting ? '提交中...' : (vehicleView.hasVehicle ? '确认更换车辆' : '添加车辆')}}
       </button>
     </view>
   </view>

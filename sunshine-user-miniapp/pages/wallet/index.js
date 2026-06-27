@@ -140,12 +140,14 @@ Page({
     summary: EMPTY_SUMMARY,
     records: [],
     hasRecords: false,
-    balanceVisible: true
+    balanceVisible: true,
+    loading: false,
+    errorText: ''
   },
 
   async onShow() {
     this.renderCachedWallet()
-    await this.refreshWallet()
+    await this.refreshWallet().catch(() => {})
   },
 
   renderCachedWallet() {
@@ -158,14 +160,34 @@ Page({
 
   async refreshWallet() {
     return runExclusive(this, '__refreshWalletPromise', async () => {
-      const [profileResponse, ordersResponse] = await Promise.all([
-        fetchProfile(),
-        fetchOrders()
-      ])
-      const app = getApp()
-      app.applyProfile(profileResponse.data || {})
-      syncOrdersToCache(ordersResponse.data || [])
-      this.renderCachedWallet()
+      this.setData({
+        loading: !this.data.hasRecords,
+        errorText: ''
+      })
+      try {
+        const [profileResponse, ordersResponse] = await Promise.all([
+          fetchProfile(),
+          fetchOrders()
+        ])
+        const app = getApp()
+        app.applyProfile(profileResponse.data || {})
+        syncOrdersToCache(ordersResponse.data || [])
+        this.renderCachedWallet()
+        this.setData({
+          loading: false,
+          errorText: ''
+        })
+      } catch (error) {
+        this.setData({
+          loading: false,
+          errorText: (error && error.message) || '钱包数据加载失败，请稍后重试'
+        })
+        wx.showToast({
+          title: '钱包数据加载失败，请稍后重试',
+          icon: 'none'
+        })
+        throw error
+      }
     })
   },
 
@@ -181,5 +203,9 @@ Page({
     this.setData({
       balanceVisible: !this.data.balanceVisible
     })
+  },
+
+  retryRefresh() {
+    this.refreshWallet().catch(() => {})
   }
 })

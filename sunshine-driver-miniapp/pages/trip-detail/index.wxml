@@ -1,4 +1,20 @@
-<view class="page-shell trip-detail-shell safe-bottom" wx:if="{{trip}}">
+<view class="page-shell trip-detail-shell safe-bottom">
+  <view class="page-content trip-detail-page page-enter" wx:if="{{loading && !trip}}">
+    <view class="trip-state-card">
+      <view class="trip-state-title">行程加载中...</view>
+      <view class="trip-state-desc">正在同步行程详情和实时轨迹</view>
+    </view>
+  </view>
+
+  <view class="page-content trip-detail-page page-enter" wx:elif="{{loadError && !trip}}">
+    <view class="trip-state-card trip-state-card--error">
+      <view class="trip-state-title">行程加载失败</view>
+      <view class="trip-state-desc">{{loadError}}</view>
+      <button class="primary-button trip-state-button" hover-class="button-hover" bindtap="retryLoadTrip">重新加载</button>
+    </view>
+  </view>
+
+  <block wx:elif="{{trip}}">
   <view wx:if="{{noticePopup.visible}}" class="mini-popup mini-popup--{{noticePopup.type}}">
     <view class="mini-popup__title">{{noticePopup.title}}</view>
     <view class="mini-popup__content">{{noticePopup.content}}</view>
@@ -200,8 +216,9 @@
   </view>
 
   <view class="floating-bar trip-floating-bar">
-    <button class="primary-button trip-action-button" hover-class="button-hover" bindtap="updateStatus" disabled="{{trip.orderStatus === 'FINISHED' || trip.orderStatus === 'CANCELLED'}}">
-      {{actionText}}
+    <button class="primary-button trip-action-button" hover-class="button-hover" bindtap="updateStatus" loading="{{updatingStatus}}" disabled="{{updatingStatus || trip.orderStatus === 'FINISHED' || trip.orderStatus === 'CANCELLED'}}">
+      {{updatingStatus ? '处理中...' : actionText}}
     </button>
   </view>
+  </block>
 </view>

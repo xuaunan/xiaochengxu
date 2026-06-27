@@ -74,6 +74,11 @@ Page({
       setTimeout(() => {
         redirectToSilky(this, { url: '/pages/carpool-trips/index' })
       }, 320)
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '发布失败，请稍后重试',
+        icon: 'none'
+      })
     } finally {
       this.setData({ submitting: false })
     }

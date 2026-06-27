@@ -51,6 +51,18 @@ public class AdminSupportController {
         return ApiResponse.success("回复已发送", supportService.sendAdminMessage(conversationId, request.getContent()));
     }
 
+    @Operation(summary = "AI建议回复")
+    @PostMapping("/conversations/{conversationId}/ai-suggest")
+    public ApiResponse<?> aiSuggest(@PathVariable Long conversationId) {
+        return ApiResponse.success(supportService.adminAiSuggest(conversationId));
+    }
+
+    @Operation(summary = "AI引用数据预览")
+    @GetMapping("/conversations/{conversationId}/ai-context")
+    public ApiResponse<?> aiContext(@PathVariable Long conversationId) {
+        return ApiResponse.success(supportService.adminAiContext(conversationId));
+    }
+
     @Operation(summary = "更新客服会话状态")
     @PostMapping("/conversations/{conversationId}/status")
     public ApiResponse<?> updateStatus(@PathVariable Long conversationId, @RequestBody Map<String, String> request) {

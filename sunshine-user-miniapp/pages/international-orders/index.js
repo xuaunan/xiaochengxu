@@ -12,12 +12,14 @@ function buildInternationalList(orders = []) {
 
 Page({
   data: {
-    list: []
+    list: [],
+    loading: false,
+    errorText: ''
   },
 
   async onShow() {
     this.renderCachedList()
-    await this.refreshList()
+    await this.refreshList().catch(() => {})
   },
 
   renderCachedList() {
@@ -28,13 +30,37 @@ Page({
 
   async refreshList() {
     return runExclusive(this, '__refreshInternationalPromise', async () => {
-      const response = await fetchOrders()
-      syncOrdersToCache(response.data || [])
-      this.renderCachedList()
+      this.setData({
+        loading: !this.data.list.length,
+        errorText: ''
+      })
+      try {
+        const response = await fetchOrders()
+        syncOrdersToCache(response.data || [])
+        this.renderCachedList()
+        this.setData({
+          loading: false,
+          errorText: ''
+        })
+      } catch (error) {
+        this.setData({
+          loading: false,
+          errorText: (error && error.message) || '国际行程加载失败，请稍后重试'
+        })
+        wx.showToast({
+          title: '国际行程加载失败，请稍后重试',
+          icon: 'none'
+        })
+        throw error
+      }
     })
   },
 
   goInternational() {
     navigateToSilky(this, { url: '/pages/international/index' })
+  },
+
+  retryRefresh() {
+    this.refreshList().catch(() => {})
   }
 })

@@ -105,6 +105,17 @@
       </view>
     </view>
 
+    <view class="driver-state-card" wx:elif="{{loading}}">
+      <view class="driver-state-title">行程订单加载中...</view>
+      <view class="driver-state-desc">正在同步接单记录</view>
+    </view>
+
+    <view class="driver-state-card driver-state-card--error" wx:elif="{{errorText}}">
+      <view class="driver-state-title">行程订单加载失败</view>
+      <view class="driver-state-desc">{{errorText}}</view>
+      <button class="primary-button driver-state-button" hover-class="button-hover" bindtap="retryRefresh">重新加载</button>
+    </view>
+
     <view class="driver-empty-card" wx:else>
       <view class="driver-empty-icon"></view>
       <view class="driver-empty-title">暂无行程订单</view>

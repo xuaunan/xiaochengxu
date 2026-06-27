@@ -9,6 +9,7 @@ import MemberView from '../views/MemberView.vue'
 import SupportView from '../views/SupportView.vue'
 import InternationalView from '../views/InternationalView.vue'
 import SystemView from '../views/SystemView.vue'
+import AiSettingsView from '../views/AiSettingsView.vue'
 
 const routes = [
   {
@@ -85,6 +86,14 @@ const routes = [
     meta: {
       title: '国际出行',
       group: '运营管理'
+    }
+  },
+  {
+    path: '/ai-settings',
+    component: AiSettingsView,
+    meta: {
+      title: 'AI客服设置',
+      group: '系统管理'
     }
   },
   {

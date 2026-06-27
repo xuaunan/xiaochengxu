@@ -41,6 +41,15 @@
         <view class="intl-service-text">{{item.internationalMeta.serviceItemsText}}</view>
       </view>
     </block>
+    <view class="panel-card intl-state-panel" wx:elif="{{loading}}">
+      <view class="intl-state-title">国际行程加载中...</view>
+      <view class="intl-state-desc">正在同步预约和服务进度</view>
+    </view>
+    <view class="panel-card intl-state-panel" wx:elif="{{errorText}}">
+      <view class="intl-state-title">国际行程加载失败</view>
+      <view class="intl-state-desc">{{errorText}}</view>
+      <button class="primary-button intl-state-button" hover-class="button-hover" bindtap="retryRefresh">重新加载</button>
+    </view>
     <view class="panel-card empty-panel" wx:else>
       <sun-empty title="还没有国际出行订单" description="先选择国际线路，预约成功后会显示在这里。"></sun-empty>
       <button class="primary-button" hover-class="button-hover" bindtap="goInternational">去下国际出行订单</button>

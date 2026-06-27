@@ -601,6 +601,11 @@ page {
   border: none;
 }
 
+.login-button[disabled] {
+  opacity: 0.58;
+  box-shadow: none;
+}
+
 .demo-card {
   min-height: 104rpx;
   margin-top: 20rpx;

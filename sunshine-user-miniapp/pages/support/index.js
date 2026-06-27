@@ -22,13 +22,16 @@ Page({
     messages: [],
     scrollIntoView: '',
     inputText: '',
-    sending: false
+    quickQuestions: ['订单问题', '支付退款', '发票优惠券', '投诉建议', '联系人工'],
+    sending: false,
+    loading: false,
+    loadError: ''
   },
 
   supportTimer: null,
 
   async onShow() {
-    await this.refreshSupport()
+    await this.refreshSupport().catch(() => {})
     this.startPolling()
   },
 
@@ -56,19 +59,40 @@ Page({
 
   async refreshSupport(options = {}) {
     return runExclusive(this, '__refreshSupportPromise', async () => {
-      const [conversationResponse, messageResponse] = await Promise.all([
-        fetchSupportConversation(),
-        fetchSupportMessages()
-      ])
-      const messages = normalizeMessageList(messageResponse.data).map(decorateMessage)
-      const previousLast = this.data.messages[this.data.messages.length - 1] || {}
-      const nextLast = messages[messages.length - 1] || {}
-      const shouldScroll = !options.fromPolling || previousLast.id !== nextLast.id || previousLast.createdAt !== nextLast.createdAt
-      this.setData({
-        conversation: conversationResponse.data || {},
-        messages,
-        scrollIntoView: shouldScroll && nextLast.anchorId ? nextLast.anchorId : this.data.scrollIntoView
-      })
+      if (!options.fromPolling && !this.data.messages.length) {
+        this.setData({ loading: true, loadError: '' })
+      }
+      try {
+        const [conversationResponse, messageResponse] = await Promise.all([
+          fetchSupportConversation(),
+          fetchSupportMessages()
+        ])
+        const messages = normalizeMessageList(messageResponse.data).map(decorateMessage)
+        const previousLast = this.data.messages[this.data.messages.length - 1] || {}
+        const nextLast = messages[messages.length - 1] || {}
+        const shouldScroll = !options.fromPolling || previousLast.id !== nextLast.id || previousLast.createdAt !== nextLast.createdAt
+        this.setData({
+          conversation: conversationResponse.data || {},
+          messages,
+          loadError: '',
+          scrollIntoView: shouldScroll && nextLast.anchorId ? nextLast.anchorId : this.data.scrollIntoView
+        })
+      } catch (error) {
+        if (!options.fromPolling) {
+          this.setData({
+            loadError: (error && error.message) || '客服消息加载失败，请稍后重试'
+          })
+          wx.showToast({
+            title: '客服消息加载失败，请稍后重试',
+            icon: 'none'
+          })
+        }
+        throw error
+      } finally {
+        if (!options.fromPolling) {
+          this.setData({ loading: false })
+        }
+      }
     })
   },
 
@@ -76,6 +100,13 @@ Page({
     this.setData({
       inputText: e.detail.value
     })
+  },
+
+  handleQuickQuestion(e) {
+    const content = `${e.currentTarget.dataset.content || ''}`.trim()
+    if (!content || this.data.sending) return
+    this.setData({ inputText: content })
+    this.sendMessage()
   },
 
   async sendMessage() {
@@ -86,6 +117,11 @@ Page({
       await sendSupportMessage(content)
       this.setData({ inputText: '' })
       await this.refreshSupport()
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '发送失败，请稍后重试',
+        icon: 'none'
+      })
     } finally {
       this.setData({ sending: false })
     }

@@ -25,6 +25,21 @@
     </view>
   </view>
 
+  <view class="page-content page-enter" wx:elif="{{loading}}">
+    <view class="reviews-state">
+      <view class="reviews-state__title">评价加载中...</view>
+      <view class="reviews-state__desc">正在同步历史服务反馈</view>
+    </view>
+  </view>
+
+  <view class="page-content page-enter" wx:elif="{{errorText}}">
+    <view class="reviews-state reviews-state--error">
+      <view class="reviews-state__title">评价加载失败</view>
+      <view class="reviews-state__desc">{{errorText}}</view>
+      <button class="reviews-state__button" hover-class="button-hover" bindtap="retryRefresh">重新加载</button>
+    </view>
+  </view>
+
   <view class="page-content page-enter" wx:else>
     <view class="reviews-empty">
       <sun-empty title="暂时还没有评价" description="完成订单并支付后，就可以在这里查看你的历史评价。" buttonText="去订单中心" bindaction="jumpToOrders"></sun-empty>

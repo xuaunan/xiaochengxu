@@ -55,14 +55,15 @@ let healthTimer
 
 const navItems = [
   { path: '/dashboard', label: '数据大盘', desc: '实时运营洞察' },
-  { path: '/messages', label: '消息列表', desc: '投诉、审核、提现', badge: true },
   { path: '/users', label: '用户管理', desc: '用户、实名、密码' },
   { path: '/drivers', label: '司机管理', desc: '审核、启禁、接单' },
   { path: '/orders', label: '订单管理', desc: '详情、退款、投诉' },
-  { path: '/support', label: '客服服务', desc: '乘客/司机在线对话' },
-  { path: '/international', label: '国际出行', desc: '跨境订单、汇率、材料' },
-  { path: '/coupons', label: '营销中心', desc: '优惠券全生命周期' },
   { path: '/members', label: '会员管理', desc: '乘客会员与周券' },
+  { path: '/international', label: '国际出行', desc: '跨境订单、汇率、材料' },
+  { path: '/support', label: '客服服务', desc: '乘客/司机在线对话' },
+  { path: '/messages', label: '消息列表', desc: '投诉、审核、提现、客服', badge: true },
+  { path: '/coupons', label: '营销中心', desc: '优惠券全生命周期' },
+  { path: '/ai-settings', label: 'AI客服设置', desc: '模型、密钥、调试参数' },
   { path: '/system', label: '系统配置', desc: '公告、版本、参数' }
 ]
 

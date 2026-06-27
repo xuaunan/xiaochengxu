@@ -750,6 +750,11 @@ page {
   border: none;
 }
 
+.claim-button[disabled] {
+  opacity: 0.62;
+  box-shadow: none;
+}
+
 .button-hover {
   transform: translateY(2rpx) scale(0.99);
   opacity: 0.96;

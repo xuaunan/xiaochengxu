@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS t_system_config (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     config_key VARCHAR(64) NOT NULL COMMENT '配置键',
     config_name VARCHAR(100) NOT NULL COMMENT '配置名称',
-    config_value VARCHAR(255) NOT NULL COMMENT '配置值',
+    config_value TEXT NOT NULL COMMENT '配置值',
     config_type VARCHAR(30) NOT NULL COMMENT '配置类型',
     config_group VARCHAR(50) DEFAULT NULL COMMENT '配置分组',
     remark VARCHAR(255) DEFAULT NULL COMMENT '备注',

@@ -56,8 +56,10 @@
               hover-class="button-hover"
               data-id="{{item.id}}"
               bindtap="applyInvoice"
+              loading="{{applyingInvoiceId === '' + item.id}}"
+              disabled="{{!item.canApply || applyingInvoiceId === '' + item.id}}"
             >
-              <text>{{item.status}}</text>
+              <text>{{applyingInvoiceId === '' + item.id ? '申请中...' : item.status}}</text>
               <text class="invoice-button__arrow">›</text>
             </button>
           </view>

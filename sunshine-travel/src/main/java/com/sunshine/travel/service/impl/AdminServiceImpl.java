@@ -44,6 +44,8 @@ import com.sunshine.travel.entity.RideOrder;
 import com.sunshine.travel.entity.SystemConfig;
 import com.sunshine.travel.entity.SystemNotice;
 import com.sunshine.travel.entity.SystemVersion;
+import com.sunshine.travel.entity.SupportConversation;
+import com.sunshine.travel.entity.SupportMessage;
 import com.sunshine.travel.entity.TravelTrace;
 import com.sunshine.travel.entity.UserCoupon;
 import com.sunshine.travel.entity.Vehicle;
@@ -60,6 +62,8 @@ import com.sunshine.travel.mapper.RideOrderMapper;
 import com.sunshine.travel.mapper.SystemConfigMapper;
 import com.sunshine.travel.mapper.SystemNoticeMapper;
 import com.sunshine.travel.mapper.SystemVersionMapper;
+import com.sunshine.travel.mapper.SupportConversationMapper;
+import com.sunshine.travel.mapper.SupportMessageMapper;
 import com.sunshine.travel.mapper.TravelTraceMapper;
 import com.sunshine.travel.mapper.UserCouponMapper;
 import com.sunshine.travel.mapper.VehicleMapper;
@@ -84,6 +88,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -115,6 +120,8 @@ public class AdminServiceImpl implements AdminService {
     private final SystemConfigMapper systemConfigMapper;
     private final SystemNoticeMapper systemNoticeMapper;
     private final SystemVersionMapper systemVersionMapper;
+    private final SupportConversationMapper supportConversationMapper;
+    private final SupportMessageMapper supportMessageMapper;
     private final OperationLogSupport operationLogSupport;
     private final MessagePushSupport messagePushSupport;
     private final CouponService couponService;
@@ -136,6 +143,8 @@ public class AdminServiceImpl implements AdminService {
                             SystemConfigMapper systemConfigMapper,
                             SystemNoticeMapper systemNoticeMapper,
                             SystemVersionMapper systemVersionMapper,
+                            SupportConversationMapper supportConversationMapper,
+                            SupportMessageMapper supportMessageMapper,
                             OperationLogSupport operationLogSupport,
                             MessagePushSupport messagePushSupport,
                             CouponService couponService,
@@ -156,6 +165,8 @@ public class AdminServiceImpl implements AdminService {
         this.systemConfigMapper = systemConfigMapper;
         this.systemNoticeMapper = systemNoticeMapper;
         this.systemVersionMapper = systemVersionMapper;
+        this.supportConversationMapper = supportConversationMapper;
+        this.supportMessageMapper = supportMessageMapper;
         this.operationLogSupport = operationLogSupport;
         this.messagePushSupport = messagePushSupport;
         this.couponService = couponService;
@@ -376,6 +387,31 @@ public class AdminServiceImpl implements AdminService {
                     row.put("invoiceTitle", InvoiceMetaUtil.firstText(invoiceMeta, "buyerName", "title"));
                     row.put("taxNo", InvoiceMetaUtil.firstText(invoiceMeta, "buyerTaxNo", "taxNo"));
                     row.put("buyerPhone", InvoiceMetaUtil.text(invoiceMeta, "buyerPhone"));
+                    rows.add(row);
+                });
+
+        supportConversationMapper.selectList(new LambdaQueryWrapper<SupportConversation>()
+                        .eq(SupportConversation::getStatus, "OPEN")
+                        .orderByDesc(SupportConversation::getLastMessageAt)
+                        .orderByDesc(SupportConversation::getUpdatedAt))
+                .stream()
+                .filter(this::needsHumanSupport)
+                .limit(10)
+                .forEach(item -> {
+                    Map<String, Object> row = adminMessage(
+                            "support-" + item.getId(),
+                            "SUPPORT",
+                            "客服待人工接入",
+                            buildSupportMessage(item),
+                            "HIGH",
+                            86,
+                            "/support",
+                            "去客服接待",
+                            item.getLastMessageAt() == null ? item.getUpdatedAt() : item.getLastMessageAt()
+                    );
+                    row.put("conversationId", item.getId());
+                    row.put("userId", item.getUserId());
+                    row.put("userRole", item.getUserRole());
                     rows.add(row);
                 });
 
@@ -967,6 +1003,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<Map<String, Object>> systemConfigs() {
         return systemConfigMapper.selectList(new LambdaQueryWrapper<SystemConfig>()
+                        .ne(SystemConfig::getConfigGroup, AiSupportServiceImpl.CONFIG_GROUP)
                         .orderByAsc(SystemConfig::getConfigGroup)
                         .orderByAsc(SystemConfig::getId))
                 .stream()
@@ -1683,6 +1720,61 @@ public class AdminServiceImpl implements AdminService {
         String type = StringUtils.hasText(item.getComplaintType()) ? item.getComplaintType() : "未分类投诉";
         String content = StringUtils.hasText(item.getContent()) ? truncateText(item.getContent(), 46) : "用户提交了投诉，需要后台核实处理";
         return "订单ID " + item.getOrderId() + "，" + type + "：" + content;
+    }
+
+    private boolean needsHumanSupport(SupportConversation conversation) {
+        if (conversation == null || conversation.getId() == null) {
+            return false;
+        }
+        if (safeInteger(conversation.getUnreadForAdmin()) > 0 && hasHumanSupportIntent(conversation.getLastMessage())) {
+            return true;
+        }
+        return latestUserSupportMessages(conversation.getId()).stream()
+                .anyMatch(message -> hasHumanSupportIntent(message.getContent()));
+    }
+
+    private List<SupportMessage> latestUserSupportMessages(Long conversationId) {
+        if (conversationId == null) {
+            return List.of();
+        }
+        return supportMessageMapper.selectList(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .ne(SupportMessage::getSenderRole, RoleCode.ADMIN)
+                .ne(SupportMessage::getSenderRole, "AI")
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 8"));
+    }
+
+    private boolean hasHumanSupportIntent(String content) {
+        if (!StringUtils.hasText(content)) {
+            return false;
+        }
+        String normalized = content.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("联系人工")
+                || normalized.contains("人工客服")
+                || normalized.contains("转人工")
+                || normalized.contains("找人工")
+                || normalized.contains("没解决")
+                || normalized.contains("未解决")
+                || normalized.contains("没有解决")
+                || normalized.contains("不满意")
+                || normalized.contains("还没好")
+                || normalized.contains("仍然不行")
+                || normalized.contains("还是不行")
+                || normalized.contains("解决不了");
+    }
+
+    private String buildSupportMessage(SupportConversation conversation) {
+        PlatformUser user = platformUserMapper.selectById(conversation.getUserId());
+        String role = RoleCode.DRIVER.equals(conversation.getUserRole()) ? "司机" : "乘客";
+        String name = user == null || !StringUtils.hasText(user.getNickname()) ? "未命名用户" : user.getNickname();
+        String phone = user == null || !StringUtils.hasText(user.getPhone()) ? "未留手机号" : user.getPhone();
+        String latestUserMessage = latestUserSupportMessages(conversation.getId()).stream()
+                .findFirst()
+                .map(SupportMessage::getContent)
+                .filter(StringUtils::hasText)
+                .orElse(conversation.getLastMessage());
+        return role + " " + name + "（" + phone + "）请求人工跟进：" + truncateText(latestUserMessage, 52);
     }
 
     private String buildDriverAuditMessage(DriverProfile profile) {

@@ -1249,6 +1249,12 @@
   border: none;
 }
 
+.driver-login-button[disabled],
+.vehicle-primary-button[disabled] {
+  opacity: 0.58;
+  box-shadow: none;
+}
+
 .pressable-hover,
 .tap-scale:active,
 .button-hover {

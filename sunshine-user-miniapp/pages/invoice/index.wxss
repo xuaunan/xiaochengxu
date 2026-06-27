@@ -382,7 +382,8 @@
   line-height: 1;
 }
 
-.invoice-button--disabled {
+.invoice-button--disabled,
+.invoice-button[disabled] {
   color: #8b94a7;
   border-color: rgba(31, 36, 50, 0.08);
   background: #f5f6f9;

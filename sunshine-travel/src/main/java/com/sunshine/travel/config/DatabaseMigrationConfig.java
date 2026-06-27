@@ -23,6 +23,7 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         ensurePlatformUserMemberColumns();
         ensureSupportTables();
+        ensureSystemConfigValueText();
         ensureSystemNoticeDisplayTimeRange();
         ensureMessageReadColumns();
     }
@@ -106,6 +107,15 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to migrate t_system_notice display_time_range", ex);
+        }
+    }
+
+    private void ensureSystemConfigValueText() {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("ALTER TABLE t_system_config MODIFY COLUMN config_value TEXT NOT NULL COMMENT 'config value'");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to migrate t_system_config config_value", ex);
         }
     }
 

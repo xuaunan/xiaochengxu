@@ -12,6 +12,7 @@ Page({
     tripId: '',
     detail: null,
     loading: false,
+    loadError: '',
     submitting: false
   },
 
@@ -21,12 +22,26 @@ Page({
   },
 
   async loadDetail() {
-    if (!this.data.tripId) return
-    this.setData({ loading: true })
+    if (!this.data.tripId) {
+      this.setData({
+        loading: false,
+        loadError: '行程信息缺失，请返回后重试'
+      })
+      return
+    }
+    this.setData({ loading: true, loadError: '' })
     try {
       const response = await fetchCarpoolDetail(this.data.tripId)
       this.setData({
         detail: formatCarpoolDetail(response.data || {})
+      })
+    } catch (error) {
+      this.setData({
+        loadError: (error && error.message) || '行程加载失败，请稍后重试'
+      })
+      wx.showToast({
+        title: '行程加载失败，请稍后重试',
+        icon: 'none'
       })
     } finally {
       this.setData({ loading: false })
@@ -39,6 +54,11 @@ Page({
     try {
       await task()
       await this.loadDetail()
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '操作失败，请稍后重试',
+        icon: 'none'
+      })
     } finally {
       this.setData({ submitting: false })
     }

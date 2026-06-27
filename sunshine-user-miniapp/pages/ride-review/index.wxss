@@ -51,4 +51,46 @@
   color: #1f2432;
 }
 
+.review-state-card {
+  min-height: 260rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36rpx 28rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(31, 36, 50, 0.06);
+  box-shadow: 0 8rpx 22rpx rgba(24, 34, 56, 0.04);
+  text-align: center;
+}
+
+.review-state-title {
+  color: #111827;
+  font-size: 26rpx;
+  font-weight: 550;
+}
+
+.review-state-desc {
+  margin-top: 10rpx;
+  color: #7a8396;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.review-state-button {
+  min-width: 200rpx;
+  height: 58rpx;
+  min-height: 58rpx;
+  margin-top: 22rpx;
+  padding: 0 28rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+}
+
+.floating-bar .primary-button[disabled] {
+  opacity: 0.58;
+  box-shadow: none;
+}
+
 

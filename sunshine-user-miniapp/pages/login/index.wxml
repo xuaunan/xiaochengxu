@@ -85,7 +85,7 @@
       <view class="forgot tap-scale" bindtap="handleForgotPassword">忘记密码?</view>
     </view>
 
-    <button class="login-button" hover-class="button-hover" bindtap="submit" loading="{{loading}}">
+    <button class="login-button" hover-class="button-hover" bindtap="submit" loading="{{loading}}" disabled="{{loading}}">
       {{mode === 'login' ? '登录并进入首页' : '注册并自动登录'}}
     </button>
   </view>

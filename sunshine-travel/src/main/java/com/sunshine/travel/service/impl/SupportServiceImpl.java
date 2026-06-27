@@ -13,7 +13,9 @@ import com.sunshine.travel.entity.SupportMessage;
 import com.sunshine.travel.mapper.PlatformUserMapper;
 import com.sunshine.travel.mapper.SupportConversationMapper;
 import com.sunshine.travel.mapper.SupportMessageMapper;
+import com.sunshine.travel.service.AiSupportService;
 import com.sunshine.travel.service.SupportService;
+import com.sunshine.travel.service.support.AiSupportContextService;
 import com.sunshine.travel.service.support.OperationLogSupport;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -30,19 +32,26 @@ public class SupportServiceImpl implements SupportService {
     private static final String STATUS_OPEN = "OPEN";
     private static final String STATUS_CLOSED = "CLOSED";
     private static final String MEMBER_STATUS_ACTIVE = "ACTIVE";
+    private static final String ROLE_AI = "AI";
 
     private final SupportConversationMapper supportConversationMapper;
     private final SupportMessageMapper supportMessageMapper;
     private final PlatformUserMapper platformUserMapper;
+    private final AiSupportService aiSupportService;
+    private final AiSupportContextService aiSupportContextService;
     private final OperationLogSupport operationLogSupport;
 
     public SupportServiceImpl(SupportConversationMapper supportConversationMapper,
                               SupportMessageMapper supportMessageMapper,
                               PlatformUserMapper platformUserMapper,
+                              AiSupportService aiSupportService,
+                              AiSupportContextService aiSupportContextService,
                               OperationLogSupport operationLogSupport) {
         this.supportConversationMapper = supportConversationMapper;
         this.supportMessageMapper = supportMessageMapper;
         this.platformUserMapper = platformUserMapper;
+        this.aiSupportService = aiSupportService;
+        this.aiSupportContextService = aiSupportContextService;
         this.operationLogSupport = operationLogSupport;
     }
 
@@ -73,6 +82,7 @@ public class SupportServiceImpl implements SupportService {
         conversation.setUnreadForAdmin(safeInt(conversation.getUnreadForAdmin()) + 1);
         conversation.setUnreadForUser(0);
         supportConversationMapper.updateById(conversation);
+        insertAiReplyIfAvailable(conversation, content);
         return mapMessage(message);
     }
 
@@ -120,6 +130,31 @@ public class SupportServiceImpl implements SupportService {
         supportConversationMapper.updateById(conversation);
         operationLogSupport.log("SUPPORT", "REPLY", "SUPPORT_CONVERSATION", conversationId, "客服回复会话");
         return mapMessage(message);
+    }
+
+    @Override
+    public Map<String, Object> adminAiSuggest(Long conversationId) {
+        SupportConversation conversation = requireConversation(conversationId);
+        List<Map<String, Object>> rows = listMessageRows(conversationId);
+        Map<String, Object> context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole());
+        String prompt = rows.stream()
+                .filter(item -> !Boolean.TRUE.equals(item.get("fromAdmin")) && !Boolean.TRUE.equals(item.get("fromAi")))
+                .reduce((first, second) -> second)
+                .map(item -> String.valueOf(item.getOrDefault("content", "")))
+                .orElse(conversation.getLastMessage());
+        String reply = aiSupportService.generateSupportReply(prompt, conversation.getUserRole(), rows, String.valueOf(context.getOrDefault("contextText", "")))
+                .orElse("");
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("reply", reply);
+        map.put("conversationId", conversationId);
+        map.put("aiContext", context);
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> adminAiContext(Long conversationId) {
+        SupportConversation conversation = requireConversation(conversationId);
+        return aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole());
     }
 
     @Override
@@ -184,6 +219,21 @@ public class SupportServiceImpl implements SupportService {
         return message;
     }
 
+    private void insertAiReplyIfAvailable(SupportConversation conversation, String userContent) {
+        List<Map<String, Object>> recentMessages = listMessageRows(conversation.getId());
+        Map<String, Object> context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole());
+        aiSupportService.generateSupportReply(userContent, conversation.getUserRole(), recentMessages, String.valueOf(context.getOrDefault("contextText", "")))
+                .filter(StringUtils::hasText)
+                .map(reply -> insertMessage(conversation.getId(), null, ROLE_AI, reply))
+                .ifPresent(replyMessage -> {
+                    conversation.setStatus(STATUS_OPEN);
+                    conversation.setLastMessage(replyMessage.getContent());
+                    conversation.setLastMessageAt(replyMessage.getCreatedAt());
+                    conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+                    supportConversationMapper.updateById(conversation);
+                });
+    }
+
     private SupportConversation requireConversation(Long conversationId) {
         SupportConversation conversation = supportConversationMapper.selectById(conversationId);
         if (conversation == null) {
@@ -227,6 +277,7 @@ public class SupportServiceImpl implements SupportService {
         map.put("senderId", message.getSenderId());
         map.put("senderRole", message.getSenderRole());
         map.put("fromAdmin", RoleCode.ADMIN.equals(message.getSenderRole()));
+        map.put("fromAi", ROLE_AI.equals(message.getSenderRole()));
         map.put("content", message.getContent());
         map.put("createdAt", message.getCreatedAt());
         return map;

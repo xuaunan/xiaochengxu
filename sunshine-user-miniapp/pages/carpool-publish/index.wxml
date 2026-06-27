@@ -72,6 +72,8 @@
     </view>
   </view>
   <view class="floating-bar publish-floating-bar">
-    <button class="primary-button publish-submit-button" hover-class="button-hover" bindtap="submitTrip">确认发布</button>
+    <button class="primary-button publish-submit-button" hover-class="button-hover" bindtap="submitTrip" loading="{{submitting}}" disabled="{{submitting}}">
+      {{submitting ? '发布中...' : '确认发布'}}
+    </button>
   </view>
 </view>

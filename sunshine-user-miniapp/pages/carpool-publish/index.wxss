@@ -300,3 +300,8 @@
   box-shadow: 0 12rpx 26rpx rgba(255, 107, 0, 0.18);
   box-sizing: border-box;
 }
+
+.publish-submit-button[disabled] {
+  opacity: 0.58;
+  box-shadow: none;
+}

@@ -1,27 +1,42 @@
 <view class="page-shell ride-review-shell safe-bottom">
   <view class="page-content list-gap page-enter">
-    <view class="hero-card review-card">
-      <view class="section-title">本次行程服务如何？</view>
-      <view class="section-subtitle">你的评价会影响司机服务分与派单优先级</view>
-      <view class="star-row">
-        <text class="star {{score >= item ? 'star--active' : ''}}" wx:for="{{scoreOptions}}" wx:key="*this" data-score="{{item}}" bindtap="chooseScore">★</text>
-      </view>
+    <view wx:if="{{loading}}" class="review-state-card">
+      <view class="review-state-title">订单加载中...</view>
+      <view class="review-state-desc">正在同步本次行程信息</view>
     </view>
 
-    <view class="panel-card">
-      <view class="section-title">评价标签</view>
-      <view class="chip-row review-tags">
-        <view class="chip {{item.active ? 'chip-active' : ''}}" wx:for="{{tags}}" wx:key="label" data-tag="{{item.label}}" bindtap="toggleTag">{{item.label}}</view>
-      </view>
-      <textarea class="review-textarea" placeholder="补充你的出行体验，帮助平台持续优化服务" maxlength="120" bindinput="updateContent"></textarea>
-      <view class="row-between review-switch">
-        <text>匿名评价</text>
-        <switch color="#ff7a00" checked="{{anonymous}}" bindchange="toggleAnonymous"></switch>
-      </view>
+    <view wx:elif="{{loadError}}" class="review-state-card review-state-card--error">
+      <view class="review-state-title">订单加载失败</view>
+      <view class="review-state-desc">{{loadError}}</view>
+      <button class="primary-button review-state-button" hover-class="button-hover" bindtap="loadOrder">重新加载</button>
     </view>
+
+    <block wx:else>
+      <view class="hero-card review-card">
+        <view class="section-title">本次行程服务如何？</view>
+        <view class="section-subtitle">你的评价会影响司机服务分与派单优先级</view>
+        <view class="star-row">
+          <text class="star {{score >= item ? 'star--active' : ''}}" wx:for="{{scoreOptions}}" wx:key="*this" data-score="{{item}}" bindtap="chooseScore">★</text>
+        </view>
+      </view>
+
+      <view class="panel-card">
+        <view class="section-title">评价标签</view>
+        <view class="chip-row review-tags">
+          <view class="chip {{item.active ? 'chip-active' : ''}}" wx:for="{{tags}}" wx:key="label" data-tag="{{item.label}}" bindtap="toggleTag">{{item.label}}</view>
+        </view>
+        <textarea class="review-textarea" placeholder="补充你的出行体验，帮助平台持续优化服务" maxlength="120" bindinput="updateContent"></textarea>
+        <view class="row-between review-switch">
+          <text>匿名评价</text>
+          <switch color="#ff7a00" checked="{{anonymous}}" bindchange="toggleAnonymous"></switch>
+        </view>
+      </view>
+    </block>
   </view>
 
-  <view class="floating-bar">
-    <button class="primary-button" hover-class="button-hover" bindtap="submitReview">提交评价</button>
+  <view class="floating-bar" wx:if="{{!loading && !loadError && order}}">
+    <button class="primary-button" hover-class="button-hover" bindtap="submitReview" loading="{{submitting}}" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交评价'}}
+    </button>
   </view>
 </view>

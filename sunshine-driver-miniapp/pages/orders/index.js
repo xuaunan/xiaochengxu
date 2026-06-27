@@ -31,26 +31,59 @@ Page({
     activeType: 'all',
     activeStatus: 'all',
     list: [],
-    allList: []
+    allList: [],
+    loading: false,
+    errorText: ''
   },
 
   async onShow() {
-    const response = await fetchOrders()
-    const list = (response.data || []).map((item) => {
-      const mapped = mapTripOrder(item)
-      const serviceTypeKey = getOrderTypeKey(mapped)
-      return {
-        ...mapped,
-        serviceTypeKey,
-        serviceIconPath: SERVICE_ICON_PATHS[serviceTypeKey] || SERVICE_ICON_PATHS.taxi
-      }
-    })
-    getApp().globalData.driverStore.tripOrders = list
-    getApp().saveStore()
+    const cachedOrders = getApp().globalData.driverStore.tripOrders || []
+    if (cachedOrders.length) {
+      this.setData({ allList: cachedOrders })
+      this.refreshList()
+    }
+    await this.refreshRemoteOrders().catch(() => {})
+  },
+
+  async refreshRemoteOrders() {
     this.setData({
-      allList: list
+      loading: !this.data.allList.length,
+      errorText: ''
     })
-    this.refreshList()
+    try {
+      const response = await fetchOrders()
+      const list = (response.data || []).map((item) => {
+        const mapped = mapTripOrder(item)
+        const serviceTypeKey = getOrderTypeKey(mapped)
+        return {
+          ...mapped,
+          serviceTypeKey,
+          serviceIconPath: SERVICE_ICON_PATHS[serviceTypeKey] || SERVICE_ICON_PATHS.taxi
+        }
+      })
+      getApp().globalData.driverStore.tripOrders = list
+      getApp().saveStore()
+      this.setData({
+        allList: list,
+        loading: false,
+        errorText: ''
+      })
+      this.refreshList()
+    } catch (error) {
+      this.setData({
+        loading: false,
+        errorText: (error && error.message) || '行程订单加载失败，请稍后重试'
+      })
+      wx.showToast({
+        title: '行程订单加载失败，请稍后重试',
+        icon: 'none'
+      })
+      throw error
+    }
+  },
+
+  retryRefresh() {
+    this.refreshRemoteOrders().catch(() => {})
   },
 
   chooseType(e) {

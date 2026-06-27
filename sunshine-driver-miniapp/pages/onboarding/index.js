@@ -108,7 +108,9 @@ Page({
       canReceiveOrders: false,
       message: '请先登录司机账号'
     },
-    uploadingKey: ''
+    uploadingKey: '',
+    loginSubmitting: false,
+    vehicleSubmitting: false
   },
 
   async onShow() {
@@ -362,6 +364,7 @@ Page({
   },
 
   async submitLogin() {
+    if (this.data.loginSubmitting) return
     const { phone, password, nickname } = this.data.loginForm
     if (!/^1\d{10}$/.test(phone)) {
       wx.showToast({ title: '请输入正确的手机号', icon: 'none' })
@@ -376,28 +379,44 @@ Page({
       return
     }
 
-    if (this.data.mode === 'register') {
-      await register({
+    this.setData({ loginSubmitting: true })
+    wx.showLoading({
+      title: this.data.mode === 'register' ? '注册中' : '登录中',
+      mask: true
+    })
+    try {
+      if (this.data.mode === 'register') {
+        await register({
+          phone,
+          password,
+          nickname: nickname.trim(),
+          roleCode: ROLE_CODE.DRIVER
+        })
+      }
+
+      const result = await login({
         phone,
         password,
-        nickname: nickname.trim(),
         roleCode: ROLE_CODE.DRIVER
       })
-    }
-
-    const result = await login({
-      phone,
-      password,
-      roleCode: ROLE_CODE.DRIVER
-    })
-    getApp().setLoginInfo(result.data)
-    wx.showToast({
-      title: this.data.mode === 'register' ? '注册并登录成功' : '登录成功',
-      icon: 'success'
-    })
-    const loaded = await this.loadDriverData()
-    if (loaded && loaded.vehicleView && loaded.vehicleView.hasVehicle) {
-      this.goDashboard()
+      getApp().setLoginInfo(result.data)
+      const loaded = await this.loadDriverData()
+      wx.hideLoading()
+      wx.showToast({
+        title: this.data.mode === 'register' ? '注册并登录成功' : '登录成功',
+        icon: 'success'
+      })
+      if (loaded && loaded.vehicleView && loaded.vehicleView.hasVehicle) {
+        this.goDashboard()
+      }
+    } catch (error) {
+      wx.hideLoading()
+      wx.showToast({
+        title: (error && error.message) || '登录失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ loginSubmitting: false })
     }
   },
 
@@ -484,6 +503,7 @@ Page({
   },
 
   async submitVehicle() {
+    if (this.data.vehicleSubmitting) return
     if (this.data.uploadingKey) {
       wx.showToast({
         title: '图片上传中，请稍后提交',
@@ -511,43 +531,56 @@ Page({
     })
     if (!confirmed) return
 
-    await submitCertification(buildCertificationPayload(this.data.vehicleForm))
+    this.setData({ vehicleSubmitting: true })
+    wx.showLoading({ title: '提交中', mask: true })
+    try {
+      await submitCertification(buildCertificationPayload(this.data.vehicleForm))
 
-    const nextVehicle = {
-      ...this.data.vehicleForm,
-      id: this.data.vehicleView.hasVehicle ? getApp().globalData.driverStore.vehicle.id : undefined,
-      auditStatus: 1,
-      auditRemark: '车辆资料已提交，等待审核'
-    }
-    const nextPermission = {
-      canReceiveOrders: false,
-      message: '已提交，等待管理员审核'
-    }
-    const nextProfile = {
-      ...this.data.profile,
-      canReceiveOrders: false,
-      vehicleAuditStatus: 1,
-      vehicleAuditRemark: '车辆资料已提交，等待审核',
-      lockMessage: nextPermission.message
-    }
-    const nextVehicleView = {
-      ...buildVehicleView(nextVehicle, { enabled: 1 }, nextPermission),
-      hasVehicle: true
-    }
-    const vehiclePreview = await this.buildPreviewState(this.data.vehicleForm)
+      const nextVehicle = {
+        ...this.data.vehicleForm,
+        id: this.data.vehicleView.hasVehicle ? getApp().globalData.driverStore.vehicle.id : undefined,
+        auditStatus: 1,
+        auditRemark: '车辆资料已提交，等待审核'
+      }
+      const nextPermission = {
+        canReceiveOrders: false,
+        message: '已提交，等待管理员审核'
+      }
+      const nextProfile = {
+        ...this.data.profile,
+        canReceiveOrders: false,
+        vehicleAuditStatus: 1,
+        vehicleAuditRemark: '车辆资料已提交，等待审核',
+        lockMessage: nextPermission.message
+      }
+      const nextVehicleView = {
+        ...buildVehicleView(nextVehicle, { enabled: 1 }, nextPermission),
+        hasVehicle: true
+      }
+      const vehiclePreview = await this.buildPreviewState(this.data.vehicleForm)
 
-    getApp().globalData.driverStore.vehicle = nextVehicle
-    getApp().globalData.driverStore.permission = nextPermission
-    getApp().globalData.driverStore.profile = nextProfile
-    getApp().saveStore()
+      getApp().globalData.driverStore.vehicle = nextVehicle
+      getApp().globalData.driverStore.permission = nextPermission
+      getApp().globalData.driverStore.profile = nextProfile
+      getApp().saveStore()
 
-    this.setData({
-      profile: nextProfile,
-      permission: nextPermission,
-      vehicleView: nextVehicleView,
-      vehiclePreview
-    })
-    wx.showToast({ title: '已提交，等待管理员审核', icon: 'success' })
+      this.setData({
+        profile: nextProfile,
+        permission: nextPermission,
+        vehicleView: nextVehicleView,
+        vehiclePreview
+      })
+      wx.hideLoading()
+      wx.showToast({ title: '已提交，等待管理员审核', icon: 'success' })
+    } catch (error) {
+      wx.hideLoading()
+      wx.showToast({
+        title: (error && error.message) || '车辆资料提交失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ vehicleSubmitting: false })
+    }
   },
 
   goDashboard() {

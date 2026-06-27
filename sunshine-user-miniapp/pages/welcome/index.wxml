@@ -103,7 +103,10 @@
     </view>
 
     <view class="bottom-action">
-      <button class="claim-button" hover-class="button-hover" bindtap="claimWelcomePack">领取 {{couponCount}} 张新人券并进入</button>
+      <button class="claim-button" hover-class="button-hover" bindtap="claimWelcomePack" loading="{{claiming}}" disabled="{{claiming}}">
+        <block wx:if="{{claiming}}">进入中...</block>
+        <block wx:else>领取 {{couponCount}} 张新人券并进入</block>
+      </button>
       <view class="safe-note">
         <view class="safe-note__icon"></view>
         <text>安全出行 · 阳光相伴</text>

@@ -7,6 +7,8 @@ Page({
   data: {
     tripId: '',
     trip: null,
+    loading: true,
+    loadError: '',
     companions: 1,
     note: '',
     totalPriceText: formatPrice(0),
@@ -21,13 +23,32 @@ Page({
   },
 
   async loadTrip() {
-    if (!this.data.tripId) return
-    const response = await fetchCarpoolDetail(this.data.tripId)
-    const detail = formatCarpoolDetail(response.data || {})
-    this.setData({
-      trip: detail.trip,
-      totalPriceText: formatPrice(Number(detail.trip.price || 0) * Number(this.data.companions || 1))
-    })
+    if (!this.data.tripId) {
+      this.setData({
+        loading: false,
+        loadError: '行程信息缺失，请返回后重试'
+      })
+      return
+    }
+    this.setData({ loading: true, loadError: '' })
+    try {
+      const response = await fetchCarpoolDetail(this.data.tripId)
+      const detail = formatCarpoolDetail(response.data || {})
+      this.setData({
+        trip: detail.trip,
+        totalPriceText: formatPrice(Number(detail.trip.price || 0) * Number(this.data.companions || 1))
+      })
+    } catch (error) {
+      this.setData({
+        loadError: (error && error.message) || '行程加载失败，请稍后重试'
+      })
+      wx.showToast({
+        title: '行程加载失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ loading: false })
+    }
   },
 
   decreaseCompanions() {
@@ -64,6 +85,11 @@ Page({
       setTimeout(() => {
         redirectToSilky(this, { url: '/pages/carpool-trips/index' })
       }, 300)
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '申请提交失败，请稍后重试',
+        icon: 'none'
+      })
     } finally {
       this.setData({ submitting: false })
     }

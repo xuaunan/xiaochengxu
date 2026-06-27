@@ -49,11 +49,12 @@ Page({
     activeType: 'all',
     activeStatus: 'all',
     list: [],
-    loading: true
+    loading: true,
+    errorText: ''
   },
 
   async onShow() {
-    this.renderCachedList()
+    this.renderCachedList(!getCachedOrders().length)
     await this.refreshList().catch(() => {})
   },
 
@@ -69,22 +70,39 @@ Page({
     this.refreshList().catch(() => {})
   },
 
-  renderCachedList() {
+  renderCachedList(keepLoading = false) {
     this.setData({
       list: buildOrderList(getCachedOrders(), this.data.activeType, this.data.activeStatus),
-      loading: false
+      loading: keepLoading
     })
   },
 
   async refreshList() {
     return runExclusive(this, '__refreshListPromise', async () => {
-      const response = await fetchOrders()
-      const mergedOrders = syncOrdersToCache(response.data || [])
-
       this.setData({
-        list: buildOrderList(mergedOrders, this.data.activeType, this.data.activeStatus),
-        loading: false
+        loading: !this.data.list.length,
+        errorText: ''
       })
+      try {
+        const response = await fetchOrders()
+        const mergedOrders = syncOrdersToCache(response.data || [])
+
+        this.setData({
+          list: buildOrderList(mergedOrders, this.data.activeType, this.data.activeStatus),
+          loading: false,
+          errorText: ''
+        })
+      } catch (error) {
+        this.setData({
+          loading: false,
+          errorText: (error && error.message) || '订单加载失败，请稍后重试'
+        })
+        wx.showToast({
+          title: '订单加载失败，请稍后重试',
+          icon: 'none'
+        })
+        throw error
+      }
     })
   },
 
@@ -102,5 +120,9 @@ Page({
 
   goHome() {
     switchTabSilky(this, { url: '/pages/home/index' }, { selector: '.orders-hero' })
+  },
+
+  retryRefresh() {
+    this.refreshList().catch(() => {})
   }
 })

@@ -1721,7 +1721,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
       {toast && <Toast text={toast} />}
       {tab === 'listen' && (
         <div className="dashboard-grid">
-          <section className="glass-panel work-card wide">
+          <section className="glass-panel work-card wide driver-listen-card">
             <div className="card-head">
               <div>
                 <span className="section-kicker">司机服务</span>
@@ -1729,6 +1729,9 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
               </div>
               <StatusBadge value={profile.serviceStatus || DRIVER_STATUS.OFFLINE} />
             </div>
+            <div className="driver-listen-shell">
+              <div className="driver-listen-stage">
+                <div className="driver-listen-primary">
             <div className="driver-switch">
               {[DRIVER_STATUS.ONLINE, DRIVER_STATUS.OFFLINE].map((status) => (
                 <button
@@ -1755,7 +1758,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
               ))}
             </div>
             <div className={`driver-listen-hero ${activeDriverTrip ? 'is-busy' : driverOnline ? 'is-online' : 'is-offline'}`}>
-              <div>
+              <div className="driver-listen-hero__copy">
                 <span>当前接单状态</span>
                 <strong>{activeDriverTrip ? '服务中' : driverOnline ? '在线听单' : '休息中'}</strong>
                 <p>{activeDriverTrip ? `${activeDriverTrip.startName} → ${activeDriverTrip.endName}` : servicePermission.message || (driverOnline ? '附近订单会自动刷新到待抢订单。' : '上线后才会收到乘客订单。')}</p>
@@ -1772,7 +1775,9 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
                 <ChevronRight size={17} />
               </button>
             )}
-            <div className="stat-grid">
+                </div>
+                <div className="driver-listen-overview">
+            <div className="stat-grid driver-listen-metrics">
               <Metric value={dashboard?.orders?.length || orders.length || 0} label="我的订单" />
               <Metric value={formatMoney(profile.todayIncome || 0)} label="今日收入" />
               <Metric value={formatMoney(profile.withdrawableIncome || 0)} label="可提现" />
@@ -1782,6 +1787,8 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
               <SummaryPill icon={Bell} value={driverSettings.voiceBroadcast ? '已开启' : '未开启'} label="语音播报" />
               <SummaryPill icon={Route} value={driverTrackModeMeta(driverSettings.trackMode).label} label="轨迹模式" />
             </div>
+                </div>
+              </div>
             <div className="driver-service-panel">
               <div className={driverBusy || driverOnline ? 'active' : ''}>
                 <span>服务状态</span>
@@ -1802,6 +1809,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
             <div className="driver-inline-controls">
               <button className={driverSettings.autoAccept ? 'active' : ''} onClick={() => updateDriverSettings({ autoAccept: !driverSettings.autoAccept })}><Zap size={15} />自动接单</button>
               <button className={driverSettings.voiceBroadcast ? 'active' : ''} onClick={() => updateDriverSettings({ voiceBroadcast: !driverSettings.voiceBroadcast })}><Bell size={15} />语音播报</button>
+            </div>
             </div>
           </section>
           <section className="glass-panel work-card wide">
