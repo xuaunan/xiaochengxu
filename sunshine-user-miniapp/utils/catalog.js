@@ -26,19 +26,19 @@ const POI_LIBRARY = [
 const CAR_TYPE_META = {
   1: {
     name: '经济型',
-    image: '/images/car-economy.svg',
+    image: '/images/home-icons/car-economy.png',
     description: '适合日常通勤与短途出行',
     seatText: '最多 4 人'
   },
   2: {
     name: '舒适型',
-    image: '/images/car-comfort.svg',
+    image: '/images/home-icons/car-comfort.png',
     description: '空间更舒适，适合家庭与商务接送',
     seatText: '最多 4 人'
   },
   3: {
     name: '商务型',
-    image: '/images/car-business.svg',
+    image: '/images/home-icons/car-business.png',
     description: '适合跨境接送机与重要商务场景',
     seatText: '最多 6 人'
   }

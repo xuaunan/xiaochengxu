@@ -271,13 +271,7 @@ input {
   .wallet-page,
   .onboarding-page,
   .trip-detail-page,
-  .support-page,
-  .message-page *,
-  .driver-orders-page *,
-  .wallet-page *,
-  .onboarding-page *,
-  .trip-detail-page *,
-  .support-page * {
+  .support-page {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

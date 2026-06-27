@@ -1,6 +1,7 @@
 <view class="page-shell orders-shell safe-bottom">
   <view class="page-content orders-page">
     <view class="orders-hero page-enter">
+      <image class="orders-hero__bg" src="/images/hero/trip-orders-banner.png" mode="aspectFill"></image>
       <view class="orders-hero__icon">
         <view class="orders-hero__icon-line"></view>
       </view>

@@ -1,8 +1,10 @@
 <view class="wallet-page safe-bottom">
   <view class="wallet-content">
-    <view class="wallet-hero">
+    <view class="wallet-hero page-enter">
+      <image class="wallet-hero__art" src="/images/hero/driver-wallet-earnings.png" mode="aspectFill"></image>
       <view class="wallet-hero__head">
         <view class="wallet-title-row">
+          <image class="wallet-title-icon-img" src="/images/wallet-icons/overview.png" mode="aspectFit"></image>
           <view class="wallet-title">收益总览</view>
           <view class="eye-icon"></view>
         </view>
@@ -11,22 +13,24 @@
           <view class="link-arrow"></view>
         </view>
       </view>
+    </view>
 
+    <view class="income-panel">
       <view class="income-grid">
         <view class="income-card income-card--today">
+          <image class="income-icon-img" src="/images/wallet-icons/today-income.png" mode="aspectFit"></image>
           <view class="income-value">¥{{wallet.todayIncome}}</view>
           <view class="income-label">今日收入 <text class="info-dot" data-type="today" catchtap="showIncomeTip">i</text></view>
-          <view class="income-watermark income-watermark--wallet"></view>
         </view>
         <view class="income-card income-card--month">
+          <image class="income-icon-img" src="/images/wallet-icons/month-income.png" mode="aspectFit"></image>
           <view class="income-value">¥{{wallet.monthIncome}}</view>
           <view class="income-label">{{monthIncomeLabel}} <text class="info-dot" data-type="month" catchtap="showIncomeTip">i</text></view>
-          <view class="income-watermark income-watermark--chart"></view>
         </view>
         <view class="income-card income-card--cash">
+          <image class="income-icon-img" src="/images/wallet-icons/withdrawable.png" mode="aspectFit"></image>
           <view class="income-value">¥{{wallet.withdrawable}}</view>
           <view class="income-label">可提现 <text class="info-dot" data-type="cash" catchtap="showIncomeTip">i</text></view>
-          <view class="income-watermark income-watermark--card"></view>
         </view>
       </view>
 
@@ -36,7 +40,7 @@
     <view class="bill-panel">
       <view class="bill-head">
         <view class="bill-title-wrap">
-          <view class="bill-icon"></view>
+          <image class="section-icon-img" src="/images/wallet-icons/bill-ledger.png" mode="aspectFit"></image>
           <view class="bill-title">{{billTitle}}</view>
         </view>
         <picker mode="selector" range="{{monthOptions}}" range-key="label" value="{{selectedMonthIndex}}" bindchange="changeIncomeMonth">
@@ -61,7 +65,7 @@
 
       <view class="bill-list" wx:elif="{{bills.length}}">
         <view class="bill-row tap-scale" wx:for="{{bills}}" wx:key="id" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="bill-car-icon"></view>
+          <image class="bill-service-icon" src="{{item.iconPath}}" mode="aspectFit"></image>
           <view class="bill-copy">
             <view class="bill-name">{{item.title}}</view>
             <view class="bill-time">{{item.time}}</view>
@@ -72,7 +76,7 @@
       </view>
 
       <view class="wallet-empty" wx:else>
-        <view class="wallet-empty__icon"></view>
+        <image class="wallet-empty__icon-img" src="/images/wallet-icons/bill-ledger.png" mode="aspectFit"></image>
         <view class="wallet-empty__title">{{billEmptyTitle}}</view>
         <view class="wallet-empty__desc">{{billEmptyDesc}}</view>
       </view>
@@ -85,7 +89,10 @@
 
     <view class="withdraw-panel">
       <view class="withdraw-panel__head">
-        <view class="withdraw-panel__title">提现记录</view>
+        <view class="withdraw-panel__title-wrap">
+          <image class="section-icon-img" src="/images/wallet-icons/withdraw-record.png" mode="aspectFit"></image>
+          <view class="withdraw-panel__title">提现记录</view>
+        </view>
         <view class="withdraw-panel__action tap-scale" bindtap="openWithdraw">申请/查看</view>
       </view>
       <view class="withdraw-record-list" wx:if="{{withdrawRecords.length}}">

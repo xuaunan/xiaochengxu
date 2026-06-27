@@ -1,11 +1,14 @@
 <view class="page-shell safe-bottom">
   <view class="page-content carpool-page page-enter">
     <view class="carpool-hero">
+      <image class="hero-bg" src="/images/hero/trip-carpool-banner.png" mode="aspectFill"></image>
       <view class="hero-header">
-        <view class="hero-badge">SF</view>
+        <view class="hero-badge">
+          <image class="hero-badge__icon" src="/images/service-icons/carpool.png" mode="aspectFit"></image>
+        </view>
         <view class="hero-copy">
           <view class="hero-title">顺风车</view>
-          <view class="hero-subtitle">输入起终点后快速匹配顺路车主，价格与优惠实时联动</view>
+          <view class="hero-subtitle">快速匹配顺路车主，优惠同步</view>
         </view>
       </view>
       <view class="hero-scene">

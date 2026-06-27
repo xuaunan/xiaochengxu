@@ -2,8 +2,21 @@ const { fetchDashboard, fetchWithdraws } = require('../../utils/api')
 const { buildWallet, getDriverIncomeAmount } = require('../../utils/driver-store')
 const { ORDER_STATUS, SERVICE_TYPE } = require('../../utils/constants')
 
+const SERVICE_ICON_PATHS = {
+  taxi: '/images/service-icons/taxi.png',
+  carpool: '/images/service-icons/carpool.png',
+  international: '/images/service-icons/international.png'
+}
+
 function pad(value) {
   return `${value}`.padStart(2, '0')
+}
+
+function getOrderTypeKey(order = {}) {
+  const serviceType = `${order.serviceType || order.service_type || ''}`.toUpperCase()
+  if (serviceType === SERVICE_TYPE.CARPOOL) return 'carpool'
+  if (serviceType === SERVICE_TYPE.INTERNATIONAL) return 'international'
+  return 'taxi'
 }
 
 function getOrderTime(order = {}) {
@@ -122,6 +135,7 @@ function buildBillRows(monthBills = []) {
   return monthBills.slice(0, 10).map((item) => ({
     id: item.id || getOrderNo(item),
     title: getBillTitle(item),
+    iconPath: SERVICE_ICON_PATHS[getOrderTypeKey(item)] || SERVICE_ICON_PATHS.taxi,
     amount: `+¥${getDriverIncomeAmount(item).toFixed(2)}`,
     time: formatDateTime(getOrderTime(item))
   }))
