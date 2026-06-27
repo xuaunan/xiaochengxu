@@ -3996,8 +3996,9 @@ svg {
   display: grid;
   align-content: center;
   justify-items: center;
-  min-height: 340px;
-  padding: 26px 24px 22px;
+  min-height: 348px;
+  margin-top: -8px;
+  padding: 34px 24px 22px;
   text-align: center;
   color: #182033;
   background: #fff;
@@ -4009,8 +4010,8 @@ svg {
 }
 
 .daily-checkin-card.is-compact {
-  min-height: 258px;
-  padding: 14px 14px 13px;
+  min-height: 266px;
+  padding: 22px 14px 13px;
   border-radius: 18px;
 }
 
@@ -4422,6 +4423,23 @@ svg {
 
 .daily-checkin-card.is-celebrating .checkin-calendar-front {
   animation: checkinCalendarClaim .68s var(--ease);
+}
+
+.daily-checkin-card.is-celebrating .checkin-card-visual {
+  animation-play-state: paused;
+}
+
+.daily-checkin-card.is-celebrating .checkin-calendar-press-wrap {
+  animation: checkinClaimLift .88s cubic-bezier(.2, .9, .18, 1);
+}
+
+.daily-checkin-card.is-celebrating .checkin-calendar-3d {
+  animation: checkinCalendarSuccessSpin .88s cubic-bezier(.2, .9, .18, 1) !important;
+  filter: drop-shadow(0 22px 28px rgba(15, 23, 42, .18));
+}
+
+.daily-checkin-card.is-celebrating .checkin-calendar-shadow {
+  animation: checkinClaimShadow .88s cubic-bezier(.2, .9, .18, 1);
 }
 
 .daily-checkin-card.is-celebrating .checkin-badge {
@@ -11022,6 +11040,51 @@ svg {
   }
   100% {
     transform: translateZ(0) scale(1);
+  }
+}
+
+@keyframes checkinClaimLift {
+  0% {
+    translate: 0 0;
+    transform: scale(1);
+  }
+  34% {
+    translate: 0 -9px;
+    transform: scale(1.018);
+  }
+  100% {
+    translate: 0 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes checkinCalendarSuccessSpin {
+  0% {
+    transform: translateZ(0) rotateX(0deg) rotateY(0deg) scale(1);
+  }
+  34% {
+    transform: translateZ(26px) rotateX(8deg) rotateY(136deg) scale(1.04);
+  }
+  68% {
+    transform: translateZ(24px) rotateX(4deg) rotateY(286deg) scale(1.035);
+  }
+  100% {
+    transform: translateZ(0) rotateX(0deg) rotateY(360deg) scale(1);
+  }
+}
+
+@keyframes checkinClaimShadow {
+  0% {
+    opacity: .72;
+    transform: translateX(-50%) scaleY(.52);
+  }
+  42% {
+    opacity: .46;
+    transform: translateX(-50%) translateY(17px) scaleX(1.38) scaleY(.32);
+  }
+  100% {
+    opacity: .82;
+    transform: translateX(-50%) scaleY(.52);
   }
 }
 
