@@ -140,7 +140,8 @@ Page({
     invoiceImagePath: '',
     invoiceImageStyle: '',
     invoiceScrollStyle: '',
-    viewerInvoice: null
+    viewerInvoice: null,
+    applyingInvoiceId: ''
   },
 
   onLoad(options = {}) {
@@ -276,6 +277,7 @@ Page({
 
   async applyInvoice(e) {
     const orderId = e.currentTarget.dataset.id
+    if (this.data.applyingInvoiceId) return
     const invoice = (this.data.applyList || this.data.list || []).find((item) => `${item.id}` === `${orderId}`)
     if (!invoice || !invoice.canApply) {
       wx.showToast({
@@ -296,15 +298,25 @@ Page({
       })
     })
     if (!modal.confirm) return
-    await applyInvoice(orderId, {
-      invoiceTitle: modal.content || '个人',
-      buyerPhone: getApp().globalData.userStore.profile?.phone || '13800000000',
-      remark: '乘客端提交电子发票申请'
-    })
-    wx.showToast({
-      title: '发票申请已提交',
-      icon: 'success'
-    })
-    await this.refreshInvoices()
+    this.setData({ applyingInvoiceId: `${orderId}` })
+    try {
+      await applyInvoice(orderId, {
+        invoiceTitle: modal.content || '个人',
+        buyerPhone: getApp().globalData.userStore.profile?.phone || '13800000000',
+        remark: '乘客端提交电子发票申请'
+      })
+      wx.showToast({
+        title: '发票申请已提交',
+        icon: 'success'
+      })
+      await this.refreshInvoices()
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '发票申请失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ applyingInvoiceId: '' })
+    }
   }
 })

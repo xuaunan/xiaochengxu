@@ -390,3 +390,46 @@
   box-shadow: 0 12rpx 26rpx rgba(255, 107, 0, 0.18);
   box-sizing: border-box;
 }
+
+.detail-state-card {
+  min-height: 300rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 38rpx 28rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(31, 36, 50, 0.06);
+  box-shadow: 0 10rpx 24rpx rgba(24, 34, 56, 0.045);
+  text-align: center;
+}
+
+.detail-state-title {
+  color: #111827;
+  font-size: 26rpx;
+  font-weight: 550;
+}
+
+.detail-state-desc {
+  margin-top: 10rpx;
+  color: #7a8396;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.detail-state-button {
+  min-width: 200rpx;
+  height: 58rpx;
+  min-height: 58rpx;
+  margin-top: 22rpx;
+  padding: 0 28rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+}
+
+.action-button[disabled],
+.detail-apply-button[disabled] {
+  opacity: 0.56;
+  box-shadow: none;
+}

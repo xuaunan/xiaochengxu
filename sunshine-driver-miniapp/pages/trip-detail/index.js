@@ -239,6 +239,9 @@ Page({
   data: {
     orderId: '',
     trip: null,
+    loading: true,
+    loadError: '',
+    updatingStatus: false,
     actionText: '状态已完结',
     noticePopup: {
       visible: false
@@ -288,8 +291,22 @@ Page({
   },
 
   async loadTrip(id, silent = false) {
-    if (!id) return null
+    if (!id) {
+      if (!silent) {
+        this.setData({
+          loading: false,
+          loadError: '行程信息缺失，请返回后重试'
+        })
+      }
+      return null
+    }
     if (this.tripLoadPromise) return this.tripLoadPromise
+    if (!silent) {
+      this.setData({
+        loading: !this.data.trip,
+        loadError: ''
+      })
+    }
 
     const task = (async () => {
       let tripData = {}
@@ -324,7 +341,8 @@ Page({
 
       this.setData({
         trip: tripView,
-        actionText: nextActionText(trip.orderStatus)
+        actionText: nextActionText(trip.orderStatus),
+        loadError: ''
       })
 
       await this.syncTripStore().catch(() => {
@@ -349,39 +367,66 @@ Page({
       }
 
       return tripView
-    })()
-
-    this.tripLoadPromise = task.finally(() => {
+    })().catch((error) => {
+      if (!silent) {
+        this.setData({
+          loadError: (error && error.message) || '行程加载失败，请稍后重试'
+        })
+        wx.showToast({
+          title: '行程加载失败，请稍后重试',
+          icon: 'none'
+        })
+      }
+      return null
+    }).finally(() => {
+      if (!silent) {
+        this.setData({ loading: false })
+      }
       this.tripLoadPromise = null
     })
     return this.tripLoadPromise
   },
 
   async updateStatus() {
+    if (this.data.updatingStatus) return
     const trip = this.data.trip
     if (!trip) return
 
-    const previousStatus = trip.orderStatus
-    if (trip.orderStatus === ORDER_STATUS.ACCEPTED) {
-      await startOrder(trip.id)
-    } else if (trip.orderStatus === ORDER_STATUS.PICKING_UP) {
-      await pickupOrder(trip.id)
-    } else if (trip.orderStatus === ORDER_STATUS.IN_TRIP) {
-      const runtime = this.currentTripRuntime || {}
-      await finishOrder(trip.id, {
-        actualDistanceKm: Number(runtime.tripDistanceKm || runtime.traveledDistanceKm || trip.actualDistanceKm || trip.estimatedDistanceKm || 10),
-        actualDurationMin: Number(runtime.tripTotalSeconds ? runtime.tripTotalSeconds / 60 : trip.actualDurationMin || trip.estimatedDurationMin || 20)
-      })
-    } else {
-      wx.showToast({ title: '当前状态无需处理', icon: 'none' })
-      return
-    }
+    this.setData({ updatingStatus: true })
+    try {
+      const previousStatus = trip.orderStatus
+      if (trip.orderStatus === ORDER_STATUS.ACCEPTED) {
+        await startOrder(trip.id)
+      } else if (trip.orderStatus === ORDER_STATUS.PICKING_UP) {
+        await pickupOrder(trip.id)
+      } else if (trip.orderStatus === ORDER_STATUS.IN_TRIP) {
+        const runtime = this.currentTripRuntime || {}
+        await finishOrder(trip.id, {
+          actualDistanceKm: Number(runtime.tripDistanceKm || runtime.traveledDistanceKm || trip.actualDistanceKm || trip.estimatedDistanceKm || 10),
+          actualDurationMin: Number(runtime.tripTotalSeconds ? runtime.tripTotalSeconds / 60 : trip.actualDurationMin || trip.estimatedDurationMin || 20)
+        })
+      } else {
+        wx.showToast({ title: '当前状态无需处理', icon: 'none' })
+        return
+      }
 
-    await this.loadTrip(trip.id)
-    if (previousStatus === ORDER_STATUS.PICKING_UP) {
-      broadcastDriver(this, '乘客已上车，请开始行程', `passenger-onboard-${trip.id}`)
-      broadcastDriver(this, '请提醒乘客系好安全带并确认目的地', `passenger-reminder-after-onboard-${trip.id}`)
+      await this.loadTrip(trip.id)
+      if (previousStatus === ORDER_STATUS.PICKING_UP) {
+        broadcastDriver(this, '乘客已上车，请开始行程', `passenger-onboard-${trip.id}`)
+        broadcastDriver(this, '请提醒乘客系好安全带并确认目的地', `passenger-reminder-after-onboard-${trip.id}`)
+      }
+      wx.showToast({ title: '状态已更新', icon: 'success' })
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '状态更新失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ updatingStatus: false })
     }
-    wx.showToast({ title: '状态已更新', icon: 'success' })
+  },
+
+  retryLoadTrip() {
+    this.loadTrip(this.data.orderId).catch(() => {})
   }
 })

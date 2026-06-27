@@ -1,4 +1,20 @@
-<view class="page-shell carpool-apply-shell safe-bottom" wx:if="{{trip}}">
+<view class="page-shell carpool-apply-shell safe-bottom">
+  <view class="page-content apply-page page-enter" wx:if="{{loading}}">
+    <view class="apply-state-card">
+      <view class="apply-state-title">行程加载中...</view>
+      <view class="apply-state-desc">正在同步顺风车行程信息</view>
+    </view>
+  </view>
+
+  <view class="page-content apply-page page-enter" wx:elif="{{loadError}}">
+    <view class="apply-state-card apply-state-card--error">
+      <view class="apply-state-title">行程加载失败</view>
+      <view class="apply-state-desc">{{loadError}}</view>
+      <button class="primary-button apply-state-button" hover-class="button-hover" bindtap="loadTrip">重新加载</button>
+    </view>
+  </view>
+
+  <block wx:elif="{{trip}}">
   <view class="page-content apply-page page-enter">
     <view class="apply-hero">
       <view class="apply-hero__title">{{trip.routeText}}</view>
@@ -14,12 +30,12 @@
       <view class="panel-desc">请确认本次搭乘总人数，包含你自己。</view>
 
       <view class="counter-row">
-        <button class="counter-button counter-button--minus" hover-class="button-hover" bindtap="decreaseCompanions"></button>
+        <button class="counter-button counter-button--minus" hover-class="button-hover" bindtap="decreaseCompanions" disabled="{{submitting}}"></button>
         <view class="counter-value">
           <view class="counter-value__number">{{companions}}</view>
           <view class="counter-value__label">人</view>
         </view>
-        <button class="counter-button counter-button--plus" hover-class="button-hover" bindtap="increaseCompanions"></button>
+        <button class="counter-button counter-button--plus" hover-class="button-hover" bindtap="increaseCompanions" disabled="{{submitting}}"></button>
       </view>
 
       <view class="apply-summary">
@@ -39,6 +55,9 @@
   </view>
 
   <view class="floating-bar apply-floating-bar">
-    <button class="primary-button apply-submit-button" hover-class="button-hover" bindtap="submitApply">提交搭乘申请</button>
+    <button class="primary-button apply-submit-button" hover-class="button-hover" bindtap="submitApply" loading="{{submitting}}" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交搭乘申请'}}
+    </button>
   </view>
+  </block>
 </view>

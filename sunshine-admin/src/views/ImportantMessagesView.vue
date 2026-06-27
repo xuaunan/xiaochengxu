@@ -171,9 +171,11 @@ import {
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import http from '../api/http'
 import { formatDateTime } from '../utils/admin'
 
+const router = useRouter()
 const loading = ref(false)
 const messages = ref([])
 const levelFilter = ref('ALL')
@@ -195,7 +197,8 @@ const levelOptions = [
   { label: '高优先级', value: 'HIGH' },
   { label: '发票', value: 'INVOICE' },
   { label: '审核', value: 'AUDIT' },
-  { label: '提现', value: 'WITHDRAW' }
+  { label: '提现', value: 'WITHDRAW' },
+  { label: '客服', value: 'SUPPORT' }
 ]
 
 const summary = computed(() => ({
@@ -245,6 +248,9 @@ const filteredMessages = computed(() => {
   if (levelFilter.value === 'INVOICE') {
     return messages.value.filter((item) => item.type === 'INVOICE')
   }
+  if (levelFilter.value === 'SUPPORT') {
+    return messages.value.filter((item) => item.type === 'SUPPORT')
+  }
   return messages.value.filter((item) => item.level === levelFilter.value)
 })
 
@@ -254,7 +260,8 @@ function typeMeta(item = {}) {
     INVOICE: { label: '发票', tagType: 'primary', icon: Tickets, accent: '#f97316', bg: 'linear-gradient(135deg, #fff7ed, #ffffff)' },
     DRIVER_AUDIT: { label: '司机资料', tagType: 'warning', icon: UserFilled, accent: '#f59e0b', bg: 'linear-gradient(135deg, #fffbeb, #ffffff)' },
     VEHICLE_AUDIT: { label: '车辆资料', tagType: 'warning', icon: Van, accent: '#f59e0b', bg: 'linear-gradient(135deg, #fffbeb, #ffffff)' },
-    WITHDRAW: { label: '提现', tagType: 'success', icon: Money, accent: '#16a34a', bg: 'linear-gradient(135deg, #ecfdf5, #ffffff)' }
+    WITHDRAW: { label: '提现', tagType: 'success', icon: Money, accent: '#16a34a', bg: 'linear-gradient(135deg, #ecfdf5, #ffffff)' },
+    SUPPORT: { label: '客服', tagType: 'primary', icon: BellFilled, accent: '#2563eb', bg: 'linear-gradient(135deg, #eff6ff, #ffffff)' }
   }
   return map[item.type] || { label: '事项', tagType: 'info', icon: BellFilled, accent: '#64748b', bg: 'linear-gradient(135deg, #f8fafc, #ffffff)' }
 }
@@ -315,6 +322,10 @@ function openInvoiceDialog(item) {
 }
 
 function handleMessageAction(item) {
+  if (item?.actionPath) {
+    router.push(item.actionPath)
+    return
+  }
   ElMessage.info(`${item.actionText || '该事项'}已在当前页展示，可直接处理`)
 }
 
@@ -442,7 +453,7 @@ onMounted(loadMessages)
 <style scoped>
 .messages-page {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .message-summary {

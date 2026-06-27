@@ -8,7 +8,8 @@ Page({
     form: {
       realName: '',
       idCard: ''
-    }
+    },
+    submitting: false
   },
 
   async onShow() {
@@ -48,6 +49,7 @@ Page({
   },
 
   async submitRealName() {
+    if (this.data.submitting) return
     const realName = `${this.data.form.realName || ''}`.trim()
     const idCard = `${this.data.form.idCard || ''}`.trim()
 
@@ -66,21 +68,31 @@ Page({
       idCard
     }
 
-    await submitRealNameRequest(payload)
+    this.setData({ submitting: true })
     try {
-      const profile = getApp().globalData.userStore.profile || {}
-      await updateProfileByAdmin(profile.id, payload, {
-        ...profile,
-        authStatus: 1,
-        authRemark: '用户已提交实名认证，等待管理员审核'
-      })
-    } catch (error) {
-    }
+      await submitRealNameRequest(payload)
+      try {
+        const profile = getApp().globalData.userStore.profile || {}
+        await updateProfileByAdmin(profile.id, payload, {
+          ...profile,
+          authStatus: 1,
+          authRemark: '用户已提交实名认证，等待管理员审核'
+        })
+      } catch (error) {
+      }
 
-    wx.showToast({
-      title: '实名认证已提交',
-      icon: 'success'
-    })
-    await this.refreshProfile()
+      wx.showToast({
+        title: '实名认证已提交',
+        icon: 'success'
+      })
+      await this.refreshProfile()
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '提交失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ submitting: false })
+    }
   }
 })

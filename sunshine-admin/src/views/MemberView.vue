@@ -216,6 +216,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page > .panel + .panel {
+  margin-top: 20px;
+}
+
 .member-user {
   display: grid;
   gap: 4px;

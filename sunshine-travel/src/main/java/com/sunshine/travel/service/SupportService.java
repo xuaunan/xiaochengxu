@@ -18,5 +18,9 @@ public interface SupportService {
 
     Map<String, Object> sendAdminMessage(Long conversationId, String content);
 
+    Map<String, Object> adminAiSuggest(Long conversationId);
+
+    Map<String, Object> adminAiContext(Long conversationId);
+
     Map<String, Object> updateStatus(Long conversationId, String status);
 }

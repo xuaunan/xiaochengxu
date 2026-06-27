@@ -480,6 +480,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page > .panel + .panel {
+  margin-top: 20px;
+}
+
 .vehicle-cell {
   display: grid;
   gap: 4px;

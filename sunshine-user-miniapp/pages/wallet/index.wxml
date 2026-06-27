@@ -92,6 +92,15 @@
           <view class="wallet-record-chevron"></view>
         </view>
       </block>
+      <view wx:elif="{{loading}}" class="wallet-state-card">
+        <view class="wallet-state-title">流水同步中...</view>
+        <view class="wallet-state-desc">正在加载最近交易明细</view>
+      </view>
+      <view wx:elif="{{errorText}}" class="wallet-state-card wallet-state-card--error">
+        <view class="wallet-state-title">钱包加载失败</view>
+        <view class="wallet-state-desc">{{errorText}}</view>
+        <button class="wallet-state-button" hover-class="button-hover" bindtap="retryRefresh">重新加载</button>
+      </view>
       <view wx:else class="wallet-empty">
         <view class="wallet-empty__icon"></view>
         <view class="wallet-empty__title">暂无流水</view>

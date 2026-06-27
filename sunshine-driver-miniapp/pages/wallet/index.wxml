@@ -48,7 +48,18 @@
       </view>
       <view class="bill-summary">{{billSummary}}</view>
 
-      <view class="bill-list" wx:if="{{bills.length}}">
+      <view class="wallet-state-card" wx:if="{{loading && !bills.length}}">
+        <view class="wallet-state-title">收益同步中...</view>
+        <view class="wallet-state-desc">正在加载本月流水和提现记录</view>
+      </view>
+
+      <view class="wallet-state-card wallet-state-card--error" wx:elif="{{errorText && !bills.length}}">
+        <view class="wallet-state-title">收益加载失败</view>
+        <view class="wallet-state-desc">{{errorText}}</view>
+        <button class="primary-button wallet-state-button" hover-class="button-hover" bindtap="retryRefresh">重新加载</button>
+      </view>
+
+      <view class="bill-list" wx:elif="{{bills.length}}">
         <view class="bill-row tap-scale" wx:for="{{bills}}" wx:key="id" hover-class="pressable-hover" hover-stay-time="60">
           <view class="bill-car-icon"></view>
           <view class="bill-copy">

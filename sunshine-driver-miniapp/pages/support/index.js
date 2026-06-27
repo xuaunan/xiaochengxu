@@ -36,13 +36,16 @@ Page({
     messages: [],
     scrollIntoView: '',
     inputText: '',
-    sending: false
+    quickQuestions: ['听单接单', '提现到账', '资质审核', '行程订单', '语音播报', '联系人工'],
+    sending: false,
+    loading: false,
+    loadError: ''
   },
 
   supportTimer: null,
 
   async onShow() {
-    await this.refreshSupport()
+    await this.refreshSupport().catch(() => {})
     this.startPolling()
   },
 
@@ -71,6 +74,9 @@ Page({
   async refreshSupport(options = {}) {
     if (this.__refreshingSupport) return
     this.__refreshingSupport = true
+    if (!options.fromPolling && !this.data.messages.length) {
+      this.setData({ loading: true, loadError: '' })
+    }
     try {
       const [conversationResponse, messageResponse] = await Promise.all([
         fetchSupportConversation(),
@@ -83,9 +89,24 @@ Page({
       this.setData({
         conversation: conversationResponse.data || {},
         messages,
+        loadError: '',
         scrollIntoView: shouldScroll && nextLast.anchorId ? nextLast.anchorId : this.data.scrollIntoView
       })
+    } catch (error) {
+      if (!options.fromPolling) {
+        this.setData({
+          loadError: (error && error.message) || '客服消息加载失败，请稍后重试'
+        })
+        wx.showToast({
+          title: '客服消息加载失败，请稍后重试',
+          icon: 'none'
+        })
+      }
+      throw error
     } finally {
+      if (!options.fromPolling) {
+        this.setData({ loading: false })
+      }
       this.__refreshingSupport = false
     }
   },
@@ -96,6 +117,13 @@ Page({
     })
   },
 
+  handleQuickQuestion(e) {
+    const content = `${e.currentTarget.dataset.content || ''}`.trim()
+    if (!content || this.data.sending) return
+    this.setData({ inputText: content })
+    this.sendMessage()
+  },
+
   async sendMessage() {
     const content = `${this.data.inputText || ''}`.trim()
     if (!content || this.data.sending) return
@@ -104,6 +132,11 @@ Page({
       await sendSupportMessage(content)
       this.setData({ inputText: '' })
       await this.refreshSupport()
+    } catch (error) {
+      wx.showToast({
+        title: (error && error.message) || '发送失败，请稍后重试',
+        icon: 'none'
+      })
     } finally {
       this.setData({ sending: false })
     }

@@ -208,7 +208,11 @@ function formatWithdrawRecord(record = {}) {
 
 Page({
   data: {
-    wallet: {},
+    wallet: {
+      todayIncome: 0,
+      monthIncome: 0,
+      withdrawable: 0
+    },
     bills: [],
     billTitle: '本月流水',
     billSummary: '',
@@ -219,40 +223,64 @@ Page({
     selectedMonthIndex: 0,
     selectedMonthLabel: '',
     monthIncomeLabel: '本月收入',
-    withdrawRecords: []
+    withdrawRecords: [],
+    loading: false,
+    errorText: ''
   },
 
   async onShow() {
-    const response = await fetchDashboard()
-    const dashboard = response.data || {}
-    let withdrawSource = dashboard.withdraws || dashboard.pendingWithdraw || []
-    if (!withdrawSource.length) {
-      try {
-        const withdrawResponse = await fetchWithdraws({ skipToast: true })
-        withdrawSource = withdrawResponse.data || withdrawSource
-      } catch (error) {
-        withdrawSource = []
-      }
-    }
-    if (!Array.isArray(withdrawSource)) {
-      withdrawSource = withdrawSource.records || []
-    }
-    const incomeOrders = (dashboard.orders || [])
-      .filter(isFinishedIncomeOrder)
-      .sort((left, right) => getTimeValue(right) - getTimeValue(left))
-    const dateParts = buildLocalDateParts()
-    const wallet = buildWallet(dashboard.profile || {}, incomeOrders)
-    const monthOptions = buildMonthOptions(incomeOrders, dateParts.month)
-    this.incomeOrders = incomeOrders
-    this.walletBase = wallet
-    this.dateParts = dateParts
-    getApp().globalData.driverStore.wallet = wallet
-    getApp().saveStore()
+    await this.refreshWallet().catch(() => {})
+  },
+
+  async refreshWallet() {
     this.setData({
-      monthOptions,
-      ...buildMonthViewState(incomeOrders, wallet, dateParts.month, dateParts, monthOptions),
-      withdrawRecords: withdrawSource.slice(0, 3).map(formatWithdrawRecord)
+      loading: !this.data.bills.length,
+      errorText: ''
     })
+    try {
+      const response = await fetchDashboard()
+      const dashboard = response.data || {}
+      let withdrawSource = dashboard.withdraws || dashboard.pendingWithdraw || []
+      if (!withdrawSource.length) {
+        try {
+          const withdrawResponse = await fetchWithdraws({ skipToast: true })
+          withdrawSource = withdrawResponse.data || withdrawSource
+        } catch (error) {
+          withdrawSource = []
+        }
+      }
+      if (!Array.isArray(withdrawSource)) {
+        withdrawSource = withdrawSource.records || []
+      }
+      const incomeOrders = (dashboard.orders || [])
+        .filter(isFinishedIncomeOrder)
+        .sort((left, right) => getTimeValue(right) - getTimeValue(left))
+      const dateParts = buildLocalDateParts()
+      const wallet = buildWallet(dashboard.profile || {}, incomeOrders)
+      const monthOptions = buildMonthOptions(incomeOrders, dateParts.month)
+      this.incomeOrders = incomeOrders
+      this.walletBase = wallet
+      this.dateParts = dateParts
+      getApp().globalData.driverStore.wallet = wallet
+      getApp().saveStore()
+      this.setData({
+        monthOptions,
+        ...buildMonthViewState(incomeOrders, wallet, dateParts.month, dateParts, monthOptions),
+        withdrawRecords: withdrawSource.slice(0, 3).map(formatWithdrawRecord),
+        loading: false,
+        errorText: ''
+      })
+    } catch (error) {
+      this.setData({
+        loading: false,
+        errorText: (error && error.message) || '收益数据加载失败，请稍后重试'
+      })
+      wx.showToast({
+        title: '收益数据加载失败，请稍后重试',
+        icon: 'none'
+      })
+      throw error
+    }
   },
 
   changeIncomeMonth(e) {
@@ -305,5 +333,9 @@ Page({
 
   openWithdraw() {
     wx.navigateTo({ url: '/pages/withdraw/index' })
+  },
+
+  retryRefresh() {
+    this.refreshWallet().catch(() => {})
   }
 })

@@ -378,6 +378,7 @@
   line-height: 1.55;
 }
 
+.pressable-hover,
 .tap-scale:active {
   transform: translateY(2rpx) scale(0.99);
   opacity: 0.96;

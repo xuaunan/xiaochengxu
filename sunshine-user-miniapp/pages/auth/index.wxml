@@ -33,7 +33,9 @@
         <view class="auth-field__icon auth-field__icon--card"></view>
         <input class="auth-input" data-key="idCard" value="{{form.idCard}}" bindinput="updateField" placeholder="请输入身份证号" />
       </view>
-      <button class="primary-button auth-submit" hover-class="button-hover" bindtap="submitRealName">提交实名认证</button>
+      <button class="primary-button auth-submit" hover-class="button-hover" bindtap="submitRealName" loading="{{submitting}}" disabled="{{submitting}}">
+        {{submitting ? '提交中...' : '提交实名认证'}}
+      </button>
     </view>
   </view>
 </view>

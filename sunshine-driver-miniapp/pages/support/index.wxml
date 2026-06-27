@@ -1,11 +1,17 @@
 <view class="page-shell support-shell safe-bottom">
   <view class="support-page page-enter">
     <view class="support-hero">
-      <view>
+      <view class="support-hero__copy">
+        <view class="support-kicker">AI客服已接入</view>
         <view class="support-title">在线客服</view>
-        <view class="support-desc">平台客服会在后台同步回复</view>
+        <view class="support-desc">听单、提现、审核、行程问题可先由AI快速响应，人工客服同步跟进</view>
       </view>
       <view class="support-status">{{conversation.status === 'OPEN' ? '处理中' : '已关闭'}}</view>
+    </view>
+
+    <view class="support-data-note">
+      <view class="support-data-note__label">真实数据辅助</view>
+      <view class="support-data-note__text">AI会基于本账号最近订单、司机资料、车辆审核、提现和投诉记录回答，查不到会转人工核实</view>
     </view>
 
     <scroll-view
@@ -18,22 +24,43 @@
     >
       <block wx:if="{{messages.length}}">
         <view
-          class="support-message {{item.fromAdmin ? 'support-message--admin' : 'support-message--self'}}"
+          class="support-message {{item.fromAi ? 'support-message--ai' : (item.fromAdmin ? 'support-message--admin' : 'support-message--self')}}"
           id="{{item.anchorId}}"
           wx:for="{{messages}}"
           wx:key="id"
         >
           <view class="support-bubble">
+            <view wx:if="{{item.fromAi}}" class="support-bubble__tag">AI客服</view>
             <view class="support-bubble__text">{{item.content}}</view>
             <view class="support-bubble__time">{{item.timeText}}</view>
           </view>
         </view>
       </block>
+      <view wx:elif="{{loading}}" class="support-empty">
+        <view class="support-empty__title">消息加载中...</view>
+        <view class="support-empty__desc">正在连接客服会话</view>
+      </view>
+      <view wx:elif="{{loadError}}" class="support-empty">
+        <view class="support-empty__title">消息加载失败</view>
+        <view class="support-empty__desc">{{loadError}}</view>
+      </view>
       <view wx:else class="support-empty">
         <view class="support-empty__title">客服已接入</view>
-        <view class="support-empty__desc">请发送你遇到的问题。</view>
+        <view class="support-empty__desc">请选择快捷问题，或直接描述你遇到的情况</view>
       </view>
     </scroll-view>
+
+    <view class="support-quick">
+      <view
+        class="support-quick__item"
+        wx:for="{{quickQuestions}}"
+        wx:key="*this"
+        data-content="{{item}}"
+        bindtap="handleQuickQuestion"
+      >
+        {{item}}
+      </view>
+    </view>
 
     <view class="support-input-panel">
       <textarea
@@ -45,7 +72,7 @@
         bindinput="handleInput"
       />
       <view class="support-send {{sending ? 'support-send--disabled' : ''}}" bindtap="sendMessage">
-        {{sending ? '...' : '发送'}}
+        {{sending ? 'AI中' : '发送'}}
       </view>
     </view>
   </view>

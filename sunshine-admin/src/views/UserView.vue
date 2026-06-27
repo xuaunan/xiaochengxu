@@ -692,6 +692,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page > .panel + .panel {
+  margin-top: 20px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

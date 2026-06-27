@@ -44,6 +44,10 @@ input {
   min-height: 100vh;
 }
 
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 28rpx);
+}
+
 .page-content {
   padding: 24rpx 24rpx 40rpx;
 }
@@ -99,6 +103,12 @@ input {
 .ghost-button {
   color: #ff7a00;
   background: #fff1df;
+}
+
+.primary-button[disabled],
+.ghost-button[disabled] {
+  opacity: 0.56;
+  box-shadow: none;
 }
 
 .button-hover,
@@ -252,5 +262,24 @@ input {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-page,
+  .driver-orders-page,
+  .wallet-page,
+  .onboarding-page,
+  .trip-detail-page,
+  .support-page,
+  .message-page *,
+  .driver-orders-page *,
+  .wallet-page *,
+  .onboarding-page *,
+  .trip-detail-page *,
+  .support-page * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

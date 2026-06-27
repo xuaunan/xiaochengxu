@@ -118,6 +118,7 @@ Page({
   },
 
   async submit() {
+    if (this.data.loading) return
     if (!this.validateForm()) return
 
     this.setData({ loading: true })
@@ -146,6 +147,7 @@ Page({
       app.setLoginInfo(result.data)
       const profileResult = await fetchProfile()
       app.applyProfile(profileResult.data || {})
+      wx.hideLoading()
       wx.showToast({
         title: this.data.mode === 'login' ? '登录成功' : '注册并登录成功',
         icon: 'success'
@@ -157,8 +159,13 @@ Page({
           selector: '.login-page'
         })
       }, 300)
-    } finally {
+    } catch (error) {
       wx.hideLoading()
+      wx.showToast({
+        title: (error && error.message) || '登录失败，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
       this.setData({ loading: false })
     }
   }

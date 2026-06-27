@@ -93,6 +93,17 @@
       </view>
     </view>
 
+    <view class="order-state-card" wx:elif="{{loading}}">
+      <view class="order-state-title">订单加载中...</view>
+      <view class="order-state-desc">正在同步最新行程记录</view>
+    </view>
+
+    <view class="order-state-card order-state-card--error" wx:elif="{{errorText}}">
+      <view class="order-state-title">订单加载失败</view>
+      <view class="order-state-desc">{{errorText}}</view>
+      <button class="primary-button order-state-button" hover-class="button-hover" bindtap="retryRefresh">重新加载</button>
+    </view>
+
     <view class="empty-panel" wx:else>
       <sun-empty
         title="暂无符合条件的订单"

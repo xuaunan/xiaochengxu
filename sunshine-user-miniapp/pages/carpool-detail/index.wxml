@@ -1,4 +1,20 @@
-<view class="page-shell carpool-detail-shell safe-bottom" wx:if="{{detail}}">
+<view class="page-shell carpool-detail-shell safe-bottom">
+  <view class="page-content detail-page page-enter" wx:if="{{loading && !detail}}">
+    <view class="detail-state-card">
+      <view class="detail-state-title">行程加载中...</view>
+      <view class="detail-state-desc">正在同步顺风车详情</view>
+    </view>
+  </view>
+
+  <view class="page-content detail-page page-enter" wx:elif="{{loadError && !detail}}">
+    <view class="detail-state-card detail-state-card--error">
+      <view class="detail-state-title">行程加载失败</view>
+      <view class="detail-state-desc">{{loadError}}</view>
+      <button class="primary-button detail-state-button" hover-class="button-hover" bindtap="loadDetail">重新加载</button>
+    </view>
+  </view>
+
+  <block wx:elif="{{detail}}">
   <view class="page-content detail-page page-enter">
     <view class="detail-hero">
       <view class="detail-hero__head">
@@ -53,8 +69,8 @@
       <view class="panel-desc">{{detail.myApplication.seatText}} · {{detail.myApplication.priceText}}</view>
       <view class="detail-note">{{detail.myApplication.noteText}}</view>
       <view class="action-row" wx:if="{{detail.myApplication.canPassengerConfirm || detail.myApplication.canPassengerCancel}}">
-        <button wx:if="{{detail.myApplication.canPassengerCancel}}" class="ghost-button action-button" hover-class="button-hover" data-id="{{detail.myApplication.id}}" bindtap="cancelApplication">取消申请</button>
-        <button wx:if="{{detail.myApplication.canPassengerConfirm}}" class="primary-button action-button" hover-class="button-hover" bindtap="confirmPassenger">确认同行</button>
+        <button wx:if="{{detail.myApplication.canPassengerCancel}}" class="ghost-button action-button" hover-class="button-hover" data-id="{{detail.myApplication.id}}" bindtap="cancelApplication" disabled="{{submitting}}">取消申请</button>
+        <button wx:if="{{detail.myApplication.canPassengerConfirm}}" class="primary-button action-button" hover-class="button-hover" bindtap="confirmPassenger" loading="{{submitting}}" disabled="{{submitting}}">{{submitting ? '处理中...' : '确认同行'}}</button>
       </view>
     </view>
 
@@ -79,8 +95,8 @@
           </view>
           <view class="application-note">{{item.noteText}}</view>
           <view class="action-row" wx:if="{{item.canOwnerApprove || item.canOwnerReject}}">
-            <button class="ghost-button action-button" hover-class="button-hover" data-id="{{item.id}}" data-action="REJECT" bindtap="handleOwnerAction">拒绝</button>
-            <button class="primary-button action-button" hover-class="button-hover" data-id="{{item.id}}" data-action="APPROVE" bindtap="handleOwnerAction">确认同行</button>
+            <button class="ghost-button action-button" hover-class="button-hover" data-id="{{item.id}}" data-action="REJECT" bindtap="handleOwnerAction" disabled="{{submitting}}">拒绝</button>
+            <button class="primary-button action-button" hover-class="button-hover" data-id="{{item.id}}" data-action="APPROVE" bindtap="handleOwnerAction" loading="{{submitting}}" disabled="{{submitting}}">{{submitting ? '处理中...' : '确认同行'}}</button>
           </view>
         </view>
       </view>
@@ -90,6 +106,7 @@
   </view>
 
   <view class="floating-bar detail-floating-bar" wx:if="{{detail.trip.canApply}}">
-    <button class="primary-button detail-apply-button" hover-class="button-hover" bindtap="applyRide">申请搭乘</button>
+    <button class="primary-button detail-apply-button" hover-class="button-hover" bindtap="applyRide" disabled="{{submitting}}">申请搭乘</button>
   </view>
+  </block>
 </view>

@@ -546,3 +546,39 @@ page {
   line-height: 1.5;
   font-weight: 400;
 }
+
+.wallet-state-card {
+  padding: 58rpx 22rpx 62rpx;
+  text-align: center;
+}
+
+.wallet-state-title {
+  color: #111827;
+  font-size: 27rpx;
+  font-weight: 550;
+}
+
+.wallet-state-desc {
+  margin-top: 10rpx;
+  color: #748096;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.wallet-state-button {
+  min-width: 196rpx;
+  height: 56rpx;
+  min-height: 56rpx;
+  margin-top: 22rpx;
+  padding: 0 26rpx;
+  border: 0;
+  border-radius: 16rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff7300 0%, #ff8f22 100%);
+  font-size: 22rpx;
+  font-weight: 550;
+}
+
+.wallet-state-button::after {
+  border: 0;
+}
