@@ -21,7 +21,7 @@ const carTypes = [
     name: '经济型',
     description: '适合日常通勤，近距离出行更划算',
     seatText: '最多 4 人',
-    image: '/images/car-economy.svg',
+    image: '/images/home-icons/car-economy.png',
     pricing: { start: 12, distance: 2.6, duration: 0.7, night: 1.1, longDistance: 1.2 }
   },
   {
@@ -30,7 +30,7 @@ const carTypes = [
     name: '舒适型',
     description: '空间更舒适，适合商务接送和家庭出行',
     seatText: '最多 4 人',
-    image: '/images/car-comfort.svg',
+    image: '/images/home-icons/car-comfort.png',
     pricing: { start: 18, distance: 3.3, duration: 0.85, night: 1.15, longDistance: 1.25 }
   },
   {
@@ -39,7 +39,7 @@ const carTypes = [
     name: '商务型',
     description: '高级商务座驾，支持机场与重要客人接送',
     seatText: '最多 6 人',
-    image: '/images/car-business.svg',
+    image: '/images/home-icons/car-business.png',
     pricing: { start: 28, distance: 4.6, duration: 1.1, night: 1.2, longDistance: 1.35 }
   }
 ]

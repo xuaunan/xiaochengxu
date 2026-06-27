@@ -63,15 +63,21 @@
 
     <view class="quick-actions">
       <view class="quick-action tap-scale" bindtap="chooseMyLocation" hover-class="pressable-hover" hover-stay-time="60">
-        <view class="quick-action__icon quick-action__icon--location">定</view>
+        <view class="quick-action__icon quick-action__icon--location">
+          <image class="quick-action__image" src="/images/home-icons/quick-location.png" mode="aspectFit"></image>
+        </view>
         <view class="quick-action__text">我的位置</view>
       </view>
       <view class="quick-action tap-scale" bindtap="toggleFavoritePanel" hover-class="pressable-hover" hover-stay-time="60">
-        <view class="quick-action__icon quick-action__icon--favorite">藏</view>
+        <view class="quick-action__icon quick-action__icon--favorite">
+          <image class="quick-action__image" src="/images/home-icons/quick-favorite.png" mode="aspectFit"></image>
+        </view>
         <view class="quick-action__text">收藏夹</view>
       </view>
       <view class="quick-action tap-scale" bindtap="openMapPicker" hover-class="pressable-hover" hover-stay-time="60">
-        <view class="quick-action__icon quick-action__icon--map">图</view>
+        <view class="quick-action__icon quick-action__icon--map">
+          <image class="quick-action__image" src="/images/home-icons/quick-map.png" mode="aspectFit"></image>
+        </view>
         <view class="quick-action__text">地图选点</view>
       </view>
     </view>

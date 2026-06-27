@@ -14,6 +14,38 @@ function getOrderTypeKey(item = {}) {
   return 'taxi'
 }
 
+function getStatusTag(status) {
+  const statusMap = {
+    completed: 'success',
+    finished: 'success',
+    processing: 'processing',
+    waiting: 'waiting',
+    dispatching: 'waiting',
+    cancelled: 'danger',
+    canceled: 'danger'
+  }
+  return statusMap[status] || 'waiting'
+}
+
+function getOrderNo(item = {}) {
+  return item.orderNo || item.order_no || item.orderId || item.order_id || item.id || ''
+}
+
+function decorateOrder(item = {}) {
+  const mapped = item.serviceTypeKey ? item : mapTripOrder(item)
+  const serviceTypeKey = mapped.serviceTypeKey || getOrderTypeKey(mapped)
+  return {
+    ...mapped,
+    serviceTypeKey,
+    orderNo: getOrderNo(mapped),
+    iconPath: mapped.iconPath || mapped.serviceIconPath || SERVICE_ICON_PATHS[serviceTypeKey] || SERVICE_ICON_PATHS.taxi,
+    typeText: mapped.typeText || mapped.serviceTypeLabel,
+    statusTag: mapped.statusTag || getStatusTag(mapped.status),
+    createdAtText: mapped.createdAtText || mapped.createdAt,
+    amountText: mapped.amountText || mapped.fareText
+  }
+}
+
 Page({
   data: {
     typeTabs: [
@@ -24,8 +56,10 @@ Page({
     ],
     statusTabs: [
       { key: 'all', label: '全部状态' },
-      { key: 'processing', label: '进行中' },
       { key: 'completed', label: '已完成' },
+      { key: 'waiting-pay', label: '待支付' },
+      { key: 'processing', label: '进行中' },
+      { key: 'dispatching', label: '待接单' },
       { key: 'cancelled', label: '已取消' }
     ],
     activeType: 'all',
@@ -39,7 +73,7 @@ Page({
   async onShow() {
     const cachedOrders = getApp().globalData.driverStore.tripOrders || []
     if (cachedOrders.length) {
-      this.setData({ allList: cachedOrders })
+      this.setData({ allList: cachedOrders.map(decorateOrder) })
       this.refreshList()
     }
     await this.refreshRemoteOrders().catch(() => {})
@@ -52,15 +86,7 @@ Page({
     })
     try {
       const response = await fetchOrders()
-      const list = (response.data || []).map((item) => {
-        const mapped = mapTripOrder(item)
-        const serviceTypeKey = getOrderTypeKey(mapped)
-        return {
-          ...mapped,
-          serviceTypeKey,
-          serviceIconPath: SERVICE_ICON_PATHS[serviceTypeKey] || SERVICE_ICON_PATHS.taxi
-        }
-      })
+      const list = (response.data || []).map(decorateOrder)
       getApp().globalData.driverStore.tripOrders = list
       getApp().saveStore()
       this.setData({
@@ -99,7 +125,8 @@ Page({
   refreshList() {
     const list = (this.data.allList || []).filter((item) => {
       const passType = this.data.activeType === 'all' || item.serviceTypeKey === this.data.activeType
-      const passStatus = this.data.activeStatus === 'all' || item.status === this.data.activeStatus
+      const targetStatus = this.data.activeStatus === 'dispatching' ? 'waiting' : this.data.activeStatus
+      const passStatus = targetStatus === 'all' || item.status === targetStatus
       return passType && passStatus
     })
     this.setData({ list })
@@ -112,5 +139,9 @@ Page({
         ? `/pages/trip-progress/index?id=${e.currentTarget.dataset.id}`
         : `/pages/trip-detail/index?id=${e.currentTarget.dataset.id}`
     })
+  },
+
+  goHome() {
+    wx.switchTab({ url: '/pages/dashboard/index' })
   }
 })
