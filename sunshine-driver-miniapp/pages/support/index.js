@@ -1,4 +1,7 @@
 const { fetchSupportConversation, fetchSupportMessages, sendSupportMessage } = require('../../utils/api')
+const { DRIVER_AVATAR_FALLBACK, buildStaticUrl } = require('../../utils/media')
+
+const SUPPORT_AVATAR = '/images/support-avatar.svg'
 
 function formatDateTime(value) {
   if (!value) return '刚刚'
@@ -16,10 +19,37 @@ function formatDateTime(value) {
   return text || '刚刚'
 }
 
-function decorateMessage(message = {}, index = 0) {
+function formatSupportMessageContent(content, message = {}) {
+  const raw = `${content || ''}`.trim()
+  if (!raw || (!message.fromAi && !message.fromAdmin)) return raw
+
+  return raw
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .replace(/([：:])\s*(?=\d+[.．、])/g, '$1\n')
+    .replace(/\s+(\d+[.．、])/g, '\n$1')
+    .replace(/\s+([-•])\s*/g, '\n$1 ')
+    .replace(/([。！？；;])\s*(?=(注意|温馨提示|小贴士|如果|建议|请|遇到|涉及))/g, '$1\n')
+    .replace(/\s*(⚠️|⚠|注意[:：])/g, '\n$1')
+    .replace(/\s*(小贴士[:：]|温馨提示[:：])/g, '\n$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function decorateMessage(message = {}, index = 0, options = {}) {
+  const isSelf = !message.fromAi && !message.fromAdmin
+  const senderName = isSelf ? '我' : '阳光客服'
+  const senderRoleText = isSelf ? '司机端' : (message.fromAdmin ? '人工客服' : '在线')
   return {
     ...message,
+    isSelf,
+    senderName,
+    senderRoleText,
+    avatarSrc: isSelf ? (options.userAvatarSrc || DRIVER_AVATAR_FALLBACK) : SUPPORT_AVATAR,
+    avatarText: isSelf ? '我' : '阳',
     anchorId: `support-msg-${message.id || index}`,
+    displayContent: formatSupportMessageContent(message.content, message),
     timeText: formatDateTime(message.createdAt)
   }
 }
@@ -28,6 +58,58 @@ function normalizeMessageList(payload) {
   if (Array.isArray(payload)) return payload
   if (!payload || typeof payload !== 'object') return []
   return payload.records || payload.messages || payload.list || payload.rows || []
+}
+
+function createPendingMessages(content, userAvatarSrc) {
+  const now = Date.now()
+  const userMessage = {
+    id: `local-user-${now}`,
+    anchorId: `support-msg-local-user-${now}`,
+    content,
+    timeText: '刚刚'
+  }
+  const typingMessage = {
+    id: `local-ai-${now}`,
+    anchorId: `support-msg-local-ai-${now}`,
+    content: 'AI回复中...',
+    fromAi: true,
+    isTyping: true,
+    timeText: '刚刚'
+  }
+  return [
+    decorateMessage(userMessage, 0, { userAvatarSrc }),
+    decorateMessage(typingMessage, 1, { userAvatarSrc })
+  ]
+}
+
+function shouldKeepPendingReply(messages, content) {
+  const target = `${content || ''}`.trim()
+  if (!target) return false
+  let userMessageIndex = -1
+  messages.forEach((message, index) => {
+    if (!message.fromAi && !message.fromAdmin && `${message.content || ''}`.trim() === target) {
+      userMessageIndex = index
+    }
+  })
+  if (userMessageIndex < 0) return false
+  return !messages.slice(userMessageIndex + 1).some((message) => message.fromAi || message.fromAdmin)
+}
+
+function appendPendingReplyIfNeeded(messages, content, userAvatarSrc) {
+  if (!shouldKeepPendingReply(messages, content)) {
+    return { messages, pending: false }
+  }
+  const [, typingMessage] = createPendingMessages(content, userAvatarSrc)
+  return { messages: messages.concat(typingMessage), pending: true }
+}
+
+function isManualRequest(content) {
+  const normalized = `${content || ''}`.replace(/\s+/g, '')
+  return normalized.includes('联系人工')
+    || normalized.includes('人工客服')
+    || normalized.includes('转人工')
+    || normalized.includes('找人工')
+    || normalized.includes('真人客服')
 }
 
 Page({
@@ -43,6 +125,8 @@ Page({
   },
 
   supportTimer: null,
+  sendingLock: false,
+  pendingReplyContent: '',
 
   async onShow() {
     await this.refreshSupport().catch(() => {})
@@ -71,7 +155,14 @@ Page({
     }
   },
 
+  getUserAvatarSrc() {
+    const app = getApp()
+    const profile = (app.globalData.driverStore && app.globalData.driverStore.profile) || {}
+    return buildStaticUrl(app.globalData.baseUrl, profile.avatar || DRIVER_AVATAR_FALLBACK) || DRIVER_AVATAR_FALLBACK
+  },
+
   async refreshSupport(options = {}) {
+    if (options.fromPolling && this.data.sending) return
     if (this.__refreshingSupport) return
     this.__refreshingSupport = true
     if (!options.fromPolling && !this.data.messages.length) {
@@ -82,15 +173,23 @@ Page({
         fetchSupportConversation(),
         fetchSupportMessages()
       ])
-      const messages = normalizeMessageList(messageResponse.data).map(decorateMessage)
-      const previousLast = this.data.messages[this.data.messages.length - 1] || {}
+      const userAvatarSrc = this.getUserAvatarSrc()
+      const conversation = conversationResponse.data || {}
+      const serverMessages = normalizeMessageList(messageResponse.data).map((item, index) => decorateMessage(item, index, { userAvatarSrc }))
+      const pendingState = conversation.status === 'MANUAL'
+        ? { messages: serverMessages, pending: false }
+        : appendPendingReplyIfNeeded(serverMessages, this.pendingReplyContent, userAvatarSrc)
+      if (this.pendingReplyContent && !pendingState.pending) {
+        this.pendingReplyContent = ''
+      }
+      const messages = pendingState.messages
       const nextLast = messages[messages.length - 1] || {}
-      const shouldScroll = !options.fromPolling || previousLast.id !== nextLast.id || previousLast.createdAt !== nextLast.createdAt
+      const shouldScroll = !options.fromPolling
       this.setData({
-        conversation: conversationResponse.data || {},
+        conversation,
         messages,
         loadError: '',
-        scrollIntoView: shouldScroll && nextLast.anchorId ? nextLast.anchorId : this.data.scrollIntoView
+        scrollIntoView: shouldScroll && nextLast.anchorId ? nextLast.anchorId : ''
       })
     } catch (error) {
       if (!options.fromPolling) {
@@ -117,27 +216,48 @@ Page({
     })
   },
 
-  handleQuickQuestion(e) {
-    const content = `${e.currentTarget.dataset.content || ''}`.trim()
-    if (!content || this.data.sending) return
-    this.setData({ inputText: content })
-    this.sendMessage()
+  handleMessageScroll() {
+    if (this.data.scrollIntoView) {
+      this.setData({ scrollIntoView: '' })
+    }
   },
 
-  async sendMessage() {
-    const content = `${this.data.inputText || ''}`.trim()
-    if (!content || this.data.sending) return
-    this.setData({ sending: true })
+  handleQuickQuestion(e) {
+    const content = `${e.currentTarget.dataset.content || ''}`.trim()
+    if (!content || this.data.sending || this.sendingLock) return
+    this.sendMessage(content)
+  },
+
+  async sendMessage(contentOverride) {
+    const content = `${typeof contentOverride === 'string' ? contentOverride : (this.data.inputText || '')}`.trim()
+    if (!content || this.data.sending || this.sendingLock) return
+    this.sendingLock = true
+    const previousMessages = this.data.messages
+    const [userMessage, typingMessage] = createPendingMessages(content, this.getUserAvatarSrc())
+    const waitForAi = !isManualRequest(content)
+    this.pendingReplyContent = waitForAi ? content : ''
+    this.setData({
+      sending: true,
+      inputText: '',
+      messages: previousMessages.concat(waitForAi ? [userMessage, typingMessage] : [userMessage]),
+      scrollIntoView: waitForAi ? typingMessage.anchorId : userMessage.anchorId
+    })
     try {
       await sendSupportMessage(content)
-      this.setData({ inputText: '' })
       await this.refreshSupport()
     } catch (error) {
+      this.pendingReplyContent = ''
+      this.setData({
+        inputText: content,
+        messages: previousMessages,
+        scrollIntoView: previousMessages.length ? previousMessages[previousMessages.length - 1].anchorId : ''
+      })
       wx.showToast({
         title: (error && error.message) || '发送失败，请稍后重试',
         icon: 'none'
       })
     } finally {
+      this.sendingLock = false
       this.setData({ sending: false })
     }
   }

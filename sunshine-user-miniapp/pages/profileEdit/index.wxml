@@ -5,9 +5,10 @@
         <view class="edit-title">{{copy.title}}</view>
         <view class="edit-subtitle">{{phoneText}}</view>
       </view>
-      <view class="avatar-view" aria-label="{{copy.avatar}}">
-        <image class="avatar-image" src="{{form.avatar || '/images/avatar-user.svg'}}" mode="aspectFill"></image>
-      </view>
+      <button class="avatar-view avatar-button tap-scale" aria-label="{{copy.avatar}}" hover-class="avatar-button--hover" disabled="{{saving}}" bindtap="chooseAvatar">
+        <image class="avatar-image" src="{{avatarSrc || '/images/avatar-user.svg'}}" mode="aspectFill"></image>
+        <view class="avatar-action">{{copy.changeAvatar}}</view>
+      </button>
     </view>
 
     <view class="form-section">

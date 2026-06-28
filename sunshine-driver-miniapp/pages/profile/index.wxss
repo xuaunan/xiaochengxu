@@ -1,22 +1,23 @@
 .driver-profile-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 194, 124, 0.2), transparent 32%),
-    linear-gradient(180deg, #fff6ea 0%, #f7f8fc 36%, #f5f7fb 100%);
+    radial-gradient(circle at 50% 0%, rgba(255, 184, 98, 0.28), transparent 32%),
+    radial-gradient(circle at 0% 18%, rgba(47, 114, 219, 0.08), transparent 28%),
+    linear-gradient(180deg, #fff5e8 0%, #f7f8fc 36%, #f4f6fb 100%);
 }
 
 .driver-profile {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
-  padding: 18rpx 24rpx calc(env(safe-area-inset-bottom) + 34rpx);
+  gap: 22rpx;
+  padding: 22rpx 36rpx calc(env(safe-area-inset-bottom) + 38rpx);
 }
 
 .driver-hero {
   position: relative;
   overflow: hidden;
-  padding: 30rpx 26rpx 26rpx;
-  border-radius: 24rpx;
+  padding: 30rpx 28rpx 26rpx;
+  border-radius: 28rpx;
   border: 1rpx solid rgba(255, 160, 74, 0.28);
   background:
     linear-gradient(115deg, rgba(255, 213, 160, 0.62) 0%, rgba(255, 251, 246, 0.92) 54%, rgba(255, 231, 203, 0.72) 100%),
@@ -206,8 +207,8 @@
 
 .profile-name {
   color: #172033;
-  font-size: 30rpx;
-  font-weight: 550;
+  font-size: 29rpx;
+  font-weight: 500;
   line-height: 1.18;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,7 +250,7 @@
 .driver-metric__value {
   color: #172033;
   font-size: 29rpx;
-  font-weight: 500;
+  font-weight: 450;
   line-height: 1.16;
 }
 
@@ -276,10 +277,22 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 34rpx;
+  gap: 24rpx;
   min-height: 110rpx;
-  padding: 20rpx 68rpx 20rpx 24rpx;
-  border-radius: 20rpx;
+  padding: 22rpx 70rpx 22rpx 28rpx;
+  border-radius: 26rpx;
+}
+
+.permission-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20rpx;
+  bottom: 20rpx;
+  width: 6rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #ff9b32, #ff7a00);
+  opacity: 0.72;
 }
 
 .permission-icon {
@@ -328,7 +341,7 @@
 .permission-title {
   color: #172033;
   font-size: 24rpx;
-  font-weight: 500;
+  font-weight: 450;
   line-height: 1.28;
 }
 
@@ -352,7 +365,7 @@
   padding: 7rpx 14rpx;
   border-radius: 999rpx;
   font-size: 21rpx;
-  font-weight: 500;
+  font-weight: 450;
   line-height: 1.1;
 }
 
@@ -388,7 +401,7 @@
   padding-left: 16rpx;
   color: #172033;
   font-size: 24rpx;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.3;
 }
 
@@ -405,18 +418,33 @@
 
 .group-card {
   overflow: hidden;
-  padding: 0 24rpx;
-  border-radius: 20rpx;
+  padding: 0 28rpx;
+  border-radius: 26rpx;
 }
 
 .menu-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 34rpx;
+  gap: 24rpx;
   min-height: 108rpx;
   padding: 20rpx 44rpx 20rpx 0;
   border-bottom: 1rpx solid rgba(31, 36, 50, 0.07);
+}
+
+.menu-row::before {
+  content: "";
+  position: absolute;
+  left: -24rpx;
+  top: 24rpx;
+  bottom: 24rpx;
+  width: 5rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 122, 0, 0);
+}
+
+.menu-row:active::before {
+  background: rgba(255, 122, 0, 0.38);
 }
 
 .menu-row:last-child {
@@ -429,7 +457,7 @@
   height: 48rpx;
   flex-shrink: 0;
   border-radius: 16rpx;
-  background: #fff0df;
+  background: linear-gradient(180deg, #fff4e7, #ffe8d1);
   box-sizing: border-box;
 }
 
@@ -463,7 +491,7 @@
 }
 
 .menu-icon--orders {
-  background: #edf5ff;
+  background: linear-gradient(180deg, #edf5ff, #ddeaff);
 }
 
 .menu-icon--orders::before {
@@ -507,7 +535,7 @@
 }
 
 .menu-icon--settings {
-  background: #eef0ff;
+  background: linear-gradient(180deg, #eef0ff, #e0e4ff);
 }
 
 .menu-icon--settings::before {
@@ -553,7 +581,7 @@
 }
 
 .menu-icon--bell {
-  background: #edf5ff;
+  background: linear-gradient(180deg, #edf5ff, #ddeaff);
 }
 
 .menu-icon--bell::before {
@@ -585,7 +613,7 @@
 .menu-title {
   color: #172033;
   font-size: 24rpx;
-  font-weight: 500;
+  font-weight: 450;
   line-height: 1.28;
 }
 
@@ -624,8 +652,76 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 20rpx;
+  border-radius: 26rpx;
   color: #ff5b57;
   font-size: 23rpx;
-  font-weight: 500;
+  font-weight: 450;
+}
+
+.permission-icon,
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.permission-icon::before,
+.permission-icon::after,
+.menu-icon::before,
+.menu-icon::after {
+  display: none;
+}
+
+.permission-icon-image,
+.menu-icon-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.permission-icon {
+  background: #eaf8f1;
+}
+
+.menu-icon--vehicle {
+  background: #fff4d8;
+}
+
+.menu-icon--orders,
+.menu-icon--bell,
+.menu-icon--support {
+  background: #edf5ff;
+}
+
+.menu-icon--income {
+  background: #fff5df;
+}
+
+.menu-icon--settings {
+  background: #eef0ff;
+}
+
+.menu-icon--profile {
+  background: #fff0ec;
+}
+
+.permission-icon,
+.menu-icon,
+.menu-icon--vehicle,
+.menu-icon--orders,
+.menu-icon--bell,
+.menu-icon--support,
+.menu-icon--income,
+.menu-icon--settings,
+.menu-icon--profile {
+  background: transparent;
+}
+
+.permission-icon,
+.menu-icon {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 20rpx;
 }

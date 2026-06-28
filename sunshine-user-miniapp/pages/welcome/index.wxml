@@ -1,50 +1,8 @@
 <view class="welcome-page page-enter">
-  <view class="welcome-bg">
-    <view class="sky-card sky-card--one"></view>
-    <view class="sky-card sky-card--two"></view>
-    <view class="sky-card sky-card--three"></view>
+  <image class="welcome-bg-image" src="/images/auth/passenger-welcome-hero.png" mode="aspectFill"></image>
+  <view class="welcome-bg-mask"></view>
 
-    <view class="city city--back">
-      <view class="building building--b1"></view>
-      <view class="building building--b2"></view>
-      <view class="building building--b3"></view>
-      <view class="building building--b4"></view>
-      <view class="building building--b5"></view>
-      <view class="building building--b6"></view>
-    </view>
-
-    <view class="city city--front">
-      <view class="building building--f1"></view>
-      <view class="building building--f2"></view>
-      <view class="building building--f3"></view>
-      <view class="building building--f4"></view>
-      <view class="building building--f5"></view>
-    </view>
-
-    <view class="tree tree--1"></view>
-    <view class="tree tree--2"></view>
-    <view class="tree tree--3"></view>
-    <view class="tree tree--4"></view>
-    <view class="road-scene">
-      <view class="road-line road-line--one"></view>
-      <view class="road-line road-line--two"></view>
-      <view class="road-line road-line--three"></view>
-    </view>
-    <view class="hero-car">
-      <view class="hero-car__body"></view>
-      <view class="hero-car__top"></view>
-      <view class="hero-car__light hero-car__light--left"></view>
-      <view class="hero-car__light hero-car__light--right"></view>
-      <view class="hero-car__window hero-car__window--left"></view>
-      <view class="hero-car__window hero-car__window--right"></view>
-      <view class="hero-car__plate"></view>
-      <view class="hero-car__wheel hero-car__wheel--left"></view>
-      <view class="hero-car__wheel hero-car__wheel--right"></view>
-      <view class="hero-car__sign">TAXI</view>
-    </view>
-  </view>
-
-  <view class="welcome-content">
+  <view class="welcome-hero">
     <view class="brand-block">
       <view class="brand-title">阳光出行</view>
       <view class="brand-subtitle">智慧出行服务平台</view>
@@ -52,7 +10,7 @@
 
     <view class="gift-pill">
       <view class="gift-icon">
-        <view class="gift-icon__bow"></view>
+        <image class="gift-icon-img" src="/images/profile-menu-icons/coupon.png" mode="aspectFit"></image>
       </view>
       <text>新人礼包已备好</text>
     </view>
@@ -61,19 +19,39 @@
       <view class="hero-title">出行，从这里开始</view>
       <view class="hero-desc">打车、顺风车、国际出行与优惠券服务集中管理。</view>
     </view>
+  </view>
 
+  <view class="welcome-content">
     <view class="coupon-card">
-      <view class="coupon-amount"><text>18</text><text class="coupon-unit">元</text></view>
-      <view class="coupon-title">新人打车立减券</view>
-      <view class="coupon-desc">注册即领，首页下单自动可选</view>
-      <view class="coupon-corner"></view>
-      <view class="coupon-ticket">%</view>
+      <view class="coupon-topline">
+        <view class="coupon-badge">新人专享</view>
+        <view class="coupon-rule">注册即领 · 首单可用</view>
+      </view>
+      <view class="coupon-body">
+        <view class="coupon-amount"><text>18</text><text class="coupon-unit">元</text></view>
+        <view class="coupon-divider"></view>
+        <view class="coupon-copy">
+          <view class="coupon-title">打车立减券</view>
+          <view class="coupon-desc">首页下单时自动展示，可与活动叠加。</view>
+        </view>
+        <view class="coupon-action">领取</view>
+      </view>
+      <view class="coupon-watermark">%</view>
     </view>
 
     <view class="feature-card">
+      <view class="feature-head">
+        <view>
+          <view class="feature-kicker">服务能力</view>
+          <view class="feature-heading">常用出行一站搞定</view>
+        </view>
+        <view class="feature-count">{{couponCount}} 项</view>
+      </view>
+
       <view class="feature-row">
-        <view class="feature-icon feature-icon--pin"></view>
-        <view class="feature-index">01</view>
+        <view class="feature-icon feature-icon--route">
+          <image class="feature-icon-img" src="/images/profile-menu-icons/route.png" mode="aspectFit"></image>
+        </view>
         <view class="feature-copy">
           <view class="feature-title">地图路线可视化</view>
           <view class="feature-desc">定位、选点、路线和费用预估集中呈现。</view>
@@ -81,9 +59,11 @@
         <view class="feature-arrow"></view>
       </view>
       <view class="feature-divider"></view>
+
       <view class="feature-row">
-        <view class="feature-icon feature-icon--wallet"></view>
-        <view class="feature-index">02</view>
+        <view class="feature-icon feature-icon--wallet">
+          <image class="feature-icon-img" src="/images/profile-menu-icons/wallet.png" mode="aspectFit"></image>
+        </view>
         <view class="feature-copy">
           <view class="feature-title">订单支付闭环</view>
           <view class="feature-desc">订单、优惠、支付和评价保持同一套流程。</view>
@@ -91,9 +71,11 @@
         <view class="feature-arrow"></view>
       </view>
       <view class="feature-divider"></view>
+
       <view class="feature-row">
-        <view class="feature-icon feature-icon--shield"></view>
-        <view class="feature-index">03</view>
+        <view class="feature-icon feature-icon--shield">
+          <image class="feature-icon-img" src="/images/profile-menu-icons/shield.png" mode="aspectFit"></image>
+        </view>
         <view class="feature-copy">
           <view class="feature-title">统一服务体验</view>
           <view class="feature-desc">界面、状态和操作反馈保持一致。</view>

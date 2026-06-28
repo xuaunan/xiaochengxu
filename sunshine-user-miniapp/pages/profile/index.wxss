@@ -689,3 +689,130 @@
   font-weight: 500;
   box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.045);
 }
+
+.asset-icon,
+.menu-icon {
+  overflow: hidden;
+}
+
+.asset-icon::before,
+.asset-icon::after,
+.menu-icon::before,
+.menu-icon::after {
+  display: none;
+}
+
+.asset-icon-image,
+.menu-icon-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.asset-icon--wallet {
+  background: #fff4d8;
+}
+
+.asset-icon--invoice {
+  background: #fff2df;
+}
+
+.asset-icon--coupon {
+  background: #e9fbf6;
+}
+
+.menu-icon--user {
+  background: #fff0ec;
+}
+
+.menu-icon--wallet,
+.menu-icon--invoice {
+  background: #fff5df;
+}
+
+.menu-icon--star {
+  background: #f2ecff;
+}
+
+.menu-icon--feedback {
+  background: #e9fbf6;
+}
+
+.menu-icon--service,
+.menu-icon--bell {
+  background: #edf5ff;
+}
+
+.menu-icon--help {
+  background: #eafbf4;
+}
+
+.menu-icon--settings {
+  background: #eef0ff;
+}
+
+.asset-icon,
+.menu-icon,
+.asset-icon--wallet,
+.asset-icon--invoice,
+.asset-icon--coupon,
+.menu-icon--user,
+.menu-icon--wallet,
+.menu-icon--invoice,
+.menu-icon--star,
+.menu-icon--feedback,
+.menu-icon--service,
+.menu-icon--bell,
+.menu-icon--help,
+.menu-icon--settings {
+  background: transparent;
+}
+
+.asset-icon {
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 18rpx;
+}
+
+.menu-icon {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 20rpx;
+}
+
+.section-icon {
+  overflow: visible;
+  background: transparent;
+}
+
+.section-icon::before,
+.section-icon::after {
+  display: none;
+}
+
+.section-icon-image {
+  display: block;
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.section-icon--asset {
+  width: 52rpx;
+  height: 52rpx;
+}
+
+.section-icon--service {
+  width: 52rpx;
+  height: 52rpx;
+}
+
+.section-icon--asset .section-icon-image,
+.section-icon--service .section-icon-image {
+  width: 58rpx;
+  height: 58rpx;
+}
+
+.asset-icon,
+.menu-icon {
+  overflow: visible;
+}

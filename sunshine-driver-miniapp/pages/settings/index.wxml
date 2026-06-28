@@ -1,7 +1,9 @@
 <view class="page-shell driver-settings-shell safe-bottom">
   <view class="page-content driver-settings-page">
     <view class="driver-settings-hero page-enter">
-      <view class="settings-hero__icon"></view>
+      <view class="settings-hero__icon">
+        <image class="settings-hero__icon-img" src="/images/profile-menu-icons/settings.png" mode="aspectFit"></image>
+      </view>
       <view class="settings-hero__copy">
         <view class="settings-title">接单设置</view>
         <view class="settings-desc">听单、自动接单、轨迹模式与播报偏好</view>
@@ -18,7 +20,9 @@
       <view class="settings-section-title">接单偏好</view>
       <view class="settings-card">
         <view class="setting-row tap-scale" data-key="listenMode" bindtap="toggle">
-          <view class="setting-icon setting-icon--listen"></view>
+          <view class="setting-icon setting-icon--listen">
+            <image class="setting-icon-img" src="/images/profile-menu-icons/listen.png" mode="aspectFit"></image>
+          </view>
           <view class="setting-copy">
             <view class="setting-title">听单模式</view>
             <view class="setting-desc">关闭后不再接收新订单</view>
@@ -26,7 +30,9 @@
           <switch color="#ff7a00" checked="{{settings.listenMode}}"></switch>
         </view>
         <view class="setting-row tap-scale" data-key="autoAccept" bindtap="toggle">
-          <view class="setting-icon setting-icon--auto"></view>
+          <view class="setting-icon setting-icon--auto">
+            <image class="setting-icon-img" src="/images/profile-menu-icons/auto.png" mode="aspectFit"></image>
+          </view>
           <view class="setting-copy">
             <view class="setting-title">自动接单</view>
             <view class="setting-desc">听单后自动接取符合条件的即时打车订单</view>
@@ -34,7 +40,9 @@
           <switch color="#ff7a00" checked="{{settings.autoAccept}}"></switch>
         </view>
         <view class="setting-row tap-scale" data-key="voiceBroadcast" bindtap="toggle">
-          <view class="setting-icon setting-icon--voice"></view>
+          <view class="setting-icon setting-icon--voice">
+            <image class="setting-icon-img" src="/images/profile-menu-icons/voice.png" mode="aspectFit"></image>
+          </view>
           <view class="setting-copy">
             <view class="setting-title">语音播报</view>
             <view class="setting-desc">播报接驾、上车、目的地提醒和订单变化</view>
@@ -87,7 +95,9 @@
     </view>
 
     <view class="settings-preview-card">
-      <view class="setting-icon setting-icon--preview"></view>
+      <view class="setting-icon setting-icon--preview">
+        <image class="setting-icon-img" src="/images/profile-menu-icons/preview.png" mode="aspectFit"></image>
+      </view>
       <view class="setting-copy">
         <view class="setting-title">试听当前声音</view>
         <view class="setting-desc">立即播放一条测试语音，检查当前音色是否正常</view>

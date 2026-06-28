@@ -7,6 +7,7 @@ import com.sunshine.travel.dto.RealNameSubmitRequest;
 import com.sunshine.travel.entity.PlatformUser;
 import com.sunshine.travel.vo.AuthLoginVO;
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AuthService {
 
@@ -19,6 +20,8 @@ public interface AuthService {
     PlatformUser currentProfile();
 
     PlatformUser updateProfile(ProfileUpdateRequest request);
+
+    Map<String, Object> uploadAvatar(MultipartFile file);
 
     Map<String, Object> submitRealName(RealNameSubmitRequest request);
 }

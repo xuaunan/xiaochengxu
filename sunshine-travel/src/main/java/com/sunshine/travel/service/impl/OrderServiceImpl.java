@@ -2,6 +2,8 @@ package com.sunshine.travel.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sunshine.travel.common.BusinessException;
 import com.sunshine.travel.common.CouponStatus;
@@ -78,6 +80,8 @@ public class OrderServiceImpl implements OrderService {
     private static final int CANCEL_FEE_STEP_MINUTES = 5;
     private static final String DEFAULT_NIGHT_TIME_RANGE = "23:00-06:00";
     private static final String INVOICE_SELLER_NAME = "北京阳光出行有限公司";
+    private static final String WEB_EXCLUSIVE_META_START_TAG = "[WEB_EXCLUSIVE_META]";
+    private static final String WEB_EXCLUSIVE_META_END_TAG = "[/WEB_EXCLUSIVE_META]";
     private static final String INVOICE_SELLER_TAX_NO = "91110105MA01SUN8X9";
     private static final String INVOICE_SELLER_PHONE = "400-100-0101";
     private static final DateTimeFormatter INVOICE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -165,6 +169,8 @@ public class OrderServiceImpl implements OrderService {
         CarType carType = requireCarType(request.getCarTypeId());
         PricingResult pricing = calcAmount(carType, request.getServiceType(), request.getEstimatedDistanceKm(), request.getEstimatedDurationMin());
         CouponUseResult couponUseResult = useCouponIfNeeded(request.getUserCouponId(), pricing.finalAmount(), request.getServiceType());
+        BigDecimal webExclusiveDiscount = resolveWebExclusiveDiscount(request, pricing.finalAmount(), couponUseResult.discountAmount());
+        BigDecimal totalDiscount = couponUseResult.discountAmount().add(webExclusiveDiscount).setScale(2, RoundingMode.HALF_UP);
 
         RideOrder order = new RideOrder();
         order.setOrderNo("ORD" + IdUtil.getSnowflakeNextIdStr());
@@ -181,9 +187,9 @@ public class OrderServiceImpl implements OrderService {
         order.setEstimatedDistanceKm(request.getEstimatedDistanceKm());
         order.setEstimatedDurationMin(request.getEstimatedDurationMin());
         order.setEstimatedAmount(pricing.finalAmount());
-        order.setCouponDiscount(couponUseResult.discountAmount());
+        order.setCouponDiscount(totalDiscount);
         order.setUserCouponId(couponUseResult.userCouponId());
-        order.setPayableAmount(pricing.finalAmount().subtract(couponUseResult.discountAmount()).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
+        order.setPayableAmount(pricing.finalAmount().subtract(totalDiscount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
         order.setActualAmount(order.getPayableAmount());
         order.setNightSurchargeAmount(pricing.nightSurchargeAmount());
         order.setLongDistanceSurchargeAmount(pricing.longDistanceSurchargeAmount());
@@ -196,7 +202,7 @@ public class OrderServiceImpl implements OrderService {
         order.setComplaintStatus("NONE");
         order.setSettlementStatus("PENDING");
         order.setLanguageCode(StringUtils.hasText(request.getLanguageCode()) ? request.getLanguageCode() : "zh-CN");
-        order.setRemark(buildDispatchRemark(request.getDispatchMode(), request.getRemark()));
+        order.setRemark(buildDispatchRemark(request.getDispatchMode(), appendWebExclusiveMeta(request.getRemark(), request, webExclusiveDiscount)));
         rideOrderMapper.insert(order);
         bindCouponIfNecessary(order);
         messagePushSupport.push(userId, "ORDER", "ORDER_CREATED", "订单已创建", "订单已提交，正在等待司机接单。", order.getLanguageCode());
@@ -988,6 +994,15 @@ public class OrderServiceImpl implements OrderService {
         row.put("vehiclePlateNo", vehicle == null ? "" : firstNonBlank(vehicle.getPlateNo()));
         Map<String, Object> invoiceMeta = InvoiceMetaUtil.parse(order.getRemark());
         row.put("invoiceMeta", invoiceMeta);
+        Map<String, Object> webExclusiveMeta = parseWebExclusiveMeta(order.getRemark());
+        if (!webExclusiveMeta.isEmpty()) {
+            row.put("webExclusiveMeta", webExclusiveMeta);
+            row.put("sourceChannel", firstNonBlank(text(webExclusiveMeta, "sourceChannel"), "WEB"));
+            row.put("webExclusiveDiscountAmount", toBigDecimal(webExclusiveMeta.get("amount")));
+            row.put("webExclusiveDiscountLabel", firstNonBlank(text(webExclusiveMeta, "label"), "网页专属优惠"));
+            row.put("webExclusiveDiscountScope", firstNonBlank(text(webExclusiveMeta, "scope"), "WEB_TAXI_ONLY"));
+            row.put("webCheckinAccountKey", text(webExclusiveMeta, "accountKey"));
+        }
         row.put("invoiceTitle", InvoiceMetaUtil.firstText(invoiceMeta, "buyerName", "title"));
         row.put("taxNo", InvoiceMetaUtil.firstText(invoiceMeta, "buyerTaxNo", "taxNo"));
         row.put("buyerPhone", InvoiceMetaUtil.text(invoiceMeta, "buyerPhone"));
@@ -1012,6 +1027,81 @@ public class OrderServiceImpl implements OrderService {
             row.put("internationalMeta", internationalMeta);
         }
         return row;
+    }
+
+    private BigDecimal resolveWebExclusiveDiscount(OrderCreateRequest request, BigDecimal orderAmount, BigDecimal couponDiscount) {
+        if (request == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        if (!"WEB".equalsIgnoreCase(firstNonBlank(request.getSourceChannel()))) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        if (!ServiceType.TAXI.equals(request.getServiceType())) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal requested = safeDecimal(request.getWebExclusiveDiscountAmount()).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal remaining = safeDecimal(orderAmount)
+                .subtract(safeDecimal(couponDiscount))
+                .subtract(BigDecimal.valueOf(0.01))
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+        return requested.min(remaining).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String appendWebExclusiveMeta(String remark, OrderCreateRequest request, BigDecimal discountAmount) {
+        BigDecimal amount = safeDecimal(discountAmount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        String cleanRemark = stripWebExclusiveMeta(remark);
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return cleanRemark;
+        }
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("sourceChannel", "WEB");
+        meta.put("amount", amount.toPlainString());
+        meta.put("label", firstNonBlank(request.getWebExclusiveDiscountLabel(), "网页专属签到优惠"));
+        meta.put("scope", firstNonBlank(request.getWebExclusiveDiscountScope(), "WEB_TAXI_ONLY"));
+        meta.put("accountKey", firstNonBlank(request.getWebCheckinAccountKey()));
+        String block = WEB_EXCLUSIVE_META_START_TAG + JSONUtil.toJsonStr(meta) + WEB_EXCLUSIVE_META_END_TAG;
+        return StringUtils.hasText(cleanRemark) ? cleanRemark + " " + block : block;
+    }
+
+    private Map<String, Object> parseWebExclusiveMeta(String remark) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (!StringUtils.hasText(remark)) {
+            return result;
+        }
+        int start = remark.indexOf(WEB_EXCLUSIVE_META_START_TAG);
+        int end = remark.indexOf(WEB_EXCLUSIVE_META_END_TAG);
+        if (start < 0 || end <= start) {
+            return result;
+        }
+        String body = remark.substring(start + WEB_EXCLUSIVE_META_START_TAG.length(), end).trim();
+        if (!StringUtils.hasText(body)) {
+            return result;
+        }
+        try {
+            JSONObject object = JSONUtil.parseObj(body);
+            for (String key : object.keySet()) {
+                result.put(key, object.get(key));
+            }
+        } catch (Exception ignored) {
+            result.clear();
+        }
+        return result;
+    }
+
+    private String stripWebExclusiveMeta(String remark) {
+        if (!StringUtils.hasText(remark)) {
+            return "";
+        }
+        return remark.replaceAll("\\[WEB_EXCLUSIVE_META\\][\\s\\S]*?\\[/WEB_EXCLUSIVE_META\\]", "").trim();
+    }
+
+    private String text(Map<String, Object> meta, String key) {
+        if (meta == null || !StringUtils.hasText(key)) {
+            return "";
+        }
+        Object value = meta.get(key);
+        return value == null ? "" : String.valueOf(value).trim();
     }
 
     private Map<String, Object> mapUserSummary(PlatformUser user) {

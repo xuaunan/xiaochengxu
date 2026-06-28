@@ -5,7 +5,7 @@
       <view class="profile-hero-tint"></view>
 
       <view class="profile-avatar-wrap">
-        <image class="profile-avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+        <image class="profile-avatar" src="{{avatarSrc || '/images/avatar-user.svg'}}" mode="aspectFill"></image>
       </view>
       <view class="profile-identity">
         <view class="profile-name">{{profile.name}}</view>
@@ -20,7 +20,9 @@
     <view class="profile-assets">
       <view class="profile-card-head">
         <view class="card-title-wrap">
-          <view class="section-icon section-icon--asset"></view>
+          <view class="section-icon section-icon--asset">
+            <image class="section-icon-image" src="/images/profile-menu-icons/asset.png" mode="aspectFit"></image>
+          </view>
           <view>
             <view class="profile-card-title">账户资产</view>
             <view class="profile-card-desc">余额、发票和优惠券集中管理</view>
@@ -30,17 +32,23 @@
       </view>
       <view class="profile-metrics">
         <view class="asset-card tap-scale" bindtap="openOrders">
-          <view class="asset-icon asset-icon--wallet"></view>
+          <view class="asset-icon asset-icon--wallet">
+            <image class="asset-icon-image" src="/images/profile-menu-icons/wallet.png" mode="aspectFit"></image>
+          </view>
           <view class="asset-value">{{wallet.balance}}</view>
           <view class="asset-label">钱包余额（元）</view>
         </view>
         <view class="asset-card tap-scale" bindtap="openOrders">
-          <view class="asset-icon asset-icon--invoice"></view>
+          <view class="asset-icon asset-icon--invoice">
+            <image class="asset-icon-image" src="/images/profile-menu-icons/invoice.png" mode="aspectFit"></image>
+          </view>
           <view class="asset-value">{{wallet.invoices}}</view>
           <view class="asset-label">可开发票（张）</view>
         </view>
         <view class="asset-card tap-scale" bindtap="openCoupons">
-          <view class="asset-icon asset-icon--coupon"></view>
+          <view class="asset-icon asset-icon--coupon">
+            <image class="asset-icon-image" src="/images/profile-menu-icons/coupon.png" mode="aspectFit"></image>
+          </view>
           <view class="asset-value">{{wallet.couponBalance}}</view>
           <view class="asset-label">优惠总额（元）</view>
         </view>
@@ -49,7 +57,9 @@
 
     <view class="profile-section-head">
       <view class="section-title-wrap">
-        <view class="section-icon section-icon--service"></view>
+        <view class="section-icon section-icon--service">
+          <image class="section-icon-image" src="/images/profile-menu-icons/account-service.png" mode="aspectFit"></image>
+        </view>
         <view class="profile-section-title">账户服务</view>
       </view>
       <view class="soft-pill">{{menus.length}} 项服务</view>
@@ -57,7 +67,9 @@
 
     <view class="profile-menu-panel">
       <view class="menu-row tap-scale" wx:for="{{menus}}" wx:key="title" data-url="{{item.url}}" bindtap="openMenu">
-        <view class="menu-icon menu-icon--{{item.iconClass}}"></view>
+        <view class="menu-icon menu-icon--{{item.iconClass}}">
+          <image class="menu-icon-image" src="{{item.iconPath}}" mode="aspectFit"></image>
+        </view>
         <view class="menu-copy">
           <view class="menu-title">{{item.title}}</view>
           <view class="menu-desc">{{item.desc}}</view>

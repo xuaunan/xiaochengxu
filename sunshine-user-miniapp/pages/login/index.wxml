@@ -1,36 +1,18 @@
 <view class="login-page page-enter">
   <view class="login-nav">
-    <view class="nav-home tap-scale" bindtap="goBack" hover-class="button-hover" hover-stay-time="60">
-      <view class="nav-home__roof"></view>
-      <view class="nav-home__body"></view>
-    </view>
     <view class="nav-title">阳光出行</view>
   </view>
 
   <view class="login-hero">
+    <image class="hero-image" src="/images/auth/passenger-login-hero.png" mode="aspectFill"></image>
+    <view class="hero-shade"></view>
     <view class="safe-pill">
       <view class="safe-pill__icon"></view>
       <text>安全出行 · 便捷生活</text>
     </view>
-
     <view class="hero-copy">
       <view class="hero-title">欢迎回到阳光出行</view>
-      <view class="hero-desc">登录后可查看订单、钱包、优惠券和实名认证状态。</view>
-    </view>
-
-    <view class="hero-visual">
-      <view class="hero-shield"></view>
-      <view class="hero-car">
-        <view class="hero-car__body"></view>
-        <view class="hero-car__top"></view>
-        <view class="hero-car__wheel hero-car__wheel--left"></view>
-        <view class="hero-car__wheel hero-car__wheel--right"></view>
-      </view>
-      <view class="hero-city">
-        <view class="hero-building hero-building--1"></view>
-        <view class="hero-building hero-building--2"></view>
-        <view class="hero-building hero-building--3"></view>
-      </view>
+      <view class="hero-desc">登录后查看订单、钱包、优惠券和实名认证状态。</view>
     </view>
   </view>
 
@@ -54,7 +36,9 @@
     <view class="login-field">
       <view class="field-label">手机号</view>
       <view class="input-wrap">
-        <view class="input-icon input-icon--phone"></view>
+        <view class="input-icon">
+          <image class="input-icon-img" src="/images/profile-menu-icons/account-service.png" mode="aspectFit"></image>
+        </view>
         <input class="login-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" bindinput="updatePhone" />
         <view class="input-clear tap-scale" bindtap="clearPhone" wx:if="{{phone}}">×</view>
       </view>
@@ -63,16 +47,22 @@
     <view class="login-field">
       <view class="field-label">密码</view>
       <view class="input-wrap">
-        <view class="input-icon input-icon--lock"></view>
+        <view class="input-icon">
+          <image class="input-icon-img" src="/images/profile-menu-icons/shield.png" mode="aspectFit"></image>
+        </view>
         <input class="login-input" password="{{!showPassword}}" maxlength="20" placeholder="请输入密码，默认 123456" value="{{password}}" bindinput="updatePassword" />
-        <view class="input-eye {{showPassword ? 'input-eye--open' : ''}} tap-scale" bindtap="togglePasswordVisible"></view>
+        <view class="input-eye {{showPassword ? 'input-eye--open' : ''}} tap-scale" bindtap="togglePasswordVisible">
+          <image class="input-action-img" src="/images/profile-menu-icons/preview.png" mode="aspectFit"></image>
+        </view>
       </view>
     </view>
 
     <view class="login-field" wx:if="{{mode === 'register'}}">
       <view class="field-label">昵称</view>
       <view class="input-wrap">
-        <view class="input-icon input-icon--user"></view>
+        <view class="input-icon">
+          <image class="input-icon-img" src="/images/profile-menu-icons/user.png" mode="aspectFit"></image>
+        </view>
         <input class="login-input" maxlength="20" placeholder="请输入昵称" value="{{nickname}}" bindinput="updateNickname" />
       </view>
     </view>
@@ -91,7 +81,9 @@
   </view>
 
   <view class="demo-card">
-    <view class="demo-icon"></view>
+    <view class="demo-icon">
+      <image class="demo-icon-img" src="/images/profile-menu-icons/account-service.png" mode="aspectFit"></image>
+    </view>
     <view class="demo-copy">
       <view class="demo-title">快速账号登录</view>
       <view class="demo-desc">{{loginTip}}</view>

@@ -35,5 +35,10 @@ public class OrderCreateRequest {
     private String dispatchMode;
     private String languageCode;
     private String currencyCode;
+    private String sourceChannel;
+    private BigDecimal webExclusiveDiscountAmount;
+    private String webExclusiveDiscountLabel;
+    private String webExclusiveDiscountScope;
+    private String webCheckinAccountKey;
     private String remark;
 }

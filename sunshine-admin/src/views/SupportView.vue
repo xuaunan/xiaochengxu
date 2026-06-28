@@ -83,6 +83,22 @@ function normalizeList(payload) {
   return payload.records || payload.messages || payload.list || payload.rows || []
 }
 
+function supportStatusLabel(status) {
+  if (status === 'MANUAL') return '人工接管'
+  if (status === 'CLOSED') return '已关闭'
+  return '处理中'
+}
+
+function supportStatusTagType(status) {
+  if (status === 'MANUAL') return 'warning'
+  if (status === 'CLOSED') return 'info'
+  return 'success'
+}
+
+function isConversationClosed(status) {
+  return status === 'CLOSED'
+}
+
 async function loadConversations(resetPage = false) {
   if (resetPage) {
     query.current = 1
@@ -176,7 +192,7 @@ async function sendReply() {
 
 async function toggleStatus() {
   if (!selectedConversation.value) return
-  const status = selectedConversation.value.status === 'OPEN' ? 'CLOSED' : 'OPEN'
+  const status = isConversationClosed(selectedConversation.value.status) ? 'OPEN' : 'CLOSED'
   await http.post(`/admin/support/conversations/${selectedConversation.value.id}/status`, { status })
   await loadConversations(false)
   ElMessage.success(status === 'OPEN' ? '会话已重新打开' : '会话已关闭')
@@ -229,6 +245,7 @@ onBeforeUnmount(() => {
         </el-select>
         <el-select v-model="query.status" clearable placeholder="状态" style="width: 120px">
           <el-option label="处理中" value="OPEN" />
+          <el-option label="人工接管" value="MANUAL" />
           <el-option label="已关闭" value="CLOSED" />
         </el-select>
         <el-button @click="loadConversations(true)">查询</el-button>
@@ -263,8 +280,8 @@ onBeforeUnmount(() => {
               <el-tag v-if="item.member" size="small" type="warning" effect="light">
                 {{ item.memberLevel || '会员' }}
               </el-tag>
-              <el-tag size="small" :type="item.status === 'OPEN' ? 'success' : 'info'" effect="light">
-                {{ item.status === 'OPEN' ? '处理中' : '已关闭' }}
+              <el-tag size="small" :type="supportStatusTagType(item.status)" effect="light">
+                {{ supportStatusLabel(item.status) }}
               </el-tag>
             </div>
             <p>{{ item.lastMessage || '暂无消息' }}</p>
@@ -302,11 +319,11 @@ onBeforeUnmount(() => {
             <div class="support-chat-actions">
               <el-button :loading="aiContextLoading" plain @click="loadAiContext(true)">AI读取资料</el-button>
               <el-button
-                :type="selectedConversation.status === 'OPEN' ? 'warning' : 'success'"
+                :type="isConversationClosed(selectedConversation.status) ? 'success' : 'warning'"
                 plain
                 @click="toggleStatus"
               >
-                {{ selectedConversation.status === 'OPEN' ? '关闭会话' : '重新打开' }}
+                {{ isConversationClosed(selectedConversation.status) ? '重新打开' : '关闭会话' }}
               </el-button>
             </div>
           </div>

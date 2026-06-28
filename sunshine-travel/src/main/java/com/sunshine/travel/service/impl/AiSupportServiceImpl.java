@@ -46,14 +46,24 @@ public class AiSupportServiceImpl implements AiSupportService {
     private static final String KEY_DEBUG_ENABLED = "aiSupportDebugEnabled";
 
     private static final String DEFAULT_PROVIDER = "spark_lite";
+    private static final int RECENT_MESSAGE_CONTEXT_LIMIT = 16;
     private static final List<String> DEFAULT_API_PASSWORD_ENV_KEYS = List.of("SPARK_AGENT_API_PASSWORD", "SPARK_API_PASSWORD");
+    private static final String LEGACY_TRANSFER_RULE = "遇到投诉、事故、安全、账户资金异常或用户要求人工时，提示已转人工并说明客服会在后台跟进。";
+    private static final String UPDATED_TRANSFER_RULE = "投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。";
+    private static final String LEGACY_FALLBACK_MESSAGE = "AI客服暂时没有响应，已为你转接人工客服，请稍后查看后台客服回复。";
+    private static final String COMPLAINT_GUIDANCE_REPLY = """
+            投诉建议可以在小程序内提交，也可以在这里把问题直接发给我。
+            请补充：相关订单、发生时间、问题经过、希望处理方式；如果有截图或凭证也可以一并提交。
+            我会先帮您梳理处理信息，涉及安全、事故、账户资金异常，或您明确要求人工时，再为您转人工跟进。
+            """;
     private static final String DEFAULT_SYSTEM_PROMPT = """
             你是阳光出行小程序的AI客服。回答要简洁、礼貌、可执行。
             只能围绕乘客订单、支付退款、优惠券发票、司机听单接单、提现到账、资质审核、行程问题提供帮助。
-            遇到投诉、事故、安全、账户资金异常或用户要求人工时，提示已转人工并说明客服会在后台跟进。
+            投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。
+            用户只发送“投诉建议”时，表示想了解投诉/建议入口，不等于要求人工客服。禁止直接回复“已转人工”“已转接人工客服”“请稍候”。
             不要编造订单状态、金额、审核结论或政策；不确定时请用户补充订单号或等待人工客服。
             """;
-    private static final String DEFAULT_FALLBACK_MESSAGE = "AI客服暂时没有响应，已为你转接人工客服，请稍后查看后台客服回复。";
+    private static final String DEFAULT_FALLBACK_MESSAGE = "AI客服暂时没有响应，已转接人工客服。";
 
     private final SystemConfigMapper systemConfigMapper;
     private final OperationLogSupport operationLogSupport;
@@ -138,13 +148,13 @@ public class AiSupportServiceImpl implements AiSupportService {
             return Optional.empty();
         }
         try {
-            return Optional.ofNullable(callChatCompletion(prompt, userRole, recentMessages, businessContext));
+            return Optional.ofNullable(normalizeReply(prompt, callChatCompletion(prompt, userRole, recentMessages, businessContext)));
         } catch (RuntimeException ex) {
             if (boolValue(values, KEY_DEBUG_ENABLED, false)) {
                 System.err.println("[AI_SUPPORT] " + safeError(ex));
             }
             String fallback = values.getOrDefault(KEY_FALLBACK_MESSAGE, DEFAULT_FALLBACK_MESSAGE);
-            return StringUtils.hasText(fallback) ? Optional.of(fallback) : Optional.empty();
+            return StringUtils.hasText(fallback) ? Optional.of(fallback.trim()) : Optional.empty();
         }
     }
 
@@ -193,23 +203,75 @@ public class AiSupportServiceImpl implements AiSupportService {
             messages.add(message("system", """
                     下面是后端按当前客服会话从数据库读取并脱敏后的真实项目数据。
                     你必须优先依据这些数据回答；不要编造未出现的订单、支付、退款、优惠券、审核、提现或投诉状态。
-                    如数据不足，明确说明系统暂未查询到并建议人工客服继续核实。
+                    如数据不足，明确说明系统暂未查询到，并让用户补充订单号、截图或问题描述；不要因为数据不足就直接声称已转人工。
                     """ + "\n" + businessContext.trim()));
         }
         recentMessages.stream()
-                .skip(Math.max(recentMessages.size() - 8, 0))
+                .skip(Math.max(recentMessages.size() - RECENT_MESSAGE_CONTEXT_LIMIT, 0))
                 .forEach(item -> {
                     String content = String.valueOf(item.getOrDefault("content", "")).trim();
-                    if (!StringUtils.hasText(content)) {
+                    if (!StringUtils.hasText(content) || isLegacyAutoTransferReply(content)) {
                         return;
                     }
                     boolean assistant = Boolean.TRUE.equals(item.get("fromAdmin")) || Boolean.TRUE.equals(item.get("fromAi"));
-                    messages.add(message(assistant ? "assistant" : "user", content));
+                    messages.add(message(assistant ? "assistant" : "user", historyContent(item, content)));
                 });
         if (messages.stream().noneMatch(item -> prompt.equals(item.get("content")))) {
             messages.add(message("user", prompt));
         }
         return messages;
+    }
+
+    private String historyContent(Map<String, Object> item, String content) {
+        if (Boolean.TRUE.equals(item.get("fromAdmin"))) {
+            return "人工客服历史回复：" + content;
+        }
+        if (Boolean.TRUE.equals(item.get("fromAi"))) {
+            return "AI客服历史回复：" + content;
+        }
+        return "用户历史消息：" + content;
+    }
+
+    private String normalizeReply(String prompt, String reply) {
+        if (!StringUtils.hasText(reply)) {
+            return reply;
+        }
+        String trimmed = reply.trim();
+        if (isComplaintOrSuggestionPrompt(prompt) && !isManualRequest(prompt) && isAutoTransferReply(trimmed)) {
+            return COMPLAINT_GUIDANCE_REPLY.trim();
+        }
+        return trimmed;
+    }
+
+    private boolean isComplaintOrSuggestionPrompt(String content) {
+        String normalized = normalizeForMatch(content);
+        return normalized.contains("投诉") || normalized.contains("建议") || normalized.contains("反馈");
+    }
+
+    private boolean isManualRequest(String content) {
+        String normalized = normalizeForMatch(content);
+        return normalized.contains("人工")
+                || normalized.contains("真人")
+                || normalized.contains("客服介入")
+                || normalized.contains("转接")
+                || normalized.contains("转人工");
+    }
+
+    private boolean isLegacyAutoTransferReply(String content) {
+        return isAutoTransferReply(content) && normalizeForMatch(content).contains("请稍候");
+    }
+
+    private boolean isAutoTransferReply(String content) {
+        String normalized = normalizeForMatch(content);
+        return normalized.contains("已转人工")
+                || normalized.contains("转人工客服")
+                || normalized.contains("转接人工")
+                || normalized.contains("转接客服")
+                || normalized.contains("人工客服") && normalized.contains("请稍候");
+    }
+
+    private String normalizeForMatch(String content) {
+        return content == null ? "" : content.replaceAll("\\s+", "").trim();
     }
 
     private String extractReply(JsonNode node) {
@@ -262,6 +324,7 @@ public class AiSupportServiceImpl implements AiSupportService {
             }
         });
         repairLegacySparkDefaults();
+        repairSupportReplyDefaults();
     }
 
     private void repairLegacySparkDefaults() {
@@ -280,6 +343,20 @@ public class AiSupportServiceImpl implements AiSupportService {
         }
     }
 
+    private void repairSupportReplyDefaults() {
+        Map<String, String> values = new LinkedHashMap<>();
+        systemConfigMapper.selectList(new LambdaQueryWrapper<SystemConfig>()
+                        .eq(SystemConfig::getConfigGroup, CONFIG_GROUP))
+                .forEach(item -> values.put(item.getConfigKey(), item.getConfigValue()));
+        String systemPrompt = values.get(KEY_SYSTEM_PROMPT);
+        if (StringUtils.hasText(systemPrompt) && systemPrompt.contains(LEGACY_TRANSFER_RULE)) {
+            updateValue(KEY_SYSTEM_PROMPT, systemPrompt.replace(LEGACY_TRANSFER_RULE, UPDATED_TRANSFER_RULE));
+        }
+        if (LEGACY_FALLBACK_MESSAGE.equals(values.get(KEY_FALLBACK_MESSAGE)) || !StringUtils.hasText(values.get(KEY_FALLBACK_MESSAGE))) {
+            updateValue(KEY_FALLBACK_MESSAGE, DEFAULT_FALLBACK_MESSAGE);
+        }
+    }
+
     private Map<String, DefaultConfig> defaults() {
         AiProvider provider = providerOf(DEFAULT_PROVIDER);
         Map<String, DefaultConfig> map = new LinkedHashMap<>();
@@ -292,7 +369,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         map.put(KEY_TEMPERATURE, new DefaultConfig("温度", "0.4", "DECIMAL", "回复随机性，建议0到1之间"));
         map.put(KEY_MAX_TOKENS, new DefaultConfig("最大输出Token", "900", "NUMBER", "单次AI回复最大输出长度"));
         map.put(KEY_SYSTEM_PROMPT, new DefaultConfig("系统提示词", DEFAULT_SYSTEM_PROMPT, "TEXT", "约束AI客服身份、业务范围和人工转接规则"));
-        map.put(KEY_FALLBACK_MESSAGE, new DefaultConfig("失败兜底回复", DEFAULT_FALLBACK_MESSAGE, "TEXT", "AI接口异常时自动回复给小程序用户"));
+        map.put(KEY_FALLBACK_MESSAGE, new DefaultConfig("失败兜底回复", DEFAULT_FALLBACK_MESSAGE, "TEXT", "AI接口异常或超时时回复给小程序用户并转人工"));
         map.put(KEY_DEBUG_ENABLED, new DefaultConfig("调试日志", "false", "BOOLEAN", "开启后在服务端输出AI异常摘要"));
         return map;
     }

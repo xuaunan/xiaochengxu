@@ -1,6 +1,8 @@
 <view class="onboarding-page safe-bottom">
   <view class="driver-landing" wx:if="{{!loggedIn}}">
     <view class="auth-hero page-enter">
+      <image class="auth-hero__image" src="/images/auth/driver-cert-hero.png" mode="aspectFill"></image>
+      <view class="auth-hero__shade"></view>
       <view class="auth-copy">
         <view class="auth-kicker">司机车辆认证</view>
         <view class="auth-title">登录后继续管理车辆资料</view>
@@ -51,19 +53,27 @@
       </view>
 
       <view class="input-wrap">
-        <view class="input-icon input-icon--phone"></view>
+        <view class="input-icon">
+          <image class="input-icon-img" src="/images/profile-menu-icons/account-service.png" mode="aspectFit"></image>
+        </view>
         <input class="driver-input" data-key="phone" type="number" value="{{loginForm.phone}}" bindinput="updateLoginField" placeholder="请输入手机号" />
         <view class="input-clear tap-scale" data-key="phone" bindtap="clearLoginField" wx:if="{{loginForm.phone}}">×</view>
       </view>
 
       <view class="input-wrap">
-        <view class="input-icon input-icon--lock"></view>
+        <view class="input-icon">
+          <image class="input-icon-img" src="/images/profile-menu-icons/shield.png" mode="aspectFit"></image>
+        </view>
         <input class="driver-input" data-key="password" password="{{!showPassword}}" value="{{loginForm.password}}" bindinput="updateLoginField" placeholder="请输入密码" />
-        <view class="input-eye {{showPassword ? 'input-eye--open' : ''}} tap-scale" bindtap="togglePasswordVisible"></view>
+        <view class="input-eye {{showPassword ? 'input-eye--open' : ''}} tap-scale" bindtap="togglePasswordVisible">
+          <image class="input-action-img" src="/images/profile-menu-icons/preview.png" mode="aspectFit"></image>
+        </view>
       </view>
 
       <view class="input-wrap" wx:if="{{mode === 'register'}}">
-        <view class="input-icon input-icon--user"></view>
+        <view class="input-icon">
+          <image class="input-icon-img" src="/images/profile-menu-icons/user.png" mode="aspectFit"></image>
+        </view>
         <input class="driver-input" data-key="nickname" value="{{loginForm.nickname}}" bindinput="updateLoginField" placeholder="请输入司机昵称" />
       </view>
 
@@ -117,21 +127,27 @@
         </view>
         <view class="summary-grid summary-grid--reference">
           <view class="summary-item">
-            <view class="summary-icon summary-icon--seat"></view>
+            <view class="summary-icon summary-icon--seat">
+              <image class="summary-icon-img" src="/images/profile-menu-icons/seat.png" mode="aspectFit"></image>
+            </view>
             <view>
               <view class="summary-label">座位数</view>
               <view class="summary-value">{{vehicleView.seatCount}}座</view>
             </view>
           </view>
           <view class="summary-item">
-            <view class="summary-icon summary-icon--shield"></view>
+            <view class="summary-icon summary-icon--shield">
+              <image class="summary-icon-img" src="/images/profile-menu-icons/shield.png" mode="aspectFit"></image>
+            </view>
             <view>
               <view class="summary-label">保险到期</view>
               <view class="summary-value">{{vehicleView.insuranceExpireDate}}</view>
             </view>
           </view>
           <view class="summary-item">
-            <view class="summary-icon summary-icon--calendar"></view>
+            <view class="summary-icon summary-icon--calendar">
+              <image class="summary-icon-img" src="/images/profile-menu-icons/calendar.png" mode="aspectFit"></image>
+            </view>
             <view>
               <view class="summary-label">年检到期</view>
               <view class="summary-value">{{vehicleView.annualInspectExpireDate}}</view>
@@ -139,7 +155,9 @@
           </view>
         </view>
         <view class="permission-box">
-          <view class="permission-icon"></view>
+          <view class="permission-icon">
+            <image class="permission-icon-img" src="/images/profile-menu-icons/permission.png" mode="aspectFit"></image>
+          </view>
           <view class="permission-copy">
             <view class="permission-title">{{permission.canReceiveOrders ? '当前可接单' : '接单权限未解锁'}}</view>
             <view class="permission-desc">{{permission.message}}</view>
@@ -164,43 +182,59 @@
       </view>
 
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--card"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--card">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/card.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">行驶证编号</view>
         <input class="vehicle-input vehicle-input-reference" data-key="licenseNo" value="{{vehicleForm.licenseNo}}" bindinput="updateVehicleField" placeholder="驾驶证号" />
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--plate"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--plate">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/plate.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">车牌号</view>
         <input class="vehicle-input vehicle-input-reference" data-key="plateNo" value="{{vehicleForm.plateNo}}" bindinput="updateVehicleField" placeholder="车牌号" />
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--brand"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--brand">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/brand.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">品牌</view>
         <input class="vehicle-input vehicle-input-reference" data-key="brand" value="{{vehicleForm.brand}}" bindinput="updateVehicleField" placeholder="车辆品牌" />
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--car"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--car">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/car.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">车型</view>
         <input class="vehicle-input vehicle-input-reference" data-key="modelName" value="{{vehicleForm.modelName}}" bindinput="updateVehicleField" placeholder="车型" />
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--color"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--color">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/color.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">颜色</view>
         <input class="vehicle-input vehicle-input-reference" data-key="color" value="{{vehicleForm.color}}" bindinput="updateVehicleField" placeholder="车辆颜色" />
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--seat"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--seat">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/seat.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">座位数</view>
         <input class="vehicle-input vehicle-input-reference" data-key="seatCount" type="number" value="{{vehicleForm.seatCount}}" bindinput="updateVehicleField" placeholder="座位数" />
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--shield"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--shield">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/shield.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">保险到期</view>
         <input class="vehicle-input vehicle-input-reference" data-key="insuranceExpireDate" value="{{vehicleForm.insuranceExpireDate}}" bindinput="updateVehicleField" placeholder="2026-12-31" />
         <view class="calendar-icon"></view>
       </view>
       <view class="vehicle-form-row">
-        <view class="vehicle-field-icon vehicle-field-icon--calendar"></view>
+        <view class="vehicle-field-icon vehicle-field-icon--calendar">
+          <image class="vehicle-field-icon-img" src="/images/profile-menu-icons/calendar.png" mode="aspectFit"></image>
+        </view>
         <view class="vehicle-field-label">年检到期</view>
         <input class="vehicle-input vehicle-input-reference" data-key="annualInspectExpireDate" value="{{vehicleForm.annualInspectExpireDate}}" bindinput="updateVehicleField" placeholder="2026-10-31" />
         <view class="calendar-icon"></view>

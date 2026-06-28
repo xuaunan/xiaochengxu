@@ -1,10 +1,13 @@
-const { fetchProfile, updateProfile } = require('../../utils/api')
+const { fetchProfile, updateProfile, uploadAvatar } = require('../../utils/api')
+const { buildMediaUrl } = require('../../utils/media')
 const { runGuarded } = require('../../utils/page')
+
+const DEFAULT_AVATAR = '/images/avatar-user.svg'
 
 function pickProfileForm(profile = {}) {
   return {
     nickname: profile.nickname || profile.name || '',
-    avatar: '/images/avatar-user.svg',
+    avatar: profile.avatar || DEFAULT_AVATAR,
     realName: profile.realName || '',
     emergencyContact: profile.emergencyContact || '',
     emergencyPhone: profile.emergencyPhone || ''
@@ -17,11 +20,21 @@ function buildProfilePayload(form = {}) {
   const emergencyPhone = `${form.emergencyPhone || ''}`.trim()
   return {
     nickname: `${form.nickname || ''}`.trim(),
-    avatar: form.avatar || '/images/avatar-user.svg',
+    avatar: form.avatar || DEFAULT_AVATAR,
     realName,
     emergencyContact,
     emergencyPhone
   }
+}
+
+function pickAvatarUrl(response = {}) {
+  const data = response.data || {}
+  return data.fileUrl || data.avatar || data.url || ''
+}
+
+function buildAvatarSrc(avatar = '') {
+  const app = getApp()
+  return buildMediaUrl(avatar || DEFAULT_AVATAR, app.globalData.baseUrl) || DEFAULT_AVATAR
 }
 
 function isValidContactPhone(value = '') {
@@ -50,7 +63,9 @@ function applyLocalProfile(payload = {}) {
 Page({
   data: {
     form: pickProfileForm(),
+    avatarSrc: DEFAULT_AVATAR,
     phoneText: '\u672a\u7ed1\u5b9a\u624b\u673a\u53f7',
+    localAvatarPath: '',
     saving: false,
     copy: {
       title: '\u4e2a\u4eba\u8d44\u6599',
@@ -65,6 +80,7 @@ Page({
       emergencyPhone: '\u7d27\u6025\u7535\u8bdd',
       optional: '\u53ef\u9009',
       save: '\u4fdd\u5b58\u8d44\u6599',
+      changeAvatar: '\u66f4\u6362',
       nicknamePlaceholder: '\u8bf7\u8f93\u5165\u6635\u79f0'
     }
   },
@@ -74,6 +90,8 @@ Page({
     if (!this.__formDirty && !this.data.saving) {
       this.setData({
         form: pickProfileForm(profile),
+        avatarSrc: buildAvatarSrc(profile.avatar),
+        localAvatarPath: '',
         phoneText: profile.phone || '\u672a\u7ed1\u5b9a\u624b\u673a\u53f7'
       })
     }
@@ -87,6 +105,8 @@ Page({
       }
       if (!this.__formDirty && !this.data.saving) {
         nextData.form = pickProfileForm(nextProfile)
+        nextData.avatarSrc = buildAvatarSrc(nextProfile.avatar)
+        nextData.localAvatarPath = ''
       }
       this.setData(nextData)
     } catch (error) {
@@ -99,6 +119,105 @@ Page({
     this.setData({
       [`form.${key}`]: e.detail.value
     })
+  },
+
+  chooseAvatarSource() {
+    return new Promise((resolve, reject) => {
+      wx.showActionSheet({
+        itemList: ['\u4ece\u76f8\u518c\u9009\u62e9', '\u62cd\u7167'],
+        success: (res) => {
+          if (res.tapIndex === 0) resolve('album')
+          if (res.tapIndex === 1) resolve('camera')
+        },
+        fail: reject
+      })
+    }).catch((error) => {
+      if (error && error.errMsg && error.errMsg.includes('cancel')) {
+        return ''
+      }
+      throw error
+    })
+  },
+
+  pickAvatarFile(source) {
+    return new Promise((resolve, reject) => {
+      const sourceType = [source === 'camera' ? 'camera' : 'album']
+      if (wx.chooseMedia) {
+        wx.chooseMedia({
+          count: 1,
+          mediaType: ['image'],
+          sourceType,
+          sizeType: ['compressed'],
+          success: (res) => {
+            const file = (res.tempFiles || [])[0] || {}
+            resolve(file.tempFilePath || file.path || '')
+          },
+          fail: reject
+        })
+        return
+      }
+
+      wx.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType,
+        success: (res) => {
+          resolve((res.tempFilePaths || [])[0] || '')
+        },
+        fail: reject
+      })
+    })
+  },
+
+  async chooseAvatar() {
+    if (this.data.saving) return
+
+    try {
+      const source = await this.chooseAvatarSource()
+      if (!source) return
+
+      const filePath = await this.pickAvatarFile(source)
+      if (!filePath) {
+        wx.showToast({ title: '\u672a\u83b7\u53d6\u5230\u56fe\u7247\uff0c\u8bf7\u91cd\u8bd5', icon: 'none' })
+        return
+      }
+
+      this.__formDirty = true
+      this.setData({
+        'form.avatar': filePath,
+        avatarSrc: filePath,
+        localAvatarPath: filePath
+      })
+    } catch (error) {
+      if (error && error.errMsg && error.errMsg.includes('cancel')) {
+        return
+      }
+      wx.showToast({ title: '\u9009\u62e9\u5934\u50cf\u5931\u8d25', icon: 'none' })
+    }
+  },
+
+  async buildSubmitPayload() {
+    const payload = buildProfilePayload(this.data.form)
+    const localAvatarPath = this.data.localAvatarPath
+    if (!localAvatarPath || payload.avatar !== localAvatarPath) {
+      return payload
+    }
+
+    const uploadResponse = await uploadAvatar(localAvatarPath, { skipToast: true })
+    const avatarUrl = pickAvatarUrl(uploadResponse)
+    if (!avatarUrl) {
+      throw new Error('\u5934\u50cf\u4e0a\u4f20\u5931\u8d25')
+    }
+
+    this.setData({
+      'form.avatar': avatarUrl,
+      avatarSrc: buildAvatarSrc(avatarUrl),
+      localAvatarPath: ''
+    })
+    return {
+      ...payload,
+      avatar: avatarUrl
+    }
   },
 
   validateForm() {
@@ -120,8 +239,16 @@ Page({
     await runGuarded(this, '__savingProfile', async () => {
       this.setData({ saving: true })
       try {
-        const form = this.data.form
-        const payload = buildProfilePayload(form)
+        let payload
+        try {
+          payload = await this.buildSubmitPayload()
+        } catch (error) {
+          wx.showToast({
+            title: (error && error.message) || '\u5934\u50cf\u4e0a\u4f20\u5931\u8d25',
+            icon: 'none'
+          })
+          return
+        }
         try {
           const response = await updateProfile(payload, { skipToast: true })
           applyLocalProfile({
@@ -137,6 +264,7 @@ Page({
         }
         wx.showToast({ title: '\u5df2\u4fdd\u5b58', icon: 'success' })
         this.__formDirty = false
+        this.setData({ localAvatarPath: '' })
       } finally {
         this.setData({ saving: false })
       }

@@ -432,6 +432,20 @@
   gap: 16rpx;
 }
 
+.order-card-top .status-tag {
+  flex: 0 0 auto;
+  min-width: 108rpx;
+  min-height: 46rpx;
+  padding: 0 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  word-break: keep-all;
+  font-size: 21rpx;
+  line-height: 46rpx;
+}
+
 .order-card-meta {
   display: flex;
   align-items: flex-start;

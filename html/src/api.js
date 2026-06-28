@@ -536,6 +536,11 @@ function demoRequest(path, options) {
       durationMin: Number(body.estimatedDurationMin || 18)
     }
     const fare = estimateLocalFare(body.carTypeId, body.serviceType, route.distanceKm, route.durationMin)
+    const isWebTaxiOrder = String(body.sourceChannel || '').toUpperCase() === 'WEB' && body.serviceType === SERVICE_TYPE.TAXI
+    const webExclusiveDiscountAmount = isWebTaxiOrder
+      ? Math.min(Math.max(0, Number(body.webExclusiveDiscountAmount || 0)), Math.max(0, Number(fare.amount || 0) - 0.01))
+      : 0
+    const payableAmount = Number(Math.max(0, Number(fare.amount || 0) - webExclusiveDiscountAmount).toFixed(2))
     const order = {
       id: db.nextOrderId++,
       orderNo: `WEB${Date.now()}`,
@@ -554,10 +559,18 @@ function demoRequest(path, options) {
       estimatedDistanceKm: route.distanceKm,
       estimatedDurationMin: route.durationMin,
       estimatedAmount: fare.amount,
-      payableAmount: fare.amount,
-      actualAmount: fare.amount,
+      couponDiscount: Number(webExclusiveDiscountAmount.toFixed(2)),
+      payableAmount,
+      actualAmount: payableAmount,
       currencyCode: fare.currencyCode,
       dispatchMode: body.dispatchMode || 'SMART',
+      sourceChannel: body.sourceChannel || 'WEB',
+      webExclusiveDiscountAmount: Number(webExclusiveDiscountAmount.toFixed(2)),
+      webExclusiveDiscountLabel: body.webExclusiveDiscountLabel || '网页专属签到优惠',
+      webExclusiveDiscountScope: body.webExclusiveDiscountScope || 'WEB_TAXI_ONLY',
+      webCheckinAccountKey: body.webCheckinAccountKey || '',
+      couponName: webExclusiveDiscountAmount > 0 ? (body.webExclusiveDiscountLabel || '网页专属签到优惠') : '',
+      couponRuleDesc: webExclusiveDiscountAmount > 0 ? '网页版打车专属，小程序不可使用' : '',
       remark: body.remark || '',
       createdAt: nowText(),
       updatedAt: nowText(),

@@ -184,7 +184,7 @@ export function estimateLocalFare(carTypeId, serviceType, distanceKm, durationMi
   }
 }
 
-export function createOrderPayload(booking, estimate) {
+export function createOrderPayload(booking, estimate, extras = {}) {
   const { start, end } = calcRoute(booking.startId, booking.endId)
   return {
     carTypeId: Number(booking.carTypeId),
@@ -201,7 +201,8 @@ export function createOrderPayload(booking, estimate) {
     dispatchMode: 'SMART',
     languageCode: 'zh-CN',
     currencyCode: estimate.currencyCode || 'CNY',
-    remark: booking.remark || ''
+    remark: booking.remark || '',
+    ...extras
   }
 }
 

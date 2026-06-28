@@ -257,6 +257,13 @@ function getOrderPayableAmount(rawOrder = {}) {
   return Math.max(0, toNumber(rawOrder.payableAmount, getOrderOriginalAmount(rawOrder)))
 }
 
+function getWebExclusiveDiscountAmount(rawOrder = {}) {
+  const directAmount = toNumber(rawOrder.webExclusiveDiscountAmount)
+  if (directAmount > 0) return directAmount
+  const metaAmount = toNumber(rawOrder.webExclusiveMeta && rawOrder.webExclusiveMeta.amount)
+  return metaAmount > 0 ? metaAmount : 0
+}
+
 function canPayOrder(rawOrder = {}) {
   return rawOrder.orderStatus === ORDER_STATUS.FINISHED &&
     rawOrder.payStatus === PAY_STATUS.UNPAID &&
@@ -540,7 +547,8 @@ function buildDetailMetrics(rawOrder = {}) {
 }
 
 function buildAppliedCoupon(rawOrder, coupons = []) {
-  const discountAmount = toNumber(rawOrder.couponDiscount)
+  const webExclusiveDiscountAmount = getWebExclusiveDiscountAmount(rawOrder)
+  const discountAmount = Math.max(0, Number((toNumber(rawOrder.couponDiscount) - webExclusiveDiscountAmount).toFixed(2)))
   if (discountAmount <= 0) return null
 
   const matchedCoupon = (coupons || []).find((item) => {
@@ -582,9 +590,12 @@ function buildDetailViewState(rawOrder, coupons = [], runtime = {}) {
 
   const paidCoupon = rawOrder.payStatus === PAY_STATUS.PAID ? buildAppliedCoupon(rawOrder, coupons) : null
   const effectiveCoupon = selectedCoupon || paidCoupon
+  const webExclusiveDiscountAmount = getWebExclusiveDiscountAmount(rawOrder)
+  const selectedCouponDiscount = toNumber(selectedCoupon && selectedCoupon.discountAmount)
+  const paidDiscountAmount = toNumber(rawOrder.couponDiscount)
   const discountAmount = rawOrder.payStatus === PAY_STATUS.PAID
-    ? toNumber(rawOrder.couponDiscount)
-    : toNumber(selectedCoupon && selectedCoupon.discountAmount)
+    ? paidDiscountAmount
+    : Number((selectedCouponDiscount + webExclusiveDiscountAmount).toFixed(2))
   const payableAmountValue = rawOrder.orderStatus === ORDER_STATUS.CANCELLED
     ? getOrderPayableAmount(rawOrder)
     : rawOrder.payStatus === PAY_STATUS.PAID
@@ -611,9 +622,13 @@ function buildDetailViewState(rawOrder, coupons = [], runtime = {}) {
     payableAmountText,
     couponDiscountText: formatPrice(discountAmount, currencyCode),
     showDiscountPrice,
-    showPaidCouponInfo: rawOrder.payStatus === PAY_STATUS.PAID && discountAmount > 0,
+    showPaidCouponInfo: rawOrder.payStatus === PAY_STATUS.PAID && Boolean(effectiveCoupon),
     appliedCouponName: rawOrder.payStatus === PAY_STATUS.PAID && effectiveCoupon ? effectiveCoupon.name : '',
     appliedCouponDiscountText: rawOrder.payStatus === PAY_STATUS.PAID && effectiveCoupon ? effectiveCoupon.discountAmountText : '',
+    showWebExclusiveDiscountInfo: webExclusiveDiscountAmount > 0,
+    webExclusiveDiscountName: rawOrder.webExclusiveDiscountLabel || (rawOrder.webExclusiveMeta && rawOrder.webExclusiveMeta.label) || '网页专属优惠',
+    webExclusiveDiscountText: formatPrice(webExclusiveDiscountAmount, currencyCode),
+    webExclusiveDiscountNote: '网页版打车专属，小程序仅同步展示',
     serviceTypeText: getServiceLabel(rawOrder.serviceType),
     payStatusText: getPayStatusLabel(rawOrder.payStatus),
     startDisplay: detail.startName || (detail.start && detail.start.name) || '',
@@ -988,7 +1003,7 @@ Page({
     setPendingCouponContext(this.rawOrder.id, this.rawOrder.orderNo, {
       userCouponId: selectedCoupon.userCouponIdText,
       couponDiscount: selectedCoupon.discountAmount,
-      payableAmount: Math.max(0, Number((getOrderOriginalAmount(this.rawOrder) - selectedCoupon.discountAmount).toFixed(2))),
+      payableAmount: Math.max(0, Number((getOrderOriginalAmount(this.rawOrder) - selectedCoupon.discountAmount - getWebExclusiveDiscountAmount(this.rawOrder)).toFixed(2))),
       originalAmount: getOrderOriginalAmount(this.rawOrder),
       couponName: selectedCoupon.name,
       couponRuleDesc: selectedCoupon.ruleText
