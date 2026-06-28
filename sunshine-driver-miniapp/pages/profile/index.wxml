@@ -43,7 +43,9 @@
     </view>
 
     <view class="permission-card tap-scale" data-url="/pages/settings/index" data-mode="navigate" bindtap="openMenu">
-      <view class="permission-icon"></view>
+      <view class="permission-icon">
+        <image class="permission-icon-image" src="/images/profile-menu-icons/permission.png" mode="aspectFit"></image>
+      </view>
       <view class="permission-copy">
         <view class="permission-title">接单权限</view>
         <view class="permission-desc">{{permission.message}}</view>
@@ -64,7 +66,9 @@
           data-mode="{{menu.mode}}"
           bindtap="openMenu"
         >
-          <view class="menu-icon menu-icon--{{menu.iconClass}}"></view>
+          <view class="menu-icon menu-icon--{{menu.iconClass}}">
+            <image class="menu-icon-image" src="{{menu.iconPath}}" mode="aspectFit"></image>
+          </view>
           <view class="menu-copy">
             <view class="menu-title">{{menu.title}}</view>
             <view class="menu-desc">{{menu.desc}}</view>

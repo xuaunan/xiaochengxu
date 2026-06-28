@@ -19,7 +19,7 @@
 
   <view class="dashboard-overlay">
     <view class="dashboard-nav-wrap">
-      <sun-nav title="接单大厅" subtitle="附近订单与接单状态实时更新"></sun-nav>
+      <sun-nav title="阳光出行" subtitle="附近订单与接单状态实时更新"></sun-nav>
     </view>
 
     <view class="glass-card dashboard-top {{hasActiveTrip ? 'is-busy' : (listening ? 'is-online' : 'is-offline')}}">
@@ -68,7 +68,6 @@
         <view class="section-title board-title">接单大厅</view>
         <view class="section-subtitle board-desc">这里会实时展示附近乘客订单，并在听单中自动刷新。</view>
       </view>
-      <view class="status-chip {{vehicleView.auditClassName}}">{{vehicleView.auditText}}</view>
     </view>
 
     <view class="dashboard-bottom-body">

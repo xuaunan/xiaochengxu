@@ -201,6 +201,76 @@ function request(options = {}) {
   })
 }
 
+function uploadFile(options = {}) {
+  const app = getApp()
+  const normalized = {
+    url: '',
+    filePath: '',
+    name: 'file',
+    formData: {},
+    header: {},
+    skipToast: false,
+    ...options
+  }
+
+  const header = {
+    ...normalized.header
+  }
+
+  if (app.globalData.token) {
+    header.Authorization = `Bearer ${app.globalData.token}`
+  }
+
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: buildUrl(app.globalData.baseUrl, normalized.url),
+      filePath: normalized.filePath,
+      name: normalized.name,
+      formData: normalized.formData,
+      header,
+      success: (response) => {
+        let payload = {}
+        try {
+          payload = typeof response.data === 'string' ? JSON.parse(response.data || '{}') : (response.data || {})
+        } catch (error) {
+          payload = {}
+        }
+
+        if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === ERROR_CODE.SUCCESS) {
+          resolve(payload)
+          return
+        }
+
+        reject(normalizeError(payload, response))
+      },
+      fail: reject
+    })
+  }).catch((error) => {
+    if (error && error.errMsg) {
+      if (!normalized.skipToast) {
+        wx.showToast({
+          title: '头像上传失败，请检查网络',
+          icon: 'none'
+        })
+      }
+      throw {
+        code: ERROR_CODE.SYSTEM_ERROR,
+        message: error.errMsg,
+        raw: error
+      }
+    }
+
+    if (!normalized.skipToast) {
+      wx.showToast({
+        title: error.message || '头像上传失败',
+        icon: 'none'
+      })
+    }
+    throw error
+  })
+}
+
 module.exports = {
-  request
+  request,
+  uploadFile
 }

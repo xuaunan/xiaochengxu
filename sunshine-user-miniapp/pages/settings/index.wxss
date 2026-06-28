@@ -1,166 +1,151 @@
 .settings-shell {
   background:
-    radial-gradient(circle at 88% 4%, rgba(255, 211, 156, 0.22) 0, rgba(255, 211, 156, 0) 260rpx),
-    linear-gradient(180deg, #fff8ef 0%, #f7f8fc 30%, #f5f7fb 100%);
+    radial-gradient(circle at 88% 4%, rgba(255, 184, 98, 0.3) 0, rgba(255, 211, 156, 0) 280rpx),
+    radial-gradient(circle at 4% 18%, rgba(255, 122, 0, 0.08) 0, rgba(255, 122, 0, 0) 260rpx),
+    linear-gradient(180deg, #fff3e6 0%, #f7f8fc 36%, #f3f6fb 100%);
 }
 
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
-  padding-top: 14rpx;
+  gap: 20rpx;
+  padding: 22rpx 44rpx 48rpx;
 }
 
 .settings-hero,
 .setting-list {
-  border-radius: 18rpx;
+  border-radius: 30rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(255, 122, 0, 0.1);
-  box-shadow: 0 10rpx 24rpx rgba(37, 43, 58, 0.045);
+  box-shadow: 0 14rpx 34rpx rgba(24, 34, 56, 0.06);
 }
 
 .settings-hero {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 104rpx;
-  padding: 18rpx 112rpx 18rpx 20rpx;
+  min-height: 152rpx;
+  padding: 28rpx 124rpx 28rpx 30rpx;
   overflow: hidden;
   background:
-    linear-gradient(105deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 255, 255, 0.95) 56%, rgba(255, 231, 194, 0.7) 100%);
+    linear-gradient(112deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 247, 237, 0.96) 55%, rgba(255, 220, 181, 0.78) 100%);
+}
+
+.settings-hero::before {
+  content: "";
+  position: absolute;
+  right: 64rpx;
+  top: -30rpx;
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 42rpx;
+  background: rgba(255, 255, 255, 0.5);
+  transform: rotate(18deg);
+}
+
+.settings-hero::after {
+  content: "";
+  position: absolute;
+  right: -50rpx;
+  bottom: -62rpx;
+  width: 198rpx;
+  height: 198rpx;
+  border-radius: 50%;
+  background: rgba(255, 122, 0, 0.1);
+}
+
+.settings-hero__copy {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
 }
 
 .settings-title {
-  font-size: 29rpx;
+  font-size: 32rpx;
   line-height: 1.18;
-  font-weight: 600;
+  font-weight: 500;
   color: #111827;
 }
 
 .settings-desc {
-  margin-top: 6rpx;
+  margin-top: 10rpx;
   max-width: 520rpx;
-  font-size: 20rpx;
+  font-size: 21rpx;
   color: #737c90;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .settings-hero__icon {
+  z-index: 2;
   position: absolute;
   right: 26rpx;
-  top: 26rpx;
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 18rpx;
-  background: linear-gradient(180deg, rgba(255, 183, 105, 0.9), rgba(255, 122, 0, 0.86));
-  box-shadow: 0 10rpx 22rpx rgba(255, 122, 0, 0.14);
-  box-sizing: border-box;
-}
-
-.settings-hero__icon::before,
-.settings-hero__icon::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 26rpx;
-  height: 4rpx;
-  border-radius: 999rpx;
-  background: #ffffff;
-}
-
-.settings-hero__icon::before {
-  box-shadow: 0 16rpx 0 rgba(255, 255, 255, 0.78);
-  transform: translate(-50%, -160%);
-}
-
-.settings-hero__icon::after {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  box-shadow: -22rpx 22rpx 0 #ffffff;
-  transform: translate(70%, -142%);
+  top: 34rpx;
+  width: 84rpx;
+  height: 84rpx;
+  filter: drop-shadow(0 12rpx 18rpx rgba(255, 122, 0, 0.16));
 }
 
 .setting-list {
-  padding: 4rpx 18rpx 6rpx;
-}
-
-.setting-group + .setting-group {
-  border-top: 1rpx solid rgba(31, 36, 50, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 24rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 252, 255, 0.98)),
+    #ffffff;
 }
 
 .setting-group-title {
-  padding: 16rpx 0 5rpx;
-  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 0 0 10rpx;
+  font-size: 22rpx;
   font-weight: 500;
   color: #ff6b00;
 }
 
+.setting-group-title::before {
+  content: "";
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 6rpx;
+  background: linear-gradient(135deg, #ff9b32, #ff7a00);
+  box-shadow: 0 4rpx 10rpx rgba(255, 122, 0, 0.18);
+}
+
 .setting-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14rpx;
-  min-height: 76rpx;
-  padding-bottom: 10rpx;
+  gap: 18rpx;
+  min-height: 112rpx;
+  padding: 18rpx 18rpx 18rpx 16rpx;
+  border-radius: 26rpx;
+  background: #f7f9fd;
+  border: 1rpx solid rgba(31, 36, 50, 0.055);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.88);
 }
 
-.setting-icon {
-  position: relative;
-  width: 42rpx;
-  height: 42rpx;
+.setting-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 74rpx;
+  height: 74rpx;
   flex-shrink: 0;
-  border-radius: 13rpx;
-  background: rgba(255, 122, 0, 0.1);
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #ffffff, #fff3e6);
+  border: 1rpx solid rgba(255, 122, 0, 0.1);
+  box-shadow: 0 8rpx 18rpx rgba(255, 122, 0, 0.08);
   box-sizing: border-box;
 }
 
-.setting-icon::before,
-.setting-icon::after {
-  content: "";
-  position: absolute;
-  box-sizing: border-box;
-}
-
-.setting-icon--push::before {
-  left: 50%;
-  top: 50%;
-  width: 20rpx;
-  height: 28rpx;
-  border-radius: 12rpx 12rpx 8rpx 8rpx;
-  background: #ff7a00;
-  transform: translate(-50%, -54%);
-}
-
-.setting-icon--push::after {
-  left: 50%;
-  top: 50%;
-  width: 7rpx;
-  height: 7rpx;
-  border-radius: 50%;
-  background: #ff7a00;
-  transform: translate(-50%, 128%);
-}
-
-.setting-icon--coupon::before {
-  left: 50%;
-  top: 50%;
-  width: 29rpx;
-  height: 20rpx;
-  border-radius: 8rpx;
-  background: #ff7a00;
-  transform: translate(-50%, -50%);
-}
-
-.setting-icon--coupon::after {
-  left: 50%;
-  top: 50%;
-  width: 18rpx;
-  height: 3rpx;
-  border-radius: 999rpx;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
+.setting-icon-image {
+  width: 58rpx;
+  height: 58rpx;
+  display: block;
 }
 
 .setting-copy {
@@ -169,15 +154,16 @@
 }
 
 .setting-title {
-  font-size: 24rpx;
-  font-weight: 600;
+  font-size: 25rpx;
+  font-weight: 500;
   color: #111827;
+  line-height: 1.25;
 }
 
 .setting-subtitle {
-  margin-top: 4rpx;
-  font-size: 20rpx;
-  line-height: 1.35;
+  margin-top: 6rpx;
+  font-size: 21rpx;
+  line-height: 1.42;
   color: #7a8396;
 }
 

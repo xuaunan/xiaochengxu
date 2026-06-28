@@ -1,24 +1,29 @@
 .onboarding-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #fff7ed 0%, #f7f8fc 34%, #f5f7fb 100%);
+  background:
+    radial-gradient(circle at 86% 4%, rgba(255, 184, 98, 0.24), transparent 30%),
+    radial-gradient(circle at 0% 18%, rgba(47, 114, 219, 0.08), transparent 28%),
+    linear-gradient(180deg, #fff5e9 0%, #f7f8fc 34%, #f4f6fb 100%);
 }
 
 .driver-landing {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  padding: 24rpx 24rpx calc(env(safe-area-inset-bottom) + 34rpx);
+  gap: 16rpx;
+  box-sizing: border-box;
+  padding: 22rpx 34rpx calc(env(safe-area-inset-bottom) + 34rpx);
 }
 
 .auth-hero {
   position: relative;
-  min-height: 258rpx;
+  min-height: 222rpx;
   overflow: hidden;
-  padding: 30rpx;
+  padding: 30rpx 28rpx;
   border-radius: 28rpx;
   background:
-    linear-gradient(128deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 250, 244, 0.96) 58%, rgba(255, 226, 188, 0.78) 100%),
+    radial-gradient(circle at 86% 22%, rgba(255, 186, 108, 0.22), transparent 28%),
+    linear-gradient(126deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 248, 239, 0.96) 56%, rgba(255, 225, 188, 0.82) 100%),
     #ffffff;
   border: 1rpx solid rgba(255, 151, 55, 0.2);
   box-shadow: 0 16rpx 38rpx rgba(211, 111, 21, 0.1);
@@ -27,9 +32,9 @@
 .auth-hero::after {
   content: "";
   position: absolute;
-  left: 300rpx;
-  right: -76rpx;
-  bottom: 56rpx;
+  left: 270rpx;
+  right: -86rpx;
+  bottom: 50rpx;
   height: 72rpx;
   border-top: 8rpx solid rgba(255, 255, 255, 0.92);
   transform: rotate(-8deg);
@@ -54,26 +59,26 @@
 }
 
 .auth-title {
-  margin-top: 18rpx;
+  margin-top: 16rpx;
   color: #172033;
-  font-size: 37rpx;
-  font-weight: 600;
-  line-height: 1.18;
+  font-size: 36rpx;
+  font-weight: 650;
+  line-height: 1.16;
 }
 
 .auth-desc {
-  width: 370rpx;
+  width: 390rpx;
   margin-top: 12rpx;
   color: #5a6577;
-  font-size: 22rpx;
-  line-height: 1.55;
+  font-size: 21rpx;
+  line-height: 1.5;
 }
 
 .auth-flow {
   display: flex;
   align-items: center;
   width: 390rpx;
-  margin-top: 22rpx;
+  margin-top: 20rpx;
 }
 
 .auth-flow__item {
@@ -116,15 +121,15 @@
 
 .auth-vehicle {
   position: absolute;
-  right: 28rpx;
-  bottom: 28rpx;
+  right: 24rpx;
+  bottom: 24rpx;
   z-index: 2;
-  width: 214rpx;
-  padding: 18rpx;
+  width: 196rpx;
+  padding: 16rpx;
   border-radius: 22rpx;
   background: rgba(255, 255, 255, 0.92);
   border: 1rpx solid rgba(31, 36, 50, 0.06);
-  box-shadow: 0 16rpx 32rpx rgba(184, 91, 11, 0.14);
+  box-shadow: 0 18rpx 36rpx rgba(184, 91, 11, 0.13);
 }
 
 .auth-vehicle__head {
@@ -171,8 +176,8 @@
 .auth-vehicle__plate {
   margin-top: 20rpx;
   color: #172033;
-  font-size: 25rpx;
-  font-weight: 600;
+  font-size: 24rpx;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -190,11 +195,11 @@
 .login-card {
   position: relative;
   z-index: 4;
-  padding: 28rpx;
+  padding: 26rpx 28rpx 28rpx;
   border-radius: 26rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
-  box-shadow: 0 14rpx 34rpx rgba(24, 34, 56, 0.065);
+  box-shadow: 0 16rpx 38rpx rgba(24, 34, 56, 0.07);
 }
 
 .login-head {
@@ -207,15 +212,15 @@
 .login-eyebrow {
   color: #ff6f00;
   font-size: 20rpx;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
 .login-title {
   margin-top: 8rpx;
   color: #172033;
-  font-size: 32rpx;
-  font-weight: 600;
+  font-size: 31rpx;
+  font-weight: 650;
   line-height: 1.25;
 }
 
@@ -226,21 +231,21 @@
   color: #4f5a6d;
   background: #f4f6fa;
   font-size: 20rpx;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 .login-desc {
   margin-top: 12rpx;
   color: #667085;
-  font-size: 22rpx;
-  line-height: 1.6;
+  font-size: 20rpx;
+  line-height: 1.5;
 }
 
 .mode-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  height: 66rpx;
-  margin-top: 24rpx;
+  height: 60rpx;
+  margin-top: 22rpx;
   border-radius: 999rpx;
   background: #f1f4f8;
   border: 1rpx solid rgba(31, 36, 50, 0.07);
@@ -260,18 +265,18 @@
 .mode-item--active {
   color: #ff6f00;
   background: #ffffff;
-  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.12);
-  font-weight: 600;
+  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.1);
+  font-weight: 500;
 }
 
 .input-wrap {
   position: relative;
-  min-height: 80rpx;
-  margin-top: 18rpx;
+  min-height: 70rpx;
+  margin-top: 16rpx;
   display: flex;
   align-items: center;
-  border-radius: 20rpx;
-  background: #ffffff;
+  border-radius: 18rpx;
+  background: #fbfcff;
   border: 1rpx solid rgba(31, 36, 50, 0.08);
   box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.5);
 }
@@ -280,20 +285,20 @@
 .vehicle-input {
   flex: 1;
   min-width: 0;
-  height: 78rpx;
-  min-height: 78rpx;
+  height: 68rpx;
+  min-height: 68rpx;
   padding: 0 24rpx 0 0;
   color: #172033;
   background: transparent;
   border: none;
-  font-size: 25rpx;
-  line-height: 78rpx;
+  font-size: 23rpx;
+  line-height: 68rpx;
 }
 
 .input-icon {
   position: relative;
   width: 74rpx;
-  height: 78rpx;
+  height: 70rpx;
   flex-shrink: 0;
   color: #7b8494;
   box-sizing: border-box;
@@ -418,7 +423,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 20rpx;
+  margin-top: 18rpx;
 }
 
 .forgot {
@@ -430,17 +435,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 82rpx;
-  margin: 30rpx 0 0;
+  width: 360rpx;
+  min-height: 74rpx;
+  margin: 26rpx auto 0;
   padding: 0;
   border: none;
   border-radius: 999rpx;
   color: #ffffff;
   background: linear-gradient(135deg, #ff7a00 0%, #ff9d32 100%);
-  box-shadow: 0 14rpx 28rpx rgba(255, 122, 0, 0.22);
-  font-size: 26rpx;
-  font-weight: 600;
+  box-shadow: 0 16rpx 30rpx rgba(255, 122, 0, 0.22);
+  font-size: 24rpx;
+  font-weight: 500;
   line-height: 1.2;
   box-sizing: border-box;
 }
@@ -454,8 +459,8 @@
   align-items: center;
   justify-content: flex-start;
   gap: 12rpx;
-  margin-top: 22rpx;
-  padding: 16rpx 18rpx;
+  margin-top: 20rpx;
+  padding: 15rpx 18rpx;
   border-radius: 18rpx;
   color: #7a8396;
   background: #f8fafc;
@@ -490,26 +495,26 @@
 }
 
 .driver-guide {
-  padding: 22rpx 24rpx;
+  padding: 20rpx 24rpx;
   border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.82);
   border: 1rpx solid rgba(31, 36, 50, 0.045);
 }
 
 .driver-guide__title {
   color: #172033;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .driver-guide__row {
   display: flex;
   align-items: flex-start;
   gap: 14rpx;
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   color: #667085;
   font-size: 21rpx;
-  line-height: 1.55;
+  line-height: 1.48;
 }
 
 .driver-guide__dot {
@@ -522,13 +527,13 @@
 }
 
 .vehicle-page {
-  padding: 20rpx 20rpx 150rpx;
+  padding: 22rpx 36rpx 154rpx;
 }
 
 .vehicle-card,
 .vehicle-form {
-  padding: 20rpx;
-  border-radius: 20rpx;
+  padding: 24rpx 26rpx;
+  border-radius: 26rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid rgba(31, 36, 50, 0.05);
   box-shadow: 0 12rpx 28rpx rgba(24, 34, 56, 0.052);
@@ -607,7 +612,7 @@
 .summary-title {
   color: #172033;
   font-size: 25rpx;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 .summary-subtitle {
@@ -647,7 +652,7 @@
   margin-top: 8rpx;
   color: #172033;
   font-size: 21rpx;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 .empty-vehicle {
@@ -666,14 +671,14 @@
 
 .empty-vehicle-title {
   color: #172033;
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 25rpx;
+  font-weight: 500;
 }
 
 .empty-vehicle-desc {
   color: #667085;
-  font-size: 24rpx;
-  line-height: 1.7;
+  font-size: 21rpx;
+  line-height: 1.55;
 }
 
 .lock-card {
@@ -765,14 +770,14 @@
 }
 
 .vehicle-reference-page {
-  padding: 18rpx 18rpx 136rpx;
+  padding: 22rpx 36rpx 142rpx;
 }
 
 .vehicle-reference-card {
-  padding: 20rpx;
-  border-radius: 20rpx;
+  padding: 24rpx 26rpx;
+  border-radius: 26rpx;
   background:
-    linear-gradient(125deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 250, 244, 0.96) 56%, rgba(255, 236, 214, 0.6) 100%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 248, 239, 0.96) 56%, rgba(255, 236, 214, 0.68) 100%),
     #ffffff;
   box-shadow: 0 12rpx 30rpx rgba(24, 34, 56, 0.06);
 }
@@ -792,7 +797,7 @@
 .vehicle-reference-title {
   color: #172033;
   font-size: 27rpx;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.12;
 }
 
@@ -972,7 +977,7 @@
 .permission-title {
   color: #172033;
   font-size: 23rpx;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -985,9 +990,11 @@
 
 .vehicle-form-reference {
   margin-top: 16rpx;
-  padding: 20rpx;
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.98);
+  padding: 24rpx 26rpx;
+  border-radius: 26rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 252, 255, 0.98)),
+    #ffffff;
   border: 1rpx solid rgba(31, 36, 50, 0.045);
   box-shadow: 0 12rpx 30rpx rgba(24, 34, 56, 0.055);
 }
@@ -1003,7 +1010,7 @@
   flex-shrink: 0;
   color: #172033;
   font-size: 25rpx;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -1027,9 +1034,9 @@
   height: 38rpx;
   justify-self: center;
   border-radius: 12rpx;
-  color: #172033;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1rpx solid rgba(31, 36, 50, 0.12);
+  color: #ff6f00;
+  background: linear-gradient(180deg, #fff4e7, #ffe8d1);
+  border: 1rpx solid rgba(255, 122, 0, 0.12);
 }
 
 .vehicle-field-icon--card::before {
@@ -1127,7 +1134,7 @@
 .vehicle-field-label {
   color: #172033;
   font-size: 21rpx;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 .vehicle-input-reference {
@@ -1137,7 +1144,7 @@
   margin-top: 0;
   padding: 0 16rpx;
   border-radius: 14rpx;
-  background: #f8fafc;
+  background: #f6f8fc;
   border: 1rpx solid rgba(31, 36, 50, 0.08);
   font-size: 22rpx;
   line-height: 56rpx;
@@ -1169,6 +1176,7 @@
 
 .upload-card-reference .upload-title {
   font-size: 21rpx;
+  font-weight: 500;
 }
 
 .upload-desc {
@@ -1197,7 +1205,7 @@
   background: #fffaf4;
   border: 1rpx solid rgba(255, 122, 0, 0.38);
   font-size: 21rpx;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1;
   text-align: center;
 }
@@ -1207,8 +1215,8 @@
 }
 
 .floating-actions-reference {
-  left: 24rpx;
-  right: 24rpx;
+  left: 36rpx;
+  right: 36rpx;
   bottom: calc(env(safe-area-inset-bottom) + 12rpx);
   grid-template-columns: 1fr 1.05fr;
   gap: 10rpx;
@@ -1227,7 +1235,7 @@
   padding: 0 16rpx;
   border-radius: 13rpx;
   font-size: 20rpx;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.2;
   box-sizing: border-box;
 }
@@ -1260,4 +1268,482 @@
 .button-hover {
   transform: translateY(2rpx) scale(0.99);
   opacity: 0.96;
+}
+
+.summary-icon,
+.vehicle-field-icon,
+.permission-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.summary-icon::before,
+.summary-icon::after,
+.vehicle-field-icon::before,
+.vehicle-field-icon::after,
+.permission-icon::before,
+.permission-icon::after {
+  display: none;
+}
+
+.summary-icon-img,
+.vehicle-field-icon-img,
+.permission-icon-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.summary-icon {
+  width: 46rpx;
+  height: 46rpx;
+}
+
+.permission-icon {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 20rpx;
+}
+
+.vehicle-field-icon {
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 16rpx;
+}
+
+.driver-landing {
+  gap: 18rpx;
+  padding: 32rpx 40rpx calc(env(safe-area-inset-bottom) + 34rpx);
+  background:
+    radial-gradient(circle at 84% 2%, rgba(255, 185, 98, 0.24), transparent 28%),
+    linear-gradient(180deg, #fff2e2 0%, #f8fafc 44%, #f2f5fa 100%);
+}
+
+.driver-landing .auth-hero {
+  height: 330rpx;
+  min-height: 330rpx;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 30rpx;
+  background: #fff1df;
+  border: none;
+  box-shadow: 0 18rpx 44rpx rgba(190, 107, 31, 0.13);
+}
+
+.auth-hero__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-hero__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(255, 249, 240, 0.97) 0%, rgba(255, 249, 240, 0.76) 42%, rgba(255, 249, 240, 0.1) 76%);
+}
+
+.driver-landing .auth-hero::after,
+.driver-landing .auth-vehicle {
+  display: none;
+}
+
+.driver-landing .auth-copy {
+  position: relative;
+  z-index: 2;
+  width: 410rpx;
+  padding: 28rpx 0 0 26rpx;
+  box-sizing: border-box;
+}
+
+.driver-landing .auth-kicker {
+  height: 42rpx;
+  padding: 0 16rpx;
+  color: #ff7300;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1rpx solid rgba(255, 122, 0, 0.2);
+  font-size: 21rpx;
+  font-weight: 500;
+}
+
+.driver-landing .auth-title {
+  margin-top: 20rpx;
+  color: #172033;
+  font-size: 38rpx;
+  font-weight: 650;
+  line-height: 1.16;
+}
+
+.driver-landing .auth-desc {
+  width: 380rpx;
+  margin-top: 12rpx;
+  color: #667085;
+  font-size: 21rpx;
+  line-height: 1.48;
+}
+
+.driver-landing .auth-flow {
+  width: 382rpx;
+  margin-top: 20rpx;
+}
+
+.driver-landing .auth-flow__dot {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.driver-landing .login-card,
+.driver-landing .driver-guide {
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  box-shadow: 0 18rpx 42rpx rgba(23, 32, 51, 0.075);
+}
+
+.driver-landing .login-card {
+  padding: 24rpx 26rpx 28rpx;
+}
+
+.driver-landing .login-eyebrow {
+  color: #ff7300;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.driver-landing .login-title {
+  margin-top: 8rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.driver-landing .login-badge {
+  color: #596579;
+  background: #f3f6fa;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+}
+
+.driver-landing .login-desc {
+  margin-top: 12rpx;
+  font-size: 21rpx;
+  line-height: 1.48;
+}
+
+.driver-landing .mode-switch {
+  height: 62rpx;
+  margin-top: 22rpx;
+  padding: 5rpx;
+  background: #f1f4f8;
+  border: none;
+}
+
+.driver-landing .mode-item {
+  color: #667085;
+  font-size: 23rpx;
+}
+
+.driver-landing .mode-item--active {
+  color: #ff7300;
+  background: #fff;
+  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.1);
+}
+
+.driver-landing .input-wrap {
+  min-height: 74rpx;
+  margin-top: 16rpx;
+  border-radius: 20rpx;
+  background: #f8fafc;
+  border: 1rpx solid rgba(31, 36, 50, 0.07);
+}
+
+.driver-landing .input-icon {
+  width: 68rpx;
+  height: 68rpx;
+  color: #ff7a00;
+}
+
+.driver-landing .driver-input {
+  height: 72rpx;
+  min-height: 72rpx;
+  font-size: 24rpx;
+  line-height: 72rpx;
+}
+
+.driver-landing .input-clear {
+  width: 34rpx;
+  height: 34rpx;
+  margin-right: 14rpx;
+  background: #b8c0cc;
+  font-size: 24rpx;
+}
+
+.driver-landing .forgot-row {
+  margin-top: 18rpx;
+}
+
+.driver-landing .forgot {
+  color: #687386;
+  font-size: 22rpx;
+}
+
+.driver-landing .driver-login-button {
+  width: 372rpx;
+  min-height: 76rpx;
+  margin-top: 26rpx;
+  background: linear-gradient(135deg, #ff7300 0%, #ff952e 100%);
+  box-shadow: 0 16rpx 30rpx rgba(255, 111, 0, 0.24);
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.driver-landing .login-note {
+  margin-top: 20rpx;
+  padding: 15rpx 18rpx;
+  border-radius: 18rpx;
+  background: #f8fafc;
+  color: #7a8396;
+  font-size: 21rpx;
+}
+
+.driver-landing .driver-guide {
+  padding: 20rpx 24rpx;
+}
+
+.driver-landing .login-card {
+  overflow: hidden;
+  padding: 24rpx 26rpx 30rpx;
+  border-radius: 30rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.92)),
+    #ffffff;
+  border: 1rpx solid rgba(255, 255, 255, 0.76);
+  box-shadow: 0 18rpx 44rpx rgba(25, 35, 55, 0.08);
+}
+
+.driver-landing .login-card::before {
+  content: "";
+  position: absolute;
+  left: 26rpx;
+  right: 26rpx;
+  top: 0;
+  height: 5rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, transparent, rgba(255, 122, 0, 0.48), transparent);
+}
+
+.driver-landing .login-head {
+  align-items: center;
+}
+
+.driver-landing .login-eyebrow {
+  font-size: 20rpx;
+  font-weight: 650;
+}
+
+.driver-landing .login-title {
+  margin-top: 7rpx;
+  font-size: 31rpx;
+  font-weight: 650;
+}
+
+.driver-landing .login-badge {
+  padding: 9rpx 16rpx;
+  color: #667085;
+  background: linear-gradient(180deg, #f9fbfe, #eef2f7);
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+}
+
+.driver-landing .mode-switch {
+  height: 66rpx;
+  margin-top: 22rpx;
+  padding: 6rpx;
+  background: linear-gradient(180deg, #f4f7fb, #edf1f7);
+  border: 1rpx solid rgba(31, 36, 50, 0.04);
+}
+
+.driver-landing .mode-item {
+  color: #7b8494;
+  font-size: 23rpx;
+}
+
+.driver-landing .mode-item--active {
+  color: #ff7300;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 251, 247, 0.96));
+  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.12);
+}
+
+.driver-landing .input-wrap {
+  min-height: 78rpx;
+  margin-top: 16rpx;
+  border-radius: 22rpx;
+  background:
+    linear-gradient(180deg, #ffffff, #f9fbfe);
+  border: 1rpx solid rgba(31, 36, 50, 0.07);
+  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.7), 0 8rpx 20rpx rgba(23, 32, 51, 0.035);
+}
+
+.driver-landing .input-icon {
+  width: 58rpx;
+  height: 58rpx;
+  margin-left: 10rpx;
+  margin-right: 6rpx;
+  border-radius: 18rpx;
+  color: #ff7300;
+  background: linear-gradient(180deg, #fff6ed, #ffe6cc);
+  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.72);
+}
+
+.driver-landing .input-icon--phone::before {
+  width: 17rpx;
+  height: 31rpx;
+}
+
+.driver-landing .input-icon--lock::before {
+  width: 25rpx;
+  height: 21rpx;
+}
+
+.driver-landing .driver-input {
+  height: 76rpx;
+  min-height: 76rpx;
+  font-size: 24rpx;
+  line-height: 76rpx;
+}
+
+.driver-landing .driver-login-button {
+  width: 344rpx;
+  min-height: 72rpx;
+  margin-top: 24rpx;
+  border-radius: 22rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 42%),
+    linear-gradient(135deg, #ff7a00 0%, #ff9a2f 100%);
+  box-shadow: 0 16rpx 30rpx rgba(255, 111, 0, 0.26);
+  font-size: 26rpx;
+  font-weight: 650;
+}
+
+.driver-landing .login-note {
+  margin-top: 18rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 20rpx;
+  color: #7a5a38;
+  background:
+    linear-gradient(135deg, rgba(255, 248, 239, 0.96), rgba(255, 241, 224, 0.82));
+  border: 1rpx solid rgba(255, 122, 0, 0.12);
+}
+
+.driver-landing .login-note__icon {
+  width: 30rpx;
+  height: 32rpx;
+  border-color: #ff7a00;
+}
+
+.driver-landing .driver-guide {
+  padding: 22rpx 24rpx;
+  border-radius: 28rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.84));
+  border: 1rpx solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 14rpx 34rpx rgba(24, 34, 56, 0.06);
+}
+
+.driver-landing .driver-guide__title {
+  position: relative;
+  padding-left: 16rpx;
+  font-size: 25rpx;
+  font-weight: 650;
+}
+
+.driver-landing .driver-guide__title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6rpx;
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: #ff7300;
+  transform: translateY(-50%);
+}
+
+.driver-landing .input-wrap {
+  min-height: 76rpx;
+  padding: 0 10rpx 0 14rpx;
+  gap: 10rpx;
+  border-radius: 22rpx;
+  background: #fbfcff;
+  border: 1rpx solid rgba(34, 45, 66, 0.07);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
+}
+
+.driver-landing .input-icon {
+  width: 44rpx;
+  height: 44rpx;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.driver-landing .input-icon::before,
+.driver-landing .input-icon::after,
+.driver-landing .input-icon--phone::before,
+.driver-landing .input-icon--phone::after,
+.driver-landing .input-icon--lock::before,
+.driver-landing .input-icon--lock::after,
+.driver-landing .input-icon--user::before,
+.driver-landing .input-icon--user::after {
+  display: none;
+}
+
+.driver-landing .input-icon-img {
+  display: block;
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.driver-landing .driver-input {
+  height: 74rpx;
+  min-height: 74rpx;
+  padding: 0;
+  line-height: 74rpx;
+}
+
+.driver-landing .input-clear,
+.driver-landing .input-eye {
+  width: 44rpx;
+  height: 44rpx;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #98a2b3;
+  background: rgba(241, 245, 249, 0.9);
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.driver-landing .input-eye::before,
+.driver-landing .input-eye::after {
+  display: none;
+}
+
+.driver-landing .input-action-img {
+  display: block;
+  width: 34rpx;
+  height: 34rpx;
+  opacity: 0.76;
 }

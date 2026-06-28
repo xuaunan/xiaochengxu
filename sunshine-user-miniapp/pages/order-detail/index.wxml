@@ -195,6 +195,14 @@
           <text class="info-label">优惠抵扣</text>
           <text class="info-value info-value--brand">-{{detail.appliedCouponDiscountText}}</text>
         </view>
+        <view class="info-row" wx:if="{{detail.showWebExclusiveDiscountInfo}}">
+          <text class="info-label">网页专属优惠</text>
+          <text class="info-value info-value--brand">-{{detail.webExclusiveDiscountText}}</text>
+        </view>
+        <view class="info-row" wx:if="{{detail.showWebExclusiveDiscountInfo}}">
+          <text class="info-label">优惠说明</text>
+          <text class="info-value">{{detail.webExclusiveDiscountNote}}</text>
+        </view>
         <view class="info-row">
           <text class="info-label">创建时间</text>
           <text class="info-value">{{detail.createdAt}}</text>

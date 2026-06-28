@@ -1,4 +1,4 @@
-const { request } = require('./request')
+const { request, uploadFile } = require('./request')
 
 function queryString(params = {}) {
   const search = Object.keys(params)
@@ -37,6 +37,15 @@ function updateProfile(data, options = {}) {
     url: '/auth/profile',
     method: 'PUT',
     data,
+    skipToast: Boolean(options.skipToast)
+  })
+}
+
+function uploadAvatar(filePath, options = {}) {
+  return uploadFile({
+    url: '/auth/avatar',
+    filePath,
+    name: 'file',
     skipToast: Boolean(options.skipToast)
   })
 }
@@ -437,6 +446,7 @@ module.exports = {
   submitComplaint,
   submitEvaluation,
   submitRealName,
+  uploadAvatar,
   updateProfile,
   updateProfileByAdmin
 }

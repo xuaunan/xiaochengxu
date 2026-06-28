@@ -709,7 +709,7 @@ svg {
 .portal {
   width: min(1480px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 24px 0 72px;
+  padding: 24px 0 16px;
 }
 
 .topbar {
@@ -740,6 +740,230 @@ svg {
   width: 186px;
   max-width: 100%;
   aspect-ratio: 1206 / 463;
+}
+
+.portal .topbar .portal-brand-mark {
+  flex: 0 0 auto;
+  min-height: 68px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.portal .topbar .portal-brand-logo {
+  --sunshine-logo-motion-duration: 2500ms;
+  --sunshine-logo-motion-seek: 0ms;
+  position: relative;
+  display: block;
+  width: clamp(170px, 18vw, 236px);
+  max-width: 100%;
+  aspect-ratio: 1206 / 463;
+  overflow: visible;
+}
+
+.portal .topbar .portal-brand-logo,
+.portal .topbar .portal-brand-logo * {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__stack {
+  isolation: isolate;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-car-part {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: opacity;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__sun-core {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity, transform;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__sun-rise-clip {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer {
+  opacity: 0;
+  transform-box: fill-box;
+  image-rendering: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity, transform;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--reveal {
+  opacity: 1;
+  will-change: opacity;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--car-soft,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--car-body,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--car-cabin,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--car-lights {
+  transform-origin: 50% 52%;
+}
+
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--word-1,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--word-2,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--word-3,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--word-4,
+.portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--tagline {
+  transform-origin: center center;
+}
+
+.portal .topbar .portal-brand-logo.is-seeking .sunshine-motion-logo__sun-core,
+.portal .topbar .portal-brand-logo.is-seeking .sunshine-motion-logo__layer,
+.portal .topbar .portal-brand-logo.is-seeking .sunshine-motion-logo__mask-stroke,
+.portal .topbar .portal-brand-logo.is-seeking .sunshine-motion-logo__mask-word,
+.portal .topbar .portal-brand-logo.is-seeking .sunshine-motion-logo__mask-car-part,
+.portal .topbar .portal-brand-logo.is-seeking .sunshine-motion-logo__sun-rise-clip {
+  animation-delay: calc(var(--sunshine-logo-motion-seek) * -1) !important;
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__sun-core {
+    animation: sunshine-logo-layer-sun var(--sunshine-logo-motion-duration) cubic-bezier(0.14, 0.84, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__sun-rise-clip {
+    animation: sunshine-logo-sun-rise-mask var(--sunshine-logo-motion-duration) cubic-bezier(0.14, 0.84, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-1 {
+    animation: sunshine-logo-mask-ray-1 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-2 {
+    animation: sunshine-logo-mask-ray-2 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-3 {
+    animation: sunshine-logo-mask-ray-3 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-4 {
+    animation: sunshine-logo-mask-ray-4 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-5 {
+    animation: sunshine-logo-mask-ray-5 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-6 {
+    animation: sunshine-logo-mask-ray-6 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--ray-7 {
+    animation: sunshine-logo-mask-ray-7 var(--sunshine-logo-motion-duration) cubic-bezier(0.22, 0.96, 0.18, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--road-outer {
+    animation: sunshine-logo-mask-road-outer var(--sunshine-logo-motion-duration) cubic-bezier(0.2, 0.92, 0.16, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke--road-inner {
+    animation: sunshine-logo-mask-road-inner var(--sunshine-logo-motion-duration) cubic-bezier(0.2, 0.92, 0.16, 1) both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word--word-1 {
+    animation: sunshine-logo-mask-word-1 var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word--word-2 {
+    animation: sunshine-logo-mask-word-2 var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word--word-3 {
+    animation: sunshine-logo-mask-word-3 var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word--word-4 {
+    animation: sunshine-logo-mask-word-4 var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word--tagline {
+    animation: sunshine-logo-mask-tagline var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-car-part--car-soft {
+    animation: sunshine-logo-mask-car-soft var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-car-part--car-body {
+    animation: sunshine-logo-mask-car-body var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-car-part--car-cabin {
+    animation: sunshine-logo-mask-car-cabin var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-car-part--car-lights {
+    animation: sunshine-logo-mask-car-lights var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--reveal {
+    animation: sunshine-logo-layer-composite-out var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__layer--final {
+    animation: sunshine-logo-layer-final var(--sunshine-logo-motion-duration) linear both;
+  }
+
+  .portal .topbar .portal-brand-mark:hover .sunshine-motion-logo__svg,
+  .portal .topbar .portal-brand-mark:focus-visible .sunshine-motion-logo__svg {
+    animation: sunshine-logo-breathe 1700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__sun-core,
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__layer {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-word,
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-car-part {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__sun-rise-clip {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .portal .topbar .portal-brand-logo .sunshine-motion-logo__mask-stroke {
+    stroke-dashoffset: 0 !important;
+  }
 }
 
 .dashboard-shell .side-nav .sunshine-motion-logo {
@@ -1804,7 +2028,7 @@ svg {
   gap: 24px;
   align-items: center;
   min-height: calc(100vh - 122px);
-  padding: 38px 0 42px;
+  padding: 34px 0 24px;
 }
 
 .hero-copy {
@@ -4029,6 +4253,7 @@ svg {
 
 .checkin-card-visual {
   position: relative;
+  z-index: 1;
   width: 192px;
   height: 192px;
   margin: 0 0 22px;
@@ -4042,7 +4267,10 @@ svg {
   --checkin-hover-z: 16px;
   transform-style: preserve-3d;
   touch-action: manipulation;
+  overflow: visible;
   will-change: transform;
+  contain: layout style;
+  isolation: isolate;
   animation: checkinSceneFloat 3.25s cubic-bezier(.45, 0, .55, 1) infinite;
 }
 
@@ -4059,6 +4287,8 @@ svg {
   pointer-events: none;
   color: #ffc247;
   filter: drop-shadow(0 3px 5px rgba(255, 194, 71, .32));
+  backface-visibility: hidden;
+  transform-style: flat;
   animation: checkinSparkleGlow 2.8s ease-in-out infinite;
 }
 
@@ -4122,6 +4352,7 @@ svg {
   filter: blur(14px);
   transform: translateX(-50%) scaleY(.52);
   transition: transform .22s var(--ease), translate .22s var(--ease), scale .22s var(--ease), opacity .22s var(--ease);
+  will-change: transform, opacity;
   animation: checkinShadowBreathe 3.4s cubic-bezier(.45, 0, .55, 1) infinite;
 }
 
@@ -4139,6 +4370,8 @@ svg {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 }
 
 .checkin-calendar-press-wrap {
@@ -4146,9 +4379,12 @@ svg {
 }
 
 .checkin-calendar-3d {
+  transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
+  transform-origin: 50% 52%;
   will-change: transform;
   animation: checkinCalendarIdle 3.25s cubic-bezier(.45, 0, .55, 1) infinite;
-  transition: transform .2s cubic-bezier(.22, 1, .36, 1), filter .2s cubic-bezier(.22, 1, .36, 1);
+  filter: none;
+  transition: transform .2s cubic-bezier(.22, 1, .36, 1);
 }
 
 .checkin-card-visual:hover,
@@ -4171,7 +4407,6 @@ svg {
 .checkin-card-visual:hover .checkin-calendar-3d,
 .checkin-card-visual:focus-visible .checkin-calendar-3d {
   animation: none;
-  filter: drop-shadow(0 18px 24px rgba(15, 23, 42, .16));
   transform:
     translateZ(var(--checkin-hover-z, 20px))
     rotateX(var(--checkin-hover-rx, 10deg))
@@ -4204,6 +4439,8 @@ svg {
   border-radius: 24px;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  will-change: transform;
+  contain: paint;
 }
 
 .checkin-calendar-depth {
@@ -4223,19 +4460,23 @@ svg {
 .checkin-calendar-back {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(226, 232, 240, .9);
-  background: #fff;
-  box-shadow: 0 8px 16px rgba(15, 23, 42, .1);
-  transform: translateZ(-18px) rotateY(180deg);
+  border: 1px solid rgba(241, 245, 249, .96);
+  background: linear-gradient(180deg, #fff 0%, #fff 78%, #fbfdff 100%);
+  box-shadow:
+    0 10px 18px rgba(15, 23, 42, .11),
+    0 3px 0 rgba(226, 232, 240, .45),
+    0 1px 0 rgba(255, 255, 255, .9) inset;
+  transform: translateZ(-12px) rotateY(180deg);
 }
 
 .checkin-calendar-front {
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(241, 245, 249, .96);
-  background: #fff;
+  background: linear-gradient(180deg, #fff 0%, #fff 78%, #fbfdff 100%);
   box-shadow:
-    0 9px 16px rgba(15, 23, 42, .12),
+    0 10px 18px rgba(15, 23, 42, .13),
+    0 3px 0 rgba(226, 232, 240, .5),
     0 1px 0 rgba(255, 255, 255, .9) inset;
   transform: translateZ(0);
 }
@@ -4395,8 +4636,8 @@ svg {
 }
 
 .daily-checkin-card.is-compact .checkin-badge {
-  right: -10px;
-  bottom: -10px;
+  right: -12px;
+  bottom: -8px;
   width: 42px;
   height: 42px;
   border-width: 3px;
@@ -4421,33 +4662,34 @@ svg {
   animation: checkinDotPulse 1.8s var(--ease) infinite;
 }
 
-.daily-checkin-card.is-celebrating .checkin-calendar-front {
-  animation: checkinCalendarClaim .68s var(--ease);
-}
-
 .daily-checkin-card.is-celebrating .checkin-card-visual {
   animation-play-state: paused;
+  pointer-events: none;
 }
 
 .daily-checkin-card.is-celebrating .checkin-calendar-press-wrap {
-  animation: checkinClaimLift .88s cubic-bezier(.2, .9, .18, 1);
+  animation: checkinClaimLift .28s cubic-bezier(.16, .9, .2, 1);
 }
 
 .daily-checkin-card.is-celebrating .checkin-calendar-3d {
-  animation: checkinCalendarSuccessSpin .88s cubic-bezier(.2, .9, .18, 1) !important;
-  filter: drop-shadow(0 22px 28px rgba(15, 23, 42, .18));
+  animation: checkinCalendarSuccessSpin .28s linear both !important;
+  filter: none;
+}
+
+.daily-checkin-card.is-celebrating .checkin-calendar-depth {
+  opacity: 0;
 }
 
 .daily-checkin-card.is-celebrating .checkin-calendar-shadow {
-  animation: checkinClaimShadow .88s cubic-bezier(.2, .9, .18, 1);
+  animation: checkinClaimShadow .28s cubic-bezier(.16, .9, .2, 1);
 }
 
 .daily-checkin-card.is-celebrating .checkin-badge {
-  animation: checkinBadgePop .68s var(--ease);
+  animation: checkinBadgePop .24s var(--ease);
 }
 
 .daily-checkin-card.is-celebrating .checkin-day-cell.active {
-  animation: checkinDayPop .68s var(--ease);
+  animation: checkinDayPop .24s var(--ease);
 }
 
 .checkin-card-copy {
@@ -4603,6 +4845,12 @@ svg {
   margin-top: 22px;
 }
 
+.hero-feature-strip {
+  grid-column: 1 / -1;
+  gap: 16px;
+  margin-top: -2px;
+}
+
 .interactive-menu {
   display: grid;
   gap: 14px;
@@ -4699,6 +4947,14 @@ svg {
   transition: transform .3s var(--ease), box-shadow .3s var(--ease), filter .3s var(--ease);
 }
 
+.hero-feature-strip .feature-card {
+  display: grid;
+  align-content: start;
+  min-height: 108px;
+  padding: 14px 18px 15px;
+  border-radius: 24px;
+}
+
 .portal-strip .feature-card:nth-child(1) {
   --feature-delay: 0s;
   --float-rotate: .28deg;
@@ -4739,6 +4995,17 @@ svg {
   font-size: 18px;
 }
 
+.hero-feature-strip .feature-card h3 {
+  margin: 8px 0 5px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.hero-feature-strip .feature-card svg {
+  width: 20px;
+  height: 20px;
+}
+
 .feature-card p,
 .role-card p,
 .quick-entry p,
@@ -4746,6 +5013,12 @@ svg {
 .empty-state {
   color: var(--muted);
   line-height: 1.65;
+}
+
+.hero-feature-strip .feature-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.48;
 }
 
 .quick-entry {
@@ -11045,46 +11318,37 @@ svg {
 
 @keyframes checkinClaimLift {
   0% {
-    translate: 0 0;
-    transform: scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
-  34% {
-    translate: 0 -9px;
-    transform: scale(1.018);
+  42% {
+    transform: translate3d(0, -8px, 0) scale(1.012);
   }
   100% {
-    translate: 0 0;
-    transform: scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes checkinCalendarSuccessSpin {
   0% {
-    transform: translateZ(0) rotateX(0deg) rotateY(0deg) scale(1);
-  }
-  34% {
-    transform: translateZ(26px) rotateX(8deg) rotateY(136deg) scale(1.04);
-  }
-  68% {
-    transform: translateZ(24px) rotateX(4deg) rotateY(286deg) scale(1.035);
+    transform: translate3d(0, 0, 0) rotateY(0deg);
   }
   100% {
-    transform: translateZ(0) rotateX(0deg) rotateY(360deg) scale(1);
+    transform: translate3d(0, 0, 0) rotateY(360deg);
   }
 }
 
 @keyframes checkinClaimShadow {
   0% {
     opacity: .72;
-    transform: translateX(-50%) scaleY(.52);
+    transform: translate3d(-50%, 0, 0) scaleX(1) scaleY(.52);
   }
-  42% {
+  44% {
     opacity: .46;
-    transform: translateX(-50%) translateY(17px) scaleX(1.38) scaleY(.32);
+    transform: translate3d(-50%, 14px, 0) scaleX(1.28) scaleY(.34);
   }
   100% {
     opacity: .82;
-    transform: translateX(-50%) scaleY(.52);
+    transform: translate3d(-50%, 0, 0) scaleX(1) scaleY(.52);
   }
 }
 

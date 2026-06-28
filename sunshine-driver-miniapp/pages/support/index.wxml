@@ -21,18 +21,25 @@
       show-scrollbar="{{false}}"
       scroll-into-view="{{scrollIntoView}}"
       scroll-with-animation
+      bindscroll="handleMessageScroll"
     >
       <block wx:if="{{messages.length}}">
         <view
-          class="support-message {{item.fromAi ? 'support-message--ai' : (item.fromAdmin ? 'support-message--admin' : 'support-message--self')}}"
+          class="support-message {{item.fromAi ? 'support-message--ai' : (item.fromAdmin ? 'support-message--admin' : 'support-message--self')}} {{item.isTyping ? 'support-message--typing' : ''}}"
           id="{{item.anchorId}}"
           wx:for="{{messages}}"
           wx:key="id"
         >
+          <view class="support-avatar {{item.isSelf ? 'support-avatar--self' : 'support-avatar--service'}}">
+            <image wx:if="{{item.avatarSrc}}" class="support-avatar__image" src="{{item.avatarSrc}}" mode="aspectFill"></image>
+            <text wx:else>{{item.avatarText}}</text>
+          </view>
           <view class="support-bubble">
-            <view wx:if="{{item.fromAi}}" class="support-bubble__tag">AI客服</view>
-            <view class="support-bubble__text">{{item.content}}</view>
-            <view class="support-bubble__time">{{item.timeText}}</view>
+            <view class="support-bubble__head">
+              <view wx:if="{{!item.isSelf}}" class="support-bubble__name">{{item.senderName}}</view>
+              <view class="support-bubble__meta">{{item.senderRoleText}} · {{item.timeText}}</view>
+            </view>
+            <view class="support-bubble__text">{{item.displayContent || item.content}}</view>
           </view>
         </view>
       </block>
@@ -48,31 +55,35 @@
         <view class="support-empty__title">客服已接入</view>
         <view class="support-empty__desc">请选择快捷问题，或直接描述你遇到的情况</view>
       </view>
+      <view class="support-scroll-spacer"></view>
     </scroll-view>
 
-    <view class="support-quick">
-      <view
-        class="support-quick__item"
-        wx:for="{{quickQuestions}}"
-        wx:key="*this"
-        data-content="{{item}}"
-        bindtap="handleQuickQuestion"
-      >
-        {{item}}
+    <view class="support-composer">
+      <view class="support-quick-title">常见咨询</view>
+      <view class="support-quick">
+        <view
+          class="support-quick__item"
+          wx:for="{{quickQuestions}}"
+          wx:key="*this"
+          data-content="{{item}}"
+          bindtap="handleQuickQuestion"
+        >
+          {{item}}
+        </view>
       </view>
-    </view>
 
-    <view class="support-input-panel">
-      <textarea
-        class="support-input"
-        value="{{inputText}}"
-        maxlength="500"
-        auto-height
-        placeholder="输入消息"
-        bindinput="handleInput"
-      />
-      <view class="support-send {{sending ? 'support-send--disabled' : ''}}" bindtap="sendMessage">
-        {{sending ? 'AI中' : '发送'}}
+      <view class="support-input-panel">
+        <textarea
+          class="support-input"
+          value="{{inputText}}"
+          maxlength="500"
+          auto-height
+          placeholder="输入消息"
+          bindinput="handleInput"
+        />
+        <view class="support-send {{sending ? 'support-send--disabled' : ''}}" bindtap="sendMessage">
+          发送
+        </view>
       </view>
     </view>
   </view>

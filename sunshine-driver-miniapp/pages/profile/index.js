@@ -59,6 +59,7 @@ Page({
         items: [
           {
             iconClass: 'vehicle',
+            iconPath: '/images/profile-menu-icons/vehicle.png',
             title: '我的车辆',
             url: '/pages/onboarding/index',
             mode: 'navigate',
@@ -67,6 +68,7 @@ Page({
           },
           {
             iconClass: 'orders',
+            iconPath: '/images/profile-menu-icons/orders.png',
             title: '我的订单',
             url: '/pages/orders/index',
             mode: 'tab',
@@ -80,6 +82,7 @@ Page({
         items: [
           {
             iconClass: 'income',
+            iconPath: '/images/profile-menu-icons/income.png',
             title: '我的收入',
             url: '/pages/wallet/index',
             mode: 'tab',
@@ -88,6 +91,7 @@ Page({
           },
           {
             iconClass: 'settings',
+            iconPath: '/images/profile-menu-icons/settings.png',
             title: '接单设置',
             url: '/pages/settings/index',
             mode: 'navigate',
@@ -101,6 +105,7 @@ Page({
         items: [
           {
             iconClass: 'profile',
+            iconPath: '/images/profile-menu-icons/user.png',
             title: '司机资料',
             url: '/pages/profile-edit/index',
             mode: 'navigate',
@@ -109,6 +114,7 @@ Page({
           },
           {
             iconClass: 'bell',
+            iconPath: '/images/profile-menu-icons/notice.png',
             title: '消息通知',
             url: '/pages/messages/index',
             mode: 'navigate',
@@ -116,7 +122,8 @@ Page({
             desc: '查看平台通知、审核结果和活动消息'
           },
           {
-            iconClass: 'bell',
+            iconClass: 'support',
+            iconPath: '/images/profile-menu-icons/support.png',
             title: '在线客服',
             url: '/pages/support/index',
             mode: 'navigate',

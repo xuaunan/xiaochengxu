@@ -10,12 +10,15 @@ import com.sunshine.travel.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "认证模块")
 @RestController
@@ -59,6 +62,13 @@ public class AuthController {
     @PutMapping("/profile")
     public ApiResponse<?> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
         return ApiResponse.success("资料更新成功", authService.updateProfile(request));
+    }
+
+    @Operation(summary = "上传当前登录用户头像")
+    @RequireLogin
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return ApiResponse.success("头像上传成功", authService.uploadAvatar(file));
     }
 
     @Operation(summary = "提交实名认证")

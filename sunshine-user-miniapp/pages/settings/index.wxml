@@ -5,14 +5,16 @@
         <view class="settings-title">出行偏好</view>
         <view class="settings-desc">消息提醒和优惠匹配会保存在当前设备。</view>
       </view>
-      <view class="settings-hero__icon"></view>
+      <image class="settings-hero__icon" src="/images/settings-icons/settings-preference.png" mode="aspectFit"></image>
     </view>
 
     <view class="setting-list">
       <view class="setting-group">
         <view class="setting-group-title">通知</view>
         <view class="setting-row tap-scale" data-key="pushEnabled" bindtap="toggleSetting" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="setting-icon setting-icon--push"></view>
+          <view class="setting-icon-wrap">
+            <image class="setting-icon-image" src="/images/settings-icons/settings-notice.png" mode="aspectFit"></image>
+          </view>
           <view class="setting-copy">
             <view class="setting-title">消息推送</view>
             <view class="setting-subtitle">订单、优惠券与公告提醒</view>
@@ -24,7 +26,9 @@
       <view class="setting-group">
         <view class="setting-group-title">优惠</view>
         <view class="setting-row tap-scale" data-key="autoUseCoupon" bindtap="toggleSetting" hover-class="pressable-hover" hover-stay-time="60">
-          <view class="setting-icon setting-icon--coupon"></view>
+          <view class="setting-icon-wrap">
+            <image class="setting-icon-image" src="/images/settings-icons/settings-coupon.png" mode="aspectFit"></image>
+          </view>
           <view class="setting-copy">
             <view class="setting-title">自动匹配优惠券</view>
             <view class="setting-subtitle">下单时优先推荐最优券</view>

@@ -20,26 +20,39 @@ import com.sunshine.travel.util.JwtUtil;
 import com.sunshine.travel.util.PasswordUtil;
 import com.sunshine.travel.util.ProfileFieldGuard;
 import com.sunshine.travel.vo.AuthLoginVO;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    private static final Set<String> ALLOWED_AVATAR_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp");
+
     private final PlatformUserMapper platformUserMapper;
     private final DriverProfileMapper driverProfileMapper;
     private final JwtUtil jwtUtil;
+    private final String uploadDir;
 
     public AuthServiceImpl(PlatformUserMapper platformUserMapper,
                            DriverProfileMapper driverProfileMapper,
-                           JwtUtil jwtUtil) {
+                           JwtUtil jwtUtil,
+                           @Value("${app.upload-dir}") String uploadDir) {
         this.platformUserMapper = platformUserMapper;
         this.driverProfileMapper = driverProfileMapper;
         this.jwtUtil = jwtUtil;
+        this.uploadDir = uploadDir;
     }
 
     @Override
@@ -134,6 +147,42 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public Map<String, Object> uploadAvatar(MultipartFile file) {
+        PlatformUser user = requireCurrentUser();
+        if (!RoleCode.USER.equals(user.getRoleCode())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Avatar upload is only available for passengers");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Please select an avatar image");
+        }
+
+        String extension = resolveAvatarExtension(file.getOriginalFilename());
+        if (!ALLOWED_AVATAR_EXTENSIONS.contains(extension)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Only JPG, PNG, and WEBP images are supported");
+        }
+
+        String fileName = "avatar-" + UUID.randomUUID().toString().replace("-", "") + extension;
+        Path targetPath = Path.of(uploadDir, "avatars", String.valueOf(user.getId()), fileName);
+        try {
+            Files.createDirectories(targetPath.getParent());
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Failed to save avatar image");
+        }
+
+        String fileUrl = "/uploads/avatars/" + user.getId() + "/" + fileName;
+        user.setAvatar(fileUrl);
+        platformUserMapper.updateById(user);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("fileUrl", fileUrl);
+        result.put("avatar", fileUrl);
+        result.put("originalName", file.getOriginalFilename());
+        return result;
+    }
+
+    @Override
+    @Transactional
     public Map<String, Object> submitRealName(RealNameSubmitRequest request) {
         PlatformUser user = requireCurrentUser();
         user.setRealName(ProfileFieldGuard.sanitizeRequired("真实姓名", request.getRealName()));
@@ -146,6 +195,13 @@ public class AuthServiceImpl implements AuthService {
         result.put("authStatus", user.getAuthStatus());
         result.put("message", "实名认证资料已提交");
         return result;
+    }
+
+    private String resolveAvatarExtension(String fileName) {
+        if (!StringUtils.hasText(fileName) || !fileName.contains(".")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Uploaded image is missing a file extension");
+        }
+        return fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
     }
 
     private PlatformUser requireCurrentUser() {
