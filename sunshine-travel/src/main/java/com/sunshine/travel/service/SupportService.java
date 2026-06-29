@@ -6,11 +6,13 @@ import java.util.Map;
 
 public interface SupportService {
 
-    Map<String, Object> currentConversation();
+    Map<String, Object> currentConversation(String clientChannel);
 
-    List<Map<String, Object>> currentMessages();
+    List<Map<String, Object>> currentMessages(String clientChannel);
 
     Map<String, Object> sendCurrentMessage(String content);
+
+    Map<String, Object> sendCurrentMessage(String content, String clientChannel);
 
     PageResult<Map<String, Object>> adminConversations(long current, long size, String keyword, String role, String status);
 

@@ -153,10 +153,11 @@
 
     <view class="detail-card aftersale-panel">
       <view class="detail-section-title">售后服务</view>
-      <view class="action-grid">
+      <view class="action-grid {{detail.showReviewAction ? 'action-grid--with-review' : ''}}">
         <view class="action-card tap-scale" bindtap="applyRefund">申请退款</view>
         <view class="action-card tap-scale" bindtap="gotoComplaint">投诉反馈</view>
         <view class="action-card tap-scale" bindtap="gotoInvoice">申请发票</view>
+        <view class="action-card action-card--review tap-scale" wx:if="{{detail.showReviewAction}}" bindtap="gotoReview">{{detail.reviewActionText}}</view>
       </view>
     </view>
 

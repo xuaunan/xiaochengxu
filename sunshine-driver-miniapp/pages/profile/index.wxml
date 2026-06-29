@@ -50,7 +50,7 @@
         <view class="permission-title">接单权限</view>
         <view class="permission-desc">{{permission.message}}</view>
       </view>
-      <view class="status-chip {{vehicleView.auditClassName}}">{{permission.canReceiveOrders ? '已解锁' : '未解锁'}}</view>
+      <view class="status-chip {{permissionStatusClassName}}">{{permission.canReceiveOrders ? '已解锁' : '未解锁'}}</view>
       <view class="menu-arrow"></view>
     </view>
 
@@ -73,7 +73,7 @@
             <view class="menu-title">{{menu.title}}</view>
             <view class="menu-desc">{{menu.desc}}</view>
           </view>
-          <view class="menu-badge">{{menu.badge}}</view>
+          <view class="menu-badge menu-badge--{{menu.badgeClass}}">{{menu.badge}}</view>
           <view class="menu-arrow"></view>
         </view>
       </view>

@@ -1130,6 +1130,10 @@
   margin-top: 16rpx;
 }
 
+.action-grid--with-review {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .action-card {
   padding: 18rpx 12rpx;
   border-radius: 16rpx;
@@ -1139,6 +1143,12 @@
   text-align: center;
   font-size: 22rpx;
   font-weight: 500;
+}
+
+.action-card--review {
+  color: #21a66b;
+  background: rgba(37, 182, 111, 0.08);
+  border-color: rgba(37, 182, 111, 0.14);
 }
 
 .info-list {
@@ -1179,7 +1189,8 @@
 }
 
 .info-value--remark {
-  text-align: left;
+  max-width: 430rpx;
+  text-align: right;
   white-space: normal;
   word-break: break-all;
   overflow-wrap: anywhere;

@@ -14,6 +14,7 @@ Page({
       canReceiveOrders: false,
       message: '请先提交车辆信息并通过管理员审核'
     },
+    permissionStatusClassName: 'neutral',
     wallet: {},
     menuGroups: []
   },
@@ -47,9 +48,26 @@ Page({
       profile,
       vehicleView,
       permission,
+      permissionStatusClassName: permission.canReceiveOrders ? 'success' : 'neutral',
       wallet,
       menuGroups: this.buildMenuGroups(vehicleView, permission, wallet)
     })
+  },
+
+  getBadgeClass(text) {
+    const value = `${text || ''}`.trim()
+    if (value === '未解锁') return 'neutral'
+    if (value === '未通过') return 'danger'
+    if (value === '审核中') return 'pending'
+    if (value === '已解锁' || value === '已通过') return 'success'
+    return 'default'
+  },
+
+  buildMenuItem(config) {
+    return {
+      ...config,
+      badgeClass: this.getBadgeClass(config.badge)
+    }
   },
 
   buildMenuGroups(vehicleView, permission, wallet) {
@@ -57,7 +75,7 @@ Page({
       {
         title: '核心功能',
         items: [
-          {
+          this.buildMenuItem({
             iconClass: 'vehicle',
             iconPath: '/images/profile-menu-icons/vehicle.png',
             title: '我的车辆',
@@ -65,8 +83,8 @@ Page({
             mode: 'navigate',
             badge: vehicleView.auditText,
             desc: vehicleView.hasVehicle ? '查看当前绑定车辆、审核状态和更换入口' : '先添加车辆信息，审核通过后才能开始接单'
-          },
-          {
+          }),
+          this.buildMenuItem({
             iconClass: 'orders',
             iconPath: '/images/profile-menu-icons/orders.png',
             title: '我的订单',
@@ -74,13 +92,13 @@ Page({
             mode: 'tab',
             badge: `${wallet.completedTrips || 0} 单`,
             desc: '查看接单记录、进行中订单和历史行程'
-          }
+          })
         ]
       },
       {
         title: '经营数据',
         items: [
-          {
+          this.buildMenuItem({
             iconClass: 'income',
             iconPath: '/images/profile-menu-icons/income.png',
             title: '我的收入',
@@ -88,22 +106,22 @@ Page({
             mode: 'tab',
             badge: `￥${Number(wallet.withdrawable || 0).toFixed(2)}`,
             desc: '查看今日收入、月度收入和可提现金额'
-          },
-          {
+          }),
+          this.buildMenuItem({
             iconClass: 'settings',
             iconPath: '/images/profile-menu-icons/settings.png',
             title: '接单设置',
             url: '/pages/settings/index',
             mode: 'navigate',
-            badge: permission.canReceiveOrders ? '已解锁' : '待解锁',
+            badge: permission.canReceiveOrders ? '已解锁' : '未解锁',
             desc: '调整语音播报、自动接单和听单偏好'
-          }
+          })
         ]
       },
       {
         title: '账号与消息',
         items: [
-          {
+          this.buildMenuItem({
             iconClass: 'profile',
             iconPath: '/images/profile-menu-icons/user.png',
             title: '司机资料',
@@ -111,8 +129,8 @@ Page({
             mode: 'navigate',
             badge: '编辑',
             desc: '修改昵称、城市编码和紧急联系人'
-          },
-          {
+          }),
+          this.buildMenuItem({
             iconClass: 'bell',
             iconPath: '/images/profile-menu-icons/notice.png',
             title: '消息通知',
@@ -120,8 +138,8 @@ Page({
             mode: 'navigate',
             badge: '查看',
             desc: '查看平台通知、审核结果和活动消息'
-          },
-          {
+          }),
+          this.buildMenuItem({
             iconClass: 'support',
             iconPath: '/images/profile-menu-icons/support.png',
             title: '在线客服',
@@ -129,7 +147,7 @@ Page({
             mode: 'navigate',
             badge: '客服',
             desc: '与平台客服实时沟通接单、审核和提现问题'
-          }
+          })
         ]
       }
     ]

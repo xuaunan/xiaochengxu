@@ -12,6 +12,7 @@ public class SupportConversation extends BaseEntity {
 
     private Long userId;
     private String userRole;
+    private String channel;
     private String status;
     private String lastMessage;
     private LocalDateTime lastMessageAt;

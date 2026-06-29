@@ -76,10 +76,10 @@ function getAuthStatusMeta(status, disabled = false) {
     return { text: '已通过', className: 'success' }
   }
   if (status === AUTH_STATUS.PENDING) {
-    return { text: '待审核', className: 'pending' }
+    return { text: '审核中', className: 'pending' }
   }
   if (status === AUTH_STATUS.REJECTED) {
-    return { text: '已驳回', className: 'danger' }
+    return { text: '未通过', className: 'danger' }
   }
   return { text: '未提交', className: 'neutral' }
 }

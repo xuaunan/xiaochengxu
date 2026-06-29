@@ -12,12 +12,24 @@ import {
   normalizeList,
   statusLabel
 } from './data'
-import { dispatchInvalidSession } from './auth-session.js'
+import { dispatchInvalidSession, resolveSessionFromToken } from './auth-session.js'
 
 const API_BASE_KEY = 'sunshine-web-api-base'
 const DEMO_DB_KEY = 'sunshine-web-demo-db-v2'
-const DEMO_DB_VERSION = 3
+const WEB_SUPPORT_HEADERS = { 'X-Sunshine-Client': 'WEB' }
+const DEMO_DB_VERSION = 4
 const DEFAULT_API_BASE = 'http://127.0.0.1:8080'
+const SUPPORT_AI_ROLE = 'AI'
+const DEFAULT_AI_WELCOME_MESSAGE = '您好，阳光出行客服已接入，请描述您遇到的问题。'
+const PREVIOUS_AI_WELCOME_MESSAGE = '您好，阳光出行AI客服已接入，请描述您遇到的问题。'
+const LEGACY_DEFAULT_WELCOME_MESSAGE = '您好，阳光出行客服已接入，请描述您遇到的问题。'
+const DRIVER_AI_WELCOME_MESSAGE = '司机端AI客服已接入，听单、提现、资质问题都可以在这里反馈。'
+const LEGACY_DRIVER_WELCOME_MESSAGE = '司机端客服通道已接入，听单、提现、资质问题都可以在这里反馈。'
+const MANUAL_OPEN_NOTICE = '已接入人工客服'
+const MANUAL_CLOSE_NOTICE = '已关闭人工客服'
+const MANUAL_WAIT_WARNING = '人工客服等待时间太久啦，即将为您结束本次人工接待，后续您可以继续由AI客服为您服务。'
+const MANUAL_WARN_TIMEOUT_MS = 150 * 1000
+const MANUAL_IDLE_TIMEOUT_MS = 180 * 1000
 let backendBackoffUntil = 0
 let activeRequestCount = 0
 
@@ -58,22 +70,17 @@ async function request(path, options = {}) {
     token,
     skipAuth = false,
     demoRole,
+    headers: customHeaders = {},
     timeout = 1200,
     allowDemoFallback = true
   } = options
 
   bumpApiLoading(1)
 
-  if (Date.now() < backendBackoffUntil) {
+  if (Date.now() < backendBackoffUntil && allowDemoFallback) {
     emitApiMode('demo', '业务服务暂不可用，当前操作使用网页离线数据')
     try {
-      if (!allowDemoFallback) {
-        throw new ApiError('当前未连接后端，暂时无法同步真实资料', {
-          status: 503,
-          network: true
-        })
-      }
-      return demoRequest(path, { method, data, token, demoRole })
+      return demoRequest(path, { method, data, token, demoRole, headers: customHeaders })
     } finally {
       bumpApiLoading(-1)
     }
@@ -81,7 +88,7 @@ async function request(path, options = {}) {
 
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeout)
-  const headers = { 'Content-Type': 'application/json' }
+  const headers = { 'Content-Type': 'application/json', ...customHeaders }
   if (!skipAuth && token) {
     headers.Authorization = `Bearer ${token}`
   }
@@ -118,18 +125,26 @@ async function request(path, options = {}) {
       throw error
     }
     backendBackoffUntil = Date.now() + 5000
-    emitApiMode('demo', '涓氬姟鏈嶅姟鏈繛鎺ワ紝褰撳墠浣跨敤缃戦〉绂荤嚎鏁版嵁')
+    emitApiMode('demo', '业务服务暂不可用，当前操作使用网页离线数据')
     if (!allowDemoFallback) {
       throw new ApiError('当前未连接后端，暂时无法同步真实资料', {
         status: 503,
         network: true
       })
     }
-    return demoRequest(path, { method, data, token, demoRole })
+    return demoRequest(path, { method, data, token, demoRole, headers: customHeaders })
   } finally {
     window.clearTimeout(timer)
     bumpApiLoading(-1)
   }
+}
+
+function tripRequest(path, options = {}) {
+  return request(path, {
+    ...options,
+    timeout: options.timeout ?? 12000,
+    allowDemoFallback: false
+  })
 }
 
 async function parsePayload(response) {
@@ -139,6 +154,84 @@ async function parsePayload(response) {
     return JSON.parse(text)
   } catch (error) {
     return { code: response.ok ? 0 : response.status, data: text, message: text }
+  }
+}
+
+async function uploadDriverDocument(token, file, documentType) {
+  if (!file) throw new ApiError('请选择要上传的证件图片', { status: 400 })
+  bumpApiLoading(1)
+
+  if (Date.now() < backendBackoffUntil) {
+    bumpApiLoading(-1)
+    throw new ApiError('业务服务暂不可用，证件图片未上传完成，请稍后重试', { status: 503, network: true })
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  if (documentType) formData.append('documentType', documentType)
+
+  try {
+    const response = await fetch(`${getApiBase()}/driver/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      credentials: 'include'
+    })
+    const payload = await parsePayload(response)
+    if (response.ok && Number(payload.code) === 0) {
+      backendBackoffUntil = 0
+      emitApiMode('backend', '已连接业务服务')
+      return payload.data ?? payload
+    }
+    throw new ApiError(payload.message || payload.msg || `上传失败：${response.status}`, {
+      code: payload.code,
+      status: response.status,
+      network: false,
+      payload
+    })
+  } catch (error) {
+    if (error instanceof ApiError && !error.network) throw error
+    backendBackoffUntil = Date.now() + 5000
+    emitApiMode('demo', '业务服务未连接，证件图片未上传完成')
+    throw new ApiError('证件图片上传失败，请检查业务服务后重新选择图片', { status: 503, network: true })
+  } finally {
+    bumpApiLoading(-1)
+  }
+}
+
+async function uploadAvatarImage(token, file) {
+  if (!file) throw new ApiError('请选择要上传的头像图片', { status: 400 })
+  bumpApiLoading(1)
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const response = await fetch(`${getApiBase()}/auth/avatar`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      credentials: 'include'
+    })
+    const payload = await parsePayload(response)
+    if (response.ok && Number(payload.code) === 0) {
+      backendBackoffUntil = 0
+      emitApiMode('backend', '已连接业务服务')
+      return payload.data ?? payload
+    }
+    throw new ApiError(payload.message || payload.msg || `头像上传失败：${response.status}`, {
+      code: payload.code,
+      status: response.status,
+      network: false,
+      payload
+    })
+  } catch (error) {
+    if (error instanceof ApiError && !error.network) throw error
+    backendBackoffUntil = Date.now() + 5000
+    emitApiMode('demo', '业务服务未连接，头像未上传完成')
+    throw new ApiError('头像上传失败，请检查业务服务后重新选择图片', { status: 503, network: true })
+  } finally {
+    bumpApiLoading(-1)
   }
 }
 
@@ -282,27 +375,37 @@ export const api = {
   profile: (token) => request('/auth/profile', { token }),
   profileStrict: (token) => request('/auth/profile', { token, allowDemoFallback: false, timeout: 1800 }),
   updateProfile: (token, data) => request('/auth/profile', { method: 'PUT', token, data }),
+  uploadAvatar: (token, file) => uploadAvatarImage(token, file),
   submitRealName: (token, data) => request('/auth/real-name', { method: 'POST', token, data }),
   home: () => request('/app/home', { skipAuth: true }),
   estimate: (params) => request(`/app/estimate${toQuery(params)}`, { skipAuth: true }),
-  createOrder: (token, data) => request('/orders', { method: 'POST', token, data }),
-  orders: (token) => request('/orders/mine', { token }),
-  orderDetail: (token, id) => request(`/orders/${id}`, { token }),
-  orderRuntime: (token, id) => request(`/orders/${id}/runtime`, { token }),
-  cancelOrder: (token, id, reason) => request(`/orders/${id}/cancel`, { method: 'POST', token, data: { reason } }),
-  pickupOrder: (token, id) => request(`/orders/${id}/pickup`, { method: 'POST', token }),
-  mockPay: (token, id, amount, payChannel = 'WEB') => request('/orders/mock-pay', {
+  createOrder: (token, data) => tripRequest('/orders', { method: 'POST', token, data }),
+  orders: (token) => tripRequest('/orders/mine', { token }),
+  orderDetail: (token, id) => tripRequest(`/orders/${id}`, { token }),
+  orderRuntime: (token, id) => tripRequest(`/orders/${id}/runtime`, { token }),
+  cancelOrder: (token, id, reason) => tripRequest(`/orders/${id}/cancel`, { method: 'POST', token, data: { reason } }),
+  pickupOrder: (token, id) => tripRequest(`/orders/${id}/pickup`, { method: 'POST', token }),
+  mockPay: (token, id, amount, payChannel = 'WEB', options = {}) => tripRequest('/orders/mock-pay', {
     method: 'POST',
     token,
-    data: { orderId: Number(id), payChannel, payableAmount: amount || null }
+    data: {
+      orderId: Number(id),
+      payChannel,
+      payableAmount: amount || null,
+      userCouponId: options.userCouponId || null,
+      couponDiscount: options.couponDiscount || 0,
+      originalAmount: options.originalAmount || null,
+      couponName: options.couponName || '',
+      couponRuleDesc: options.couponRuleDesc || ''
+    }
   }),
-  evaluate: (token, data) => request('/orders/evaluation', { method: 'POST', token, data: normalizeEvaluationRequest(data) }),
-  complaint: (token, data) => request('/orders/complaint', { method: 'POST', token, data: normalizeComplaintRequest(data) }),
-  applyInvoice: (token, id, data) => request(`/orders/${id}/invoice`, { method: 'POST', token, data }),
+  evaluate: (token, data) => tripRequest('/orders/evaluation', { method: 'POST', token, data: normalizeEvaluationRequest(data) }),
+  complaint: (token, data) => tripRequest('/orders/complaint', { method: 'POST', token, data: normalizeComplaintRequest(data) }),
+  applyInvoice: (token, id, data) => tripRequest(`/orders/${id}/invoice`, { method: 'POST', token, data }),
   invoiceImage: (token, id) => binaryRequest(`/orders/${id}/invoice/image`, { token }),
   invoiceAsset: (token, id, options = {}) => binaryAssetRequest(`/orders/${id}/invoice/image`, { token, ...options }),
-  trackHistory: (token, id) => request(`/orders/${id}/track/history`, { token }),
-  reportTrack: (token, id, data) => request(`/orders/${id}/track/report`, { method: 'POST', token, data }),
+  trackHistory: (token, id) => tripRequest(`/orders/${id}/track/history`, { token }),
+  reportTrack: (token, id, data) => tripRequest(`/orders/${id}/track/report`, { method: 'POST', token, data }),
   couponCenter: () => request('/coupons/center', { skipAuth: true }),
   myCoupons: (token) => request('/coupons/mine', { token }),
   receiveCoupon: (token, id) => request(`/coupons/${id}/receive`, { method: 'POST', token }),
@@ -311,28 +414,34 @@ export const api = {
   syncMembershipCoupons: (token) => request('/membership/weekly-coupons', { method: 'POST', token }),
   messages: (token) => request('/messages', { token }),
   markMessageRead: (token, id) => request(`/messages/${id}/read`, { method: 'POST', token }),
-  supportConversation: (token) => request('/support/conversation', { token }),
-  supportMessages: (token) => request('/support/messages', { token }),
-  sendSupportMessage: (token, content) => request('/support/messages', { method: 'POST', token, data: { content } }),
-  carpoolSearch: (keyword = '') => request(`/carpool/search${toQuery({ keyword })}`, { skipAuth: true }),
-  carpoolDetail: (id) => request(`/carpool/${id}`, { skipAuth: true }),
-  carpoolMine: (token) => request('/carpool/mine', { token }),
-  carpoolPublish: (token, data) => request('/carpool/publish', { method: 'POST', token, data }),
-  carpoolApply: (token, data) => request('/carpool/apply', { method: 'POST', token, data }),
-  carpoolOwnerConfirm: (token, data) => request('/carpool/owner-confirm', { method: 'POST', token, data }),
-  carpoolPassengerConfirm: (token, data) => request('/carpool/passenger-confirm', { method: 'POST', token, data }),
-  carpoolCancel: (token, data) => request('/carpool/cancel', { method: 'POST', token, data }),
-  driverDashboard: (token) => request('/driver/dashboard', { token }),
+  supportConversation: (token) => request('/support/conversation', { token, headers: WEB_SUPPORT_HEADERS }),
+  supportMessages: (token) => request('/support/messages', { token, headers: WEB_SUPPORT_HEADERS }),
+  sendSupportMessage: (token, content) => request('/support/messages', {
+    method: 'POST',
+    token,
+    headers: WEB_SUPPORT_HEADERS,
+    data: { content }
+  }),
+  carpoolSearch: (keyword = '') => tripRequest(`/carpool/search${toQuery({ keyword })}`, { skipAuth: true }),
+  carpoolDetail: (id) => tripRequest(`/carpool/${id}`, { skipAuth: true }),
+  carpoolMine: (token) => tripRequest('/carpool/mine', { token }),
+  carpoolPublish: (token, data) => tripRequest('/carpool/publish', { method: 'POST', token, data }),
+  carpoolApply: (token, data) => tripRequest('/carpool/apply', { method: 'POST', token, data }),
+  carpoolOwnerConfirm: (token, data) => tripRequest('/carpool/owner-confirm', { method: 'POST', token, data }),
+  carpoolPassengerConfirm: (token, data) => tripRequest('/carpool/passenger-confirm', { method: 'POST', token, data }),
+  carpoolCancel: (token, data) => tripRequest('/carpool/cancel', { method: 'POST', token, data }),
+  driverDashboard: (token) => tripRequest('/driver/dashboard', { token }),
   driverUpdateProfile: (token, data) => request('/driver/profile', { method: 'PUT', token, data }),
-  driverStatus: (token, data) => request('/driver/service-status', { method: 'POST', token, data }),
+  driverStatus: (token, data) => tripRequest('/driver/service-status', { method: 'POST', token, data }),
   driverWithdraws: (token) => request('/driver/withdraws', { token }),
-  driverWaitingOrders: (token) => request('/orders/waiting', { token }),
-  driverAccept: (token, id) => request(`/orders/${id}/accept`, { method: 'POST', token }),
-  driverReject: (token, id, reason) => request(`/orders/${id}/reject`, { method: 'POST', token, data: { reason } }),
-  driverStart: (token, id) => request(`/orders/${id}/start`, { method: 'POST', token }),
-  driverPickup: (token, id) => request(`/orders/${id}/pickup`, { method: 'POST', token }),
-  driverFinish: (token, id, data) => request(`/orders/${id}/finish`, { method: 'POST', token, data }),
+  driverWaitingOrders: (token) => tripRequest('/orders/waiting', { token }),
+  driverAccept: (token, id) => tripRequest(`/orders/${id}/accept`, { method: 'POST', token }),
+  driverReject: (token, id, reason) => tripRequest(`/orders/${id}/reject`, { method: 'POST', token, data: { reason } }),
+  driverStart: (token, id) => tripRequest(`/orders/${id}/start`, { method: 'POST', token }),
+  driverPickup: (token, id) => tripRequest(`/orders/${id}/pickup`, { method: 'POST', token }),
+  driverFinish: (token, id, data) => tripRequest(`/orders/${id}/finish`, { method: 'POST', token, data }),
   driverWithdraw: (token, data) => request('/driver/withdraw', { method: 'POST', token, data }),
+  driverUploadDocument: (token, file, documentType) => uploadDriverDocument(token, file, documentType),
   driverCertify: (token, data) => request('/driver/certification', { method: 'POST', token, data })
 }
 
@@ -346,11 +455,14 @@ function toQuery(params = {}) {
 
 function normalizeEvaluationRequest(data = {}) {
   const tags = Array.isArray(data.tags) && data.tags.length ? `标签：${data.tags.join('、')}` : ''
-  const content = [tags, String(data.content || '').trim()].filter(Boolean).join('\n')
+  const anonymous = data.anonymous ? '匿名评价' : ''
+  const content = [anonymous, tags, String(data.content || '').trim()].filter(Boolean).join('\n')
   return {
     orderId: data.orderId,
     score: Number(data.score || 5),
-    content
+    content,
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    anonymous: Boolean(data.anonymous)
   }
 }
 
@@ -364,12 +476,39 @@ function normalizeComplaintRequest(data = {}) {
   }
 }
 
+function demoCouponDiscountAmount(coupon = {}, amount = 0) {
+  const totalAmount = Math.max(0, Number(amount || 0))
+  if (!totalAmount) return 0
+  const cashAmount = Number(coupon.discountAmount ?? coupon.amount ?? coupon.faceValue ?? coupon.couponAmount)
+  if (Number.isFinite(cashAmount) && cashAmount > 0) {
+    return Number(Math.min(cashAmount, Math.max(0, totalAmount - 0.01)).toFixed(2))
+  }
+  const rate = Number(coupon.discountRate ?? coupon.rate ?? coupon.discount)
+  if (Number.isFinite(rate) && rate > 0 && rate < 1) {
+    return Number((totalAmount * (1 - rate)).toFixed(2))
+  }
+  return 0
+}
+
+function demoFindUserCoupon(db, userCouponId) {
+  if (!userCouponId) return null
+  return db.userCoupons.find((item) => String(item.userCouponId || item.id || item.couponId) === String(userCouponId)) || null
+}
+
+function demoCouponMatchesOrder(coupon = {}, serviceType = '') {
+  const status = String(coupon.couponStatus || coupon.status || 'UNUSED').toUpperCase()
+  const scope = String(coupon.serviceScope || coupon.serviceType || coupon.scope || 'ALL').toUpperCase()
+  const orderType = String(serviceType || '').toUpperCase()
+  return status === 'UNUSED' && (scope === 'ALL' || scope === orderType)
+}
+
 function demoRequest(path, options) {
   const url = new URL(path, 'http://demo.local')
   const method = options.method || 'GET'
   const body = options.data || {}
   const db = loadDemoDb()
   const actor = resolveActor(options.token, options.demoRole)
+  const supportChannel = normalizeSupportChannel(options.headers?.['X-Sunshine-Client'])
 
   if (url.pathname === '/auth/login' && method === 'POST') {
     const role = body.roleCode
@@ -540,7 +679,18 @@ function demoRequest(path, options) {
     const webExclusiveDiscountAmount = isWebTaxiOrder
       ? Math.min(Math.max(0, Number(body.webExclusiveDiscountAmount || 0)), Math.max(0, Number(fare.amount || 0) - 0.01))
       : 0
-    const payableAmount = Number(Math.max(0, Number(fare.amount || 0) - webExclusiveDiscountAmount).toFixed(2))
+    const selectedCoupon = demoFindUserCoupon(db, body.userCouponId)
+    const selectedCouponUsable = selectedCoupon && demoCouponMatchesOrder(selectedCoupon, body.serviceType)
+    const requestedCouponDiscount = Math.max(0, Number(body.couponDiscount || 0))
+    const calculatedCouponDiscount = selectedCouponUsable
+      ? (requestedCouponDiscount || demoCouponDiscountAmount(selectedCoupon, Number(fare.amount || 0) - webExclusiveDiscountAmount))
+      : 0
+    const couponDiscountAmount = Number(Math.min(
+      Math.max(0, calculatedCouponDiscount),
+      Math.max(0, Number(fare.amount || 0) - webExclusiveDiscountAmount - 0.01)
+    ).toFixed(2))
+    const totalDiscountAmount = Number((webExclusiveDiscountAmount + couponDiscountAmount).toFixed(2))
+    const payableAmount = Number(Math.max(0, Number(fare.amount || 0) - totalDiscountAmount).toFixed(2))
     const order = {
       id: db.nextOrderId++,
       orderNo: `WEB${Date.now()}`,
@@ -559,7 +709,7 @@ function demoRequest(path, options) {
       estimatedDistanceKm: route.distanceKm,
       estimatedDurationMin: route.durationMin,
       estimatedAmount: fare.amount,
-      couponDiscount: Number(webExclusiveDiscountAmount.toFixed(2)),
+      couponDiscount: totalDiscountAmount,
       payableAmount,
       actualAmount: payableAmount,
       currencyCode: fare.currencyCode,
@@ -569,8 +719,13 @@ function demoRequest(path, options) {
       webExclusiveDiscountLabel: body.webExclusiveDiscountLabel || '网页专属签到优惠',
       webExclusiveDiscountScope: body.webExclusiveDiscountScope || 'WEB_TAXI_ONLY',
       webCheckinAccountKey: body.webCheckinAccountKey || '',
-      couponName: webExclusiveDiscountAmount > 0 ? (body.webExclusiveDiscountLabel || '网页专属签到优惠') : '',
-      couponRuleDesc: webExclusiveDiscountAmount > 0 ? '网页版打车专属，小程序不可使用' : '',
+      userCouponId: selectedCouponUsable ? (selectedCoupon.userCouponId || selectedCoupon.id || selectedCoupon.couponId) : null,
+      couponName: selectedCouponUsable
+        ? (body.couponName || selectedCoupon.couponName || selectedCoupon.name || '优惠券')
+        : webExclusiveDiscountAmount > 0 ? (body.webExclusiveDiscountLabel || '网页专属签到优惠') : '',
+      couponRuleDesc: selectedCouponUsable
+        ? (body.couponRuleDesc || selectedCoupon.ruleDesc || '')
+        : webExclusiveDiscountAmount > 0 ? '网页版打车专属，小程序不可使用' : '',
       remark: body.remark || '',
       createdAt: nowText(),
       updatedAt: nowText(),
@@ -601,6 +756,21 @@ function demoRequest(path, options) {
     order.payStatus = PAY_STATUS.PAID
     order.payChannel = body.payChannel || 'WEB'
     order.paidAt = nowText()
+    const payCouponId = body.userCouponId || order.userCouponId
+    if (payCouponId) {
+      const selectedCoupon = db.userCoupons.find((item) => String(item.userCouponId || item.id || item.couponId) === String(payCouponId))
+      if (selectedCoupon) {
+        selectedCoupon.couponStatus = 'USED'
+        selectedCoupon.usedAt = nowText()
+        order.userCouponId = selectedCoupon.userCouponId || selectedCoupon.id || selectedCoupon.couponId
+        order.couponName = body.couponName || selectedCoupon.couponName || selectedCoupon.name || '优惠券'
+        order.couponRuleDesc = body.couponRuleDesc || selectedCoupon.ruleDesc || ''
+      } else {
+        order.userCouponId = payCouponId
+      }
+      order.couponDiscount = Number(body.couponDiscount || order.couponDiscount || 0)
+      order.originalAmount = body.originalAmount !== undefined && body.originalAmount !== null ? Number(body.originalAmount) : order.originalAmount
+    }
     if (body.payableAmount !== undefined && body.payableAmount !== null) {
       order.payableAmount = Number(body.payableAmount)
       order.actualAmount = Number(body.payableAmount)
@@ -704,8 +874,12 @@ function demoRequest(path, options) {
     requireRole(actor, ROLE.DRIVER)
     db.driverUser.nickname = body.nickname || db.driverUser.nickname
     db.driverUser.defaultLanguage = body.defaultLanguage || db.driverUser.defaultLanguage
+    db.driverUser.emergencyContact = body.emergencyContact ?? body.emergency_contact ?? db.driverUser.emergencyContact
+    db.driverUser.emergencyPhone = body.emergencyPhone ?? body.emergency_phone ?? db.driverUser.emergencyPhone
     db.driverProfile.cityCode = body.cityCode || db.driverProfile.cityCode
     db.driverProfile.licenseNo = body.licenseNo || db.driverProfile.licenseNo
+    db.driverProfile.emergencyContact = db.driverUser.emergencyContact
+    db.driverProfile.emergencyPhone = db.driverUser.emergencyPhone
     db.messages.unshift(message('DRIVER', '司机资料已更新', '资料已更新到司机端工作台。'))
     saveDemoDb(db)
     return { ...db.driverUser, profile: db.driverProfile }
@@ -723,9 +897,23 @@ function demoRequest(path, options) {
 
   if (url.pathname === '/driver/withdraw' && method === 'POST') {
     requireRole(actor, ROLE.DRIVER)
+    const applyAmount = Number(body.applyAmount || body.amount || 0)
+    const availableAmount = Number(db.driverProfile.withdrawableIncome || 0)
+    if (!Number.isFinite(applyAmount) || applyAmount <= 0) {
+      throw new ApiError('请输入正确的提现金额', { code: 4001 })
+    }
+    if (applyAmount > availableAmount) {
+      throw new ApiError('提现金额不能超过可提现余额', { code: 4001 })
+    }
+    if (!String(body.bankName || '').trim()) {
+      throw new ApiError('请输入开户行', { code: 4001 })
+    }
+    if (!String(body.bankAccount || '').trim()) {
+      throw new ApiError('请输入银行卡号', { code: 4001 })
+    }
     const item = { id: Date.now(), driverId: db.driverUser.id, status: 'PENDING', createdAt: nowText(), ...body }
     db.withdraws.unshift(item)
-    db.driverProfile.withdrawableIncome = Math.max(0, Number(db.driverProfile.withdrawableIncome || 0) - Number(body.applyAmount || 0))
+    db.driverProfile.withdrawableIncome = Math.max(0, availableAmount - applyAmount)
     saveDemoDb(db)
     return item
   }
@@ -740,24 +928,41 @@ function demoRequest(path, options) {
 
   if (url.pathname === '/support/conversation') {
     requireSupportRole(actor)
-    const conversation = ensureDemoSupportConversation(db, actor)
+    const conversation = ensureDemoSupportConversation(db, actor, supportChannel)
     saveDemoDb(db)
     return conversation
   }
 
   if (url.pathname === '/support/messages') {
     requireSupportRole(actor)
-    const conversation = ensureDemoSupportConversation(db, actor)
+    const conversation = ensureDemoSupportConversation(db, actor, supportChannel)
     if (method === 'POST') {
       const content = String(body.content || '').trim()
       if (!content) throw new ApiError('消息内容不能为空', { code: 4001 })
       const item = supportMessage(conversation.id, actor.userId, actor.roleCode, content)
       db.supportMessages.push(item)
-      conversation.status = 'OPEN'
+      const wasManual = conversation.status === 'MANUAL'
+      const manualActive = wasManual || isDemoManualSupportIntent(content)
+      conversation.status = manualActive ? 'MANUAL' : 'OPEN'
       conversation.lastMessage = item.content
       conversation.lastMessageAt = item.createdAt
       conversation.unreadForAdmin = Number(conversation.unreadForAdmin || 0) + 1
       conversation.unreadForUser = 0
+      if (manualActive) {
+        const notice = ensureDemoManualOpenNotice(db, conversation)
+        if (notice) {
+        conversation.lastMessage = notice.content
+        conversation.lastMessageAt = notice.createdAt
+        conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
+        }
+      }
+      if (!manualActive) {
+        const aiReply = supportMessage(conversation.id, null, SUPPORT_AI_ROLE, buildDemoSupportReply(content, actor.roleCode))
+        db.supportMessages.push(aiReply)
+        conversation.lastMessage = aiReply.content
+        conversation.lastMessageAt = aiReply.createdAt
+        conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
+      }
       db.messages.unshift(message(actor.roleCode, '客服消息已发送', content))
       saveDemoDb(db)
       return item
@@ -888,9 +1093,7 @@ function createDemoSession(roleCode) {
 
 function resolveActor(token, demoRole) {
   if (demoRole) return { roleCode: demoRole, userId: demoRole === ROLE.DRIVER ? 2 : 1 }
-  const parts = String(token || '').split('.')
-  if (parts[0] === 'demo') return { roleCode: parts[1], userId: Number(parts[2]) }
-  return { roleCode: '', userId: 0 }
+  return resolveSessionFromToken(token)
 }
 
 function ensureLogged(actor) {
@@ -1110,15 +1313,30 @@ function demoCarpoolApplicationStatusText(status) {
   }[status] || status || '待确认'
 }
 
-function ensureDemoSupportConversation(db, actor) {
+function normalizeSupportChannel(channel = '') {
+  const normalized = String(channel || '').trim().toUpperCase()
+  return ['WEB', 'H5', 'PC'].includes(normalized) ? 'WEB' : 'MINIAPP'
+}
+
+function supportChannelText(channel = '') {
+  return normalizeSupportChannel(channel) === 'WEB' ? '网页端' : '小程序'
+}
+
+function ensureDemoSupportConversation(db, actor, channel = 'WEB') {
   db.supportConversations = db.supportConversations || []
   db.supportMessages = db.supportMessages || []
-  let conversation = db.supportConversations.find((item) => Number(item.userId) === Number(actor.userId) && item.userRole === actor.roleCode)
-  if (conversation) return conversation
+  const supportChannel = normalizeSupportChannel(channel)
+  let conversation = db.supportConversations.find((item) => Number(item.userId) === Number(actor.userId) && item.userRole === actor.roleCode && normalizeSupportChannel(item.channel) === supportChannel)
+  if (conversation) {
+    closeExpiredDemoManualConversation(db, conversation)
+    return conversation
+  }
   conversation = {
     id: Date.now() + actor.userId,
     userId: actor.userId,
     userRole: actor.roleCode,
+    channel: supportChannel,
+    channelText: supportChannelText(supportChannel),
     roleText: actor.roleCode === ROLE.DRIVER ? '司机' : '乘客',
     nickname: actor.roleCode === ROLE.DRIVER ? db.driverUser.nickname : db.passengerUser.nickname,
     phone: actor.roleCode === ROLE.DRIVER ? db.driverUser.phone : db.passengerUser.phone,
@@ -1131,21 +1349,158 @@ function ensureDemoSupportConversation(db, actor) {
     unreadForUser: 0,
     createdAt: nowText()
   }
+  const welcomeContent = actor.roleCode === ROLE.DRIVER ? DRIVER_AI_WELCOME_MESSAGE : DEFAULT_AI_WELCOME_MESSAGE
+  conversation.lastMessage = welcomeContent
   db.supportConversations.push(conversation)
-  db.supportMessages.push(supportMessage(conversation.id, null, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。'))
+  db.supportMessages.push(supportMessage(conversation.id, null, SUPPORT_AI_ROLE, welcomeContent))
   return conversation
 }
 
 function supportMessage(conversationId, senderId, senderRole, content) {
+  const aiWelcome = isDemoAiWelcome(senderId, senderRole, content)
+  const systemNotice = isDemoSystemNotice(senderId, senderRole, content)
   return {
     id: Date.now() + Math.random(),
     conversationId,
     senderId,
     senderRole,
-    fromAdmin: senderRole === 'ADMIN',
+    fromAdmin: senderRole === 'ADMIN' && !aiWelcome,
+    fromAi: senderRole === SUPPORT_AI_ROLE || aiWelcome,
+    systemNotice,
     content,
     createdAt: nowText()
   }
+}
+
+function isDemoAiWelcome(senderId, senderRole, content) {
+  if (senderId !== null && senderId !== undefined) return false
+  if (senderRole !== 'ADMIN') return false
+  return [DEFAULT_AI_WELCOME_MESSAGE, PREVIOUS_AI_WELCOME_MESSAGE, LEGACY_DEFAULT_WELCOME_MESSAGE, DRIVER_AI_WELCOME_MESSAGE, LEGACY_DRIVER_WELCOME_MESSAGE].includes(content)
+}
+
+function normalizeDemoSupportMessage(item = {}) {
+  const aiWelcome = isDemoAiWelcome(item.senderId, item.senderRole, item.content)
+  const systemNotice = isDemoSystemNotice(item.senderId, item.senderRole, item.content)
+  return {
+    ...item,
+    fromAdmin: item.senderRole === 'ADMIN' && !aiWelcome,
+    fromAi: item.senderRole === SUPPORT_AI_ROLE || aiWelcome,
+    systemNotice,
+    content: normalizeDemoWelcomeContent(item.content)
+  }
+}
+
+function isDemoSystemNotice(senderId, senderRole, content) {
+  if (senderId !== null && senderId !== undefined) return false
+  if (senderRole !== 'ADMIN') return false
+  return [MANUAL_OPEN_NOTICE, MANUAL_CLOSE_NOTICE, MANUAL_WAIT_WARNING].includes(content)
+}
+
+function isDemoManualSupportIntent(content = '') {
+  const normalized = String(content || '').replace(/\s+/g, '')
+  return /联系人工|人工客服|转人工|找人工|转接人工|真人客服|人工跟进/.test(normalized)
+}
+
+function closeExpiredDemoManualConversation(db, conversation) {
+  if (!conversation || conversation.status !== 'MANUAL') return false
+  const anchorAt = latestDemoManualActivityAt(db, conversation.id)
+  if (!anchorAt) return false
+  const idleMs = Date.now() - anchorAt
+  if (idleMs >= MANUAL_WARN_TIMEOUT_MS && !hasDemoManualWarningAfter(db, conversation.id, anchorAt)) {
+    const warning = supportMessage(conversation.id, null, 'ADMIN', MANUAL_WAIT_WARNING)
+    db.supportMessages.push(warning)
+    conversation.lastMessage = warning.content
+    conversation.lastMessageAt = warning.createdAt
+    conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
+  }
+  if (idleMs < MANUAL_IDLE_TIMEOUT_MS) return false
+  const closeNotice = supportMessage(conversation.id, null, 'ADMIN', MANUAL_CLOSE_NOTICE)
+  db.supportMessages.push(closeNotice)
+  conversation.status = 'OPEN'
+  conversation.lastMessage = closeNotice.content
+  conversation.lastMessageAt = closeNotice.createdAt
+  conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
+  return true
+}
+
+function ensureDemoManualOpenNotice(db, conversation) {
+  if (!conversation) return null
+  const latestCloseAt = latestDemoMessageTime((db.supportMessages || []).filter((item) => (
+    Number(item.conversationId) === Number(conversation.id)
+    && item.senderRole === 'ADMIN'
+    && item.content === MANUAL_CLOSE_NOTICE
+  )))
+  const hasOpenNotice = (db.supportMessages || []).some((item) => (
+    Number(item.conversationId) === Number(conversation.id)
+    && item.senderRole === 'ADMIN'
+    && item.content === MANUAL_OPEN_NOTICE
+    && (!latestCloseAt || parseDemoTime(item.createdAt) > latestCloseAt)
+  ))
+  if (hasOpenNotice) return null
+  const notice = supportMessage(conversation.id, null, 'ADMIN', MANUAL_OPEN_NOTICE)
+  db.supportMessages.push(notice)
+  return notice
+}
+
+function latestDemoManualActivityAt(db, conversationId) {
+  const conversationMessages = (db.supportMessages || [])
+    .filter((item) => Number(item.conversationId) === Number(conversationId))
+    .filter((item) => ![MANUAL_WAIT_WARNING, MANUAL_CLOSE_NOTICE].includes(item.content))
+  const latestAdminAnchorAt = latestDemoMessageTime(conversationMessages.filter((item) => item.senderRole === 'ADMIN'))
+  if (!latestAdminAnchorAt) return 0
+  const userLatest = latestDemoMessageTime(conversationMessages.filter((item) => item.senderRole !== SUPPORT_AI_ROLE && item.senderRole !== 'ADMIN'))
+  if (userLatest && userLatest > latestAdminAnchorAt) return 0
+  return latestAdminAnchorAt
+}
+
+function latestDemoMessageTime(messages = []) {
+  return messages
+    .map((item) => parseDemoTime(item.createdAt))
+    .filter(Boolean)
+    .reduce((latest, value) => Math.max(latest, value), 0)
+}
+
+function hasDemoManualWarningAfter(db, conversationId, sinceMs) {
+  return (db.supportMessages || []).some((item) => (
+    Number(item.conversationId) === Number(conversationId)
+    && item.content === MANUAL_WAIT_WARNING
+    && parseDemoTime(item.createdAt) > sinceMs
+  ))
+}
+
+function parseDemoTime(value) {
+  if (!value) return 0
+  const parsed = Date.parse(String(value).replace(' ', 'T'))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function normalizeDemoSupportConversation(item = {}) {
+  const channel = normalizeSupportChannel(item.channel)
+  const nextLastMessage = item.lastMessage === LEGACY_DRIVER_WELCOME_MESSAGE
+      ? DRIVER_AI_WELCOME_MESSAGE
+      : normalizeDemoWelcomeContent(item.lastMessage)
+  return {
+    ...item,
+    channel,
+    channelText: item.channelText || supportChannelText(channel),
+    lastMessage: nextLastMessage
+  }
+}
+
+function normalizeDemoWelcomeContent(content) {
+  return content === PREVIOUS_AI_WELCOME_MESSAGE ? DEFAULT_AI_WELCOME_MESSAGE : content
+}
+
+function buildDemoSupportReply(content = '', roleCode = ROLE.USER) {
+  const normalized = String(content || '').replace(/\s+/g, '')
+  if (roleCode === ROLE.DRIVER) {
+    if (/提现|到账|收入|钱包/.test(normalized)) return 'AI客服已读取司机端资料。提现记录请在司机端【收益】-【提现记录】查看；若状态长时间未更新，可以把提现时间和金额发给我继续核对。'
+    if (/资质|审核|车辆|认证/.test(normalized)) return 'AI客服已读取司机端资料。司机资料和车辆信息在【我的车辆】与【司机资料】维护，提交后由后台审核，审核结果会同步到消息通知。'
+    return 'AI客服已接入司机端会话。你可以继续描述听单、行程、提现或车辆资质问题，我会结合司机端真实资料辅助判断。'
+  }
+  if (/订单|行程|司机/.test(normalized)) return 'AI客服已读取乘客端资料。订单和行程可在【行程】查看详情；若需要核对费用、司机或状态，请继续补充订单号或具体问题。'
+  if (/发票|优惠券|支付|退款|费用/.test(normalized)) return 'AI客服已读取乘客端资料。支付、优惠券、退款和发票会结合真实订单记录核对；未查询到的数据会建议转人工继续处理。'
+  return 'AI客服已接入乘客端会话。请继续描述订单、支付、发票、优惠券或投诉建议问题，我会结合当前账号真实数据回答。'
 }
 
 function mutateOrderByAction(db, actor, order, action, body) {
@@ -1288,7 +1643,10 @@ function demoPayChannelText(value) {
 
 function demoComplaintTypeText(value) {
   return {
-    SERVICE: '服务态度',
+    SERVICE: '司机服务',
+    FEE: '费用争议',
+    VEHICLE: '车辆问题',
+    PRODUCT: '产品建议',
     ROUTE: '路线绕行',
     PAYMENT: '费用疑问',
     SAFETY: '安全问题',
@@ -1455,12 +1813,12 @@ function seedDemoDb() {
       message('DRIVER', '听单大厅在线', '司机端可切换在线、抢单、开始接驾、完成行程和提现。')
     ],
     supportConversations: [
-      { id: 7001, userId: 1, userRole: ROLE.USER, roleText: '乘客', nickname: demoAccounts.USER.nickname, phone: demoAccounts.USER.phone, member: true, memberLevel: '阳光会员', status: 'OPEN', lastMessage: '您好，阳光出行客服已接入。', lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() },
-      { id: 7002, userId: 2, userRole: ROLE.DRIVER, roleText: '司机', nickname: demoAccounts.DRIVER.nickname, phone: demoAccounts.DRIVER.phone, member: false, memberLevel: '', status: 'OPEN', lastMessage: '司机端客服通道已接入。', lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() }
+      { id: 7001, userId: 1, userRole: ROLE.USER, roleText: '乘客', channel: 'WEB', channelText: '网页端', nickname: demoAccounts.USER.nickname, phone: demoAccounts.USER.phone, member: true, memberLevel: '阳光会员', status: 'OPEN', lastMessage: DEFAULT_AI_WELCOME_MESSAGE, lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() },
+      { id: 7002, userId: 2, userRole: ROLE.DRIVER, roleText: '司机', channel: 'WEB', channelText: '网页端', nickname: demoAccounts.DRIVER.nickname, phone: demoAccounts.DRIVER.phone, member: false, memberLevel: '', status: 'OPEN', lastMessage: DRIVER_AI_WELCOME_MESSAGE, lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() }
     ],
     supportMessages: [
-      supportMessage(7001, null, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。'),
-      supportMessage(7002, null, 'ADMIN', '司机端客服通道已接入，听单、提现、资质问题都可以在这里反馈。')
+      supportMessage(7001, null, SUPPORT_AI_ROLE, DEFAULT_AI_WELCOME_MESSAGE),
+      supportMessage(7002, null, SUPPORT_AI_ROLE, DRIVER_AI_WELCOME_MESSAGE)
     ],
     withdraws: [
       { id: 6001, driverId: 2, applyAmount: 188, bankName: '中国银行', bankAccount: '6222 **** 2026', status: 'PENDING', createdAt: '2026-05-14 18:20:00' }
@@ -1481,8 +1839,10 @@ function upgradeDemoDb(db) {
   upgraded.carpoolApplications = Array.isArray(db.carpoolApplications) ? db.carpoolApplications : []
   upgraded.messages = Array.isArray(db.messages) ? db.messages : seedDemoDb().messages
   upgraded.withdraws = Array.isArray(db.withdraws) ? db.withdraws : seedDemoDb().withdraws
-  upgraded.supportConversations = Array.isArray(db.supportConversations) ? db.supportConversations : seedDemoDb().supportConversations
-  upgraded.supportMessages = Array.isArray(db.supportMessages) ? db.supportMessages : seedDemoDb().supportMessages
+  upgraded.supportConversations = (Array.isArray(db.supportConversations) ? db.supportConversations : seedDemoDb().supportConversations)
+    .map(normalizeDemoSupportConversation)
+  upgraded.supportMessages = (Array.isArray(db.supportMessages) ? db.supportMessages : seedDemoDb().supportMessages)
+    .map(normalizeDemoSupportMessage)
   return upgraded
 }
 

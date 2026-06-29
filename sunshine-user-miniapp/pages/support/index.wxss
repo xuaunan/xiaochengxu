@@ -194,12 +194,17 @@
   display: block;
   width: 100%;
   height: 100%;
+  border-radius: inherit;
 }
 
 .support-avatar--service {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 18rpx;
   color: #ff7a00;
-  background: #ffffff;
-  border-color: rgba(255, 122, 0, 0.18);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .support-avatar--self {

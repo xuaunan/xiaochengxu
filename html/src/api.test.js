@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { dispatchInvalidSession, resolveRoleCodeFromToken, shouldInvalidateSession } from './auth-session.js'
+import { dispatchInvalidSession, resolveRoleCodeFromToken, resolveSessionFromToken, shouldInvalidateSession } from './auth-session.js'
 
 function toBase64Url(value) {
   return Buffer.from(JSON.stringify(value))
@@ -58,6 +58,11 @@ test('dispatchInvalidSession emits browser event for expired app session', () =>
 test('resolveRoleCodeFromToken reads jwt role claim', () => {
   assert.equal(resolveRoleCodeFromToken(makeJwt({ role: 'USER', sub: '2' })), 'USER')
   assert.equal(resolveRoleCodeFromToken(makeJwt({ role: 'DRIVER', sub: '7' })), 'DRIVER')
+})
+
+test('resolveSessionFromToken reads demo and jwt actor identity', () => {
+  assert.deepEqual(resolveSessionFromToken('demo.USER.2.1712345678901'), { roleCode: 'USER', userId: 2 })
+  assert.deepEqual(resolveSessionFromToken(makeJwt({ role: 'DRIVER', sub: '7' })), { roleCode: 'DRIVER', userId: 7 })
 })
 
 test('shouldInvalidateSession returns true for protected auth failures', () => {

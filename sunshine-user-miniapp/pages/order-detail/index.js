@@ -565,6 +565,14 @@ function buildAppliedCoupon(rawOrder, coupons = []) {
   }
 }
 
+function isOrderReviewed(rawOrder = {}) {
+  return `${rawOrder.evaluationStatus || ''}`.startsWith('DONE:')
+}
+
+function canShowReviewAction(rawOrder = {}) {
+  return rawOrder.orderStatus === ORDER_STATUS.FINISHED && rawOrder.payStatus === PAY_STATUS.PAID
+}
+
 function buildDetailViewState(rawOrder, coupons = [], runtime = {}) {
   const detail = buildRideOrderModel(rawOrder, {
     carType: getCarTypeMapFromStore()[rawOrder.carTypeId]
@@ -634,6 +642,9 @@ function buildDetailViewState(rawOrder, coupons = [], runtime = {}) {
     startDisplay: detail.startName || (detail.start && detail.start.name) || '',
     endDisplay: detail.endName || (detail.end && detail.end.name) || '',
     remarkText: detail.remarkText || '',
+    showReviewAction: canShowReviewAction(rawOrder),
+    reviewActionText: isOrderReviewed(rawOrder) ? '查看评价' : '行程评价',
+    reviewed: isOrderReviewed(rawOrder),
     carpoolMeta: detail.carpoolMeta || null
   }
 
@@ -944,6 +955,15 @@ Page({
 
   gotoInvoice() {
     navigateToSilky(this, { url: '/pages/invoice/index' })
+  },
+
+  gotoReview() {
+    if (!this.data.detail) return
+    if (this.data.detail.reviewed) {
+      navigateToSilky(this, { url: '/pages/reviews/index' })
+      return
+    }
+    navigateToSilky(this, { url: `/pages/ride-review/index?id=${this.data.detail.id}` })
   },
 
   applyRefund() {

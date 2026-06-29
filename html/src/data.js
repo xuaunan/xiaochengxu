@@ -146,7 +146,26 @@ export const defaultBooking = {
   remark: '网页端下单，订单状态可多端查看。'
 }
 
+function normalizeRoutePoint(point, fallback = poiLibrary[0]) {
+  const source = point || fallback || {}
+  const latitude = Number(source.latitude ?? source.lat ?? fallback?.latitude)
+  const longitude = Number(source.longitude ?? source.lng ?? fallback?.longitude)
+  return {
+    id: source.id || fallback?.id || `addr-${Date.now()}`,
+    name: source.name || source.title || source.address || fallback?.name || '已选地址',
+    address: source.address || source.addr || source.name || fallback?.address || '已选地址',
+    latitude: Number.isFinite(latitude) ? latitude : Number(fallback?.latitude || 0),
+    longitude: Number.isFinite(longitude) ? longitude : Number(fallback?.longitude || 0),
+    city: source.city || fallback?.city || '',
+    district: source.district || fallback?.district || '',
+    tags: Array.isArray(source.tags) ? source.tags : []
+  }
+}
+
 export function findPoi(id) {
+  if (id && typeof id === 'object') {
+    return normalizeRoutePoint(id)
+  }
   return poiLibrary.find((poi) => poi.id === id) || poiLibrary[0]
 }
 
@@ -185,7 +204,7 @@ export function estimateLocalFare(carTypeId, serviceType, distanceKm, durationMi
 }
 
 export function createOrderPayload(booking, estimate, extras = {}) {
-  const { start, end } = calcRoute(booking.startId, booking.endId)
+  const { start, end } = calcRoute(booking.startPoint || booking.startId, booking.endPoint || booking.endId)
   return {
     carTypeId: Number(booking.carTypeId),
     serviceType: booking.serviceType,

@@ -6,7 +6,7 @@
         <view class="support-title">在线客服</view>
         <view class="support-desc">订单、支付、发票、优惠券问题可先由AI快速响应，人工客服同步跟进</view>
       </view>
-      <view class="support-status">{{conversation.status === 'OPEN' ? '处理中' : '已关闭'}}</view>
+      <view class="support-status">{{supportStatusText}}</view>
     </view>
 
     <view class="support-data-note">
@@ -23,7 +23,7 @@
       scroll-with-animation
       bindscroll="handleMessageScroll"
     >
-      <block wx:if="{{messages.length}}">
+      <block wx:if="{{messagesReady && messages.length}}">
         <view
           class="support-message {{item.fromAi ? 'support-message--ai' : (item.fromAdmin ? 'support-message--admin' : 'support-message--self')}} {{item.isTyping ? 'support-message--typing' : ''}}"
           id="{{item.anchorId}}"
@@ -43,7 +43,7 @@
           </view>
         </view>
       </block>
-      <view wx:elif="{{loading}}" class="support-empty">
+      <view wx:elif="{{loading || (!messagesReady && messages.length)}}" class="support-empty">
         <view class="support-empty__title">消息加载中...</view>
         <view class="support-empty__desc">正在连接客服会话</view>
       </view>

@@ -63,10 +63,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -82,6 +85,8 @@ public class OrderServiceImpl implements OrderService {
     private static final String INVOICE_SELLER_NAME = "北京阳光出行有限公司";
     private static final String WEB_EXCLUSIVE_META_START_TAG = "[WEB_EXCLUSIVE_META]";
     private static final String WEB_EXCLUSIVE_META_END_TAG = "[/WEB_EXCLUSIVE_META]";
+    private static final int AUTO_DEFAULT_EVALUATION_DAYS = 3;
+    private static final String DEFAULT_EVALUATION_CONTENT = "系统默认好评";
     private static final String INVOICE_SELLER_TAX_NO = "91110105MA01SUN8X9";
     private static final String INVOICE_SELLER_PHONE = "400-100-0101";
     private static final DateTimeFormatter INVOICE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -429,6 +434,29 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setEvaluationStatus("DONE:" + request.getScore() + ":" + (request.getContent() == null ? "" : request.getContent()));
         rideOrderMapper.updateById(order);
+        refreshDriverScore(order.getDriverId());
+    }
+
+    @Scheduled(initialDelay = 60_000L, fixedDelay = 3_600_000L)
+    @Transactional
+    public void applyExpiredDefaultEvaluations() {
+        List<RideOrder> pendingOrders = rideOrderMapper.selectList(new LambdaQueryWrapper<RideOrder>()
+                .eq(RideOrder::getOrderStatus, OrderStatus.FINISHED)
+                .eq(RideOrder::getPayStatus, PayStatus.PAID)
+                .eq(RideOrder::getEvaluationStatus, "PENDING")
+                .isNotNull(RideOrder::getDriverId));
+        int changedCount = 0;
+        for (RideOrder order : pendingOrders) {
+            String before = order.getEvaluationStatus();
+            applyDefaultEvaluationIfExpired(order);
+            if (!Objects.equals(before, order.getEvaluationStatus())) {
+                changedCount++;
+            }
+        }
+        refreshAllDriverScoresFromEvaluations();
+        if (changedCount > 0) {
+            log.info("Applied {} default five-star evaluations for expired orders", changedCount);
+        }
     }
 
     @Override
@@ -783,7 +811,90 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private RideOrder syncAutoProgress(RideOrder order) {
-        return syncPaymentStatus(order);
+        return applyDefaultEvaluationIfExpired(syncPaymentStatus(order));
+    }
+
+    private RideOrder applyDefaultEvaluationIfExpired(RideOrder order) {
+        if (order == null
+                || !OrderStatus.FINISHED.equals(order.getOrderStatus())
+                || !PayStatus.PAID.equals(order.getPayStatus())
+                || !"PENDING".equals(order.getEvaluationStatus())
+                || order.getDriverId() == null) {
+            return order;
+        }
+        LocalDateTime anchorAt = firstNonNull(order.getPaidAt(), order.getFinishedAt(), order.getUpdatedAt());
+        if (anchorAt == null || anchorAt.isAfter(LocalDateTime.now().minusDays(AUTO_DEFAULT_EVALUATION_DAYS))) {
+            return order;
+        }
+        order.setEvaluationStatus("DONE:5:" + DEFAULT_EVALUATION_CONTENT);
+        rideOrderMapper.updateById(order);
+        refreshDriverScore(order.getDriverId());
+        return requireOrder(order.getId());
+    }
+
+    private void refreshDriverScore(Long driverId) {
+        if (driverId == null) {
+            return;
+        }
+        DriverProfile profile = driverProfileMapper.selectOne(new LambdaQueryWrapper<DriverProfile>()
+                .eq(DriverProfile::getUserId, driverId)
+                .last("limit 1"));
+        if (profile == null) {
+            return;
+        }
+        List<RideOrder> evaluatedOrders = rideOrderMapper.selectList(new LambdaQueryWrapper<RideOrder>()
+                .eq(RideOrder::getDriverId, driverId)
+                .likeRight(RideOrder::getEvaluationStatus, "DONE:"));
+        List<Integer> scores = evaluatedOrders.stream()
+                .map(RideOrder::getEvaluationStatus)
+                .map(this::parseEvaluationScore)
+                .filter(Objects::nonNull)
+                .toList();
+        if (scores.isEmpty()) {
+            profile.setScore(BigDecimal.valueOf(5).setScale(2, RoundingMode.HALF_UP));
+        } else {
+            BigDecimal total = scores.stream()
+                    .map(BigDecimal::valueOf)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            profile.setScore(total.divide(BigDecimal.valueOf(scores.size()), 2, RoundingMode.HALF_UP));
+        }
+        driverProfileMapper.updateById(profile);
+    }
+
+    private void refreshAllDriverScoresFromEvaluations() {
+        rideOrderMapper.selectList(new LambdaQueryWrapper<RideOrder>()
+                        .isNotNull(RideOrder::getDriverId)
+                        .likeRight(RideOrder::getEvaluationStatus, "DONE:"))
+                .stream()
+                .map(RideOrder::getDriverId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(this::refreshDriverScore);
+    }
+
+    private Integer parseEvaluationScore(String evaluationStatus) {
+        if (!StringUtils.hasText(evaluationStatus) || !evaluationStatus.startsWith("DONE:")) {
+            return null;
+        }
+        String[] parts = evaluationStatus.split(":", 3);
+        if (parts.length < 2) {
+            return null;
+        }
+        try {
+            int score = Integer.parseInt(parts[1]);
+            return score >= 1 && score <= 5 ? score : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private LocalDateTime firstNonNull(LocalDateTime... values) {
+        for (LocalDateTime value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private void completeOrder(RideOrder order, BigDecimal actualDistanceKm, BigDecimal actualDurationMin, LocalDateTime finishedAt) {
