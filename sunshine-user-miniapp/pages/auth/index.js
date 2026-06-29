@@ -1,4 +1,4 @@
-const { fetchProfile, submitRealName: submitRealNameRequest, updateProfileByAdmin } = require('../../utils/api')
+const { fetchProfile, submitRealName: submitRealNameRequest } = require('../../utils/api')
 const { getAuthStatusLabel } = require('../../utils/constants')
 const { runExclusive } = require('../../utils/page')
 
@@ -71,15 +71,6 @@ Page({
     this.setData({ submitting: true })
     try {
       await submitRealNameRequest(payload)
-      try {
-        const profile = getApp().globalData.userStore.profile || {}
-        await updateProfileByAdmin(profile.id, payload, {
-          ...profile,
-          authStatus: 1,
-          authRemark: '用户已提交实名认证，等待管理员审核'
-        })
-      } catch (error) {
-      }
 
       wx.showToast({
         title: '实名认证已提交',

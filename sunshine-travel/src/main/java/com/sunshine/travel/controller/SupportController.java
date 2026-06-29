@@ -11,10 +11,11 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "在线客服")
+@Tag(name = "Support")
 @RequireRole({RoleCode.USER, RoleCode.DRIVER})
 @RestController
 @RequestMapping("/support")
@@ -26,21 +27,22 @@ public class SupportController {
         this.supportService = supportService;
     }
 
-    @Operation(summary = "我的客服会话")
+    @Operation(summary = "Current support conversation")
     @GetMapping("/conversation")
-    public ApiResponse<?> conversation() {
-        return ApiResponse.success(supportService.currentConversation());
+    public ApiResponse<?> conversation(@RequestHeader(value = "X-Sunshine-Client", required = false) String client) {
+        return ApiResponse.success(supportService.currentConversation(client));
     }
 
-    @Operation(summary = "我的客服消息")
+    @Operation(summary = "Current support messages")
     @GetMapping("/messages")
-    public ApiResponse<?> messages() {
-        return ApiResponse.success(supportService.currentMessages());
+    public ApiResponse<?> messages(@RequestHeader(value = "X-Sunshine-Client", required = false) String client) {
+        return ApiResponse.success(supportService.currentMessages(client));
     }
 
-    @Operation(summary = "发送客服消息")
+    @Operation(summary = "Send support message")
     @PostMapping("/messages")
-    public ApiResponse<?> send(@Valid @RequestBody SupportMessageRequest request) {
-        return ApiResponse.success("消息已发送", supportService.sendCurrentMessage(request.getContent()));
+    public ApiResponse<?> send(@Valid @RequestBody SupportMessageRequest request,
+                               @RequestHeader(value = "X-Sunshine-Client", required = false) String client) {
+        return ApiResponse.success("Message sent", supportService.sendCurrentMessage(request.getContent(), client));
     }
 }

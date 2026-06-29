@@ -15,20 +15,27 @@ function decodeBase64Url(segment = '') {
 }
 
 export function resolveRoleCodeFromToken(token = '') {
+  return resolveSessionFromToken(token).roleCode
+}
+
+export function resolveSessionFromToken(token = '') {
   const value = String(token || '').trim()
-  if (!value) return ''
+  if (!value) return { roleCode: '', userId: 0 }
 
   const demoParts = value.split('.')
   if (demoParts[0] === 'demo') {
-    return demoParts[1] || ''
+    return { roleCode: demoParts[1] || '', userId: Number(demoParts[2] || 0) }
   }
 
-  if (demoParts.length < 2) return ''
+  if (demoParts.length < 2) return { roleCode: '', userId: 0 }
   try {
     const payload = JSON.parse(decodeBase64Url(demoParts[1]))
-    return typeof payload?.role === 'string' ? payload.role : ''
+    return {
+      roleCode: typeof payload?.role === 'string' ? payload.role : '',
+      userId: Number(payload?.sub || payload?.userId || payload?.uid || 0)
+    }
   } catch (error) {
-    return ''
+    return { roleCode: '', userId: 0 }
   }
 }
 

@@ -23,6 +23,7 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         ensurePlatformUserMemberColumns();
         ensureSupportTables();
+        ensureSupportWelcomeMessageContent();
         ensureSystemConfigValueText();
         ensureSystemNoticeDisplayTimeRange();
         ensureMessageReadColumns();
@@ -67,6 +68,7 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
                         id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'primary id',
                         user_id BIGINT NOT NULL COMMENT 'user id',
                         user_role VARCHAR(20) NOT NULL COMMENT 'user role',
+                        channel VARCHAR(20) NOT NULL DEFAULT 'MINIAPP' COMMENT 'client channel',
                         status VARCHAR(20) NOT NULL DEFAULT 'OPEN' COMMENT 'conversation status',
                         last_message VARCHAR(500) DEFAULT NULL COMMENT 'last message',
                         last_message_at DATETIME DEFAULT NULL COMMENT 'last message time',
@@ -74,11 +76,13 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
                         unread_for_user INT NOT NULL DEFAULT 0 COMMENT 'user unread count',
                         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
                         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'updated time',
-                        UNIQUE KEY uk_support_conversation_user_role (user_id, user_role),
+                        UNIQUE KEY uk_support_conversation_user_role_channel (user_id, user_role, channel),
                         KEY idx_support_conversation_status (status),
+                        KEY idx_support_conversation_channel (channel),
                         KEY idx_support_conversation_last (last_message_at)
                     ) COMMENT='support conversation table'
                     """);
+            ensureSupportConversationChannel(connection, statement);
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS t_support_message (
                         id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'primary id',
@@ -93,6 +97,34 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
                     """);
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to migrate support tables", ex);
+        }
+    }
+
+    private void ensureSupportConversationChannel(Connection connection, Statement statement) throws SQLException {
+        if (!hasColumn(connection, "t_support_conversation", "channel")) {
+            statement.executeUpdate("ALTER TABLE t_support_conversation ADD COLUMN channel VARCHAR(20) NOT NULL DEFAULT 'MINIAPP' COMMENT 'client channel' AFTER user_role");
+        }
+        statement.executeUpdate("UPDATE t_support_conversation SET channel = 'MINIAPP' WHERE channel IS NULL OR channel = ''");
+        if (hasIndex(connection, "t_support_conversation", "uk_support_conversation_user_role")) {
+            statement.executeUpdate("DROP INDEX uk_support_conversation_user_role ON t_support_conversation");
+        }
+        if (!hasIndex(connection, "t_support_conversation", "uk_support_conversation_user_role_channel")) {
+            statement.executeUpdate("ALTER TABLE t_support_conversation ADD UNIQUE KEY uk_support_conversation_user_role_channel (user_id, user_role, channel)");
+        }
+        if (!hasIndex(connection, "t_support_conversation", "idx_support_conversation_channel")) {
+            statement.executeUpdate("ALTER TABLE t_support_conversation ADD KEY idx_support_conversation_channel (channel)");
+        }
+    }
+
+    private void ensureSupportWelcomeMessageContent() {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            String previous = "您好，阳光出行AI客服已接入，请描述您遇到的问题。";
+            String current = "您好，阳光出行客服已接入，请描述您遇到的问题。";
+            statement.executeUpdate("UPDATE t_support_message SET content = '" + current + "' WHERE content = '" + previous + "'");
+            statement.executeUpdate("UPDATE t_support_conversation SET last_message = '" + current + "' WHERE last_message = '" + previous + "'");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to normalize support welcome message content", ex);
         }
     }
 
@@ -147,5 +179,24 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
         try (ResultSet columns = metaData.getColumns(connection.getCatalog(), null, tableName.toUpperCase(), columnName.toUpperCase())) {
             return columns.next();
         }
+    }
+
+    private boolean hasIndex(Connection connection, String tableName, String indexName) throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        try (ResultSet indexes = metaData.getIndexInfo(connection.getCatalog(), null, tableName, false, false)) {
+            while (indexes.next()) {
+                if (indexName.equalsIgnoreCase(indexes.getString("INDEX_NAME"))) {
+                    return true;
+                }
+            }
+        }
+        try (ResultSet indexes = metaData.getIndexInfo(connection.getCatalog(), null, tableName.toUpperCase(), false, false)) {
+            while (indexes.next()) {
+                if (indexName.equalsIgnoreCase(indexes.getString("INDEX_NAME"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

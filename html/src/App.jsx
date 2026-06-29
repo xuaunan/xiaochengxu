@@ -67,6 +67,7 @@ const driverSessionKey = 'sunshine-web-driver-session'
 const driverSettingsKey = 'sunshine-web-driver-settings-v1'
 const dailyCheckinStateKey = 'sunshine-web-daily-checkin-v1'
 const portalRoleKey = 'sunshine-web-portal-role'
+const addressBookKey = 'sunshine-web-address-book-v1'
 const DEFAULT_TENCENT_MAP_KEY = 'NHNBZ-F5FW3-Z4C3Q-R4WUM-ODTPE-DRFDV'
 const SERVICE_ICON_PATHS = {
   [SERVICE_TYPE.TAXI]: '/assets/service-icons/taxi.png',
@@ -89,7 +90,9 @@ const driverDefaultSettings = {
   voiceStyle: 'default',
   trackMode: 'DEMO',
   manualResting: false,
-  listeningSince: 0
+  listeningSince: 0,
+  listeningBaselineReady: false,
+  listeningBaselineOrderIds: []
 }
 
 const passengerDefaultSettings = {
@@ -125,11 +128,23 @@ const passengerPaymentMethods = [
 const passengerReviewTags = ['接驾及时', '车内整洁', '路线清晰', '服务礼貌']
 
 const complaintTypeOptions = [
-  ['SERVICE', '服务态度'],
-  ['ROUTE', '路线绕行'],
-  ['PAYMENT', '费用疑问'],
-  ['SAFETY', '安全问题'],
-  ['OTHER', '其他反馈']
+  ['SERVICE', '司机服务', '迟到、态度、沟通、路线等'],
+  ['FEE', '费用争议', '金额、优惠券、发票等'],
+  ['VEHICLE', '车辆问题', '车况、卫生、车牌不符等'],
+  ['PRODUCT', '产品建议', '功能体验、页面问题等']
+]
+
+const passengerAuthStatusText = {
+  0: '未实名',
+  1: '审核中',
+  2: '已认证',
+  3: '已驳回'
+}
+
+const passengerHelpList = [
+  { id: 'faq001', title: '如何完成支付？', content: '行程结束后进入结算页，点击“确认支付”即可完成订单支付。' },
+  { id: 'faq002', title: '定位权限被拒绝怎么办？', content: '首页会自动切换到手动输入模式，也可以点击“重新授权”重新获取定位。' },
+  { id: 'faq003', title: '国际出行为何要带城市信息？', content: '国际订单地址需包含城市或地区信息，建议使用“地点，中国城市/地区”的格式。' }
 ]
 
 const orderTypeTabs = [
@@ -272,6 +287,7 @@ const passengerTabRoutes = {
   international: 'international',
   wallet: 'wallet',
   invoice: 'invoice',
+  feedback: 'feedback',
   support: 'support',
   messages: 'messages',
   profile: 'profile'
@@ -281,7 +297,9 @@ const driverTabRoutes = {
   listen: '',
   orders: 'orders',
   wallet: 'wallet',
+  certification: 'certification',
   support: 'support',
+  settings: 'settings',
   profile: 'profile',
   messages: 'messages'
 }
@@ -1146,12 +1164,15 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     ])
     const [profileData, orderData, mineCoupons, centerCoupons, msgData, carpoolList, myCarpool, membershipData, supportData, supportMessageData] = results
     if (profileData.status === 'fulfilled') setProfile(profileData.value)
-    if (orderData.status === 'fulfilled') setOrders(normalizeList(orderData.value))
+    setOrders(orderData.status === 'fulfilled' ? normalizeList(orderData.value) : [])
     if (mineCoupons.status === 'fulfilled') setCoupons(normalizeList(mineCoupons.value))
     if (centerCoupons.status === 'fulfilled') setCouponCenter(normalizeList(centerCoupons.value))
     if (msgData.status === 'fulfilled') setMessages(normalizeList(msgData.value))
-    if (carpoolList.status === 'fulfilled') setCarpool((value) => ({ ...value, list: normalizeList(carpoolList.value) }))
-    if (myCarpool.status === 'fulfilled') setCarpool((value) => ({ ...value, mine: myCarpool.value }))
+    setCarpool((value) => ({
+      ...value,
+      list: carpoolList.status === 'fulfilled' ? normalizeList(carpoolList.value) : [],
+      mine: myCarpool.status === 'fulfilled' ? myCarpool.value : null
+    }))
     if (membershipData.status === 'fulfilled') setMembership(membershipData.value)
     if (supportData.status === 'fulfilled') setSupportConversation(supportData.value)
     if (supportMessageData.status === 'fulfilled') setSupportMessages(normalizeList(supportMessageData.value))
@@ -1169,6 +1190,15 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   useEffect(() => {
     setTab(normalizePassengerTab(initialTab))
   }, [initialTab])
+
+  useEffect(() => {
+    if (tab !== 'ride') return
+    setBooking((current) => (
+      current.serviceType === SERVICE_TYPE.TAXI
+        ? current
+        : { ...current, serviceType: SERVICE_TYPE.TAXI }
+    ))
+  }, [tab])
 
   const changeTab = useCallback((nextTab) => {
     const normalizedTab = normalizePassengerTab(nextTab)
@@ -1191,8 +1221,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         api.orderRuntime(token, activeRideOrder.id)
       ])
       if (cancelled) return
-      if (orderData.status === 'fulfilled') setOrders(normalizeList(orderData.value))
-      if (runtimeData.status === 'fulfilled') setActiveRuntime(runtimeData.value)
+      setOrders(orderData.status === 'fulfilled' ? normalizeList(orderData.value) : [])
+      setActiveRuntime(runtimeData.status === 'fulfilled' ? runtimeData.value : null)
     }
 
     syncActiveRide()
@@ -1211,16 +1241,18 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
 
   useEffect(() => {
     let cancelled = false
-    const route = calcRoute(booking.startId, booking.endId)
+    const route = calcRoute(booking.startPoint || booking.startId, booking.endPoint || booking.endId)
     api.estimate({
       carTypeId: booking.carTypeId,
       serviceType: booking.serviceType,
       distanceKm: route.distanceKm,
       durationMin: route.durationMin
     })
-      .catch(() => estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin))
       .then((data) => {
         if (!cancelled) setEstimate(data)
+      })
+      .catch(() => {
+        if (!cancelled) setEstimate(null)
       })
     return () => {
       cancelled = true
@@ -1230,13 +1262,15 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   const run = async (task, successText = '操作成功') => {
     try {
       setToast('正在更新...')
-      await task()
+      const result = await task()
       await load()
       await onRefreshHome?.()
       setToast(successText)
       window.setTimeout(() => setToast(''), 2200)
+      return result ?? true
     } catch (error) {
       setToast(error.message || '操作失败')
+      return false
     }
   }
 
@@ -1265,22 +1299,41 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     }))
   }, [setPassengerSettings])
 
+  const navigateFromMessage = useCallback((target) => {
+    if (!target?.tab) return
+    if (target.orderId) setFocusOrderId(String(target.orderId))
+    changeTab(target.tab)
+  }, [changeTab])
+
   const estimateRide = async () => {
-    const route = calcRoute(booking.startId, booking.endId)
+    const route = calcRoute(booking.startPoint || booking.startId, booking.endPoint || booking.endId)
     const data = await api.estimate({
       carTypeId: booking.carTypeId,
-      serviceType: booking.serviceType,
+      serviceType: SERVICE_TYPE.TAXI,
       distanceKm: route.distanceKm,
       durationMin: route.durationMin
-    }).catch(() => estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin))
+    })
     setEstimate(data)
     return data
   }
 
+  const estimateCarpoolOrder = useCallback(async (form = {}) => {
+    const startPoi = form.startPoint || resolvePoiFromText(form.startName, 'poi101')
+    const endPoi = form.endPoint || resolvePoiFromText(form.endName, 'poi102')
+    const route = calcRoute(startPoi, endPoi)
+    return api.estimate({
+      carTypeId: Number(form.carTypeId || home.carTypes?.[0]?.id || 1),
+      serviceType: SERVICE_TYPE.CARPOOL,
+      distanceKm: route.distanceKm,
+      durationMin: route.durationMin
+    })
+  }, [home.carTypes])
+
   const createRide = () => run(async () => {
-    const priced = estimate || await estimateRide()
-    const webExclusiveDiscountAmount = booking.serviceType === SERVICE_TYPE.TAXI ? getUsableCheckinAmount(passengerCheckinBenefit, priced) : 0
-    const order = await api.createOrder(token, createOrderPayload(booking, priced, {
+    const rideBooking = { ...booking, serviceType: SERVICE_TYPE.TAXI }
+    const priced = booking.serviceType === SERVICE_TYPE.TAXI && estimate ? estimate : await estimateRide()
+    const webExclusiveDiscountAmount = getUsableCheckinAmount(passengerCheckinBenefit, priced)
+    await api.createOrder(token, createOrderPayload(rideBooking, priced, {
       sourceChannel: 'WEB',
       webExclusiveDiscountAmount,
       webExclusiveDiscountLabel: '网页专属签到优惠',
@@ -1290,20 +1343,58 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     if (webExclusiveDiscountAmount > 0 && setCheckinState) {
       setCheckinState((state) => markDailyCheckinUsed(state, 'USER', checkinAccount))
     }
-    setOrders((items) => [order, ...items])
     changeTab('ride')
   }, '订单已提交，地图已切换到实时派单状态')
 
+  const createCarpoolRide = (form = {}, coupon = null) => run(async () => {
+    const invalidMessage = validateCarpoolOrderForm(form)
+    if (invalidMessage) throw new Error(invalidMessage)
+    const carTypeId = Number(form.carTypeId || home.carTypes?.[0]?.id || 1)
+    const startPoi = form.startPoint || resolvePoiFromText(form.startName, 'poi101')
+    const endPoi = form.endPoint || resolvePoiFromText(form.endName, 'poi102')
+    const route = calcRoute(startPoi, endPoi)
+    const priced = await estimateCarpoolOrder({ ...form, carTypeId })
+    const couponDiscount = coupon ? Number(coupon.discountAmount || 0) : 0
+    const payload = {
+      carTypeId,
+      serviceType: SERVICE_TYPE.CARPOOL,
+      startName: String(form.startName || startPoi.name).trim(),
+      startLng: String(startPoi.longitude),
+      startLat: String(startPoi.latitude),
+      endName: String(form.endName || endPoi.name).trim(),
+      endLng: String(endPoi.longitude),
+      endLat: String(endPoi.latitude),
+      estimatedDistanceKm: priced.distanceKm || route.distanceKm,
+      estimatedDurationMin: priced.durationMin || route.durationMin,
+      userCouponId: coupon?.userCouponIdText || null,
+      couponDiscount,
+      couponName: coupon?.name || '',
+      couponRuleDesc: coupon?.ruleText || '',
+      originalAmount: priced.amount,
+      payableAmount: Math.max(0, Number(priced.amount || 0) - couponDiscount),
+      dispatchMode: 'CARPOOL_MATCH',
+      sourceChannel: 'WEB',
+      remark: buildCarpoolOrderRemark(form, priced, coupon)
+    }
+    await api.createOrder(token, payload)
+    changeTab('orders')
+  }, '顺风车订单已提交，优惠和行程信息已同步到订单')
+
   const createInternationalRide = (option = internationalOptions[0], form = {}) => run(async () => {
-    const routeIds = resolveInternationalRouteIds(option)
-    const route = calcRoute(routeIds.startId, routeIds.endId)
+    const cleanForm = normalizeInternationalForm(form)
+    const invalidMessage = validateInternationalForm(cleanForm)
+    if (invalidMessage) throw new Error(invalidMessage)
+    const routePoints = resolveInternationalRoutePoints(option)
+    const route = calcRoute(routePoints.startPoint, routePoints.endPoint)
     const internationalBooking = {
       ...booking,
       carTypeId: 3,
       serviceType: SERVICE_TYPE.INTERNATIONAL,
-      startId: routeIds.startId,
-      endId: routeIds.endId,
-      remark: buildInternationalRemark(option, form.note || booking.remark, form, {
+      startId: routePoints.startPoint.id,
+      endId: routePoints.endPoint.id,
+      startPoint: routePoints.startPoint,
+      endPoint: routePoints.endPoint,
+      remark: buildInternationalRemark(option, cleanForm.note || booking.remark, cleanForm, {
         distanceKm: parseMetricNumber(option.distanceText, route.distanceKm),
         durationMin: parseMetricNumber(option.durationText, route.durationMin),
         amount: option.basePrice,
@@ -1315,7 +1406,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       serviceType: SERVICE_TYPE.INTERNATIONAL,
       distanceKm: route.distanceKm,
       durationMin: route.durationMin
-    }).catch(() => estimateLocalFare(internationalBooking.carTypeId, SERVICE_TYPE.INTERNATIONAL, route.distanceKm, route.durationMin))
+    })
     const internationalEstimate = {
       ...priced,
       amount: Number(option.basePrice || priced.amount || 0),
@@ -1325,8 +1416,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       currencyCode: 'USD',
       exchangeRate: 7.15
     }
-    const order = await api.createOrder(token, createOrderPayload(internationalBooking, internationalEstimate))
-    setOrders((items) => [order, ...items])
+    await api.createOrder(token, createOrderPayload(internationalBooking, internationalEstimate))
     changeTab('orders')
   }, `${option.titleZh || '国际出行'}预约已提交，国际行程已同步到订单`)
 
@@ -1350,11 +1440,11 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         ['ride', SERVICE_ICON_PATHS[SERVICE_TYPE.TAXI], '叫车'],
         ['orders', Route, '订单'],
         ['coupons', Ticket, '优惠券'],
-        ['member', BadgeCheck, '会员'],
         ['carpool', SERVICE_ICON_PATHS[SERVICE_TYPE.CARPOOL], '顺风车'],
         ['international', SERVICE_ICON_PATHS[SERVICE_TYPE.INTERNATIONAL], '国际'],
         ['wallet', Wallet, '钱包实名'],
         ['invoice', CreditCard, '发票'],
+        ['feedback', HelpCircle, '反馈帮助'],
         ['support', MessageSquare, '客服'],
         ['messages', Bell, '消息'],
         ['profile', Settings, '设置']
@@ -1367,7 +1457,9 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
             <ActiveRidePanel
               order={activeRideOrder}
               runtime={activeRuntime}
+              profile={profile || session}
               onRefresh={load}
+              onOpenSupport={() => changeTab('support')}
               pendingActionKey={pendingOrderAction}
               onAction={(action) => runOrderAction(action, activeRideOrder)}
             />
@@ -1382,6 +1474,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
               onPrimary={createRide}
               primaryText="提交订单"
               benefit={passengerCheckinBenefit}
+              lockedServiceType
+              showServiceTabs={false}
             />
           )}
           <CityMap booking={booking} estimate={estimate} compact operational activeOrder={activeRideOrder} runtime={activeRuntime} showSummaryPanel={false} />
@@ -1391,6 +1485,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       {tab === 'orders' && (
         <OrderBoard
           orders={orders}
+          coupons={coupons}
           role="USER"
           onRefresh={load}
           onOpenInvoice={() => changeTab('invoice')}
@@ -1431,6 +1526,11 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       {tab === 'carpool' && (
         <CarpoolBoard
           data={carpool}
+          coupons={coupons}
+          settings={passengerSettings}
+          carTypes={home.carTypes}
+          onCreateOrder={createCarpoolRide}
+          onEstimateOrder={estimateCarpoolOrder}
           onSearch={(keyword) => run(async () => {
             const list = await api.carpoolSearch(keyword)
             setCarpool((value) => ({ ...value, list: normalizeList(list) }))
@@ -1462,7 +1562,9 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         <MessageBoard
           messages={messages}
           orders={orders}
+          role="USER"
           onRefresh={load}
+          onNavigateTarget={navigateFromMessage}
           onReadMessage={async (message) => {
             setMessages((list) => list.map((item) => item.id === message.id ? { ...item, unread: false, read: true, isRead: true, readStatus: 'READ' } : item))
             try {
@@ -1480,6 +1582,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
             setFocusOrderId(orderKey(order))
             setTab('orders')
           }}
+          onUploadAvatar={(file) => api.uploadAvatar(token, file)}
           onProfile={(form) => run(() => api.updateProfile(token, form), '资料已更新')}
           onRealName={(form) => run(() => api.submitRealName(token, form), '实名信息已提交')}
         />
@@ -1490,6 +1593,15 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
           profile={profile || session}
           onApplyInvoice={(order, form) => run(() => api.applyInvoice(token, order.id, form), '发票申请已提交')}
           onPreviewInvoice={(order) => api.invoiceAsset(token, order.id, { strict: true })}
+        />
+      )}
+      {tab === 'feedback' && (
+        <SupportBoard
+          orders={orders}
+          profile={profile || session}
+          settings={passengerSettings}
+          onComplaint={(order, payload) => runOrderAction('complaint', order, payload)}
+          onEvaluate={(order, payload) => runOrderAction('evaluate', order, payload)}
         />
       )}
       {tab === 'support' && (
@@ -1529,6 +1641,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   const [withdraws, setWithdraws] = useState([])
   const [supportConversation, setSupportConversation] = useState(null)
   const [supportMessages, setSupportMessages] = useState([])
+  const [focusOrderId, setFocusOrderId] = useState('')
   const [driverSettings, setDriverSettings] = useState(() => readDriverSettings())
   const [rejectDraft, setRejectDraft] = useState({ orderId: null, reason: driverRejectReasonOptions[0] })
   const autoAcceptingRef = useRef(false)
@@ -1552,8 +1665,9 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
     ])
     const [dash, waiting, mine, msg, withdrawData, supportData, supportMessageData] = results
     if (dash.status === 'fulfilled') setDashboard(dash.value)
-    if (waiting.status === 'fulfilled') setWaitingOrders(normalizeList(waiting.value))
-    if (mine.status === 'fulfilled') setOrders(normalizeList(mine.value))
+    else setDashboard(null)
+    setWaitingOrders(waiting.status === 'fulfilled' ? normalizeList(waiting.value) : [])
+    setOrders(mine.status === 'fulfilled' ? normalizeList(mine.value) : [])
     if (msg.status === 'fulfilled') setMessages(normalizeList(msg.value))
     if (withdrawData.status === 'fulfilled') setWithdraws(normalizeList(withdrawData.value))
     if (supportData.status === 'fulfilled') setSupportConversation(supportData.value)
@@ -1598,12 +1712,14 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   const run = async (task, successText = '操作成功') => {
     try {
       setToast('正在更新...')
-      await task()
+      const result = await task()
       await load()
       setToast(successText)
       window.setTimeout(() => setToast(''), 2200)
+      return result ?? true
     } catch (error) {
       setToast(error.message || '操作失败')
+      return false
     }
   }
 
@@ -1626,6 +1742,43 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   const runOrderAction = (action, order) => (
     runPendingOrderMutation(action, order, () => driverOrderAction(action, order, token), actionText(action))
   )
+
+  const navigateFromMessage = useCallback((target) => {
+    if (!target?.tab) return
+    if (target.orderId) setFocusOrderId(String(target.orderId))
+    changeTab(target.tab)
+  }, [changeTab])
+
+  const toggleDriverAutoAccept = useCallback(() => {
+    updateDriverSettings((current) => {
+      const nextAutoAccept = !current.autoAccept
+      return {
+        autoAccept: nextAutoAccept,
+        listeningBaselineReady: nextAutoAccept && current.listenMode,
+        listeningBaselineOrderIds: nextAutoAccept && current.listenMode
+          ? waitingOrders.map((order) => String(order.id || order.orderNo || '')).filter(Boolean)
+          : current.listeningBaselineOrderIds
+      }
+    })
+  }, [updateDriverSettings, waitingOrders])
+
+  const updateDriverSettingsFromPanel = useCallback((patch) => {
+    if (patch && typeof patch !== 'function' && Object.prototype.hasOwnProperty.call(patch, 'autoAccept')) {
+      updateDriverSettings((current) => {
+        const nextAutoAccept = Boolean(patch.autoAccept)
+        return {
+          ...patch,
+          autoAccept: nextAutoAccept,
+          listeningBaselineReady: nextAutoAccept && current.listenMode,
+          listeningBaselineOrderIds: nextAutoAccept && current.listenMode
+            ? waitingOrders.map((order) => String(order.id || order.orderNo || '')).filter(Boolean)
+            : current.listeningBaselineOrderIds
+        }
+      })
+      return
+    }
+    updateDriverSettings(patch)
+  }, [updateDriverSettings, waitingOrders])
 
   const submitDriverReject = (order) => {
     const reason = String(rejectDraft.reason || '').trim()
@@ -1652,14 +1805,19 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   useEffect(() => {
     if (!token || autoAcceptingRef.current) return
     if (!driverSettings.autoAccept || !driverSettings.listenMode || profile.serviceStatus !== DRIVER_STATUS.ONLINE) return
-    const order = waitingOrders[0]
+    const baselineOrderIds = new Set(normalizeList(driverSettings.listeningBaselineOrderIds).map((item) => String(item)))
+    const order = waitingOrders.find((item) => {
+      const orderId = driverOrderIdOf(item)
+      if (orderId && baselineOrderIds.has(orderId)) return false
+      return isDriverOrderNewAfterListening(item, driverSettings.listeningSince)
+    }) || null
     if (!order?.id) return
     autoAcceptingRef.current = true
     run(() => api.driverAccept(token, order.id), '已按设置自动接单')
       .finally(() => {
         autoAcceptingRef.current = false
       })
-  }, [token, driverSettings.autoAccept, driverSettings.listenMode, profile.serviceStatus, waitingOrders])
+  }, [token, driverSettings.autoAccept, driverSettings.listenMode, driverSettings.listeningBaselineOrderIds, driverSettings.listeningSince, profile.serviceStatus, waitingOrders])
 
   if (!session) {
     return <LoginRequired role="DRIVER" onLogin={onLogin} onBack={onBack} />
@@ -1689,8 +1847,10 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
       tabs={[
         ['listen', Radio, '听单'],
         ['orders', Route, '订单'],
-        ['wallet', Wallet, '钱包资质'],
+        ['wallet', Wallet, '钱包'],
+        ['certification', BadgeCheck, '司机资质'],
         ['support', MessageSquare, '客服'],
+        ['settings', Settings, '接单设置'],
         ['profile', Settings, '资料设置'],
         ['messages', Bell, '消息']
       ]}
@@ -1718,15 +1878,20 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
                   aria-pressed={profile.serviceStatus === status}
                   title={activeDriverTrip ? '当前服务中，完成行程后再切换听单状态' : ''}
                   onClick={() => run(async () => {
+                    const location = await resolveDriverWebLocation(profile)
                     await api.driverStatus(token, {
                       serviceStatus: status,
-                      longitude: profile.lastLongitude || '117.0810',
-                      latitude: profile.lastLatitude || '39.9820'
+                      longitude: String(location.longitude),
+                      latitude: String(location.latitude)
                     })
                     updateDriverSettings({
                       listenMode: status === DRIVER_STATUS.ONLINE,
                       manualResting: status === DRIVER_STATUS.OFFLINE,
-                      listeningSince: status === DRIVER_STATUS.ONLINE ? Date.now() : 0
+                      listeningSince: status === DRIVER_STATUS.ONLINE ? Date.now() : 0,
+                      listeningBaselineReady: status === DRIVER_STATUS.ONLINE,
+                      listeningBaselineOrderIds: status === DRIVER_STATUS.ONLINE
+                        ? waitingOrders.map((order) => String(order.id || order.orderNo || '')).filter(Boolean)
+                        : []
                     })
                   }, `司机状态已切换为${statusLabel[status]}`)}
                 >
@@ -1784,7 +1949,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
               </div>
             </div>
             <div className="driver-inline-controls">
-              <button className={driverSettings.autoAccept ? 'active' : ''} onClick={() => updateDriverSettings({ autoAccept: !driverSettings.autoAccept })}><Zap size={15} />自动接单</button>
+              <button className={driverSettings.autoAccept ? 'active' : ''} onClick={toggleDriverAutoAccept}><Zap size={15} />自动接单</button>
               <button className={driverSettings.voiceBroadcast ? 'active' : ''} onClick={() => updateDriverSettings({ voiceBroadcast: !driverSettings.voiceBroadcast })}><Bell size={15} />语音播报</button>
             </div>
             </div>
@@ -1864,6 +2029,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
           orders={orders}
           role="DRIVER"
           onRefresh={load}
+          focusOrderId={focusOrderId}
           pendingActionKey={pendingOrderAction}
           onAction={runOrderAction}
         />
@@ -1874,6 +2040,13 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
           dashboard={dashboard}
           withdraws={withdraws}
           onWithdraw={(form) => run(() => api.driverWithdraw(token, form), '提现申请已提交')}
+        />
+      )}
+
+      {tab === 'certification' && (
+        <DriverCertificationBoard
+          dashboard={dashboard}
+          onUploadDocument={(file, documentType) => api.driverUploadDocument(token, file, documentType)}
           onCertify={(form) => run(() => api.driverCertify(token, form), '资质信息已提交')}
         />
       )}
@@ -1895,18 +2068,29 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
           dashboard={dashboard}
           user={user}
           onProfile={(form) => run(() => api.driverUpdateProfile(token, form), '司机资料已更新')}
+        />
+      )}
+
+      {tab === 'settings' && (
+        <DriverSettingsBoard
+          dashboard={dashboard}
           settings={driverSettings}
-          onSettingsChange={updateDriverSettings}
+          onSettingsChange={updateDriverSettingsFromPanel}
           onServiceStatus={(status) => run(async () => {
+            const location = await resolveDriverWebLocation(profile)
             await api.driverStatus(token, {
               serviceStatus: status,
-              longitude: profile.lastLongitude || '117.0810',
-              latitude: profile.lastLatitude || '39.9820'
+              longitude: String(location.longitude),
+              latitude: String(location.latitude)
             })
             updateDriverSettings({
               listenMode: status === DRIVER_STATUS.ONLINE,
               manualResting: status === DRIVER_STATUS.OFFLINE,
-              listeningSince: status === DRIVER_STATUS.ONLINE ? Date.now() : 0
+              listeningSince: status === DRIVER_STATUS.ONLINE ? Date.now() : 0,
+              listeningBaselineReady: status === DRIVER_STATUS.ONLINE,
+              listeningBaselineOrderIds: status === DRIVER_STATUS.ONLINE
+                ? waitingOrders.map((order) => String(order.id || order.orderNo || '')).filter(Boolean)
+                : []
             })
           }, status === DRIVER_STATUS.ONLINE ? '听单模式已开启' : '听单模式已关闭')}
         />
@@ -1916,7 +2100,9 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
         <MessageBoard
           messages={messages}
           orders={orders}
+          role="DRIVER"
           onRefresh={load}
+          onNavigateTarget={navigateFromMessage}
           onReadMessage={async (message) => {
             setMessages((list) => list.map((item) => item.id === message.id ? { ...item, unread: false, read: true, isRead: true, readStatus: 'READ' } : item))
             try {
@@ -1929,22 +2115,37 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   )
 }
 
-function BookingPanel({ title, kicker = '路线配置', booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText, benefit = null, variant = 'standalone', lockedServiceType = false }) {
+function BookingPanel({ title, kicker = '路线配置', booking, setBooking, estimate, carTypes, onEstimate, onPrimary, primaryText, benefit = null, variant = 'standalone', lockedServiceType = false, showServiceTabs = true }) {
   const [busyAction, setBusyAction] = useState('')
-  const route = calcRoute(booking.startId, booking.endId)
-  const safeEstimate = estimate || estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
-  const canUseWebCheckinDiscount = booking.serviceType === SERVICE_TYPE.TAXI && (safeEstimate.currencyCode || 'CNY') === 'CNY'
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressTarget, setAddressTarget] = useState('end')
+  const [addressSearchOpen, setAddressSearchOpen] = useState(false)
+  const [addressBook, setAddressBook] = usePersistentState(addressBookKey, { history: [], favorites: [] })
+  const route = calcRoute(booking.startPoint || booking.startId, booking.endPoint || booking.endId)
+  const [remoteAddressCandidates, setRemoteAddressCandidates] = useState([])
+  const [addressLoading, setAddressLoading] = useState(false)
+  const [addressError, setAddressError] = useState('')
+  const hasSyncedEstimate = Boolean(estimate)
+  const safeEstimate = estimate || {
+    amount: 0,
+    baseAmount: 0,
+    longDistanceSurchargeAmount: 0,
+    distanceKm: null,
+    durationMin: null,
+    currencyCode: 'CNY'
+  }
+  const canUseWebCheckinDiscount = hasSyncedEstimate && booking.serviceType === SERVICE_TYPE.TAXI && (safeEstimate.currencyCode || 'CNY') === 'CNY'
   const checkinDiscount = canUseWebCheckinDiscount && benefit?.signedToday && benefit?.status === 'pending' ? Number(benefit.amount || 0) : 0
   const options = normalizeCarTypes(carTypes)
   const selectedCarType = options.find((item) => Number(item.id) === Number(booking.carTypeId)) || options[0]
-  const payableAmount = Math.max(0, Number(safeEstimate.amount || 0) - checkinDiscount)
+  const payableAmount = hasSyncedEstimate ? Math.max(0, Number(safeEstimate.amount || 0) - checkinDiscount) : null
   const carCards = options.map((item) => {
-    const itemEstimate = estimateLocalFare(item.id, booking.serviceType, route.distanceKm, route.durationMin)
+    const itemEstimate = hasSyncedEstimate && Number(item.id) === Number(booking.carTypeId) ? estimate : null
     const itemDiscount = Number(item.id) === Number(booking.carTypeId) ? checkinDiscount : 0
     return {
       ...item,
       estimate: itemEstimate,
-      payableAmount: Math.max(0, Number(itemEstimate.amount || 0) - itemDiscount),
+      payableAmount: itemEstimate ? Math.max(0, Number(itemEstimate.amount || 0) - itemDiscount) : null,
       selected: Number(item.id) === Number(booking.carTypeId)
     }
   })
@@ -1953,9 +2154,128 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
     'booking-card',
     isEmbedded ? 'booking-card--embedded' : 'glass-panel refract',
   ].join(' ')
-  const swapRoute = () => update({ startId: booking.endId, endId: booking.startId })
+  const bookingPoiOptions = useMemo(() => (
+    booking.serviceType === SERVICE_TYPE.TAXI
+      ? poiLibrary.filter((poi) => !isInternationalPoiCandidate(poi))
+      : poiLibrary
+  ), [booking.serviceType])
+  const safeAddressBook = useMemo(() => normalizeAddressBook(addressBook, bookingPoiOptions), [addressBook, bookingPoiOptions])
+  const addressCandidates = useMemo(() => {
+    const keyword = addressQuery.trim().toLowerCase()
+    const savedKeys = new Set([...safeAddressBook.favorites, ...safeAddressBook.history].map((poi) => getAddressKey(poi)))
+    const source = keyword
+      ? remoteAddressCandidates
+      : [...safeAddressBook.favorites, ...safeAddressBook.history, ...bookingPoiOptions]
+    const deduped = dedupeAddressPoints(source)
+    const scored = deduped.map((poi, index) => {
+      const haystack = `${poi.name} ${poi.address} ${(poi.tags || []).join(' ')}`.toLowerCase()
+      const key = getAddressKey(poi)
+      const active = sameAddressPoint(poi, route.start) || sameAddressPoint(poi, route.end)
+      const favorite = safeAddressBook.favorites.some((item) => sameAddressPoint(item, poi))
+      const recent = safeAddressBook.history.some((item) => sameAddressPoint(item, poi))
+      const score = (active ? 8 : 0) + (favorite ? 4 : 0) + (recent ? 2 : 0)
+      return {
+        ...poi,
+        addressKey: key,
+        active,
+        favorite,
+        recent,
+        matched: !keyword || haystack.includes(keyword),
+        score,
+        listIndex: index
+      }
+    })
+    return scored
+      .filter((poi) => poi.matched)
+      .sort((left, right) => keyword
+        ? right.score - left.score || left.name.localeCompare(right.name, 'zh-Hans-CN')
+        : left.listIndex - right.listIndex)
+      .slice(0, 6)
+  }, [addressQuery, bookingPoiOptions, remoteAddressCandidates, route.end, route.start, safeAddressBook.favorites, safeAddressBook.history])
+  const swapRoute = () => update({
+    startId: booking.endId,
+    endId: booking.startId,
+    startPoint: booking.endPoint || findPoi(booking.endId),
+    endPoint: booking.startPoint || findPoi(booking.startId)
+  })
+  const openAddressSearch = (target) => {
+    setAddressTarget(target)
+    setAddressQuery('')
+    setAddressError('')
+    setRemoteAddressCandidates([])
+    setAddressSearchOpen(true)
+  }
+  const chooseAddressCandidate = (poi) => {
+    const point = normalizeWebAddressPoint(poi)
+    update(addressTarget === 'start'
+      ? { startId: point.id, startPoint: point }
+      : { endId: point.id, endPoint: point })
+    setAddressBook((current) => addAddressHistory(current, point, bookingPoiOptions))
+    setAddressQuery('')
+    setRemoteAddressCandidates([])
+    setAddressSearchOpen(false)
+  }
+  const toggleAddressFavorite = (poi) => {
+    setAddressBook((current) => toggleAddressFavoriteId(current, poi, bookingPoiOptions))
+  }
+  const clearAddressHistory = () => {
+    setAddressBook((current) => ({ ...normalizeAddressBook(current, bookingPoiOptions), history: [] }))
+  }
+  const useCurrentLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      window.alert('当前浏览器暂不支持定位，请手动选择地址')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nearest = findNearestPoiByCoordinate(position.coords.latitude, position.coords.longitude, bookingPoiOptions)
+        chooseAddressCandidate(nearest || {
+          id: `geo-${Date.now()}`,
+          name: '我的当前位置',
+          address: `经纬度 ${Number(position.coords.latitude).toFixed(6)}, ${Number(position.coords.longitude).toFixed(6)}`,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          source: 'currentLocation'
+        })
+      },
+      () => window.alert('未能获取当前位置，请检查浏览器定位权限'),
+      { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
+    )
+  }
 
   const update = (patch) => setBooking((value) => ({ ...value, ...patch }))
+  useEffect(() => {
+    if (isEmbedded || !addressSearchOpen) return undefined
+    const keyword = addressQuery.trim()
+    let cancelled = false
+    setAddressError('')
+    if (!keyword) {
+      setRemoteAddressCandidates([])
+      setAddressLoading(false)
+      return undefined
+    }
+    setAddressLoading(true)
+    const timer = window.setTimeout(async () => {
+      try {
+        const list = await searchWebAddressCandidates(keyword, route.start, {
+          pageSize: 8,
+          serviceType: booking.serviceType
+        })
+        if (!cancelled) setRemoteAddressCandidates(list)
+      } catch (error) {
+        if (!cancelled) {
+          setRemoteAddressCandidates(buildLocalAddressCandidates(keyword, route.start, { serviceType: booking.serviceType }))
+          setAddressError('地图搜索暂时不可用，已显示本地候选')
+        }
+      } finally {
+        if (!cancelled) setAddressLoading(false)
+      }
+    }, 260)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [addressQuery, addressSearchOpen, booking.serviceType, isEmbedded, route.start.latitude, route.start.longitude])
   const runAction = async (name, handler) => {
     if (!handler || busyAction) return
     setBusyAction(name)
@@ -1974,25 +2294,27 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
           <h2>{title}</h2>
         </div>
         <div className="price-stack">
-          <div className="price-pill">{formatMoney(payableAmount, safeEstimate.currencyCode)}</div>
+          <div className="price-pill">{hasSyncedEstimate ? formatMoney(payableAmount, safeEstimate.currencyCode) : '待同步'}</div>
           {checkinDiscount > 0 && <small>网页专属优惠 {formatMoney(checkinDiscount)}</small>}
         </div>
       </div>
-      <div className="service-tabs">
-        {Object.values(SERVICE_TYPE).map((type) => (
-          <button
-            key={type}
-            className={booking.serviceType === type ? 'active' : ''}
-            disabled={lockedServiceType && booking.serviceType !== type}
-            onClick={() => {
-              if (!lockedServiceType) update({ serviceType: type })
-            }}
-          >
-            <ServiceIcon type={type} className="service-tab-icon" />
-            <span>{statusLabel[type]}</span>
-          </button>
-        ))}
-      </div>
+      {showServiceTabs && (
+        <div className="service-tabs">
+          {Object.values(SERVICE_TYPE).map((type) => (
+            <button
+              key={type}
+              className={booking.serviceType === type ? 'active' : ''}
+              disabled={lockedServiceType && booking.serviceType !== type}
+              onClick={() => {
+                if (!lockedServiceType) update({ serviceType: type })
+              }}
+            >
+              <ServiceIcon type={type} className="service-tab-icon" />
+              <span>{statusLabel[type]}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {isEmbedded ? (
         <div className="field-stack">
           <SelectField
@@ -2000,14 +2322,14 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
             label="上车点"
             value={booking.startId}
             onChange={(value) => update({ startId: value })}
-            options={poiLibrary.map((item) => [item.id, item.name])}
+            options={bookingPoiOptions.map((item) => [item.id, item.name])}
           />
           <SelectField
             icon={Flag}
             label="目的地"
             value={booking.endId}
             onChange={(value) => update({ endId: value })}
-            options={poiLibrary.map((item) => [item.id, item.name])}
+            options={bookingPoiOptions.map((item) => [item.id, item.name])}
           />
           <SelectField
             icon={Car}
@@ -2020,22 +2342,75 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
       ) : (
         <>
           <div className="booking-route-stack">
-            <SelectField
+            <AddressPointField
               icon={Locate}
               label="从哪里出发"
-              value={booking.startId}
-              onChange={(value) => update({ startId: value })}
-              options={poiLibrary.map((item) => [item.id, item.name])}
+              point={route.start}
+              active={addressSearchOpen && addressTarget === 'start'}
+              onClick={() => openAddressSearch('start')}
             />
             <button type="button" className="address-swap-button" onClick={swapRoute} aria-label="交换上车点和目的地">换</button>
-            <SelectField
+            <AddressPointField
               icon={Flag}
               label="去哪里"
-              value={booking.endId}
-              onChange={(value) => update({ endId: value })}
-              options={poiLibrary.map((item) => [item.id, item.name])}
+              point={route.end}
+              active={addressSearchOpen && addressTarget === 'end'}
+              onClick={() => openAddressSearch('end')}
             />
           </div>
+          {addressSearchOpen && <div className="address-search-panel">
+            <div className="address-search-head">
+              <div>
+                <span>地址搜索</span>
+                <small>候选地址、收藏点和地图选点逻辑同步到网页端</small>
+              </div>
+              <div className="segmented-row address-target-tabs" role="tablist" aria-label="地址写入位置">
+                <button type="button" className={addressTarget === 'start' ? 'active' : ''} onClick={() => openAddressSearch('start')}>上车点</button>
+                <button type="button" className={addressTarget === 'end' ? 'active' : ''} onClick={() => openAddressSearch('end')}>目的地</button>
+                <button type="button" onClick={() => setAddressSearchOpen(false)}>收起</button>
+              </div>
+            </div>
+            <label className="address-search-input">
+              <Locate size={15} />
+              <input
+                value={addressQuery}
+                onChange={(event) => setAddressQuery(event.target.value)}
+                placeholder={addressTarget === 'start' ? '搜索上车点、城市、小区、学校或商圈' : '搜索目的地、城市、小区、学校或商圈'}
+              />
+            </label>
+            <div className="address-history-tools">
+              <button type="button" onClick={useCurrentLocation}><Locate size={14} />当前位置</button>
+              <button type="button" disabled={!safeAddressBook.history.length} onClick={clearAddressHistory}><XCircle size={14} />清空历史</button>
+              <span>{addressLoading ? '地图搜索中...' : `${safeAddressBook.favorites.length} 个收藏 · ${safeAddressBook.history.length} 条最近`}</span>
+            </div>
+            {addressError && <p className="address-search-error">{addressError}</p>}
+            <div className="address-candidate-list">
+              {addressCandidates.map((poi) => (
+                <div className={`address-candidate-row ${poi.active ? 'active' : ''}`} key={poi.addressKey || getAddressKey(poi)}>
+                  <button type="button" className="address-candidate-main" onClick={() => chooseAddressCandidate(poi)}>
+                    <div>
+                      <strong>{poi.name}</strong>
+                      <small>{poi.address}</small>
+                    </div>
+                    <em>{addressTarget === 'start' ? '设为上车点' : '设为目的地'}</em>
+                  </button>
+                  <button
+                    type="button"
+                    className={`address-favorite-button ${poi.favorite ? 'active' : ''}`}
+                    aria-label={poi.favorite ? '取消收藏地址' : '收藏地址'}
+                    onClick={() => toggleAddressFavorite(poi)}
+                  >
+                    <Star size={14} />
+                  </button>
+                </div>
+              ))}
+              {!addressCandidates.length && (
+                <div className="address-candidate-empty">
+                  {addressLoading ? '正在搜索地图地址...' : addressQuery.trim() ? '没有匹配地址，换个关键词试试' : '输入关键词后显示地图候选地址'}
+                </div>
+              )}
+            </div>
+          </div>}
           <div className="booking-estimate-head">
             <div>
               <span>实时预估</span>
@@ -2046,8 +2421,8 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
         </>
       )}
       <div className="fare-grid">
-        <MiniStat label="距离" value={`${safeEstimate.distanceKm || route.distanceKm} km`} />
-        <MiniStat label="时间" value={`${safeEstimate.durationMin || route.durationMin} min`} />
+        <MiniStat label="距离" value={hasSyncedEstimate ? `${safeEstimate.distanceKm || route.distanceKm} km` : '待同步'} />
+        <MiniStat label="时间" value={hasSyncedEstimate ? `${safeEstimate.durationMin || route.durationMin} min` : '待同步'} />
         <MiniStat label="网页签到" value={checkinDiscount > 0 ? `-${formatMoney(checkinDiscount)}` : '未使用'} />
       </div>
       {!isEmbedded && (
@@ -2060,24 +2435,24 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
                 className={`booking-car-card ${item.selected ? 'is-selected' : ''}`}
                 onClick={() => update({ carTypeId: Number(item.id) })}
               >
-                <span className="booking-car-thumb">
-                  <img src={item.image || '/assets/map-driver.png'} alt={`${getCarTypeName(item)}车型`} />
+                <span className={`booking-car-thumb ${getCarTypeTierClass(item)}`} aria-hidden="true">
+                  <CarTypeIcon carType={item} />
                 </span>
                 <span className="booking-car-copy">
                   <strong>{getCarTypeName(item)}</strong>
                   <small>{item.description || getCarTypeDescription(item)}</small>
                 </span>
                 <span className="booking-car-price">
-                  {formatMoney(item.payableAmount, item.estimate.currencyCode)}
+                  {item.estimate ? formatMoney(item.payableAmount, item.estimate.currencyCode) : (item.selected ? '待同步' : '选中后试算')}
                   {item.selected && checkinDiscount > 0 && <small>网页专属已减 {formatMoney(checkinDiscount)}</small>}
                 </span>
               </button>
             ))}
           </div>
           <div className="booking-fee-breakdown">
-            <span><small>起步/时距</small>{formatMoney(safeEstimate.baseAmount || safeEstimate.amount, safeEstimate.currencyCode)}</span>
-            <span><small>远途费</small>{formatMoney(safeEstimate.longDistanceSurchargeAmount || 0, safeEstimate.currencyCode)}</span>
-            <span><small>预计支付</small>{formatMoney(payableAmount, safeEstimate.currencyCode)}</span>
+            <span><small>起步/时距</small>{hasSyncedEstimate ? formatMoney(safeEstimate.baseAmount || safeEstimate.amount, safeEstimate.currencyCode) : '待同步'}</span>
+            <span><small>远途费</small>{hasSyncedEstimate ? formatMoney(safeEstimate.longDistanceSurchargeAmount || 0, safeEstimate.currencyCode) : '待同步'}</span>
+            <span><small>预计支付</small>{hasSyncedEstimate ? formatMoney(payableAmount, safeEstimate.currencyCode) : '待同步'}</span>
           </div>
         </>
       )}
@@ -2087,19 +2462,20 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
             <GaugeIcon />{busyAction === 'estimate' ? '试算中' : '重新试算'}
           </button>
         )}
-        <MagneticButton className="solid-button fill" disabled={busyAction === 'primary'} onClick={() => runAction('primary', onPrimary)}>
-          <Navigation size={17} />{busyAction === 'primary' ? '正在推进' : primaryText}
+        <MagneticButton className="solid-button fill" disabled={busyAction === 'primary' || !hasSyncedEstimate} onClick={() => runAction('primary', onPrimary)}>
+          <Navigation size={17} />{busyAction === 'primary' ? '正在推进' : hasSyncedEstimate ? primaryText : '等待后端估价'}
         </MagneticButton>
       </div>
     </section>
   )
 }
 
-function ActiveRidePanel({ order, runtime, onRefresh, onAction, pendingActionKey = '' }) {
+function ActiveRidePanel({ order, runtime, profile, onRefresh, onAction, onOpenSupport, pendingActionKey = '' }) {
   const copy = getRideStatusCopy(order)
   const timeline = normalizeTimeline(order)
   const canCancel = [ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus)
-  const canPickup = order.orderStatus === ORDER_STATUS.PICKING_UP
+  const waitingForPickupArrival = order.orderStatus === ORDER_STATUS.PICKING_UP && !isPassengerPickupReady(runtime, order)
+  const canPickup = order.orderStatus === ORDER_STATUS.PICKING_UP && !waitingForPickupArrival
   const canPay = order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID
   const cancelBusy = isOrderActionPending(pendingActionKey, 'cancel', order)
   const pickupBusy = isOrderActionPending(pendingActionKey, 'pickup', order)
@@ -2110,6 +2486,13 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction, pendingActionKey
   const nearbyDrivers = Math.max(1, Math.min(12, Math.round((Number(order.estimatedDistanceKm || runtime?.distanceKm || 4) * 1.8) + 2)))
   const acceptMinutes = Math.max(2, Math.min(12, Math.round(etaMinutes / 2)))
   const rideProgress = getRideProgressPercent(order)
+  const showSafetyCenter = () => {
+    window.alert(`安全中心\n订单：${order.orderNo || `#${order.id}`}\n紧急联系人：${profile?.emergencyContact || '未设置'} ${profile?.emergencyPhone || ''}`.trim())
+  }
+  const showEmergencyContact = () => {
+    const contactText = `${profile?.emergencyContact || '未设置'} ${profile?.emergencyPhone || ''}`.trim()
+    window.alert(`紧急联系人\n${contactText || '暂未设置紧急联系人'}`)
+  }
 
   return (
     <section className="active-ride-card glass-panel refract">
@@ -2155,9 +2538,9 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction, pendingActionKey
         </div>
       </div>
       <div className="active-safety-actions">
-        <button type="button"><ShieldCheck size={15} />安全中心</button>
-        <button type="button"><Phone size={15} />紧急联系人</button>
-        <button type="button"><MessageSquare size={15} />联系客服</button>
+        <button type="button" onClick={showSafetyCenter}><ShieldCheck size={15} />安全中心</button>
+        <button type="button" onClick={showEmergencyContact}><Phone size={15} />紧急联系人</button>
+        <button type="button" onClick={onOpenSupport}><MessageSquare size={15} />联系客服</button>
       </div>
       <div className="active-timeline">
         {timeline.slice(0, 4).map((item, index) => (
@@ -2167,6 +2550,7 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction, pendingActionKey
       <div className="active-ride-actions">
         <button className="ghost-button" onClick={onRefresh}><RefreshCw size={16} />刷新状态</button>
         {canCancel && <button className={`ghost-button${cancelBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('cancel')}><XCircle size={16} />{cancelBusy ? '处理中' : '取消订单'}</button>}
+        {waitingForPickupArrival && <button className="ghost-button" disabled={actionLocked} onClick={onRefresh}><Navigation size={16} />司机未到达，刷新接驾状态</button>}
         {canPickup && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '我已上车'}</button>}
         {canPay && <button className={`solid-button${payBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pay')}><CreditCard size={16} />{payBusy ? '支付中' : '支付'}</button>}
       </div>
@@ -2177,6 +2561,9 @@ function ActiveRidePanel({ order, runtime, onRefresh, onAction, pendingActionKey
 function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }) {
   const copy = getRideStatusCopy(order)
   const timeline = normalizeTimeline(order)
+  const amountText = amount === null || amount === undefined ? '待同步' : formatMoney(amount, currency)
+  const etaText = runtime?.etaMinutes ?? duration
+  const distanceText = distance === null || distance === undefined ? '待同步' : `${distance} km`
   return (
     <>
       <div className="active-map-sheet">
@@ -2191,8 +2578,8 @@ function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }
         <div className="active-map-sheet__grid">
           <MiniStat label="订单号" value={order.orderNo || `#${order.id}`} />
           <MiniStat label="司机" value={order.driverId ? '已接单' : '待接单'} />
-          <MiniStat label="预估费用" value={formatMoney(amount, currency)} />
-          <MiniStat label="ETA" value={`${runtime?.etaMinutes || duration || 8} min`} />
+          <MiniStat label="预估费用" value={amountText} />
+          <MiniStat label="ETA" value={etaText === null || etaText === undefined ? '待同步' : `${etaText} min`} />
         </div>
         <div className="active-map-sheet__line">
           <div><span className="address-dot start" /><small>从哪里出发</small><strong>{order.startName}</strong></div>
@@ -2200,7 +2587,7 @@ function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }
         </div>
         <div className="active-map-sheet__foot">
           <span><Clock size={14} />{order.updatedAt || order.createdAt || '-'}</span>
-          <span><Route size={14} />{distance} km</span>
+          <span><Route size={14} />{distanceText}</span>
         </div>
       </div>
       <div className="active-map-timeline">
@@ -2301,14 +2688,16 @@ function normalizeTimeline(order = {}) {
 
 function CityMap({ booking, estimate, compact = false, operational = true, activeOrder = null, runtime = null, bookingPanel = null, preferStableMap = false, showSummaryPanel = true }) {
   const tilt = useTiltCard({ maxX: 6, maxY: 9 })
-  const route = activeOrder ? buildRouteFromOrder(activeOrder) : calcRoute(booking.startId, booking.endId)
-  const fallback = activeOrder
-    ? buildEstimateFromOrder(activeOrder, route)
-    : estimateLocalFare(booking.carTypeId, booking.serviceType, route.distanceKm, route.durationMin)
-  const amount = activeOrder ? fallback.amount : (estimate?.amount || fallback.amount)
-  const duration = runtime?.etaMinutes || (activeOrder ? fallback.durationMin : (estimate?.durationMin || route.durationMin))
-  const distance = runtime?.distanceKm || (activeOrder ? fallback.distanceKm : (estimate?.distanceKm || route.distanceKm))
-  const currency = activeOrder?.currencyCode || estimate?.currencyCode || fallback.currencyCode
+  const route = activeOrder ? buildRouteFromOrder(activeOrder) : calcRoute(booking.startPoint || booking.startId, booking.endPoint || booking.endId)
+  const syncedEstimate = activeOrder ? buildEstimateFromOrder(activeOrder, route) : estimate
+  const hasSyncedTripData = Boolean(activeOrder || estimate)
+  const amount = hasSyncedTripData ? Number(syncedEstimate?.amount ?? syncedEstimate?.payableAmount ?? 0) : null
+  const duration = runtime?.etaMinutes ?? (hasSyncedTripData ? (syncedEstimate?.durationMin ?? route.durationMin) : null)
+  const distance = runtime?.distanceKm ?? (hasSyncedTripData ? (syncedEstimate?.distanceKm ?? route.distanceKm) : null)
+  const currency = activeOrder?.currencyCode || estimate?.currencyCode || syncedEstimate?.currencyCode || 'CNY'
+  const amountText = amount === null ? '待同步' : formatMoney(amount, currency)
+  const durationText = duration === null ? '待同步' : `${duration} min`
+  const distanceText = distance === null ? '待同步' : `${distance} km`
   const mapStateText = activeOrder ? getRideStatusCopy(activeOrder).mapLabel : '等待提交订单'
   const trees = Array.from({ length: 8 }, (_, index) => ({
     left: `${index * 15 - 8}%`,
@@ -2337,10 +2726,10 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
           <span><MapPin size={15} />{route.start.name}</span>
           <small>{operational ? '腾讯地图' : '实时调度地图'}</small>
         </div>
-        {showSummaryPanel && <strong>{formatMoney(amount, currency)}</strong>}
+          {showSummaryPanel && <strong>{amountText}</strong>}
       </div>
       {operational ? (
-        <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} showSummaryPanel={!bookingPanel && showSummaryPanel} preferStableMap={preferStableMap} />
+          <TencentRouteMapV2 route={route} amount={amount} currency={currency} duration={duration} distance={distance} serviceType={activeOrder?.serviceType || booking.serviceType} order={activeOrder} runtime={runtime} showSummaryPanel={!bookingPanel && showSummaryPanel} preferStableMap={preferStableMap} />
       ) : (
       <div className="map-canvas map-canvas-v2">
         <div className="map-road-net" aria-hidden="true">
@@ -2393,20 +2782,20 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
           </div>
         </div>}
         <div className="eta-bubble glass-panel eta-bubble-v2">
-          <strong>{duration} min</strong>
+          <strong>{durationText}</strong>
           <span>{operational ? '预计行程' : '司机靠近中'}</span>
         </div>
         <div className="map-route-sheet glass-panel">
           <span><Navigation size={15} />{operational ? mapStateText : '智能派单'}</span>
-          <strong>{distance} km</strong>
+          <strong>{distanceText}</strong>
           <small>{statusLabel[booking.serviceType]} · {currency}</small>
         </div>
       </div>
       )}
       {bookingPanel && <div className="map-booking-panel">{bookingPanel}</div>}
       <div className="map-bottomline">
-        <span><Clock size={15} />预计 {duration} 分钟</span>
-        <span><Route size={15} />{distance} km</span>
+        <span><Clock size={15} />预计 {duration === null ? '待同步' : `${duration} 分钟`}</span>
+        <span><Route size={15} />{distanceText}</span>
       </div>
     </section>
   )
@@ -2564,6 +2953,9 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
 
   const useNativeMap = Boolean(!preferStableMap && mapKey && scriptReady && !scriptFailed && window.TMap?.Map)
   const mapSourceLabel = useNativeMap ? '腾讯地图' : (preferStableMap ? '腾讯地图路线' : '地图加载中')
+  const amountText = amount === null || amount === undefined ? '待同步' : formatMoney(amount, currency)
+  const distanceText = distance === null || distance === undefined ? '待同步' : `${distance} km`
+  const durationText = duration === null || duration === undefined ? '待同步' : `${duration} min`
 
   return (
     <div className="miniapp-sync-shell">
@@ -2594,9 +2986,9 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
                 <div><span className="address-dot end" /><small>去哪里</small><strong>{end.name}</strong></div>
               </div>
               <div className="miniapp-sync-metrics">
-                <MiniStat label="预估" value={formatMoney(amount, currency)} />
-                <MiniStat label="距离" value={`${distance} km`} />
-                <MiniStat label="时间" value={`${duration} min`} />
+                <MiniStat label="预估" value={amountText} />
+                <MiniStat label="距离" value={distanceText} />
+                <MiniStat label="时间" value={durationText} />
               </div>
             </>
           )}
@@ -2612,6 +3004,9 @@ function TencentRouteMap({ route, amount, currency, duration, distance, serviceT
   const start = route.start
   const end = route.end
   const mapKey = getTencentMapKey()
+  const amountText = amount === null || amount === undefined ? '待同步' : formatMoney(amount, currency)
+  const distanceText = distance === null || distance === undefined ? '待同步' : `${distance} km`
+  const durationText = duration === null || duration === undefined ? '待同步' : `${duration} min`
 
   useEffect(() => {
     if (!mapKey) return
@@ -2676,9 +3071,9 @@ function TencentRouteMap({ route, amount, currency, duration, distance, serviceT
           <div><span className="address-dot end" /><small>去哪里</small><strong>{end.name}</strong></div>
         </div>
         <div className="miniapp-estimate-row">
-          <MiniStat label="预估" value={formatMoney(amount, currency)} />
-          <MiniStat label="距离" value={`${distance} km`} />
-          <MiniStat label="时间" value={`${duration} min`} />
+          <MiniStat label="预估" value={amountText} />
+          <MiniStat label="距离" value={distanceText} />
+          <MiniStat label="时间" value={durationText} />
         </div>
       </div>
     </div>
@@ -3312,7 +3707,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
 }
 
 
-function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrderId = '', pendingActionKey = '' }) {
+function OrderBoard({ orders, coupons = [], role, onAction, onRefresh, onOpenInvoice, focusOrderId = '', pendingActionKey = '' }) {
   const [listExpanded, setListExpanded] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [typeFilter, setTypeFilter] = useState('ALL')
@@ -3425,6 +3820,7 @@ function OrderBoard({ orders, role, onAction, onRefresh, onOpenInvoice, focusOrd
       </section>
       <OrderDetailPanel
         order={selectedOrder}
+        coupons={coupons}
         role={role}
         onAction={(action, payload) => selectedOrder && onAction(action, selectedOrder, payload)}
         onOpenInvoice={onOpenInvoice}
@@ -3447,22 +3843,25 @@ function getOrderStatusBucket(order = {}) {
   return 'PROCESSING'
 }
 
-function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionKey = '' }) {
+function OrderDetailPanel({ order, coupons = [], role, onAction, onOpenInvoice, pendingActionKey = '' }) {
   const [activeAction, setActiveAction] = useState('')
   const [payForm, setPayForm] = useState({ payChannel: 'WECHAT' })
-  const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+  const [selectedPayCouponId, setSelectedPayCouponId] = useState('')
+  const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '', anonymous: false })
   const [complaintForm, setComplaintForm] = useState({ complaintType: 'SERVICE', content: '', contactPhone: '' })
   const [formError, setFormError] = useState('')
   const [submittingAction, setSubmittingAction] = useState('')
   const selectedOrderKey = orderKey(order || {})
+  const payCouponOptions = useMemo(() => buildPayCouponOptions(order || {}, coupons), [order, coupons])
 
   useEffect(() => {
     setActiveAction('')
     setFormError('')
     setPayForm({ payChannel: 'WECHAT' })
-    setReviewForm({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+    setSelectedPayCouponId(order?.userCouponId ? String(order.userCouponId) : '')
+    setReviewForm({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '', anonymous: false })
     setComplaintForm({ complaintType: 'SERVICE', content: '', contactPhone: '' })
-  }, [selectedOrderKey])
+  }, [order?.userCouponId, selectedOrderKey])
 
   if (!order) {
     return (
@@ -3475,15 +3874,31 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
       </section>
     )
   }
-  const amount = formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)
   const rawAmount = Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)
+  const originalPayAmount = getOrderOriginalPayAmount(order)
+  const webExclusiveDiscount = Number(order.webExclusiveDiscountAmount || 0)
+  const selectedPayCoupon = payCouponOptions.find((coupon) => coupon.userCouponIdText === selectedPayCouponId) || null
+  const selectedCouponDiscount = selectedPayCoupon ? selectedPayCoupon.discountAmount : 0
+  const finalPayAmount = roundMoney(Math.max(0, originalPayAmount - webExclusiveDiscount - selectedCouponDiscount))
+  const amount = formatMoney(finalPayAmount || rawAmount, order.currencyCode)
   const feeRows = buildOrderFeeRows(order)
+  const paymentFeeRows = selectedPayCoupon
+    ? buildOrderFeeRows({
+      ...order,
+      payableAmount: finalPayAmount,
+      actualAmount: finalPayAmount,
+      couponDiscount: Number(webExclusiveDiscount + selectedCouponDiscount),
+      couponName: selectedPayCoupon.name,
+      couponRuleDesc: selectedPayCoupon.ruleText
+    })
+    : feeRows
   const steps = buildOrderFlowSteps(order)
   const isPassenger = role !== 'DRIVER'
   const canPay = isPassenger && order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.UNPAID
   const canEvaluate = isPassenger && order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && !isOrderEvaluated(order)
   const canComplain = isPassenger && order.orderStatus !== ORDER_STATUS.CANCELLED && !isOrderComplained(order)
   const canInvoice = isPassenger && order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID
+  const canRefundInfo = isPassenger && order.payStatus === PAY_STATUS.PAID
   const canDriverStart = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.ACCEPTED
   const canDriverPickup = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.PICKING_UP
   const canDriverFinish = role === 'DRIVER' && order.orderStatus === ORDER_STATUS.IN_TRIP
@@ -3499,10 +3914,19 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
     setFormError('')
     setSubmittingAction('pay')
     try {
-      await onAction('pay', {
+      const success = await onAction('pay', {
         payChannel: payForm.payChannel,
-        payableAmount: rawAmount
+        payableAmount: finalPayAmount || rawAmount,
+        originalAmount: originalPayAmount,
+        userCouponId: selectedPayCoupon?.userCouponIdText || null,
+        couponDiscount: selectedCouponDiscount,
+        couponName: selectedPayCoupon?.name || '',
+        couponRuleDesc: selectedPayCoupon?.ruleText || ''
       })
+      if (success === false) {
+        setFormError('支付提交失败，请稍后重试')
+        return
+      }
       setActiveAction('')
     } finally {
       setSubmittingAction('')
@@ -3533,11 +3957,16 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
     setFormError('')
     setSubmittingAction('evaluate')
     try {
-      await onAction('evaluate', {
+      const success = await onAction('evaluate', {
         score,
         tags: reviewForm.tags,
-        content
+        content,
+        anonymous: reviewForm.anonymous
       })
+      if (success === false) {
+        setFormError('评价提交失败，请稍后重试')
+        return
+      }
       setActiveAction('')
     } finally {
       setSubmittingAction('')
@@ -3548,8 +3977,8 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
     if (submittingAction || orderActionLocked) return
     const content = String(complaintForm.content || '').trim()
     const contactPhone = String(complaintForm.contactPhone || '').trim()
-    if (content.length < 6) {
-      setFormError('请至少填写 6 个字的投诉说明')
+    if (!content) {
+      setFormError('请填写反馈内容')
       return
     }
     if (contactPhone && !isValidPhone(contactPhone)) {
@@ -3559,11 +3988,15 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
     setFormError('')
     setSubmittingAction('complaint')
     try {
-      await onAction('complaint', {
+      const success = await onAction('complaint', {
         complaintType: complaintForm.complaintType,
         contactPhone,
         content
       })
+      if (success === false) {
+        setFormError('投诉提交失败，请稍后重试')
+        return
+      }
       setActiveAction('')
     } finally {
       setSubmittingAction('')
@@ -3641,6 +4074,7 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
 
       <div className="order-detail-actions">
         {canPay && <button className="solid-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'pay' ? '' : 'pay')}><CreditCard size={16} />支付确认</button>}
+        {canRefundInfo && <button className="ghost-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'refund' ? '' : 'refund')}><RefreshCw size={16} />申请退款</button>}
         {canEvaluate && <button className="ghost-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'evaluate' ? '' : 'evaluate')}><Star size={16} />写评价</button>}
         {canComplain && <button className="ghost-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'complaint' ? '' : 'complaint')}><AlertTriangle size={16} />投诉反馈</button>}
         {canInvoice && <button className="ghost-button" onClick={onOpenInvoice}><CreditCard size={16} />申请发票</button>}
@@ -3668,11 +4102,41 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
               </button>
             ))}
           </div>
+          <div className="payment-coupon-panel">
+            <div className="payment-coupon-head">
+              <div>
+                <span>优惠券</span>
+                <small>{payCouponOptions.length ? `可用 ${payCouponOptions.length} 张` : '当前订单暂无可用优惠券'}</small>
+              </div>
+              {selectedPayCoupon && (
+                <button type="button" className="ghost-button compact-action" onClick={() => setSelectedPayCouponId('')}>不使用</button>
+              )}
+            </div>
+            {payCouponOptions.length ? (
+              <div className="payment-coupon-list">
+                {payCouponOptions.map((coupon) => (
+                  <button
+                    type="button"
+                    key={coupon.userCouponIdText}
+                    className={selectedPayCouponId === coupon.userCouponIdText ? 'active' : ''}
+                    onClick={() => setSelectedPayCouponId(coupon.userCouponIdText)}
+                  >
+                    <strong>-{formatMoney(coupon.discountAmount, order.currencyCode)}</strong>
+                    <span>{coupon.name}</span>
+                    <small>{coupon.ruleText || coupon.validText || '本单可用'}</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="payment-coupon-empty">与小程序一致：未达到门槛、业务类型不匹配或已使用的券不会出现在可用列表。</p>
+            )}
+          </div>
           <InfoPanel title="支付核对" items={[
             ['订单编号', order.orderNo || `#${order.id}`],
             ['支付方式', payMethod[1]],
             ['应付金额', amount],
-            ['费用构成', feeRows.map((item) => `${item.label}${item.value}`).join(' / ')]
+            ['优惠券', selectedPayCoupon ? `${selectedPayCoupon.name} -${formatMoney(selectedCouponDiscount, order.currencyCode)}` : '不使用'],
+            ['费用构成', paymentFeeRows.map((item) => `${item.label}${item.value}`).join(' / ')]
           ]} />
           <p className="payment-safe-tip"><ShieldCheck size={14} />支付成功后钱包流水、订单支付状态和发票入口会同步更新。</p>
           {formError && <p className="form-error-line">{formError}</p>}
@@ -3681,6 +4145,26 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
               <CreditCard size={16} />{submittingAction === 'pay' ? '支付中...' : `确认支付 ${amount}`}
             </button>
             <button className="ghost-button" disabled={submittingAction === 'pay' || orderActionLocked} onClick={() => setActiveAction('')}>稍后处理</button>
+          </div>
+        </div>
+      )}
+
+      {activeAction === 'refund' && (
+        <div className="order-action-panel refund-info-panel">
+          <div className="order-action-panel-head">
+            <span><RefreshCw size={15} />退款说明</span>
+            <small>{order.orderNo || `#${order.id}`}</small>
+          </div>
+          <p className="payment-safe-tip"><ShieldCheck size={14} />退款需提交投诉反馈或联系人工处理，网页端不会直接修改当前订单状态。</p>
+          <InfoPanel title="处理路径" items={[
+            ['订单金额', amount],
+            ['支付状态', statusLabel[order.payStatus] || order.payStatus || '-'],
+            ['建议操作', isOrderComplained(order) ? '等待平台处理反馈' : '提交投诉反馈说明退款原因'],
+            ['处理结果', '通过消息列表和订单状态同步']
+          ]} />
+          <div className="order-action-panel-actions">
+            {!isOrderComplained(order) && <button className="solid-button" onClick={() => setActiveAction('complaint')}><AlertTriangle size={16} />去提交投诉</button>}
+            <button className="ghost-button" onClick={() => setActiveAction('')}>我知道了</button>
           </div>
         </div>
       )}
@@ -3726,6 +4210,15 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
             />
             <small>{reviewForm.content.length}/300</small>
           </label>
+          <button
+            type="button"
+            className={`review-anonymous-toggle ${reviewForm.anonymous ? 'active' : ''}`}
+            onClick={() => setReviewForm((value) => ({ ...value, anonymous: !value.anonymous }))}
+          >
+            <span className={`toggle-pill ${reviewForm.anonymous ? 'is-on' : ''}`} aria-hidden="true"><i /></span>
+            <strong>匿名评价</strong>
+            <small>提交后评价记录不展示乘客身份</small>
+          </button>
           {formError && <p className="form-error-line">{formError}</p>}
           <div className="order-action-panel-actions">
             <button className="solid-button" disabled={submittingAction === 'evaluate' || orderActionLocked} onClick={submitReview}>
@@ -3743,11 +4236,12 @@ function OrderDetailPanel({ order, role, onAction, onOpenInvoice, pendingActionK
             <small>提交后会同步到消息和订单状态</small>
           </div>
           <div className="feedback-chip-row">
-            {complaintTypeOptions.map(([value, label]) => (
+            {complaintTypeOptions.map(([value, label, desc]) => (
               <button
                 type="button"
                 key={value}
                 className={complaintForm.complaintType === value ? 'active' : ''}
+                title={desc}
                 onClick={() => setComplaintForm((form) => ({ ...form, complaintType: value }))}
               >
                 {label}
@@ -3919,7 +4413,7 @@ function formatOrderDisplayTime(order = {}) {
   return value.slice(0, 16)
 }
 
-function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect }) {
+function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect, className = '' }) {
   if (!orders?.length) {
     return (
       <div className="order-empty-list">
@@ -3930,7 +4424,7 @@ function OrderList({ orders, footer, empty, limit, selectedOrderId, onSelect }) 
   }
   const visibleOrders = Number.isFinite(limit) ? orders.slice(0, limit) : orders
   return (
-    <div className="order-list compact-order-list">
+    <div className={`order-list compact-order-list${className ? ` ${className}` : ''}`}>
       {visibleOrders.map((order, index) => {
         const key = order.id || order.orderNo || index
         const orderTime = formatOrderDisplayTime(order)
@@ -3982,6 +4476,7 @@ function OrderActions({ role, order, onAction, pendingActionKey = '' }) {
   const finishBusy = isOrderActionPending(pendingActionKey, 'finish', order)
   const cancelBusy = isOrderActionPending(pendingActionKey, 'cancel', order)
   const actionLocked = isAnyOrderActionPending(pendingActionKey, order)
+  const passengerPickupReady = isPassengerPickupReady(order.runtime || order, order)
   if (role === 'DRIVER') {
     return (
       <>
@@ -3996,7 +4491,8 @@ function OrderActions({ role, order, onAction, pendingActionKey = '' }) {
       {[ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus) && (
         <button className={`ghost-button${cancelBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('cancel')}><XCircle size={16} />{cancelBusy ? '处理中' : '取消'}</button>
       )}
-      {order.orderStatus === ORDER_STATUS.PICKING_UP && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '我已上车'}</button>}
+      {order.orderStatus === ORDER_STATUS.PICKING_UP && !passengerPickupReady && <button className="ghost-button" disabled><Navigation size={16} />等待司机到达</button>}
+      {order.orderStatus === ORDER_STATUS.PICKING_UP && passengerPickupReady && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '我已上车'}</button>}
     </>
   )
 }
@@ -4255,6 +4751,64 @@ function couponCashValue(coupon = {}) {
   return Number(String(discount.text).replace(/[^\d.]/g, '')) || 0
 }
 
+function couponDiscountAmountForOrder(coupon = {}, amount = 0) {
+  const totalAmount = Math.max(0, Number(amount || 0))
+  if (!totalAmount) return 0
+  const discount = getCouponValue(coupon)
+  if (discount.type === 'rate') {
+    const rate = Number(coupon.discountRate ?? coupon.rate ?? coupon.discount)
+    if (Number.isFinite(rate) && rate > 0 && rate < 1) {
+      return roundMoney(totalAmount * (1 - rate))
+    }
+    const textRate = Number(String(discount.text || '').replace(/[^\d.]/g, ''))
+    if (Number.isFinite(textRate) && textRate > 0 && textRate < 10) {
+      return roundMoney(totalAmount * (1 - textRate / 10))
+    }
+  }
+  const cashValue = couponCashValue(coupon)
+  return roundMoney(Math.min(cashValue, Math.max(0, totalAmount - 0.01)))
+}
+
+function getOrderOriginalPayAmount(order = {}) {
+  const value = Number(order.originalAmount || order.estimatedAmount || order.actualAmount || order.payableAmount || 0)
+  return Number.isFinite(value) ? value : 0
+}
+
+function buildPayCouponOptions(order = {}, coupons = []) {
+  const originalAmount = getOrderOriginalPayAmount(order)
+  const serviceType = String(order.serviceType || '').toUpperCase()
+  const usableBaseAmount = Math.max(0, originalAmount - Number(order.webExclusiveDiscountAmount || 0))
+  return normalizeList(coupons)
+    .map((coupon) => {
+      const name = coupon.couponName || coupon.name || `优惠券 #${coupon.couponId || coupon.id || ''}`
+      const userCouponIdText = String(coupon.userCouponId || coupon.id || coupon.couponId || '')
+      const threshold = Number(coupon.thresholdAmount || coupon.minAmount || coupon.conditionAmount || 0)
+      const scope = String(coupon.serviceScope || coupon.serviceType || coupon.scope || 'ALL').toUpperCase()
+      const discountAmount = couponDiscountAmountForOrder(coupon, usableBaseAmount)
+      const scopeMatched = scope === 'ALL' || scope === serviceType || (scope === 'TAXI' && serviceType === SERVICE_TYPE.TAXI)
+      const validEndMs = couponExpireMs(coupon)
+      const expired = validEndMs > 0 && validEndMs < Date.now()
+      return {
+        ...coupon,
+        name,
+        userCouponIdText,
+        threshold,
+        scope,
+        discountAmount,
+        ruleText: coupon.ruleDesc || (threshold > 0 ? `满 ${formatMoney(threshold, order.currencyCode)} 可用` : '无门槛可用'),
+        validText: coupon.validEndTime || coupon.expireTime || coupon.endTime || coupon.validTo || '',
+        usable: Boolean(userCouponIdText) &&
+          normalizeCouponStatus(coupon) === 'UNUSED' &&
+          discountAmount > 0 &&
+          originalAmount >= threshold &&
+          scopeMatched &&
+          !expired
+      }
+    })
+    .filter((coupon) => coupon.usable)
+    .sort((left, right) => right.discountAmount - left.discountAmount)
+}
+
 function getCouponValue(coupon = {}) {
   const couponType = coupon.couponType || coupon.type
   const rawAmount = coupon.discountAmount ?? coupon.amount ?? coupon.faceValue ?? coupon.couponAmount
@@ -4271,6 +4825,226 @@ function getCouponValue(coupon = {}) {
   if (match) return { type: 'rate', text: `${match[1]}折` }
   if (couponType === 'DISCOUNT') return { type: 'rate', text: '折扣' }
   return { type: 'benefit', text: Number(coupon.thresholdAmount || coupon.minAmount || coupon.conditionAmount || 0) > 0 ? '满减' : '免门槛' }
+}
+
+function resolvePoiFromText(value = '', fallbackId = 'poi101') {
+  if (value && typeof value === 'object') return normalizeWebAddressPoint(value, findPoi(fallbackId))
+  const keyword = String(value || '').trim().toLowerCase()
+  if (!keyword) return findPoi(fallbackId) || poiLibrary[0]
+  return poiLibrary.find((poi) => {
+    const text = `${poi.name} ${poi.address} ${(poi.tags || []).join(' ')}`.toLowerCase()
+    return text.includes(keyword) || keyword.includes(String(poi.name || '').toLowerCase())
+  }) || findPoi(fallbackId) || poiLibrary[0]
+}
+
+function getAddressKey(point = {}) {
+  const normalized = normalizeWebAddressPoint(point)
+  return [
+    normalized.name,
+    normalized.address,
+    Number(normalized.latitude || 0).toFixed(6),
+    Number(normalized.longitude || 0).toFixed(6)
+  ].join('|')
+}
+
+function normalizeWebAddressPoint(point = {}, fallback = poiLibrary[0]) {
+  const source = point || {}
+  const location = source.location || {}
+  const latitude = Number(source.latitude ?? source.lat ?? location.lat ?? fallback?.latitude)
+  const longitude = Number(source.longitude ?? source.lng ?? location.lng ?? fallback?.longitude)
+  return {
+    id: String(source.id || source.uid || source.addressKey || getStableAddressId(source) || fallback?.id || `addr-${Date.now()}`),
+    name: source.name || source.title || source.address || fallback?.name || '已选地址',
+    address: source.address || source.addr || source.name || source.title || fallback?.address || '已选地址',
+    latitude: Number.isFinite(latitude) ? latitude : Number(fallback?.latitude || 0),
+    longitude: Number.isFinite(longitude) ? longitude : Number(fallback?.longitude || 0),
+    city: source.city || source.ad_info?.city || fallback?.city || '',
+    district: source.district || source.ad_info?.district || fallback?.district || '',
+    source: source.source || 'web',
+    tags: Array.isArray(source.tags) ? source.tags : [],
+    distanceText: source.distanceText || ''
+  }
+}
+
+function getStableAddressId(source = {}) {
+  const raw = `${source.name || source.title || ''}-${source.address || source.addr || ''}`.trim()
+  if (!raw) return ''
+  let hash = 0
+  for (let index = 0; index < raw.length; index += 1) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(index)
+    hash |= 0
+  }
+  return `addr-${Math.abs(hash)}`
+}
+
+function dedupeAddressPoints(points = []) {
+  const seen = new Set()
+  const result = []
+  points.forEach((point) => {
+    const normalized = normalizeWebAddressPoint(point)
+    const key = getAddressKey(normalized)
+    if (seen.has(key)) return
+    seen.add(key)
+    result.push(normalized)
+  })
+  return result
+}
+
+function sameAddressPoint(left, right) {
+  if (!left || !right) return false
+  return getAddressKey(left) === getAddressKey(right)
+}
+
+function normalizeAddressBook(book = {}, allowedPois = poiLibrary) {
+  const normalizeList = (items = []) => dedupeAddressPoints(items.map((item) => {
+    if (typeof item === 'string') return allowedPois.find((poi) => poi.id === item) || null
+    return item
+  }).filter(Boolean))
+  return {
+    history: normalizeList(book.history).slice(0, 8),
+    favorites: normalizeList(book.favorites).slice(0, 12)
+  }
+}
+
+function addAddressHistory(book = {}, point = {}, allowedPois = poiLibrary) {
+  const normalized = normalizeAddressBook(book, allowedPois)
+  const address = normalizeWebAddressPoint(point)
+  const key = getAddressKey(address)
+  return {
+    ...normalized,
+    history: [address, ...normalized.history.filter((item) => getAddressKey(item) !== key)].slice(0, 8)
+  }
+}
+
+function toggleAddressFavoriteId(book = {}, point = {}, allowedPois = poiLibrary) {
+  const normalized = normalizeAddressBook(book, allowedPois)
+  const address = normalizeWebAddressPoint(point)
+  const key = getAddressKey(address)
+  const exists = normalized.favorites.some((item) => getAddressKey(item) === key)
+  return {
+    ...normalized,
+    favorites: exists
+      ? normalized.favorites.filter((item) => getAddressKey(item) !== key)
+      : [address, ...normalized.favorites.filter((item) => getAddressKey(item) !== key)].slice(0, 12)
+  }
+}
+
+function findNearestPoiByCoordinate(latitude, longitude, pois = poiLibrary) {
+  const lat = Number(latitude)
+  const lng = Number(longitude)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !pois.length) return null
+  return pois
+    .map((poi) => ({
+      ...poi,
+      distance: haversineForMap(lat, lng, Number(poi.latitude), Number(poi.longitude))
+    }))
+    .sort((left, right) => left.distance - right.distance)[0] || null
+}
+
+function buildLocalAddressCandidates(keyword = '', currentLocation = null, options = {}) {
+  const text = String(keyword || '').trim().toLowerCase()
+  const serviceType = options.serviceType || SERVICE_TYPE.TAXI
+  const source = serviceType === SERVICE_TYPE.TAXI
+    ? poiLibrary.filter((poi) => !isInternationalPoiCandidate(poi))
+    : poiLibrary
+  return source
+    .map((poi) => {
+      const normalized = normalizeWebAddressPoint(poi)
+      const haystack = `${normalized.name} ${normalized.address} ${(normalized.tags || []).join(' ')}`.toLowerCase()
+      const distance = currentLocation
+        ? haversineForMap(currentLocation.latitude, currentLocation.longitude, normalized.latitude, normalized.longitude)
+        : 0
+      const score = !text ? 1 : (haystack.includes(text) ? 12 : 0) + (normalized.name.toLowerCase().startsWith(text) ? 8 : 0)
+      return {
+        ...normalized,
+        source: 'local',
+        score,
+        distanceKm: Number(distance.toFixed(2)),
+        distanceText: distance ? formatDistanceLabel(distance) : ''
+      }
+    })
+    .filter((item) => !text || item.score > 0)
+    .sort((left, right) => right.score - left.score || Number(left.distanceKm || 0) - Number(right.distanceKm || 0))
+    .slice(0, Number(options.pageSize || 8))
+}
+
+async function searchWebAddressCandidates(keyword = '', currentLocation = null, options = {}) {
+  const text = String(keyword || '').trim()
+  if (!text) return buildLocalAddressCandidates('', currentLocation, options)
+  const mapKey = getTencentMapKey()
+  if (!mapKey) return buildLocalAddressCandidates(text, currentLocation, options)
+  const params = new URLSearchParams({
+    keyword: text,
+    key: mapKey,
+    output: 'json',
+    page_size: String(options.pageSize || 8),
+    page_index: '1'
+  })
+  if (currentLocation?.latitude && currentLocation?.longitude) {
+    params.set('location', `${Number(currentLocation.latitude)},${Number(currentLocation.longitude)}`)
+  }
+  const response = await fetch(`/__tencent_map__/ws/place/v1/suggestion/?${params.toString()}`)
+  if (!response.ok) throw new Error('地图搜索失败')
+  const payload = await response.json()
+  if (Number(payload.status) !== 0) throw new Error(payload.message || '地图搜索失败')
+  const remote = (payload.data || []).map((item) => {
+    const point = normalizeWebAddressPoint({
+      id: item.id,
+      name: item.title,
+      address: item.address,
+      location: item.location,
+      city: item.ad_info?.city,
+      district: item.ad_info?.district,
+      source: 'tencent'
+    })
+    const distanceKm = currentLocation
+      ? haversineForMap(currentLocation.latitude, currentLocation.longitude, point.latitude, point.longitude)
+      : 0
+    return {
+      ...point,
+      distanceKm: Number(distanceKm.toFixed(2)),
+      distanceText: distanceKm ? formatDistanceLabel(distanceKm) : ''
+    }
+  })
+  return dedupeAddressPoints([...remote, ...buildLocalAddressCandidates(text, currentLocation, options)])
+    .slice(0, Number(options.pageSize || 8))
+}
+
+function formatDistanceLabel(distanceKm = 0) {
+  const distance = Number(distanceKm || 0)
+  if (!Number.isFinite(distance) || distance <= 0) return ''
+  if (distance < 1) return `${Math.max(50, Math.round(distance * 1000))}m`
+  return `${distance.toFixed(1)}km`
+}
+
+function buildCarpoolOrderRemark(form = {}, estimate = {}, coupon = null) {
+  const meta = {
+    departDate: form.departDate || '',
+    timeRange: form.timeRange || '',
+    passengerCount: Number(form.passengerCount || 1),
+    hasLuggage: form.luggageMode || '',
+    tollMode: form.tollMode || '',
+    originalAmount: Number(estimate.amount || 0),
+    discountAmount: Number(coupon?.discountAmount || 0),
+    payableAmount: Math.max(0, Number(estimate.amount || 0) - Number(coupon?.discountAmount || 0))
+  }
+  const note = String(form.note || '').trim()
+  return `[CARPOOL_META]${JSON.stringify(meta)}[/CARPOOL_META]${note ? ` ${note}` : ''}`
+}
+
+function validateCarpoolOrderForm(form = {}) {
+  const startName = String(form.startName || '').trim()
+  const endName = String(form.endName || '').trim()
+  if (!startName || !endName) return '请先补全顺风车起点和终点'
+  if (startName === endName) return '顺风车起点和终点不能相同'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(form.departDate || ''))) return '请选择有效的顺风车出发日期'
+  const departMs = dateInputMs(form.departDate)
+  const todayMs = dateInputMs(formatDateInput())
+  if (Number.isFinite(departMs) && departMs < todayMs) return '顺风车出发日期不能早于今天'
+  if (!/^\d{2}:\d{2}-\d{2}:\d{2}$/.test(String(form.timeRange || ''))) return '请选择有效的顺风车出发时段'
+  const passengerCount = Number(form.passengerCount)
+  if (!Number.isFinite(passengerCount) || passengerCount < 1 || passengerCount > 4) return '顺风车乘车人数需要在 1-4 人之间'
+  return ''
 }
 
 function MembershipBoard({ membership, coupons = [], onActivate, onSyncCoupons }) {
@@ -4434,6 +5208,18 @@ function getRideProgressPercent(order = {}) {
   return 8
 }
 
+function isPassengerPickupReady(runtime = {}, order = {}) {
+  if (order.orderStatus !== ORDER_STATUS.PICKING_UP) return false
+  const remainDistanceKm = Number(runtime?.remainDistanceKm)
+  const remainingSeconds = Number(runtime?.remainingSeconds)
+  const hasDistance = Number.isFinite(remainDistanceKm)
+  const hasSeconds = Number.isFinite(remainingSeconds)
+  if (hasDistance && hasSeconds) return remainDistanceKm <= 0.05 && remainingSeconds <= 60
+  if (hasDistance) return remainDistanceKm <= 0.05
+  if (hasSeconds) return remainingSeconds <= 60
+  return runtime?.driverArrived === true
+}
+
 function buildOrderFeeRows(order = {}) {
   const currency = order.currencyCode || 'CNY'
   const payable = Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)
@@ -4441,15 +5227,20 @@ function buildOrderFeeRows(order = {}) {
   const actual = Number(order.actualAmount || payable)
   const webExclusiveDiscount = Number(order.webExclusiveDiscountAmount || 0)
   const discount = Math.max(0, estimated - payable)
+  const recordedDiscount = Number(order.couponDiscount || discount || 0)
+  const couponDiscount = Math.max(0, Number((recordedDiscount - webExclusiveDiscount).toFixed(2)))
   const cancelFee = Number(order.cancelFee || 0)
   const rows = [
     { label: '预估费用', value: formatMoney(estimated, currency) },
     { label: '实际费用', value: formatMoney(actual || estimated, currency) }
   ]
   if (webExclusiveDiscount > 0) {
-    rows.push({ label: '网页专属优惠', value: `-${formatMoney(webExclusiveDiscount, currency)}`, tone: 'discount' })
-  } else if (discount > 0) {
-    rows.push({ label: '优惠抵扣', value: `-${formatMoney(discount, currency)}`, tone: 'discount' })
+    rows.push({ label: order.webExclusiveDiscountLabel || '网页专属优惠', value: `-${formatMoney(webExclusiveDiscount, currency)}`, tone: 'discount' })
+  }
+  if (couponDiscount > 0) {
+    rows.push({ label: order.couponName || '优惠抵扣', value: `-${formatMoney(couponDiscount, currency)}`, tone: 'discount' })
+  } else if (!webExclusiveDiscount && discount > 0) {
+    rows.push({ label: order.couponName || '优惠抵扣', value: `-${formatMoney(discount, currency)}`, tone: 'discount' })
   }
   if (cancelFee > 0) rows.push({ label: '取消费', value: formatMoney(cancelFee, currency), tone: 'warning' })
   rows.push({ label: '应付合计', value: formatMoney(payable, currency), tone: 'total' })
@@ -4551,12 +5342,47 @@ function formatWalletRecordTime(order = {}) {
   return text === '-' ? '时间待同步' : text.replace(/^\d{4}-/, '')
 }
 
-function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPassengerConfirm, onCancel }) {
-  const [keyword, setKeyword] = useState('')
+function currentMonthKey() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function driverIncomeMonthKey(order = {}) {
+  const raw = order.completedAt || order.finishTime || order.finishedAt || order.updatedAt || order.createdAt
+  const date = raw ? new Date(String(raw).replace(/-/g, '/')) : new Date()
+  if (Number.isNaN(date.getTime())) return currentMonthKey()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function driverIncomeAmount(order = {}) {
+  const explicit = order.driverIncomeAmount ?? order.driverIncome ?? order.incomeAmount
+  if (explicit !== undefined && explicit !== null) return Number(explicit) || 0
+  return Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0) * 0.8
+}
+
+function buildDriverIncomeMonthOptions(orders = []) {
+  const months = new Set([currentMonthKey()])
+  normalizeList(orders).forEach((order) => months.add(driverIncomeMonthKey(order)))
+  return Array.from(months)
+    .sort((left, right) => right.localeCompare(left))
+    .map((value) => ({ value, label: formatDriverMonthLabel(value) }))
+}
+
+function formatDriverMonthLabel(value = '') {
+  const match = String(value).match(/^(\d{4})-(\d{2})$/)
+  if (!match) return '本月'
+  return value === currentMonthKey() ? '本月' : `${match[1]}年${Number(match[2])}月`
+}
+
+function CarpoolBoard({ data, coupons = [], settings = passengerDefaultSettings, carTypes = fallbackCarTypes, onSearch, onPublish, onApply, onOwnerAction, onPassengerConfirm, onCancel, onCreateOrder, onEstimateOrder }) {
   const [active, setActive] = useState('search')
   const [selectedTripId, setSelectedTripId] = useState('')
+  const [selectedOrderCouponId, setSelectedOrderCouponId] = useState('')
   const [publishError, setPublishError] = useState('')
   const [applyError, setApplyError] = useState('')
+  const [orderEstimate, setOrderEstimate] = useState(null)
+  const [orderEstimateLoading, setOrderEstimateLoading] = useState(false)
+  const [orderEstimateError, setOrderEstimateError] = useState('')
   const [applyDraft, setApplyDraft] = useState({
     companionCount: 0,
     note: ''
@@ -4564,6 +5390,8 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
   const [form, setForm] = useState({
     startName: '燕京理工学院-南门',
     endName: '天洋广场',
+    startPoint: findPoi('poi101'),
+    endPoint: findPoi('poi102'),
     departDate: formatDateInput(),
     timeRange: '18:00-21:00',
     passengerCount: 1,
@@ -4576,11 +5404,252 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
   const luggageOptions = [['NO_LUGGAGE', '无行李'], ['HAS_LUGGAGE', '有行李']]
   const tollOptions = [['PASSENGER_PAYS', '乘客出高速费'], ['NEGOTIABLE', '高速费协商']]
   const timeRangeOptions = ['07:00-09:00', '09:00-12:00', '12:00-15:00', '15:00-18:00', '18:00-21:00']
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressTarget, setAddressTarget] = useState('end')
+  const [addressSearchOpen, setAddressSearchOpen] = useState(false)
+  const [addressBook, setAddressBook] = usePersistentState(addressBookKey, { history: [], favorites: [] })
+  const [remoteAddressCandidates, setRemoteAddressCandidates] = useState([])
+  const [addressLoading, setAddressLoading] = useState(false)
+  const [addressError, setAddressError] = useState('')
   const mine = splitCarpoolMine(data.mine, data.list)
   const list = useMemo(() => normalizeList(data.list), [data.list])
   const selectedTrip = list.find((trip) => String(trip.id) === String(selectedTripId)) || list[0] || null
+  const carTypeId = Number(carTypes?.[0]?.id || 1)
+  const currentStart = form.startPoint || resolvePoiFromText(form.startName, 'poi101')
+  const currentEnd = form.endPoint || resolvePoiFromText(form.endName, 'poi102')
+  const carpoolPoiOptions = poiLibrary
+  const safeAddressBook = useMemo(() => normalizeAddressBook(addressBook, carpoolPoiOptions), [addressBook, carpoolPoiOptions])
+  const addressCandidates = useMemo(() => {
+    const keyword = addressQuery.trim().toLowerCase()
+    const source = keyword
+      ? remoteAddressCandidates
+      : [...safeAddressBook.favorites, ...safeAddressBook.history, ...carpoolPoiOptions]
+    const deduped = dedupeAddressPoints(source)
+    const scored = deduped.map((poi, index) => {
+      const haystack = `${poi.name} ${poi.address} ${(poi.tags || []).join(' ')}`.toLowerCase()
+      const key = getAddressKey(poi)
+      const active = sameAddressPoint(poi, currentStart) || sameAddressPoint(poi, currentEnd)
+      const favorite = safeAddressBook.favorites.some((item) => sameAddressPoint(item, poi))
+      const recent = safeAddressBook.history.some((item) => sameAddressPoint(item, poi))
+      const score = (active ? 8 : 0) + (favorite ? 4 : 0) + (recent ? 2 : 0)
+      return {
+        ...poi,
+        addressKey: key,
+        active,
+        favorite,
+        recent,
+        matched: !keyword || haystack.includes(keyword),
+        score,
+        listIndex: index
+      }
+    })
+    return scored
+      .filter((poi) => poi.matched)
+      .sort((left, right) => keyword
+        ? right.score - left.score || left.name.localeCompare(right.name, 'zh-Hans-CN')
+        : left.listIndex - right.listIndex)
+      .slice(0, 6)
+  }, [addressQuery, currentEnd, currentStart, remoteAddressCandidates, safeAddressBook.favorites, safeAddressBook.history])
+  const routePreview = useMemo(() => {
+    return calcRoute(currentStart, currentEnd)
+  }, [currentEnd, currentStart])
+  const hasOrderEstimate = Boolean(orderEstimate)
+  const orderCouponOptions = useMemo(() => buildPayCouponOptions({
+    serviceType: SERVICE_TYPE.CARPOOL,
+    estimatedAmount: hasOrderEstimate ? orderEstimate.amount : null,
+    originalAmount: hasOrderEstimate ? orderEstimate.amount : null,
+    currencyCode: orderEstimate?.currencyCode || 'CNY'
+  }, coupons), [coupons, hasOrderEstimate, orderEstimate?.amount, orderEstimate?.currencyCode])
+  const selectedOrderCoupon = orderCouponOptions.find((coupon) => coupon.userCouponIdText === selectedOrderCouponId) || null
+  const carpoolOrderDiscount = selectedOrderCoupon ? Number(selectedOrderCoupon.discountAmount || 0) : 0
+  const carpoolOrderPayable = hasOrderEstimate
+    ? roundMoney(Math.max(0, Number(orderEstimate.amount || 0) - carpoolOrderDiscount))
+    : null
   const update = (patch) => setForm((draft) => ({ ...draft, ...patch }))
-  const swapAddress = () => update({ startName: form.endName, endName: form.startName })
+  const swapAddress = () => update({
+    startName: form.endName,
+    endName: form.startName,
+    startPoint: form.endPoint,
+    endPoint: form.startPoint
+  })
+  const openAddressSearch = (target) => {
+    setAddressTarget(target)
+    setAddressQuery('')
+    setAddressError('')
+    setRemoteAddressCandidates([])
+    setAddressSearchOpen(true)
+  }
+  const chooseAddressCandidate = (poi) => {
+    const point = normalizeWebAddressPoint(poi)
+    update(addressTarget === 'start'
+      ? { startName: point.name, startPoint: point }
+      : { endName: point.name, endPoint: point })
+    setAddressBook((current) => addAddressHistory(current, point, carpoolPoiOptions))
+    setAddressQuery('')
+    setRemoteAddressCandidates([])
+    setAddressSearchOpen(false)
+  }
+  const toggleAddressFavorite = (poi) => {
+    setAddressBook((current) => toggleAddressFavoriteId(current, poi, carpoolPoiOptions))
+  }
+  const clearAddressHistory = () => {
+    setAddressBook((current) => ({ ...normalizeAddressBook(current, carpoolPoiOptions), history: [] }))
+  }
+  const useCurrentLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      window.alert('当前浏览器暂不支持定位，请手动选择地址')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nearest = findNearestPoiByCoordinate(position.coords.latitude, position.coords.longitude, carpoolPoiOptions)
+        chooseAddressCandidate(nearest || {
+          id: `geo-carpool-${Date.now()}`,
+          name: '我的当前位置',
+          address: `经纬度 ${Number(position.coords.latitude).toFixed(6)}, ${Number(position.coords.longitude).toFixed(6)}`,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          source: 'currentLocation'
+        })
+      },
+      () => window.alert('未能获取当前位置，请检查浏览器定位权限'),
+      { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
+    )
+  }
+  const renderCarpoolAddressPicker = ({ includeSearchPanel = true } = {}) => (
+    <>
+      <div className="booking-route-stack carpool-route-stack">
+        <AddressPointField
+          icon={Locate}
+          label="从哪里出发"
+          point={currentStart}
+          active={addressSearchOpen && addressTarget === 'start'}
+          onClick={() => openAddressSearch('start')}
+        />
+        <button type="button" className="address-swap-button" onClick={swapAddress} aria-label="交换上车点和目的地">换</button>
+        <AddressPointField
+          icon={Flag}
+          label="去哪里"
+          point={currentEnd}
+          active={addressSearchOpen && addressTarget === 'end'}
+          onClick={() => openAddressSearch('end')}
+        />
+      </div>
+      {includeSearchPanel && addressSearchOpen && <div className="address-search-panel carpool-address-search-panel">
+        <div className="address-search-head">
+          <div>
+            <span>地址搜索</span>
+            <small>候选地址、收藏点和地图选点逻辑同步到网页端</small>
+          </div>
+          <div className="segmented-row address-target-tabs" role="tablist" aria-label="地址写入位置">
+            <button type="button" className={addressTarget === 'start' ? 'active' : ''} onClick={() => openAddressSearch('start')}>上车点</button>
+            <button type="button" className={addressTarget === 'end' ? 'active' : ''} onClick={() => openAddressSearch('end')}>目的地</button>
+            <button type="button" onClick={() => setAddressSearchOpen(false)}>收起</button>
+          </div>
+        </div>
+        <label className="address-search-input">
+          <Locate size={15} />
+          <input
+            value={addressQuery}
+            onChange={(event) => setAddressQuery(event.target.value)}
+            placeholder={addressTarget === 'start' ? '搜索上车点、城市、小区、学校或商圈' : '搜索目的地、城市、小区、学校或商圈'}
+          />
+        </label>
+        <div className="address-history-tools">
+          <button type="button" onClick={useCurrentLocation}><Locate size={14} />当前位置</button>
+          <button type="button" disabled={!safeAddressBook.history.length} onClick={clearAddressHistory}><XCircle size={14} />清空历史</button>
+          <span>{addressLoading ? '地图搜索中...' : `${safeAddressBook.favorites.length} 个收藏 · ${safeAddressBook.history.length} 条最近`}</span>
+        </div>
+        {addressError && <p className="address-search-error">{addressError}</p>}
+        <div className="address-candidate-list">
+          {addressCandidates.map((poi) => (
+            <div className={`address-candidate-row ${poi.active ? 'active' : ''}`} key={poi.addressKey || getAddressKey(poi)}>
+              <button type="button" className="address-candidate-main" onClick={() => chooseAddressCandidate(poi)}>
+                <div>
+                  <strong>{poi.name}</strong>
+                  <small>{poi.address}</small>
+                </div>
+                <em>{addressTarget === 'start' ? '设为上车点' : '设为目的地'}</em>
+              </button>
+              <button
+                type="button"
+                className={`address-favorite-button ${poi.favorite ? 'active' : ''}`}
+                aria-label={poi.favorite ? '取消收藏地址' : '收藏地址'}
+                onClick={() => toggleAddressFavorite(poi)}
+              >
+                <Star size={14} />
+              </button>
+            </div>
+          ))}
+          {!addressCandidates.length && (
+            <div className="address-candidate-empty">
+              {addressLoading ? '正在搜索地图地址...' : addressQuery.trim() ? '没有匹配地址，换个关键词试试' : '输入关键词后显示地图候选地址'}
+            </div>
+          )}
+        </div>
+      </div>}
+    </>
+  )
+
+  useEffect(() => {
+    if (!onEstimateOrder) {
+      setOrderEstimate(null)
+      setOrderEstimateLoading(false)
+      setOrderEstimateError('后端估价接口未配置')
+      return undefined
+    }
+    let cancelled = false
+    setOrderEstimate(null)
+    setOrderEstimateError('')
+    setOrderEstimateLoading(true)
+    const timer = window.setTimeout(async () => {
+      try {
+        const data = await onEstimateOrder({ ...form, carTypeId })
+        if (!cancelled) setOrderEstimate(data || null)
+      } catch (error) {
+        if (!cancelled) setOrderEstimateError(error.message || '后端估价暂未同步')
+      } finally {
+        if (!cancelled) setOrderEstimateLoading(false)
+      }
+    }, 260)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [carTypeId, form.endName, form.endPoint, form.startName, form.startPoint, onEstimateOrder])
+
+  useEffect(() => {
+    if (!addressSearchOpen) return undefined
+    const keyword = addressQuery.trim()
+    let cancelled = false
+    setAddressError('')
+    if (!keyword) {
+      setRemoteAddressCandidates([])
+      setAddressLoading(false)
+      return undefined
+    }
+    setAddressLoading(true)
+    const timer = window.setTimeout(async () => {
+      try {
+        const list = await searchWebAddressCandidates(keyword, currentStart, {
+          pageSize: 8,
+          serviceType: SERVICE_TYPE.CARPOOL
+        })
+        if (!cancelled) setRemoteAddressCandidates(list)
+      } catch (error) {
+        if (!cancelled) {
+          setRemoteAddressCandidates(buildLocalAddressCandidates(keyword, currentStart, { serviceType: SERVICE_TYPE.CARPOOL }))
+          setAddressError('地图搜索暂时不可用，已显示本地候选')
+        }
+      } finally {
+        if (!cancelled) setAddressLoading(false)
+      }
+    }, 260)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [addressQuery, addressSearchOpen, currentStart.latitude, currentStart.longitude])
 
   useEffect(() => {
     if (!selectedTripId && list[0]?.id) setSelectedTripId(String(list[0].id))
@@ -4588,6 +5657,16 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
       setSelectedTripId(String(list[0].id))
     }
   }, [list, selectedTripId])
+
+  useEffect(() => {
+    if (!normalizePassengerSettings(settings).autoUseCoupon || !orderCouponOptions.length) {
+      setSelectedOrderCouponId('')
+      return
+    }
+    if (!orderCouponOptions.some((coupon) => coupon.userCouponIdText === selectedOrderCouponId)) {
+      setSelectedOrderCouponId(orderCouponOptions[0].userCouponIdText)
+    }
+  }, [orderCouponOptions, selectedOrderCouponId, settings])
 
   const submitPublish = () => {
     const startName = form.startName.trim()
@@ -4626,6 +5705,10 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
     onPublish({
       startName,
       endName,
+      startLat: String((form.startPoint || {}).latitude || ''),
+      startLng: String((form.startPoint || {}).longitude || ''),
+      endLat: String((form.endPoint || {}).latitude || ''),
+      endLng: String((form.endPoint || {}).longitude || ''),
       departTime: `${form.departDate} ${form.timeRange.split('-')[0]}:00`,
       seatCount,
       sharedAmount,
@@ -4662,9 +5745,9 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
       <section className="glass-panel work-card wide carpool-main-card">
         <div className="card-head carpool-head">
           <div className="carpool-title-block"><span className="section-kicker">同行</span><h2>顺风车</h2></div>
-          <div className="search-line carpool-search-line">
-            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索起点或终点" />
-            <button onClick={() => onSearch(keyword)}><RefreshCw size={16} />搜索</button>
+          <div className="price-stack carpool-price-stack">
+            <div className="price-pill">{hasOrderEstimate ? formatMoney(carpoolOrderPayable, orderEstimate.currencyCode) : (orderEstimateLoading ? '同步中' : '待估价')}</div>
+            {selectedOrderCoupon && <small>优惠 {formatMoney(carpoolOrderDiscount, orderEstimate?.currencyCode || 'CNY')}</small>}
           </div>
         </div>
         <div className="segmented-row carpool-tabs">
@@ -4679,6 +5762,93 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
           <SummaryPill icon={Clock} label="待确认" value={`${mine.pendingTotal} 条`} />
           <SummaryPill icon={Route} label="当前选择" value={selectedTrip ? `${selectedTrip.startName} → ${selectedTrip.endName}` : '未选择'} />
         </div>
+        {active !== 'mine' && <div className="carpool-selection-panel">
+          <div className="group-head">
+            <div>
+              <strong>顺风车选择</strong>
+              <small>对齐小程序的地址、日期、时段、人数和出行偏好</small>
+            </div>
+            <span>乘客行程</span>
+          </div>
+          {renderCarpoolAddressPicker()}
+          <div className="carpool-choice-grid">
+            <label className="plain-field"><span>出发日期</span><input type="date" value={form.departDate} min={formatDateInput()} onChange={(event) => update({ departDate: event.target.value })} /></label>
+            <label className="plain-field"><span>时间段</span><select value={form.timeRange} onChange={(event) => update({ timeRange: event.target.value })}>{timeRangeOptions.map((item) => <option key={item} value={item}>{item.replace('-', ' - ')}</option>)}</select></label>
+            <label className="plain-field"><span>乘车人数</span><select value={form.passengerCount} onChange={(event) => update({ passengerCount: Number(event.target.value) })}>{[1, 2, 3, 4].map((item) => <option key={item} value={item}>{item} 人</option>)}</select></label>
+          </div>
+          <div className="carpool-preference-grid">
+            <CarpoolOptionGroup title="行李情况" value={form.luggageMode} options={luggageOptions} onChange={(value) => update({ luggageMode: value })} />
+            <CarpoolOptionGroup title="高速费方案" value={form.tollMode} options={tollOptions} onChange={(value) => update({ tollMode: value })} />
+          </div>
+          <label className="plain-field carpool-note"><span>补充说明</span><textarea value={form.note} maxLength={100} placeholder="上车点细节、是否赶时间等" onChange={(event) => update({ note: event.target.value })} /></label>
+          {active === 'publish' ? (
+            <div className="carpool-publish-panel">
+              <div className="stat-grid carpool-publish-stats">
+                <Metric value={mine.ownerRecords.length} label="我发布的" />
+                <Metric value={mine.passengerRecords.length} label="我申请的" />
+                <Metric value={mine.pendingTotal} label="待确认" />
+              </div>
+              <div className="carpool-form-grid carpool-publish-extra-grid">
+                <Field label="可提供座位" value={form.seatCount} onChange={(value) => update({ seatCount: value })} />
+                <Field label="分摊金额" value={form.sharedAmount} onChange={(value) => update({ sharedAmount: value })} />
+              </div>
+              {publishError && <p className="form-error-line">{publishError}</p>}
+              <button className="solid-button fill" onClick={submitPublish}><Send size={16} />发布顺风车</button>
+            </div>
+          ) : (
+            <div className="carpool-selection-actions">
+              <button
+                type="button"
+                className="solid-button"
+                onClick={() => {
+                  setActive('search')
+                  onSearch(`${form.startName} ${form.endName}`.trim())
+                }}
+              >
+                <RefreshCw size={16} />查找顺路车
+              </button>
+              <button type="button" className="ghost-button" onClick={() => setActive('publish')}><Send size={16} />按此行程发布</button>
+            </div>
+          )}
+          {active !== 'publish' && <div className="carpool-confirm-panel">
+            <div className="payment-coupon-head">
+              <div>
+                <span>顺风车确认下单</span>
+                <small>对齐小程序确认页：路线、人数、行李、高速费和优惠券会一起写入订单。</small>
+              </div>
+              <strong>{hasOrderEstimate ? formatMoney(carpoolOrderPayable, orderEstimate.currencyCode) : '待后端估价'}</strong>
+            </div>
+            <div className="carpool-confirm-stats">
+              <MiniStat label="路线距离" value={hasOrderEstimate ? `${Number(orderEstimate.distanceKm || routePreview.distanceKm || 0).toFixed(1)} km` : `${Number(routePreview.distanceKm || 0).toFixed(1)} km`} />
+              <MiniStat label="订单金额" value={hasOrderEstimate ? formatMoney(orderEstimate.amount, orderEstimate.currencyCode) : (orderEstimateLoading ? '同步中' : '待同步')} />
+              <MiniStat label="优惠" value={selectedOrderCoupon ? `已选 ${formatMoney(carpoolOrderDiscount, orderEstimate?.currencyCode || 'CNY')}` : '以后端结算'} />
+            </div>
+            {orderEstimateError && <p className="payment-coupon-empty">{orderEstimateError}</p>}
+            {orderCouponOptions.length ? (
+              <div className="payment-coupon-list carpool-coupon-list">
+                {orderCouponOptions.slice(0, 3).map((coupon) => (
+                  <button
+                    type="button"
+                    key={coupon.userCouponIdText}
+                    className={selectedOrderCouponId === coupon.userCouponIdText ? 'active' : ''}
+                    onClick={() => setSelectedOrderCouponId(
+                      selectedOrderCouponId === coupon.userCouponIdText ? '' : coupon.userCouponIdText
+                    )}
+                  >
+                    <strong>-{formatMoney(coupon.discountAmount, orderEstimate?.currencyCode || 'CNY')}</strong>
+                    <span>{coupon.name}</span>
+                    <small>{coupon.ruleText || '顺风车订单可用'}</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="payment-coupon-empty carpool-coupon-empty">暂无满足顺风车金额和业务范围的可用券。</p>
+            )}
+            <button type="button" className="solid-button fill" disabled={!hasOrderEstimate || orderEstimateLoading} onClick={() => onCreateOrder?.({ ...form, carTypeId }, selectedOrderCoupon)}>
+              <Send size={16} />{orderEstimateLoading ? '同步估价中' : '提交顺风车订单'}
+            </button>
+          </div>}
+        </div>}
         {active === 'search' && (
           <div className="carpool-trip-list">
             {list.length ? list.map((trip) => (
@@ -4689,40 +5859,14 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
                 onSelect={() => setSelectedTripId(String(trip.id))}
                 onApply={() => {
                   setSelectedTripId(String(trip.id))
-                  setApplyError('')
+                  submitApply(trip)
                 }}
               />
             )) : <EmptyState text="暂无匹配的顺风车。" />}
           </div>
         )}
-        {active === 'publish' && (
-          <div className="carpool-publish-panel">
-            <div className="address-stack web">
-              <label><span>从哪里出发</span><input value={form.startName} onChange={(event) => update({ startName: event.target.value })} /></label>
-              <button className="address-switch web" onClick={swapAddress}>换</button>
-              <label><span>去哪里</span><input value={form.endName} onChange={(event) => update({ endName: event.target.value })} /></label>
-            </div>
-            <div className="carpool-form-grid">
-              <Field label="出发日期" value={form.departDate} onChange={(value) => update({ departDate: value })} />
-              <label className="plain-field"><span>时间段</span><select value={form.timeRange} onChange={(event) => update({ timeRange: event.target.value })}>{timeRangeOptions.map((item) => <option key={item} value={item}>{item.replace('-', ' - ')}</option>)}</select></label>
-              <label className="plain-field"><span>乘车人数</span><select value={form.passengerCount} onChange={(event) => update({ passengerCount: Number(event.target.value) })}>{[1, 2, 3, 4].map((item) => <option key={item} value={item}>{item} 人</option>)}</select></label>
-              <Field label="可提供座位" value={form.seatCount} onChange={(value) => update({ seatCount: value })} />
-              <Field label="分摊金额" value={form.sharedAmount} onChange={(value) => update({ sharedAmount: value })} />
-            </div>
-            <CarpoolOptionGroup title="行李情况" value={form.luggageMode} options={luggageOptions} onChange={(value) => update({ luggageMode: value })} />
-            <CarpoolOptionGroup title="高速费方案" value={form.tollMode} options={tollOptions} onChange={(value) => update({ tollMode: value })} />
-            <label className="plain-field carpool-note"><span>补充说明</span><textarea value={form.note} maxLength={60} placeholder="上车点细节、是否赶时间等" onChange={(event) => update({ note: event.target.value })} /></label>
-            {publishError && <p className="form-error-line">{publishError}</p>}
-            <button className="solid-button fill" onClick={submitPublish}><Send size={16} />发布顺风车</button>
-          </div>
-        )}
         {active === 'mine' && (
           <div className="carpool-mine-panel">
-            <div className="stat-grid">
-              <Metric value={mine.ownerRecords.length} label="我发布的" />
-              <Metric value={mine.passengerRecords.length} label="我申请的" />
-              <Metric value={mine.pendingTotal} label="待确认" />
-            </div>
             {mine.records.length ? mine.records.map((record) => (
               <CarpoolRecordCard
                 record={record}
@@ -4734,49 +5878,6 @@ function CarpoolBoard({ data, onSearch, onPublish, onApply, onOwnerAction, onPas
             )) : <EmptyState text="暂无顺风车记录。" />}
           </div>
         )}
-      </section>
-      <section className="glass-panel work-card carpool-side">
-        <div className="card-head"><h2>{active === 'search' ? '搭乘申请' : '行程偏好'}</h2><ServiceIcon type={SERVICE_TYPE.CARPOOL} className="card-head-service-icon" /></div>
-        {active === 'search' && selectedTrip ? (
-          <div className="carpool-apply-panel">
-            <InfoPanel title="已选行程" items={[
-              ['路线', `${selectedTrip.startName} → ${selectedTrip.endName}`],
-              ['出发', selectedTrip.departTimeText || selectedTrip.departTime || '-'],
-              ['余座', `${carpoolRemainSeatCount(selectedTrip)} 座`],
-              ['分摊', formatMoney(selectedTrip.sharedAmount || selectedTrip.amount || 0)]
-            ]} />
-            <label className="plain-field">
-              <span>同行人数</span>
-              <select value={applyDraft.companionCount} onChange={(event) => setApplyDraft((draft) => ({ ...draft, companionCount: Number(event.target.value) }))}>
-                {[0, 1, 2, 3].map((item) => <option key={item} value={item}>{item ? `另带 ${item} 人` : '仅我自己'}</option>)}
-              </select>
-            </label>
-            <label className="plain-field carpool-note">
-              <span>申请备注</span>
-              <textarea
-                value={applyDraft.note}
-                maxLength={80}
-                placeholder="例如：可在校门口上车，带一个小行李箱"
-                onChange={(event) => setApplyDraft((draft) => ({ ...draft, note: event.target.value }))}
-              />
-            </label>
-            {applyError && <p className="form-error-line">{applyError}</p>}
-            <button className="solid-button fill" onClick={() => submitApply(selectedTrip)}><Send size={16} />提交搭乘申请</button>
-          </div>
-        ) : (
-          <InfoPanel title="当前草稿" items={[
-            ['出发', form.startName],
-            ['到达', form.endName],
-            ['时间', `${form.departDate} ${form.timeRange}`],
-            ['人数', `${form.passengerCount} 人`]
-          ]} />
-        )}
-        <InfoPanel title="我的记录" items={[
-          ['已发布', `${mine.ownerRecords.length} 条`],
-          ['已申请', `${mine.passengerRecords.length} 条`],
-          ['待确认', `${mine.pendingTotal} 条`],
-          ['可搭乘', `${data.list?.length || 0} 条`]
-        ]} />
       </section>
     </div>
   )
@@ -5019,15 +6120,17 @@ function InternationalBoard({ booking, estimate, profile, onSubmit }) {
   const [selectedOptionId, setSelectedOptionId] = useState(internationalOptions[0].id)
   const selectedOption = internationalOptions.find((item) => item.id === selectedOptionId) || internationalOptions[0]
   const [form, setForm] = useState(() => buildInternationalForm(profile))
-  const routeIds = resolveInternationalRouteIds(selectedOption)
+  const routePoints = resolveInternationalRoutePoints(selectedOption)
   const internationalBooking = {
     ...booking,
     serviceType: SERVICE_TYPE.INTERNATIONAL,
     carTypeId: 3,
-    startId: routeIds.startId,
-    endId: routeIds.endId
+    startId: routePoints.startPoint.id,
+    endId: routePoints.endPoint.id,
+    startPoint: routePoints.startPoint,
+    endPoint: routePoints.endPoint
   }
-  const route = calcRoute(internationalBooking.startId, internationalBooking.endId)
+  const route = calcRoute(routePoints.startPoint, routePoints.endPoint)
   const distanceKm = parseMetricNumber(selectedOption.distanceText, route.distanceKm)
   const durationMin = parseMetricNumber(selectedOption.durationText, route.durationMin)
   const safeEstimate = {
@@ -5233,14 +6336,19 @@ function InternationalBookingPanel({ option, form, onFormChange, estimate, onSub
   )
 }
 
-function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onOpenOrder }) {
+function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onOpenOrder, onUploadAvatar }) {
   const [editingRealName, setEditingRealName] = useState(false)
   const [editingProfile, setEditingProfile] = useState(false)
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [profileError, setProfileError] = useState('')
   const [realNameError, setRealNameError] = useState('')
+  const [avatarPreview, setAvatarPreview] = useState(() => resolveMediaAssetUrl(profile?.avatar || '/images/avatar-user.svg'))
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef(null)
   const [form, setForm] = useState({
     nickname: safeEditableText(profile?.nickname),
+    avatar: profile?.avatar || '/images/avatar-user.svg',
     emergencyContact: safeEditableText(profile?.emergencyContact),
     emergencyPhone: profile?.emergencyPhone || '',
     defaultLanguage: profile?.defaultLanguage || 'zh-CN'
@@ -5253,9 +6361,13 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
   useEffect(() => {
     setForm({
       nickname: safeEditableText(profile?.nickname),
+      avatar: profile?.avatar || '/images/avatar-user.svg',
       emergencyContact: safeEditableText(profile?.emergencyContact),
-      emergencyPhone: profile?.emergencyPhone || ''
+      emergencyPhone: profile?.emergencyPhone || '',
+      defaultLanguage: profile?.defaultLanguage || 'zh-CN'
     })
+    setAvatarFile(null)
+    setAvatarPreview(resolveMediaAssetUrl(profile?.avatar || '/images/avatar-user.svg'))
     setRealName({
       realName: safeEditableText(profile?.realName),
       idCard: safeEditableText(profile?.idCard)
@@ -5263,14 +6375,29 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
   }, [profile])
   const walletRecords = useMemo(() => buildPassengerWalletRecords(orders), [orders])
   const walletSummary = useMemo(() => buildPassengerWalletSummary(walletRecords), [walletRecords])
-  const verifiedText = profile?.authStatus === 2 ? '已实名' : '待实名'
+  const authMeta = passengerAuthStatusMeta(profile?.authStatus)
+  const verifiedText = authMeta.label
   const walletProfileProgress = [
     form.nickname,
+    form.avatar,
     form.defaultLanguage,
     profile?.phone,
     realName.realName,
     realName.idCard
   ].filter(Boolean).length
+
+  const profileFieldKeys = ['nickname', 'emergencyContact', 'emergencyPhone', 'defaultLanguage']
+
+  const chooseAvatar = () => avatarInputRef.current?.click()
+  const handleAvatarFile = (file) => {
+    if (!file) return
+    if (avatarPreview && avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview)
+    const localPreview = URL.createObjectURL(file)
+    setAvatarFile(file)
+    setAvatarPreview(localPreview)
+    setForm((draft) => ({ ...draft, avatar: localPreview }))
+    setProfileError('')
+  }
 
   const saveRealName = async () => {
     const realNameText = realName.realName.trim()
@@ -5284,13 +6411,38 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
       return
     }
     setRealNameError('')
-    await onRealName({ realName: realNameText, idCard })
+    const success = await onRealName({ realName: realNameText, idCard })
+    if (success === false) {
+      setRealNameError('实名信息提交失败，请稍后重试')
+      return
+    }
     setEditingRealName(false)
   }
 
   const saveProfile = async () => {
+    if (uploadingAvatar) return
+    let avatar = form.avatar
+    if (avatarFile) {
+      setUploadingAvatar(true)
+      try {
+        const uploadResult = await onUploadAvatar?.(avatarFile)
+        avatar = uploadResult?.fileUrl || uploadResult?.avatar || uploadResult?.url || ''
+        if (!avatar) {
+          setProfileError('头像上传失败，请重新选择')
+          return
+        }
+        setAvatarFile(null)
+        setAvatarPreview(resolveMediaAssetUrl(avatar))
+      } catch (error) {
+        setProfileError(error.message || '头像上传失败，请重新选择')
+        return
+      } finally {
+        setUploadingAvatar(false)
+      }
+    }
     const payload = {
       ...form,
+      avatar,
       nickname: form.nickname.trim(),
       emergencyContact: form.emergencyContact.trim(),
       emergencyPhone: form.emergencyPhone.trim(),
@@ -5300,12 +6452,16 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
       setProfileError('请填写昵称')
       return
     }
-    if (payload.emergencyPhone && !isValidPhone(payload.emergencyPhone)) {
-      setProfileError('紧急电话需要为 11 位手机号')
+    if (payload.emergencyPhone && !isValidContactPhone(payload.emergencyPhone)) {
+      setProfileError('紧急电话需要为 8-16 位纯数字')
       return
     }
     setProfileError('')
-    await onProfile(payload)
+    const success = await onProfile(payload)
+    if (success === false) {
+      setProfileError('资料保存失败，请稍后重试')
+      return
+    }
     setEditingProfile(false)
   }
 
@@ -5378,23 +6534,44 @@ function PassengerWalletBoard({ profile, orders = [], onProfile, onRealName, onO
           )}
         </div>
         <div className="wallet-profile-summary" aria-label="账户资料摘要">
-          <span className={profile?.authStatus === 2 ? 'ready' : 'pending'}><BadgeCheck size={14} />{verifiedText}</span>
-          <div><strong>{walletProfileProgress}/5</strong><small>资料完整度</small></div>
+          <span className={authMeta.verified ? 'ready' : 'pending'}><BadgeCheck size={14} />{verifiedText}</span>
+          <div><strong>{walletProfileProgress}/6</strong><small>资料完整度</small></div>
           <div><strong>{form.defaultLanguage || 'zh-CN'}</strong><small>默认语言</small></div>
         </div>
         {editingProfile ? (
           <>
+            <div className="profile-avatar-editor">
+              <button type="button" className="profile-avatar-preview" onClick={chooseAvatar} disabled={uploadingAvatar}>
+                <img src={avatarPreview} alt="乘客头像" onError={() => setAvatarPreview('/images/avatar-user.svg')} />
+                <span>{uploadingAvatar ? '上传中...' : '更换头像'}</span>
+              </button>
+              <div>
+                <strong>乘客头像</strong>
+                <small>与小程序资料编辑保持一致，保存资料时会先上传头像。</small>
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ''
+                  handleAvatarFile(file)
+                }}
+              />
+            </div>
             <div className="form-grid wallet-profile-form">
-              {Object.keys(form).map((key) => (
+              {profileFieldKeys.map((key) => (
                 <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
               ))}
             </div>
             {profileError && <p className="form-error-line">{profileError}</p>}
-            <button className="solid-button profile-save-button" onClick={saveProfile}><ShieldCheck size={15} />保存资料</button>
+            <button className={`solid-button profile-save-button${uploadingAvatar ? ' is-busy' : ''}`} disabled={uploadingAvatar} onClick={saveProfile}><ShieldCheck size={15} />{uploadingAvatar ? '头像上传中...' : '保存资料'}</button>
           </>
         ) : (
           <div className="profile-view-list wallet-readonly-list">
-            {Object.keys(form).map((key) => (
+            {profileFieldKeys.map((key) => (
               <div className="thin-row profile-view-row" key={key}>
                 <span>{fieldLabel(key)}</span>
                 <strong>{form[key] || '-'}</strong>
@@ -5792,12 +6969,16 @@ function InvoiceWorkbench({ orders = [], profile, onApplyInvoice, onPreviewInvoi
     setApplyBusy(true)
     setActionError('')
     try {
-      await onApplyInvoice(selectedOrder, {
+      const success = await onApplyInvoice(selectedOrder, {
         invoiceTitle: String(form.invoiceTitle || '').trim(),
         taxNo: String(form.taxNo || '').trim(),
         buyerPhone: String(form.buyerPhone || '').trim(),
         remark: String(form.remark || '').trim()
       })
+      if (success === false) {
+        setActionError('提交申请失败，请稍后重试')
+        return
+      }
       setInvoiceTab('history')
     } catch (error) {
       setActionError(error.message || '提交申请失败，请稍后重试')
@@ -6067,12 +7248,18 @@ function InvoiceWorkbench({ orders = [], profile, onApplyInvoice, onPreviewInvoi
   )
 }
 
+function supportConversationStatusLabel(conversation = {}) {
+  if (conversation?.manualMode || conversation?.status === 'MANUAL') return '人工接待中'
+  if (conversation?.status === 'CLOSED') return '已关闭'
+  return 'AI接待中'
+}
 
 function SupportChatPanel({ conversation, messages = [], profile, role, onRefresh, onSend, orders = [] }) {
   const [draft, setDraft] = useState('')
   const [sendError, setSendError] = useState('')
   const [sending, setSending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [aiReplyPending, setAiReplyPending] = useState(null)
   const threadEndRef = useRef(null)
   const sortedMessages = normalizeList(messages).slice().sort((left, right) => {
     const a = dateLikeToMs(left.createdAt || left.time) || Number(left.id || 0)
@@ -6081,6 +7268,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
   })
   const isDriver = role === 'DRIVER'
   const serviceName = '阳光客服'
+  const conversationStatusText = supportConversationStatusLabel(conversation)
   const supportTitle = isDriver ? '司机客服会话' : '乘客客服会话'
   const supportHint = isDriver ? '听单、提现与资质问题在线处理' : '订单、费用、发票与行程问题在线处理'
   const quickPrompts = isDriver
@@ -6088,6 +7276,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
     : ['司机多久到？', '如何取消订单？', '费用有疑问', '联系司机']
   const lastMessage = sortedMessages[sortedMessages.length - 1]
   const mineCount = sortedMessages.filter((item) => item.senderRole === role).length
+  const showAiReplyPending = Boolean(aiReplyPending)
   const supportOrders = useMemo(() => normalizeList(orders).filter(Boolean), [orders])
   const relatedOrder = useMemo(() => {
     const activeOrder = pickActiveRideOrder(supportOrders)
@@ -6120,9 +7309,21 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({
       block: 'end',
-      behavior: sortedMessages.length > 4 ? 'smooth' : 'auto'
+      behavior: sortedMessages.length > 4 || showAiReplyPending ? 'smooth' : 'auto'
     })
-  }, [sortedMessages.length])
+  }, [sortedMessages.length, showAiReplyPending])
+
+  useEffect(() => {
+    if (!aiReplyPending) return
+    const pendingAt = dateLikeToMs(aiReplyPending.createdAt) || 0
+    const hasNewServiceReply = sortedMessages.some((item) => {
+      const itemAt = dateLikeToMs(item.createdAt || item.time) || 0
+      return item.senderRole !== role && itemAt >= pendingAt
+    })
+    if (hasNewServiceReply) {
+      setAiReplyPending(null)
+    }
+  }, [aiReplyPending, role, sortedMessages])
 
   const handleDraftChange = (event) => {
     const nextValue = event.target.value
@@ -6141,8 +7342,14 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
     setSendError('')
     setSending(true)
     try {
-      await onSend(content)
+      const ok = await onSend(content)
       setDraft('')
+      if (ok !== false) {
+        setAiReplyPending({
+          id: `ai-pending-${Date.now()}`,
+          createdAt: new Date().toISOString()
+        })
+      }
     } finally {
       setSending(false)
     }
@@ -6187,14 +7394,14 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
           <div className="support-service-status">
             <span className="support-live-pill">
               <i className="support-live-dot" />
-              在线
+              {conversationStatusText}
             </span>
             <small>通常 1-3 分钟回复</small>
           </div>
         </div>
 
         <div className="support-chat-summary">
-          <SummaryPill icon={MessageSquare} label="会话状态" value={statusLabel[conversation?.status] || conversation?.status || '已接入'} />
+          <SummaryPill icon={MessageSquare} label="会话状态" value={conversationStatusText} />
           <SummaryPill icon={Send} label="我发送的" value={`${mineCount} 条`} />
           <SummaryPill icon={Clock} label="最近消息" value={lastMessage ? formatDateTimeShort(lastMessage.createdAt || lastMessage.time) : '刚刚接入'} />
         </div>
@@ -6203,7 +7410,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
           <div className="chat-thread" role="log" aria-live="polite" aria-relevant="additions text">
           {sortedMessages.length ? sortedMessages.map((item, index) => {
             const mine = item.senderRole === role
-            const senderText = mine ? (isDriver ? '司机端' : '乘客端') : '在线'
+            const senderText = mine ? (isDriver ? '司机端' : '乘客端') : (item.systemNotice ? '系统' : (item.fromAdmin ? '人工客服' : 'AI客服'))
             return (
               <div className={`chat-row ${mine ? 'mine' : 'service'}`} key={item.id || index}>
                 <span className={`chat-avatar ${mine ? 'mine' : 'service'}`} aria-hidden="true">
@@ -6223,23 +7430,37 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
               <EmptyState text="发送消息开始沟通" />
             </div>
           )}
+            {showAiReplyPending && (
+              <div className="chat-row service ai-reply-pending" role="status" aria-live="polite">
+                <span className="chat-avatar service" aria-hidden="true">
+                  <MessageSquare size={15} />
+                </span>
+                <article className="chat-bubble service pending">
+                  <div className="chat-bubble-meta">
+                    <span>{serviceName}</span>
+                    <small>AI客服 · 刚刚</small>
+                  </div>
+                  <p>AI回复中...</p>
+                </article>
+              </div>
+            )}
             <div ref={threadEndRef} />
           </div>
 
           <div className="support-chat-footer">
             <div className="support-quick-block">
-          <div className="support-inline-label">
-            <Sparkles size={14} />
-            <span>常见咨询</span>
-          </div>
-          <div className="quick-question-row">
-            {quickPrompts.map((item) => (
-              <button key={item} type="button" onClick={() => send(item)} disabled={sending}>
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
+              <div className="support-inline-label">
+                <Star size={14} />
+                <span>常见咨询</span>
+              </div>
+              <div className="quick-question-row">
+                {quickPrompts.map((item) => (
+                  <button key={item} type="button" onClick={() => send(item)} disabled={sending}>
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
 
         <div className="chat-composer">
           <div className="chat-compose-field">
@@ -6279,7 +7500,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
           <MessageSquare size={21} />
         </div>
         <InfoPanel title="当前会话" items={[
-          ['状态', statusLabel[conversation?.status] || conversation?.status || '已接入'],
+          ['状态', conversationStatusText],
           ['身份', isDriver ? '司机' : '乘客'],
           ['账号', profile?.phone || conversation?.phone || '-'],
           ['会员', conversation?.member ? conversation?.memberLevel || '阳光会员' : '普通账户']
@@ -6512,18 +7733,18 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
   const candidates = orders?.length ? orders : []
   const safeSettings = normalizePassengerSettings(settings)
   const [activeFeedback, setActiveFeedback] = useState(null)
-  const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+  const [reviewForm, setReviewForm] = useState({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '', anonymous: false })
   const [complaintForm, setComplaintForm] = useState({ complaintType: 'SERVICE', content: '', contactPhone: profile?.phone || '' })
   const [feedbackError, setFeedbackError] = useState('')
   const [submittingFeedback, setSubmittingFeedback] = useState(false)
   const feedbackSummary = useMemo(() => buildSupportFeedbackSummary(candidates), [candidates])
-  const complaintHistory = candidates.filter((order) => isOrderComplained(order)).slice(0, 4)
-  const reviewHistory = candidates.filter((order) => isOrderEvaluated(order)).slice(0, 4)
+  const complaintHistory = candidates.filter((order) => isOrderComplained(order))
+  const reviewHistory = candidates.filter((order) => isOrderEvaluated(order))
 
   const openFeedback = (action, order) => {
     setActiveFeedback({ action, order })
     setFeedbackError('')
-    setReviewForm({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '' })
+    setReviewForm({ score: 5, tags: passengerReviewTags.slice(0, 2), content: '', anonymous: false })
     setComplaintForm({ complaintType: 'SERVICE', content: '', contactPhone: profile?.phone || '' })
   }
 
@@ -6550,7 +7771,11 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
     }
     setSubmittingFeedback(true)
     try {
-      await onEvaluate?.(order, { score, tags: reviewForm.tags, content })
+      const success = await onEvaluate?.(order, { score, tags: reviewForm.tags, content, anonymous: Boolean(reviewForm.anonymous) })
+      if (success === false) {
+        setFeedbackError('评价提交失败，请稍后重试')
+        return
+      }
       setActiveFeedback(null)
       setFeedbackError('')
     } finally {
@@ -6566,8 +7791,8 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
       setFeedbackError('请先选择要投诉的订单')
       return
     }
-    if (content.length < 6) {
-      setFeedbackError('请至少填写 6 个字的投诉说明')
+    if (!content) {
+      setFeedbackError('请填写反馈内容')
       return
     }
     if (contactPhone && !isValidPhone(contactPhone)) {
@@ -6576,11 +7801,15 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
     }
     setSubmittingFeedback(true)
     try {
-      await onComplaint?.(order, {
+      const success = await onComplaint?.(order, {
         complaintType: complaintForm.complaintType,
         contactPhone,
         content
       })
+      if (success === false) {
+        setFeedbackError('投诉提交失败，请稍后重试')
+        return
+      }
       setActiveFeedback(null)
       setFeedbackError('')
     } finally {
@@ -6595,7 +7824,7 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
           <div>
             <span className="section-kicker">服务反馈</span>
             <h2>评价与投诉</h2>
-            <p>常用设置在上面，订单反馈放到下半区，既保留能力，也不抢主流程注意力。</p>
+            <p>同步小程序评价记录、投诉反馈和帮助中心，订单处理结果会回写到订单与消息。</p>
           </div>
           <MessageSquare size={21} />
         </div>
@@ -6612,40 +7841,31 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
           </div>
         </div>
         {candidates.length ? (
-          <div className="order-list support-order-list">
-            {candidates.slice(0, 4).map((order) => (
-              <article className={`order-card glass-panel support-order-card ${activeFeedback?.order && orderKey(activeFeedback.order) === orderKey(order) ? 'is-active' : ''}`} key={order.id || order.orderNo}>
-                <div className="order-line">
-                  <div>
-                    <h3>{order.startName} <ChevronRight size={16} /> {order.endName}</h3>
-                    <p>{order.orderNo || `#${order.id}`}</p>
-                    <p className="order-time-line"><Clock size={13} />{formatOrderTime(order)}</p>
-                    <p className="support-feedback-status-row">
-                      <span>{orderEvaluationStatusText(order)}</span>
-                      <span>{orderComplaintStatusText(order)}</span>
-                    </p>
-                  </div>
-                  <StatusBadge value={order.orderStatus} />
-                </div>
-                <div className="order-actions">
-                  <button
-                    className="ghost-button"
-                    disabled={!(order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && !isOrderEvaluated(order))}
-                    onClick={() => openFeedback('evaluate', order)}
-                  >
-                    <Star size={16} />评价
-                  </button>
-                  <button
-                    className="ghost-button"
-                    disabled={order.orderStatus === ORDER_STATUS.CANCELLED || isOrderComplained(order)}
-                    onClick={() => openFeedback('complaint', order)}
-                  >
-                    <AlertTriangle size={16} />投诉
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+          <OrderList
+            orders={candidates}
+            empty="暂无可评价订单，完成一次行程后会出现在这里。"
+            limit={8}
+            selectedOrderId={activeFeedback?.order ? orderKey(activeFeedback.order) : ''}
+            className="support-order-list"
+            footer={(order) => (
+              <>
+                <button
+                  className={`ghost-button${activeFeedback?.action === 'evaluate' && orderKey(activeFeedback.order) === orderKey(order) ? ' is-selected' : ''}`}
+                  disabled={!(order.orderStatus === ORDER_STATUS.FINISHED && order.payStatus === PAY_STATUS.PAID && !isOrderEvaluated(order))}
+                  onClick={() => openFeedback('evaluate', order)}
+                >
+                  <Star size={16} />评价
+                </button>
+                <button
+                  className={`ghost-button${activeFeedback?.action === 'complaint' && orderKey(activeFeedback.order) === orderKey(order) ? ' is-selected' : ''}`}
+                  disabled={order.orderStatus === ORDER_STATUS.CANCELLED || isOrderComplained(order)}
+                  onClick={() => openFeedback('complaint', order)}
+                >
+                  <AlertTriangle size={16} />投诉
+                </button>
+              </>
+            )}
+          />
         ) : <EmptyState text="暂无可评价订单，完成一次行程后会出现在这里。" />}
         {activeFeedback?.action === 'evaluate' && (
           <div className="order-action-panel support-feedback-panel">
@@ -6688,6 +7908,14 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
               />
               <small>{reviewForm.content.length}/300</small>
             </label>
+            <button
+              type="button"
+              className={`review-anonymous-toggle ${reviewForm.anonymous ? 'active' : ''}`}
+              onClick={() => setReviewForm((value) => ({ ...value, anonymous: !value.anonymous }))}
+            >
+              <span>匿名评价</span>
+              <span className={`toggle-pill ${reviewForm.anonymous ? 'is-on' : ''}`} aria-hidden="true"><i /></span>
+            </button>
             {feedbackError && <p className="form-error-line">{feedbackError}</p>}
             <div className="order-action-panel-actions">
               <button className="solid-button" disabled={submittingFeedback} onClick={submitSupportReview}><Star size={16} />{submittingFeedback ? '提交中...' : '提交评价'}</button>
@@ -6702,11 +7930,12 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
               <small>{activeFeedback.order?.orderNo || `#${activeFeedback.order?.id}`}</small>
             </div>
             <div className="feedback-chip-row">
-              {complaintTypeOptions.map(([value, label]) => (
+              {complaintTypeOptions.map(([value, label, desc]) => (
                 <button
                   type="button"
                   key={value}
                   className={complaintForm.complaintType === value ? 'active' : ''}
+                  title={desc}
                   onClick={() => setComplaintForm((form) => ({ ...form, complaintType: value }))}
                 >
                   {label}
@@ -6742,6 +7971,17 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
         </div>
         <div className="coverage-grid support-grid">
           {['常见问题', '紧急联系人', '隐私设置', '行程安全', '消息通知', '版本信息'].map((item) => <span key={item}><CheckCircle size={15} />{item}</span>)}
+        </div>
+        <div className="help-faq-list">
+          {passengerHelpList.map((item) => (
+            <article className="help-faq-row" key={item.id}>
+              <span><HelpCircle size={15} /></span>
+              <div>
+                <strong>{item.title}</strong>
+                <small>{item.content}</small>
+              </div>
+            </article>
+          ))}
         </div>
         <InfoPanel title="当前用户" items={[
           ['昵称', resolveAccountDisplayName(profile, '-')],
@@ -6787,44 +8027,22 @@ function SupportBoard({ orders, profile, settings, onComplaint, onEvaluate }) {
   )
 }
 
-function DriverWallet({ dashboard, withdraws = [], onWithdraw, onCertify }) {
-  const [withdraw, setWithdraw] = useState({ applyAmount: 50, bankName: '中国银行', bankAccount: '6222 **** 2026' })
+function DriverWallet({ dashboard, withdraws = [], onWithdraw }) {
+  const [withdraw, setWithdraw] = useState({ applyAmount: '', bankName: '', bankAccount: '' })
   const [withdrawError, setWithdrawError] = useState('')
-  const [certError, setCertError] = useState('')
-  const [cert, setCert] = useState({
-    licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
-    plateNo: dashboard?.vehicle?.plateNo || '冀R·A8888',
-    brand: dashboard?.vehicle?.brand || '比亚迪',
-    modelName: dashboard?.vehicle?.modelName || '汉 EV',
-    color: dashboard?.vehicle?.color || '橙白',
-    seatCount: dashboard?.vehicle?.seatCount || 5,
-    insuranceExpireDate: '2026-12-31',
-    annualInspectExpireDate: '2026-12-31',
-    vehicleLicenseImageUrl: dashboard?.vehicle?.vehicleLicenseImageUrl || '/uploads/demo/vehicle.jpg',
-    driverLicenseImageUrl: dashboard?.vehicle?.driverLicenseImageUrl || '/uploads/demo/driver.jpg'
-  })
-
-  useEffect(() => {
-    setCert({
-      licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
-      plateNo: dashboard?.vehicle?.plateNo || '冀R·A8888',
-      brand: dashboard?.vehicle?.brand || '比亚迪',
-      modelName: dashboard?.vehicle?.modelName || '汉 EV',
-      color: dashboard?.vehicle?.color || '橙白',
-      seatCount: dashboard?.vehicle?.seatCount || 5,
-      insuranceExpireDate: dashboard?.vehicle?.insuranceExpireDate || '2026-12-31',
-      annualInspectExpireDate: dashboard?.vehicle?.annualInspectExpireDate || '2026-12-31',
-      vehicleLicenseImageUrl: dashboard?.vehicle?.vehicleLicenseImageUrl || '/uploads/demo/vehicle.jpg',
-      driverLicenseImageUrl: dashboard?.vehicle?.driverLicenseImageUrl || '/uploads/demo/driver.jpg'
-    })
-  }, [dashboard])
+  const [selectedMonth, setSelectedMonth] = useState(() => currentMonthKey())
 
   const visibleWithdraws = withdraws.length ? withdraws : normalizeList(dashboard?.pendingWithdraw)
+  const incomeOrders = normalizeList(dashboard?.orders).filter((order) => String(order.orderStatus || '').toUpperCase() === ORDER_STATUS.FINISHED)
+  const monthOptions = useMemo(() => buildDriverIncomeMonthOptions(incomeOrders), [incomeOrders])
+  const activeMonth = monthOptions.some((item) => item.value === selectedMonth) ? selectedMonth : (monthOptions[0]?.value || currentMonthKey())
+  const monthBills = useMemo(() => incomeOrders
+    .filter((order) => driverIncomeMonthKey(order) === activeMonth)
+    .sort((left, right) => walletOrderTimeMs(right) - walletOrderTimeMs(left)), [incomeOrders, activeMonth])
+  const selectedMonthIncome = monthBills.reduce((sum, order) => sum + driverIncomeAmount(order), 0)
   const availableAmount = Number(dashboard?.profile?.withdrawableIncome || 0)
   const todayIncome = Number(dashboard?.profile?.todayIncome || 0)
   const monthIncome = Number(dashboard?.profile?.monthIncome || dashboard?.profile?.monthlyIncome || todayIncome)
-  const driverAudit = auditStatusMeta(dashboard?.profile?.auditStatus)
-  const vehicleAudit = auditStatusMeta(dashboard?.vehicle?.auditStatus)
   const quickWithdrawAmounts = [50, 100, 200, availableAmount]
     .filter((amount, index, list) => Number.isFinite(Number(amount)) && Number(amount) > 0 && Number(amount) <= availableAmount && list.indexOf(amount) === index)
     .slice(0, 4)
@@ -6847,29 +8065,13 @@ function DriverWallet({ dashboard, withdraws = [], onWithdraw, onCertify }) {
       return
     }
     setWithdrawError('')
-    await onWithdraw({
+    const success = await onWithdraw({
       applyAmount: amount,
       bankName: String(withdraw.bankName).trim(),
       bankAccount: String(withdraw.bankAccount).trim()
     })
+    if (success !== false) setWithdraw({ applyAmount: '', bankName: '', bankAccount: '' })
   }
-  const submitCert = async () => {
-    const payload = Object.fromEntries(Object.entries(cert).map(([key, value]) => [key, String(value ?? '').trim()]))
-    const requiredKeys = ['licenseNo', 'plateNo', 'brand', 'modelName', 'color', 'seatCount', 'vehicleLicenseImageUrl', 'driverLicenseImageUrl']
-    const emptyKey = requiredKeys.find((key) => !payload[key])
-    if (emptyKey) {
-      setCertError(`请填写${fieldLabel(emptyKey)}`)
-      return
-    }
-    const seatCount = Number(payload.seatCount)
-    if (!Number.isFinite(seatCount) || seatCount < 4 || seatCount > 9) {
-      setCertError('座位数需要在 4-9 座之间')
-      return
-    }
-    setCertError('')
-    await onCertify({ ...payload, seatCount })
-  }
-
   return (
     <div className="dashboard-grid">
       <section className="glass-panel work-card driver-withdraw-card">
@@ -6938,43 +8140,303 @@ function DriverWallet({ dashboard, withdraws = [], onWithdraw, onCertify }) {
           </div>
         ) : <EmptyState text="暂无提现记录，提交提现后会同步显示。" />}
       </section>
-      <section className="glass-panel work-card wide">
-        <div className="card-head"><h2>司机资质</h2><BadgeCheck size={21} /></div>
-        <div className="cert-summary-grid">
-          <SummaryPill icon={BadgeCheck} value={driverAudit.label} label="人证审核" />
-          <SummaryPill icon={Car} value={vehicleAudit.label} label="车辆审核" />
-          <SummaryPill icon={ShieldCheck} value={dashboard?.servicePermission?.message || '待同步'} label="接单权限" />
+      <section className="glass-panel work-card wide driver-income-bills-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">收入账单</span>
+            <h2>月度流水</h2>
+            <small>按小程序收益页同步最近完成订单收入</small>
+          </div>
+          <select value={activeMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+            {monthOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
         </div>
-        <div className="form-grid">
-          {Object.keys(cert).map((key) => (
-            <Field key={key} label={fieldLabel(key)} value={cert[key]} onChange={(value) => setCert((draft) => ({ ...draft, [key]: value }))} />
-          ))}
+        <div className="driver-income-month-summary">
+          <SummaryPill icon={DollarSign} label="当月收入" value={formatMoney(selectedMonthIncome || monthIncome)} />
+          <SummaryPill icon={Route} label="完成订单" value={`${monthBills.length} 单`} />
+          <SummaryPill icon={Clock} label="账单月份" value={formatDriverMonthLabel(activeMonth)} />
         </div>
-        {certError && <p className="form-error-line">{certError}</p>}
-        <button className="solid-button" onClick={submitCert}><ShieldCheck size={16} />提交资质</button>
+        {monthBills.length ? (
+          <div className="driver-income-bill-list">
+            {monthBills.slice(0, 10).map((order) => (
+              <article className="driver-income-bill-row" key={orderKey(order)}>
+                <div>
+                  <strong>{order.startName} → {order.endName}</strong>
+                  <small>{order.orderNo || `#${order.id}`} · {formatOrderDisplayTime(order)}</small>
+                </div>
+                <span>+{formatMoney(driverIncomeAmount(order), order.currencyCode)}</span>
+              </article>
+            ))}
+          </div>
+        ) : <EmptyState text="当前月份暂无完成订单流水。" />}
       </section>
     </div>
   )
 }
 
-function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefaultSettings, onSettingsChange, onServiceStatus }) {
+function DriverCertificationBoard({ dashboard, onUploadDocument, onCertify }) {
+  const [certError, setCertError] = useState('')
+  const [uploadingDocument, setUploadingDocument] = useState('')
+  const [editingCert, setEditingCert] = useState(false)
+  const documentInputs = useRef({})
+  const [cert, setCert] = useState(() => buildDriverCertificationForm(dashboard))
+
+  useEffect(() => {
+    if (!editingCert) setCert(buildDriverCertificationForm(dashboard))
+  }, [dashboard, editingCert])
+
+  const driverAudit = auditStatusMeta(dashboard?.profile?.auditStatus)
+  const vehicleAudit = auditStatusMeta(dashboard?.vehicle?.auditStatus)
+  const certFieldKeys = ['licenseNo', 'plateNo', 'brand', 'modelName', 'color', 'seatCount', 'insuranceExpireDate', 'annualInspectExpireDate']
+  const updateCert = (patch) => setCert((draft) => ({ ...draft, ...patch }))
+  const chooseDocument = (key) => {
+    documentInputs.current[key]?.click()
+  }
+  const resetCert = () => {
+    setCert(buildDriverCertificationForm(dashboard))
+    setCertError('')
+    setUploadingDocument('')
+    setEditingCert(false)
+  }
+  const handleDocumentFile = async (key, file) => {
+    if (!file || uploadingDocument) return
+    const documentType = key === 'vehicleLicenseImageUrl' ? 'VEHICLE_LICENSE' : 'DRIVER_LICENSE'
+    const localPreview = URL.createObjectURL(file)
+    updateCert({ [key]: localPreview })
+    setUploadingDocument(key)
+    setCertError('')
+    try {
+      const result = await onUploadDocument?.(file, documentType)
+      const fileUrl = result?.fileUrl || result?.url || localPreview
+      updateCert({ [key]: fileUrl })
+      if (fileUrl !== localPreview) URL.revokeObjectURL(localPreview)
+    } catch (error) {
+      updateCert({ [key]: '' })
+      setCertError(error.message || '证件图片上传失败，请重新选择')
+      URL.revokeObjectURL(localPreview)
+    } finally {
+      setUploadingDocument('')
+    }
+  }
+  const submitCert = async () => {
+    const payload = Object.fromEntries(Object.entries(cert).map(([key, value]) => [key, String(value ?? '').trim()]))
+    const requiredKeys = [
+      'licenseNo',
+      'plateNo',
+      'brand',
+      'modelName',
+      'color',
+      'seatCount',
+      'insuranceExpireDate',
+      'annualInspectExpireDate',
+      'vehicleLicenseImageUrl',
+      'driverLicenseImageUrl'
+    ]
+    const emptyKey = requiredKeys.find((key) => !payload[key])
+    if (emptyKey) {
+      setCertError(`请填写${fieldLabel(emptyKey)}`)
+      return
+    }
+    const seatCount = Number(payload.seatCount)
+    if (!Number.isFinite(seatCount) || seatCount < 4 || seatCount > 9) {
+      setCertError('座位数需要在 4-9 座之间')
+      return
+    }
+    if (isLocalDriverDocumentPath(payload.vehicleLicenseImageUrl)) {
+      setCertError('行驶证照片上传未完成，请重新上传')
+      return
+    }
+    if (isLocalDriverDocumentPath(payload.driverLicenseImageUrl)) {
+      setCertError('驾驶证照片上传未完成，请重新上传')
+      return
+    }
+    const confirmed = window.confirm(
+      dashboard?.vehicle?.id
+        ? '提交更换后，车辆审核状态会回到待审核，接单权限会临时锁定，确认继续吗？'
+        : '提交后需要等待管理员审核，审核通过后才能解锁接单功能，确认提交吗？'
+    )
+    if (!confirmed) return
+    setCertError('')
+    const success = await onCertify({ ...payload, seatCount })
+    if (success !== false) setEditingCert(false)
+  }
+
+  return (
+    <div className="dashboard-grid driver-certification-board">
+      <section className="glass-panel work-card wide driver-cert-card">
+        <div className="card-head">
+          <div><span className="section-kicker">车辆认证</span><h2>司机资质</h2></div>
+          {editingCert ? (
+            <button type="button" className="ghost-button compact-action" onClick={resetCert}>取消编辑</button>
+          ) : (
+            <button type="button" className="ghost-button compact-action" onClick={() => setEditingCert(true)}><BadgeCheck size={14} />编辑资质</button>
+          )}
+        </div>
+        <div className="cert-summary-grid">
+          <SummaryPill icon={BadgeCheck} value={driverAudit.label} label="人证审核" />
+          <SummaryPill icon={Car} value={vehicleAudit.label} label="车辆审核" />
+          <SummaryPill icon={ShieldCheck} value={dashboard?.servicePermission?.message || '待同步'} label="接单权限" />
+        </div>
+        <div className="driver-cert-notice">
+          <ShieldCheck size={16} />
+          <div>
+            <strong>{dashboard?.vehicle?.id ? '编辑车辆资质后需要重新审核' : '请补齐车辆和证件资料'}</strong>
+            <small>行驶证、驾驶证图片可点击预览；点击编辑后才可以重新选择上传，提交后接单权限会按审核状态同步。</small>
+          </div>
+        </div>
+        {editingCert ? (
+          <div className="form-grid">
+            {certFieldKeys.map((key) => (
+              <Field key={key} label={fieldLabel(key)} value={cert[key]} onChange={(value) => setCert((draft) => ({ ...draft, [key]: value }))} />
+            ))}
+          </div>
+        ) : (
+          <div className="profile-view-list driver-cert-readonly-list">
+            {certFieldKeys.map((key) => (
+              <div className="thin-row profile-view-row" key={key}>
+                <span>{fieldLabel(key)}</span>
+                <strong>{cert[key] || '-'}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="driver-document-grid">
+          {[
+            ['vehicleLicenseImageUrl', '行驶证图片', '请上传清晰完整的行驶证照片'],
+            ['driverLicenseImageUrl', '驾驶证图片', '请上传清晰完整的驾驶证照片']
+          ].map(([key, title, desc]) => (
+            <DriverDocumentCard
+              key={key}
+              title={title}
+              desc={desc}
+              value={cert[key]}
+              uploading={uploadingDocument === key}
+              editable={editingCert}
+              onPreview={() => previewDriverDocument(cert[key], title)}
+              onChoose={() => chooseDocument(key)}
+              inputRef={(node) => {
+                if (node) documentInputs.current[key] = node
+              }}
+              onFile={(file) => handleDocumentFile(key, file)}
+            />
+          ))}
+        </div>
+        {certError && <p className="form-error-line">{certError}</p>}
+        {editingCert && (
+          <div className="driver-cert-actions">
+            <button className="solid-button" disabled={Boolean(uploadingDocument)} onClick={submitCert}>
+              <ShieldCheck size={16} />{uploadingDocument ? '图片上传中...' : (dashboard?.vehicle?.id ? '提交变更审核' : '提交资质')}
+            </button>
+            <button type="button" className="ghost-button" disabled={Boolean(uploadingDocument)} onClick={resetCert}>取消</button>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function DriverDocumentCard({ title, desc, value, uploading, editable = false, onPreview, onChoose, inputRef, onFile }) {
+  const [imageBroken, setImageBroken] = useState(false)
+  const previewUrl = resolveDriverDocumentUrl(value)
+  const imageSrc = !value || imageBroken ? buildDocumentPlaceholder(title, value) : previewUrl
+
+  useEffect(() => {
+    setImageBroken(false)
+  }, [value])
+
+  return (
+    <article className="driver-document-card">
+      <div className="driver-document-head">
+        <div>
+          <strong>{title}</strong>
+          <small>{desc}</small>
+        </div>
+        <StatusBadge value={value ? 'READY' : 'PENDING'} label={value ? '已上传' : '待上传'} />
+      </div>
+      <button
+        type="button"
+        className={`driver-document-preview ${value ? 'has-image' : ''}`}
+        onClick={value ? onPreview : editable ? onChoose : undefined}
+      >
+        <img src={imageSrc} alt={title} onError={() => setImageBroken(true)} />
+        <span>{uploading ? '上传中...' : value ? '点击预览' : editable ? '点击选择图片' : '未上传'}</span>
+      </button>
+      {editable && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ''
+            if (file) onFile?.(file)
+          }}
+        />
+      )}
+      <div className="driver-document-actions">
+        {editable && <button type="button" className="ghost-button" onClick={onChoose}>{value ? '重新选择' : '上传图片'}</button>}
+        {value && <button type="button" className="ghost-button" onClick={onPreview}><Eye size={14} />预览</button>}
+      </div>
+    </article>
+  )
+}
+
+function buildDriverCertificationForm(dashboard = {}) {
+  const profile = dashboard?.profile || {}
+  const vehicle = dashboard?.vehicle || {}
+  return {
+    licenseNo: pickFirstCleanText(profile.licenseNo, profile.license_no, 'DRV20260514001'),
+    plateNo: pickFirstCleanText(vehicle.plateNo, vehicle.plate_no, '冀R·A8888'),
+    brand: pickFirstCleanText(vehicle.brand, '比亚迪'),
+    modelName: pickFirstCleanText(vehicle.modelName, vehicle.model_name, '汉 EV'),
+    color: pickFirstCleanText(vehicle.color, '橙白'),
+    seatCount: vehicle.seatCount || vehicle.seat_count || 5,
+    insuranceExpireDate: pickFirstCleanText(vehicle.insuranceExpireDate, vehicle.insurance_expire_date, '2026-12-31'),
+    annualInspectExpireDate: pickFirstCleanText(vehicle.annualInspectExpireDate, vehicle.annual_inspect_expire_date, '2026-12-31'),
+    vehicleLicenseImageUrl: pickFirstCleanText(vehicle.vehicleLicenseImageUrl, vehicle.vehicle_license_image_url),
+    driverLicenseImageUrl: pickFirstCleanText(vehicle.driverLicenseImageUrl, vehicle.driver_license_image_url)
+  }
+}
+
+function DriverProfileBoard({ dashboard, user, onProfile }) {
+  const [editingProfile, setEditingProfile] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [form, setForm] = useState({
     nickname: safeEditableText(user?.nickname),
     cityCode: dashboard?.profile?.cityCode || '310100',
     licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
+    emergencyContact: safeEditableText(dashboard?.profile?.emergencyContact || user?.emergencyContact),
+    emergencyPhone: dashboard?.profile?.emergencyPhone || user?.emergencyPhone || '',
     defaultLanguage: user?.defaultLanguage || 'zh-CN'
   })
+  const profileFieldKeys = ['nickname', 'cityCode', 'licenseNo', 'emergencyContact', 'emergencyPhone', 'defaultLanguage']
 
   useEffect(() => {
+    if (editingProfile) return
     setForm({
       nickname: safeEditableText(user?.nickname),
       cityCode: dashboard?.profile?.cityCode || '310100',
       licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
+      emergencyContact: safeEditableText(dashboard?.profile?.emergencyContact || user?.emergencyContact),
+      emergencyPhone: dashboard?.profile?.emergencyPhone || user?.emergencyPhone || '',
       defaultLanguage: user?.defaultLanguage || 'zh-CN'
     })
-  }, [dashboard?.profile?.cityCode, dashboard?.profile?.licenseNo, user?.defaultLanguage, user?.nickname])
+  }, [dashboard?.profile?.cityCode, dashboard?.profile?.emergencyContact, dashboard?.profile?.emergencyPhone, dashboard?.profile?.licenseNo, editingProfile, user?.defaultLanguage, user?.emergencyContact, user?.emergencyPhone, user?.nickname])
+
+  const cancelProfileEdit = () => {
+    setForm({
+      nickname: safeEditableText(user?.nickname),
+      cityCode: dashboard?.profile?.cityCode || '310100',
+      licenseNo: dashboard?.profile?.licenseNo || 'DRV20260514001',
+      emergencyContact: safeEditableText(dashboard?.profile?.emergencyContact || user?.emergencyContact),
+      emergencyPhone: dashboard?.profile?.emergencyPhone || user?.emergencyPhone || '',
+      defaultLanguage: user?.defaultLanguage || 'zh-CN'
+    })
+    setProfileError('')
+    setEditingProfile(false)
+  }
 
   const saveProfile = async () => {
     if (savingProfile) return
@@ -6983,6 +8445,8 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
       nickname: form.nickname.trim(),
       cityCode: form.cityCode.trim(),
       licenseNo: form.licenseNo.trim(),
+      emergencyContact: form.emergencyContact.trim(),
+      emergencyPhone: form.emergencyPhone.trim(),
       defaultLanguage: form.defaultLanguage.trim() || 'zh-CN'
     }
     if (!payload.nickname) {
@@ -6997,10 +8461,15 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
       setProfileError('请填写正确的驾驶证号')
       return
     }
+    if (!isValidContactPhone(payload.emergencyPhone)) {
+      setProfileError('请填写 8-16 位纯数字紧急电话')
+      return
+    }
     setProfileError('')
     setSavingProfile(true)
     try {
-      await onProfile(payload)
+      const success = await onProfile(payload)
+      if (success !== false) setEditingProfile(false)
     } finally {
       setSavingProfile(false)
     }
@@ -7008,29 +8477,89 @@ function DriverProfileBoard({ dashboard, user, onProfile, settings = driverDefau
 
   return (
     <div className="dashboard-grid">
-      <section className="glass-panel work-card">
-        <div className="card-head"><h2>司机资料</h2><User size={21} /></div>
-        {Object.keys(form).map((key) => (
-          <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
-        ))}
-        {profileError && <p className="form-error-line">{profileError}</p>}
-        <button className={`solid-button fill${savingProfile ? ' is-busy' : ''}`} disabled={savingProfile} onClick={saveProfile}>
-          <ShieldCheck size={16} />{savingProfile ? '保存中...' : '保存司机资料'}
-        </button>
-      </section>
       <section className="glass-panel work-card wide">
-        <div className="card-head"><h2>设置与播报</h2><Settings size={21} /></div>
+        <div className="card-head">
+          <div><span className="section-kicker">司机资料</span><h2>资料编辑</h2></div>
+          {editingProfile ? (
+            <button type="button" className="ghost-button compact-action" onClick={cancelProfileEdit}>取消编辑</button>
+          ) : (
+            <button type="button" className="ghost-button compact-action" onClick={() => setEditingProfile(true)}><Settings size={14} />编辑资料</button>
+          )}
+        </div>
+        {editingProfile ? (
+          <>
+            <div className="form-grid">
+              {profileFieldKeys.map((key) => (
+                <Field key={key} label={fieldLabel(key)} value={form[key]} onChange={(value) => setForm((draft) => ({ ...draft, [key]: value }))} />
+              ))}
+            </div>
+            {profileError && <p className="form-error-line">{profileError}</p>}
+            <button className={`solid-button profile-save-button${savingProfile ? ' is-busy' : ''}`} disabled={savingProfile} onClick={saveProfile}>
+              <ShieldCheck size={16} />{savingProfile ? '保存中...' : '保存司机资料'}
+            </button>
+          </>
+        ) : (
+          <div className="profile-view-list wallet-readonly-list">
+            {profileFieldKeys.map((key) => (
+              <div className="thin-row profile-view-row" key={key}>
+                <span>{fieldLabel(key)}</span>
+                <strong>{key === 'emergencyPhone' && form[key] ? maskPhone(form[key]) : form[key] || '-'}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      <section className="glass-panel work-card">
+        <div className="card-head"><h2>司机状态</h2><User size={21} /></div>
+        <InfoPanel title="当前状态" items={[
+          ['服务状态', statusLabel[dashboard?.profile?.serviceStatus] || '-'],
+          ['今日订单', dashboard?.orders?.length || 0],
+          ['资质状态', dashboard?.servicePermission?.message || '-'],
+          ['资料状态', dashboard?.profile?.auditStatus || '-']
+        ]} />
+      </section>
+    </div>
+  )
+}
+
+function DriverSettingsBoard({ dashboard, settings = driverDefaultSettings, onSettingsChange, onServiceStatus }) {
+  const safeSettings = normalizeDriverSettings(settings)
+  const trackMeta = driverTrackModeMeta(safeSettings.trackMode)
+
+  return (
+    <div className="dashboard-grid driver-settings-board">
+      <section className="glass-panel work-card wide driver-settings-card">
+        <div className="card-head">
+          <div>
+            <span className="section-kicker">接单设置</span>
+            <h2>听单、轨迹与语音播报</h2>
+            <small>对齐司机小程序设置页，当前偏好会保存在网页端。</small>
+          </div>
+          <Settings size={21} />
+        </div>
+        <div className="driver-settings-hero">
+          <div>
+            <span>当前状态</span>
+            <strong>{safeSettings.listenMode ? '听单中' : '休息中'}</strong>
+            <small>{trackMeta.label}轨迹 · {driverVoiceStyleLabel(safeSettings.voiceStyle)}</small>
+          </div>
+          <StatusBadge value={dashboard?.profile?.serviceStatus || DRIVER_STATUS.OFFLINE} />
+        </div>
         <DriverSettingsPanel
-          settings={settings}
+          settings={safeSettings}
           serviceStatus={dashboard?.profile?.serviceStatus}
           onSettingsChange={onSettingsChange}
           onServiceStatus={onServiceStatus}
         />
-        <InfoPanel title="司机状态" items={[
-          ['服务状态', statusLabel[dashboard?.profile?.serviceStatus] || '-'],
-          ['今日订单', dashboard?.orders?.length || 0],
-          ['资质状态', dashboard?.servicePermission?.message || '-'],
-          ['状态接口', 'POST /driver/service-status']
+      </section>
+      <section className="glass-panel work-card">
+        <div className="card-head"><h2>设置摘要</h2><Radio size={21} /></div>
+        <InfoPanel title="当前偏好" items={[
+          ['听单模式', safeSettings.listenMode ? '开启' : '关闭'],
+          ['自动接单', safeSettings.autoAccept ? '开启' : '关闭'],
+          ['语音播报', safeSettings.voiceBroadcast ? '开启' : '关闭'],
+          ['轨迹模式', trackMeta.label],
+          ['播报声音', driverVoiceStyleLabel(safeSettings.voiceStyle)]
         ]} />
       </section>
     </div>
@@ -7167,6 +8696,21 @@ function dateLikeToMs(value) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function driverOrderIdOf(order = {}) {
+  const value = order.id || order.orderId || order.orderNo || order.order_id || order.order_no || ''
+  return value === undefined || value === null ? '' : String(value)
+}
+
+function driverOrderCreatedAtMs(order = {}) {
+  return dateLikeToMs(order.createdAt || order.createTime || order.createdTime || order.created_at || order.orderTime || order.submitTime) || 0
+}
+
+function isDriverOrderNewAfterListening(order = {}, listeningSince = 0) {
+  const since = Number(listeningSince || 0)
+  if (!since) return false
+  return Boolean(order.isNew) || driverOrderCreatedAtMs(order) >= since
+}
+
 function messageEventTime(item) {
   return dateLikeToMs(item.createdAt || item.createdTime || item.createTime)
 }
@@ -7218,6 +8762,85 @@ function enrichMessagesWithOrders(messages, orders) {
   return messages.map((item) => ({ ...item, order: matchMessageOrder(item, orders) }))
 }
 
+function getMessageText(message = {}) {
+  return [
+    message.title,
+    message.content,
+    message.type,
+    message.templateCode,
+    message.bizType,
+    message.url,
+    message.linkUrl,
+    message.targetUrl,
+    message.path
+  ].filter(Boolean).join(' ')
+}
+
+function normalizeMessageRoute(value = '') {
+  const text = String(value || '').trim()
+  return text.startsWith('/pages/') ? text : ''
+}
+
+function getMessageRouteOrderId(route = '') {
+  const matched = String(route || '').match(/[?&](?:id|orderId)=([^&]+)/)
+  return matched ? decodeURIComponent(matched[1]) : ''
+}
+
+function extractWebMessageOrderId(message = {}) {
+  const direct = message.orderId || message.orderNo || message.bizId || message.targetId || message.bizNo
+  if (direct) return String(direct)
+  const linked = orderKey(message.order || {})
+  if (linked) return linked
+  const text = getMessageText(message)
+  const matched = text.match(/(?:ORDER|ORD|order|订单|行程)[^\dA-Za-z]*([A-Za-z0-9_-]{4,})/)
+  return matched ? matched[1] : ''
+}
+
+function mapMiniappRouteToWebTarget(route = '', message = {}, role = 'USER') {
+  const cleanRoute = normalizeMessageRoute(route)
+  if (!cleanRoute) return null
+  const path = cleanRoute.split('?')[0]
+  const orderId = getMessageRouteOrderId(cleanRoute) || extractWebMessageOrderId(message)
+  const orderTarget = () => ({ tab: 'orders', orderId, label: '查看订单' })
+  if (/\/pages\/(order-detail|payment-confirm|fare-settlement|taxi-waiting|driver-arrival|trip-progress|trip-detail)\//.test(path)) {
+    return orderTarget()
+  }
+  if (path === '/pages/orders/index') return orderTarget()
+  if (path === '/pages/invoice/index') return { tab: 'invoice', orderId, label: '处理发票' }
+  if (path === '/pages/coupon/index') return { tab: 'coupons', label: '查看券包' }
+  if (path === '/pages/wallet/index' || path === '/pages/withdraw/index') return { tab: 'wallet', label: role === 'DRIVER' ? '查看钱包' : '查看钱包实名' }
+  if (path === '/pages/onboarding/index') return { tab: 'certification', label: '查看资质' }
+  if (path === '/pages/settings/index') return { tab: role === 'DRIVER' ? 'settings' : 'profile', label: role === 'DRIVER' ? '接单设置' : '出行偏好' }
+  if (path === '/pages/profile/index' || path === '/pages/profile-edit/index' || path === '/pages/profileEdit/index' || path === '/pages/auth/index') return { tab: 'profile', label: '查看资料' }
+  if (path === '/pages/carpool/index' || path === '/pages/carpool-trips/index') return { tab: 'carpool', label: '查看顺风车' }
+  if (path === '/pages/international/index' || path === '/pages/international-orders/index') return { tab: 'international', label: '查看国际出行' }
+  if (path === '/pages/support/index') return { tab: 'support', label: '联系客服' }
+  if (path === '/pages/messages/index') return { tab: 'messages', label: '留在消息' }
+  if (path === '/pages/dashboard/index') return { tab: 'listen', label: '返回听单' }
+  return null
+}
+
+function resolveWebMessageTarget(message = {}, role = 'USER') {
+  const explicitTarget = mapMiniappRouteToWebTarget(
+    message.url || message.linkUrl || message.targetUrl || message.path,
+    message,
+    role
+  )
+  if (explicitTarget) return explicitTarget
+
+  const text = getMessageText(message)
+  const orderId = extractWebMessageOrderId(message)
+  if (/INVOICE|发票/.test(text)) return { tab: 'invoice', orderId, label: '处理发票' }
+  if (/COUPON|优惠券|券包/.test(text)) return { tab: 'coupons', label: '查看券包' }
+  if (/MEMBER|会员/.test(text)) return { tab: 'member', label: '查看会员' }
+  if (/WALLET|WITHDRAW|钱包|收入|收益|提现|结算|打款/.test(text)) return { tab: 'wallet', label: role === 'DRIVER' ? '查看钱包' : '查看钱包实名' }
+  if (role === 'DRIVER' && /CERT|车辆|认证|审核|证照|资质|接单权限/.test(text)) return { tab: 'certification', label: '查看资质' }
+  if (role === 'DRIVER' && /SETTING|设置|听单|自动接单|语音|轨迹/.test(text)) return { tab: 'settings', label: '接单设置' }
+  if (/ORDER|订单|行程|支付|司机|接单|取消|完成|上车/.test(text) || message.order) return { tab: 'orders', orderId, label: '查看订单' }
+  if (/SUPPORT|客服|人工|投诉|反馈/.test(text)) return { tab: 'support', label: '联系客服' }
+  return null
+}
+
 function isMessageRead(item, index) {
   if (item?.unread === true) return false
   if (item?.unread === false) return true
@@ -7229,7 +8852,7 @@ function isMessageRead(item, index) {
   return index > 1
 }
 
-function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
+function MessageBoard({ messages, orders = [], role = 'USER', onRefresh, onReadMessage, onNavigateTarget }) {
   const [expanded, setExpanded] = useState(false)
   const [readFilter, setReadFilter] = useState('UNREAD')
   const [selectedMessage, setSelectedMessage] = useState(null)
@@ -7239,9 +8862,10 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
   const list = useMemo(
     () => enrichMessagesWithOrders(messages || [], orders || []).map((item, index) => ({
       ...item,
-      __isRead: readOverrides[item.id] ?? isMessageRead(item, index)
+      __isRead: readOverrides[item.id] ?? isMessageRead(item, index),
+      __target: resolveWebMessageTarget(item, role)
     })),
-    [messages, orders, readOverrides]
+    [messages, orders, readOverrides, role]
   )
   const filteredList = useMemo(() => {
     if (readFilter === 'READ') return list.filter((item) => item.__isRead)
@@ -7254,6 +8878,29 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
   const limit = 4
   const hasMore = filteredList.length > limit
   const visibleMessages = expanded || !hasMore ? filteredList : filteredList.slice(0, limit)
+
+  const markMessageReadIfNeeded = async (item) => {
+    if (!item.__isRead) {
+      setReadOverrides((value) => ({ ...value, [item.id]: true }))
+      try {
+        await onReadMessage?.(item)
+      } catch (error) {}
+    }
+  }
+
+  const openMessage = async (item) => {
+    const nextItem = item.__isRead ? item : { ...item, __isRead: true, unread: false, read: true, isRead: true, readStatus: 'READ' }
+    setSelectedMessage(nextItem)
+    await markMessageReadIfNeeded(item)
+  }
+
+  const navigateMessageTarget = async (item) => {
+    if (!item?.__target) return
+    await markMessageReadIfNeeded(item)
+    setSelectedMessage(null)
+    onNavigateTarget?.(item.__target, item)
+  }
+
   const messageDetailModal = selectedMessage && typeof document !== 'undefined'
     ? createPortal(
       <div className="modal-layer" onMouseDown={() => setSelectedMessage(null)}>
@@ -7277,6 +8924,15 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
                   <span>{formatMoney(selectedMessage.order.payableAmount || selectedMessage.order.actualAmount || selectedMessage.order.estimatedAmount, selectedMessage.order.currencyCode)}</span>
                 </div>
               )}
+              {selectedMessage.__target && (
+                <button
+                  type="button"
+                  className="solid-button message-target-action"
+                  onClick={() => navigateMessageTarget(selectedMessage)}
+                >
+                  <ChevronRight size={15} />{selectedMessage.__target.label || '去处理'}
+                </button>
+              )}
             </div>
           </section>
         </div>
@@ -7284,17 +8940,6 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
       document.body
     )
     : null
-
-  const openMessage = async (item) => {
-    const nextItem = item.__isRead ? item : { ...item, __isRead: true, unread: false, read: true, isRead: true, readStatus: 'READ' }
-    setSelectedMessage(nextItem)
-    if (!item.__isRead) {
-      setReadOverrides((value) => ({ ...value, [item.id]: true }))
-      try {
-        await onReadMessage?.(item)
-      } catch (error) {}
-    }
-  }
 
   const markCurrentListRead = async () => {
     const targets = filteredList.filter((item) => !item.__isRead)
@@ -7387,6 +9032,18 @@ function MessageBoard({ messages, orders = [], onRefresh, onReadMessage }) {
                     <small>{messageTypeLabel(item.type)} · {item.time || item.createdTime || item.createTime || '-'}</small>
                   )}
                   {item.order && <small>{messageTypeLabel(item.type)} · {item.time || item.createdTime || item.createTime || '-'}</small>}
+                  {item.__target && (
+                    <button
+                      type="button"
+                      className="message-target-chip"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        navigateMessageTarget(item)
+                      }}
+                    >
+                      {item.__target.label || '去处理'}<ChevronRight size={12} />
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -7428,6 +9085,7 @@ function ProfileBoard({ profile, mode, onProfile }) {
     ['紧急联系人', displayEmergencyContact || '-'],
     ['紧急电话', profile?.emergencyPhone || '-']
   ]
+  const authMeta = passengerAuthStatusMeta(profile?.authStatus)
 
   const saveProfile = async () => {
     if (!onProfile || savingProfile) return
@@ -7436,14 +9094,18 @@ function ProfileBoard({ profile, mode, onProfile }) {
       setProfileError('请填写昵称')
       return
     }
-    if (payload.emergencyPhone && !isValidPhone(payload.emergencyPhone)) {
-      setProfileError('紧急电话需要为 11 位手机号')
+    if (payload.emergencyPhone && !isValidContactPhone(payload.emergencyPhone)) {
+      setProfileError('紧急电话需要为 8-16 位纯数字')
       return
     }
     setProfileError('')
     setSavingProfile(true)
     try {
-      await onProfile(payload)
+      const success = await onProfile(payload)
+      if (success === false) {
+        setProfileError('资料保存失败，请稍后重试')
+        return
+      }
       setEditing(false)
     } finally {
       setSavingProfile(false)
@@ -7463,7 +9125,7 @@ function ProfileBoard({ profile, mode, onProfile }) {
             </div>
           </div>
           <div className="settings-account-tags">
-            <span className={`settings-mini-badge ${profile?.authStatus === 2 ? 'is-good' : ''}`}><ShieldCheck size={14} />{profile?.authStatus === 2 ? '已认证' : '待完善实名'}</span>
+            <span className={`settings-mini-badge ${authMeta.verified ? 'is-good' : ''}`}><ShieldCheck size={14} />{authMeta.label}</span>
             <span className="settings-mini-badge"><Locate size={14} />{profile?.cityCode || '默认城市'}</span>
           </div>
         </div>
@@ -8204,6 +9866,91 @@ function SelectField({ label, value, options, onChange, icon: Icon }) {
   )
 }
 
+function AddressPointField({ label, point, onClick, icon: Icon = MapPin, active = false }) {
+  const address = normalizeWebAddressPoint(point)
+  return (
+    <button type="button" className={`address-point-field ${active ? 'active' : ''}`} onClick={onClick}>
+      <Icon size={18} />
+      <span>{label}</span>
+      <strong>{address.name}</strong>
+      <small>{address.address}</small>
+    </button>
+  )
+}
+
+function AddressSearchField({ label, point, placeholder, onSelect, icon: Icon = MapPin, currentLocation = null, serviceType = SERVICE_TYPE.CARPOOL }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const selected = normalizeWebAddressPoint(point)
+
+  useEffect(() => {
+    const keyword = query.trim()
+    let cancelled = false
+    if (!open || !keyword) {
+      setItems([])
+      setLoading(false)
+      return undefined
+    }
+    setLoading(true)
+    const timer = window.setTimeout(async () => {
+      try {
+        const list = await searchWebAddressCandidates(keyword, currentLocation || selected, { serviceType, pageSize: 6 })
+        if (!cancelled) setItems(list)
+      } catch (error) {
+        if (!cancelled) setItems(buildLocalAddressCandidates(keyword, currentLocation || selected, { serviceType, pageSize: 6 }))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }, 240)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [currentLocation, open, query, selected.latitude, selected.longitude, serviceType])
+
+  const choose = (item) => {
+    const next = normalizeWebAddressPoint(item)
+    onSelect?.(next)
+    setQuery('')
+    setItems([])
+    setOpen(false)
+  }
+
+  return (
+    <label className="plain-field address-search-field">
+      <span>{label}</span>
+      <div className="address-search-field__box">
+        <Icon size={16} />
+        <input
+          value={open ? query : selected.name}
+          onFocus={() => {
+            setOpen(true)
+            setQuery('')
+          }}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={placeholder}
+        />
+      </div>
+      <small>{selected.address}</small>
+      {open && (
+        <div className="address-search-field__menu">
+          {loading && <div className="address-search-field__empty">地图搜索中...</div>}
+          {!loading && query.trim() && !items.length && <div className="address-search-field__empty">没有匹配地址，换个关键词试试</div>}
+          {items.map((item) => (
+            <button type="button" key={getAddressKey(item)} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(item)}>
+              <strong>{item.name}</strong>
+              <span>{item.address}</span>
+              {item.distanceText && <em>{item.distanceText}</em>}
+            </button>
+          ))}
+        </div>
+      )}
+    </label>
+  )
+}
+
 function StatusBadge({ value, label, tone }) {
   const resolvedTone = tone || statusTone[value] || 'muted'
   return <span className={`status-badge ${resolvedTone}`}>{label || statusLabel[value] || value || '-'}</span>
@@ -8572,16 +10319,52 @@ function getCarTypeName(item) {
   return item.name || item.typeName || item.carTypeName || `车型 ${item.id}`
 }
 
+function isInternationalPoiCandidate(poi = {}) {
+  const text = `${poi.name || ''} ${poi.address || ''} ${(poi.tags || []).join(' ')}`
+  return text.includes('国际') || text.includes('香港') || text.includes('澳门') || text.includes('口岸')
+}
+
+function getCarTypeTier(item = {}) {
+  const text = `${item.name || ''}${item.typeName || ''}${item.carTypeName || ''}`.toLowerCase()
+  if (text.includes('商务') || text.includes('business') || Number(item.id) >= 3) return 'business'
+  if (text.includes('舒适') || text.includes('comfort') || Number(item.id) === 2) return 'comfort'
+  return 'economy'
+}
+
+function getCarTypeTierClass(item = {}) {
+  return `car-tier-${getCarTypeTier(item)}`
+}
+
+function CarTypeIcon({ carType }) {
+  const tier = getCarTypeTier(carType)
+  const Icon = tier === 'business' ? ShieldCheck : tier === 'comfort' ? Users : CarTaxiFront
+  return (
+    <span className="booking-car-icon">
+      <Icon size={22} strokeWidth={2.35} />
+      <i />
+    </span>
+  )
+}
+
 function passengerOrderAction(action, order, token, payload = {}) {
   if (action === 'cancel') return api.cancelOrder(token, order.id, '乘客网页端取消')
   if (action === 'pickup') return api.pickupOrder(token, order.id)
-  if (action === 'pay') return api.mockPay(token, order.id, payload.payableAmount || order.payableAmount, payload.payChannel || 'WEB')
+  if (action === 'pay') {
+    return api.mockPay(token, order.id, payload.payableAmount || order.payableAmount, payload.payChannel || 'WEB', {
+      userCouponId: payload.userCouponId || null,
+      couponDiscount: payload.couponDiscount || 0,
+      originalAmount: payload.originalAmount || null,
+      couponName: payload.couponName || '',
+      couponRuleDesc: payload.couponRuleDesc || ''
+    })
+  }
   if (action === 'evaluate') {
     return api.evaluate(token, {
       orderId: order.id,
       score: Number(payload.score || 5),
       tags: payload.tags || [],
-      content: payload.content || '网页端评价：体验顺滑，服务很好。'
+      content: payload.content || '网页端评价：体验顺滑，服务很好。',
+      anonymous: Boolean(payload.anonymous)
     })
   }
   if (action === 'complaint') {
@@ -8595,18 +10378,74 @@ function passengerOrderAction(action, order, token, payload = {}) {
   return Promise.resolve()
 }
 
-function driverOrderAction(action, order, token) {
-  if (action === 'start') return api.driverStart(token, order.id)
-  if (action === 'pickup') return api.driverPickup(token, order.id)
-  if (action === 'finish') return api.driverFinish(token, order.id, {
-    actualDistanceKm: order.estimatedDistanceKm || 3,
-    actualDurationMin: order.estimatedDurationMin || 15
-  })
+async function driverOrderAction(action, order, token) {
+  if (action === 'start') {
+    const result = await api.driverStart(token, order.id)
+    await reportDriverTrackPoint(token, order, action)
+    return result
+  }
+  if (action === 'pickup') {
+    const result = await api.driverPickup(token, order.id)
+    await reportDriverTrackPoint(token, order, action)
+    return result
+  }
+  if (action === 'finish') {
+    const result = await api.driverFinish(token, order.id, {
+      actualDistanceKm: order.actualDistanceKm || order.estimatedDistanceKm || 3,
+      actualDurationMin: order.actualDurationMin || order.estimatedDurationMin || 15
+    })
+    await reportDriverTrackPoint(token, order, action)
+    return result
+  }
   return Promise.resolve()
 }
 
+async function reportDriverTrackPoint(token, order = {}, action = '') {
+  if (!token || !order?.id) return
+  const useEndPoint = action === 'finish'
+  const latitude = Number(useEndPoint ? order.endLat : order.startLat)
+  const longitude = Number(useEndPoint ? order.endLng : order.startLng)
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+  try {
+    await api.reportTrack(token, order.id, {
+      latitude,
+      longitude,
+      source: 'WEB_DRIVER',
+      eventType: action,
+      heading: action === 'finish' ? 180 : 0
+    })
+  } catch (error) {}
+}
+
+function resolveDriverWebLocation(profile = {}) {
+  const fallback = {
+    longitude: Number(profile.lastLongitude || 117.0810),
+    latitude: Number(profile.lastLatitude || 39.9820)
+  }
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve(fallback)
+  }
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => resolve(fallback), 2500)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        window.clearTimeout(timer)
+        resolve({
+          longitude: Number(position.coords.longitude),
+          latitude: Number(position.coords.latitude)
+        })
+      },
+      () => {
+        window.clearTimeout(timer)
+        resolve(fallback)
+      },
+      { enableHighAccuracy: true, timeout: 2200, maximumAge: 30000 }
+    )
+  })
+}
+
 function normalizeDriverTrackMode(value) {
-  return value === 'REAL' ? 'REAL' : 'DEMO'
+  return value === 'DEMO' ? 'DEMO' : 'REAL'
 }
 
 function normalizeDriverVoiceStyle(value) {
@@ -8622,7 +10461,10 @@ function normalizeDriverSettings(settings = {}) {
     voiceBroadcast: settings.voiceBroadcast !== false,
     voiceStyle: normalizeDriverVoiceStyle(settings.voiceStyle),
     trackMode: normalizeDriverTrackMode(settings.trackMode),
-    listeningSince: Number(settings.listeningSince || 0)
+    manualResting: Boolean(settings.manualResting),
+    listeningSince: Number(settings.listeningSince || 0),
+    listeningBaselineReady: Boolean(settings.listeningBaselineReady),
+    listeningBaselineOrderIds: normalizeList(settings.listeningBaselineOrderIds).map((item) => String(item)).filter(Boolean)
   }
 }
 
@@ -8658,6 +10500,70 @@ function driverTrackModeMeta(value) {
 function driverVoiceStyleLabel(value) {
   const option = driverVoiceStyleOptions.find(([optionValue]) => optionValue === normalizeDriverVoiceStyle(value))
   return option?.[1] || '播音声音'
+}
+
+function resolveDriverDocumentUrl(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^(blob:|data:|https?:\/\/)/i.test(text)) return text
+  if (text.startsWith('/')) return `${getApiBase()}${text}`
+  return text
+}
+
+function resolveMediaAssetUrl(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^(blob:|data:|https?:\/\/)/i.test(text)) return text
+  if (text.startsWith('/')) return `${getApiBase()}${text}`
+  return text
+}
+
+function isLocalDriverDocumentPath(value) {
+  return /^(blob:|data:)/i.test(String(value || '').trim())
+}
+
+function buildDocumentPlaceholder(title = '证件图片', value = '') {
+  const pathText = String(value || '').trim()
+  const subtitle = pathText ? '图片暂不可预览，可重新选择' : '点击上传证件图片'
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff7ed"/>
+          <stop offset="1" stop-color="#f8fafc"/>
+        </linearGradient>
+      </defs>
+      <rect width="640" height="400" rx="28" fill="url(#g)"/>
+      <rect x="54" y="52" width="532" height="296" rx="22" fill="#ffffff" stroke="#fed7aa" stroke-width="3"/>
+      <rect x="92" y="100" width="184" height="22" rx="11" fill="#ffedd5"/>
+      <rect x="92" y="144" width="456" height="18" rx="9" fill="#e2e8f0"/>
+      <rect x="92" y="184" width="390" height="18" rx="9" fill="#e2e8f0"/>
+      <rect x="92" y="224" width="456" height="92" rx="14" fill="#fff7ed"/>
+      <text x="320" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#9a4a00">${escapeSvgText(title)}</text>
+      <text x="320" y="296" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#64748b">${escapeSvgText(subtitle)}</text>
+    </svg>`
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+}
+
+function escapeSvgText(value = '') {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&apos;'
+  }[char]))
+}
+
+function previewDriverDocument(value, title = '证件图片') {
+  const url = resolveDriverDocumentUrl(value) || buildDocumentPlaceholder(title)
+  const win = window.open('', '_blank', 'noopener,noreferrer')
+  if (!win) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  win.document.write(`<!doctype html><title>${escapeSvgText(title)}</title><style>body{margin:0;display:grid;place-items:center;min-height:100vh;background:#111827}img{max-width:96vw;max-height:96vh;border-radius:14px;background:#fff}</style><img src="${escapeSvgText(url)}" alt="${escapeSvgText(title)}">`)
+  win.document.close()
 }
 
 function buildInternationalForm(profile = {}) {
@@ -8697,18 +10603,45 @@ function resolveInternationalRouteIds(option = {}) {
   }
 }
 
+function resolveInternationalRoutePoints(option = {}) {
+  const ids = resolveInternationalRouteIds(option)
+  return {
+    startPoint: normalizeWebAddressPoint(findPoi(ids.startId), findPoi('poi007')),
+    endPoint: normalizeWebAddressPoint(findPoi(ids.endId), findPoi('poi008'))
+  }
+}
+
 function normalizeInternationalForm(form = {}) {
   return {
     date: String(form.date || '').trim(),
     time: String(form.time || '').trim(),
-    passengerCount: Math.max(1, Math.min(6, Number(form.passengerCount || 1))),
-    luggageCount: Math.max(0, Math.min(20, Number(form.luggageCount || 0))),
+    passengerCount: Number(form.passengerCount || 0),
+    luggageCount: Number(form.luggageCount || 0),
     contactName: String(form.contactName || '').trim(),
     contactPhone: String(form.contactPhone || '').replace(/[^\d+]/g, '').trim(),
     flightNo: String(form.flightNo || '').trim().toUpperCase(),
     pickupSign: String(form.pickupSign || '').trim(),
     note: String(form.note || '').trim()
   }
+}
+
+function validateInternationalForm(form = {}) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date) || !/^\d{2}:\d{2}$/.test(form.time)) {
+    return '请选择有效预约日期和时间'
+  }
+  if (!Number.isFinite(form.passengerCount) || form.passengerCount < 1 || form.passengerCount > 6) {
+    return '乘车人数需在 1-6 人之间'
+  }
+  if (!Number.isFinite(form.luggageCount) || form.luggageCount < 0 || form.luggageCount > 20) {
+    return '行李件数需在 0-20 件之间'
+  }
+  if (!form.contactName || !form.contactPhone) {
+    return '请填写联系人和电话'
+  }
+  if (!/^\+?\d{6,20}$/.test(form.contactPhone)) {
+    return '请填写有效联系电话'
+  }
+  return ''
 }
 
 function buildInternationalRemark(option = {}, note = '', form = {}, estimate = {}) {
@@ -8790,8 +10723,23 @@ function isValidPhone(value) {
   return /^1\d{10}$/.test(String(value || '').trim())
 }
 
+function isValidContactPhone(value) {
+  const phone = String(value || '').trim()
+  return !phone || /^\d{8,16}$/.test(phone)
+}
+
 function isValidIdCard(value) {
-  return /^\d{17}[\dXx]$/.test(String(value || '').trim())
+  return /^[0-9Xx]{15,18}$/.test(String(value || '').trim())
+}
+
+function passengerAuthStatusMeta(status) {
+  const numeric = Number(status)
+  const value = Number.isFinite(numeric) ? numeric : 0
+  return {
+    value,
+    label: passengerAuthStatusText[value] || '未实名',
+    verified: value === 2
+  }
 }
 
 function withdrawBankName(item = {}) {
@@ -8830,7 +10778,7 @@ function fieldLabel(key) {
     nickname: '昵称',
     emergencyContact: '紧急联系人',
     emergencyPhone: '紧急电话',
-    defaultLanguage: '语言',
+    defaultLanguage: '默认语言',
     cityCode: '服务城市',
     applyAmount: '提现金额',
     bankName: '开户行',

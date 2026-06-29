@@ -818,6 +818,11 @@
   border: 1rpx solid rgba(255, 122, 0, 0.16);
 }
 
+.vehicle-summary-box .summary-title,
+.vehicle-summary-box .summary-subtitle {
+  font-weight: 700;
+}
+
 .summary-grid--reference {
   gap: 12rpx;
 }

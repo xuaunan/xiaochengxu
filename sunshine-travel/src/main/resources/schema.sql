@@ -356,6 +356,7 @@ CREATE TABLE IF NOT EXISTS t_support_conversation (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
     user_role VARCHAR(20) NOT NULL COMMENT '用户角色',
+    channel VARCHAR(20) NOT NULL DEFAULT 'MINIAPP' COMMENT '客服渠道',
     status VARCHAR(20) NOT NULL DEFAULT 'OPEN' COMMENT '会话状态',
     last_message VARCHAR(500) DEFAULT NULL COMMENT '最后一条消息',
     last_message_at DATETIME DEFAULT NULL COMMENT '最后消息时间',
@@ -363,8 +364,9 @@ CREATE TABLE IF NOT EXISTS t_support_conversation (
     unread_for_user INT NOT NULL DEFAULT 0 COMMENT '用户未读数',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY uk_support_conversation_user_role (user_id, user_role),
+    UNIQUE KEY uk_support_conversation_user_role_channel (user_id, user_role, channel),
     KEY idx_support_conversation_status (status),
+    KEY idx_support_conversation_channel (channel),
     KEY idx_support_conversation_last (last_message_at),
     CONSTRAINT fk_support_conversation_user FOREIGN KEY (user_id) REFERENCES t_platform_user(id)
 ) COMMENT='客服会话表';

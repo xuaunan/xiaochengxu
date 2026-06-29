@@ -18,6 +18,8 @@ const aiContext = ref(null)
 const aiContextVisible = ref(false)
 const replyText = ref('')
 let supportTimer
+const SUPPORT_WELCOME_MESSAGE = '您好，阳光出行客服已接入，请描述您遇到的问题。'
+const PREVIOUS_SUPPORT_WELCOME_MESSAGE = '您好，阳光出行AI客服已接入，请描述您遇到的问题。'
 
 const query = reactive({
   current: 1,
@@ -83,10 +85,28 @@ function normalizeList(payload) {
   return payload.records || payload.messages || payload.list || payload.rows || []
 }
 
+function normalizeSupportWelcomeContent(content) {
+  return content === PREVIOUS_SUPPORT_WELCOME_MESSAGE ? SUPPORT_WELCOME_MESSAGE : content
+}
+
+function normalizeSupportConversation(item = {}) {
+  return {
+    ...item,
+    lastMessage: normalizeSupportWelcomeContent(item.lastMessage)
+  }
+}
+
+function normalizeSupportMessage(item = {}) {
+  return {
+    ...item,
+    content: normalizeSupportWelcomeContent(item.content)
+  }
+}
+
 function supportStatusLabel(status) {
-  if (status === 'MANUAL') return '人工接管'
+  if (status === 'MANUAL') return '人工处理中'
   if (status === 'CLOSED') return '已关闭'
-  return '处理中'
+  return 'AI接待中'
 }
 
 function supportStatusTagType(status) {
@@ -95,9 +115,20 @@ function supportStatusTagType(status) {
   return 'success'
 }
 
-function isConversationClosed(status) {
-  return status === 'CLOSED'
+function channelLabel(item) {
+  if (item?.channelText) return item.channelText
+  return item?.channel === 'WEB' ? '网页端' : '小程序'
 }
+
+function channelTagType(item) {
+  return item?.channel === 'WEB' ? 'primary' : 'success'
+}
+
+function isManualConversation(conversation) {
+  return conversation?.manualMode === true || conversation?.status === 'MANUAL'
+}
+
+const canReply = computed(() => isManualConversation(selectedConversation.value))
 
 async function loadConversations(resetPage = false) {
   if (resetPage) {
@@ -106,7 +137,7 @@ async function loadConversations(resetPage = false) {
   loading.value = true
   try {
     const response = await http.get('/admin/support/conversations', { params: query })
-    conversations.value = response?.records || []
+    conversations.value = (response?.records || []).map(normalizeSupportConversation)
     total.value = response?.total || 0
     if (selectedId.value) {
       const latestSelected = conversations.value.find((item) => item.id === selectedId.value)
@@ -126,6 +157,7 @@ async function selectConversation(item) {
   selectedConversation.value = item
   aiContext.value = null
   aiContextVisible.value = false
+  replyText.value = ''
   await loadMessages()
 }
 
@@ -134,7 +166,7 @@ async function loadMessages() {
   messageLoading.value = true
   try {
     const response = await http.get(`/admin/support/conversations/${selectedId.value}/messages`)
-    messages.value = normalizeList(response)
+    messages.value = normalizeList(response).map(normalizeSupportMessage)
   } finally {
     messageLoading.value = false
   }
@@ -142,6 +174,10 @@ async function loadMessages() {
 
 async function requestAiSuggestion() {
   if (!selectedId.value) return
+  if (!canReply.value) {
+    ElMessage.warning('请先开启人工对话后再生成回复')
+    return
+  }
   aiSuggestLoading.value = true
   try {
     const response = await http.post(`/admin/support/conversations/${selectedId.value}/ai-suggest`)
@@ -175,6 +211,10 @@ async function loadAiContext(showDrawer = true) {
 
 async function sendReply() {
   const content = replyText.value.trim()
+  if (!canReply.value) {
+    ElMessage.warning('请先开启人工对话')
+    return
+  }
   if (!selectedId.value || !content) {
     ElMessage.warning('请输入回复内容')
     return
@@ -192,10 +232,14 @@ async function sendReply() {
 
 async function toggleStatus() {
   if (!selectedConversation.value) return
-  const status = isConversationClosed(selectedConversation.value.status) ? 'OPEN' : 'CLOSED'
+  const opening = !isManualConversation(selectedConversation.value)
+  const status = opening ? 'MANUAL' : 'OPEN'
   await http.post(`/admin/support/conversations/${selectedConversation.value.id}/status`, { status })
-  await loadConversations(false)
-  ElMessage.success(status === 'OPEN' ? '会话已重新打开' : '会话已关闭')
+  await Promise.all([loadMessages(), loadConversations(false)])
+  if (!opening) {
+    replyText.value = ''
+  }
+  ElMessage.success(opening ? '已开启人工对话' : '已关闭人工对话，AI将恢复接待')
 }
 
 function handlePageChange(current) {
@@ -244,8 +288,8 @@ onBeforeUnmount(() => {
           <el-option label="司机" value="DRIVER" />
         </el-select>
         <el-select v-model="query.status" clearable placeholder="状态" style="width: 120px">
-          <el-option label="处理中" value="OPEN" />
-          <el-option label="人工接管" value="MANUAL" />
+          <el-option label="AI接待中" value="OPEN" />
+          <el-option label="人工处理中" value="MANUAL" />
           <el-option label="已关闭" value="CLOSED" />
         </el-select>
         <el-button @click="loadConversations(true)">查询</el-button>
@@ -277,6 +321,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="support-row__meta">
               <el-tag size="small" effect="light">{{ item.roleText }}</el-tag>
+              <el-tag size="small" :type="channelTagType(item)" effect="light">
+                {{ channelLabel(item) }}
+              </el-tag>
               <el-tag v-if="item.member" size="small" type="warning" effect="light">
                 {{ item.memberLevel || '会员' }}
               </el-tag>
@@ -307,11 +354,17 @@ onBeforeUnmount(() => {
         <template v-if="selectedConversation">
           <div class="support-chat-head">
             <div>
-              <span class="panel-kicker">{{ selectedConversation.roleText }}</span>
+              <span class="panel-kicker">{{ selectedConversation.roleText }} · {{ channelLabel(selectedConversation) }}</span>
               <h3 class="panel-title">
                 {{ selectedConversation.nickname }}
+                <el-tag :type="channelTagType(selectedConversation)" effect="light">
+                  {{ channelLabel(selectedConversation) }}
+                </el-tag>
                 <el-tag v-if="selectedConversation.member" type="warning" effect="light">
                   {{ selectedConversation.memberLevel || '会员' }}
+                </el-tag>
+                <el-tag :type="supportStatusTagType(selectedConversation.status)" effect="light">
+                  {{ supportStatusLabel(selectedConversation.status) }}
                 </el-tag>
               </h3>
               <p class="panel-subtitle">{{ selectedConversation.phone || '未留手机号' }}</p>
@@ -319,11 +372,11 @@ onBeforeUnmount(() => {
             <div class="support-chat-actions">
               <el-button :loading="aiContextLoading" plain @click="loadAiContext(true)">AI读取资料</el-button>
               <el-button
-                :type="isConversationClosed(selectedConversation.status) ? 'success' : 'warning'"
+                :type="canReply ? 'warning' : 'primary'"
                 plain
                 @click="toggleStatus"
               >
-                {{ isConversationClosed(selectedConversation.status) ? '重新打开' : '关闭会话' }}
+                {{ canReply ? '关闭对话' : '开启对话' }}
               </el-button>
             </div>
           </div>
@@ -361,11 +414,12 @@ onBeforeUnmount(() => {
               :rows="3"
               maxlength="500"
               show-word-limit
-              placeholder="输入客服回复，或先生成AI建议"
+              :disabled="!canReply"
+              :placeholder="canReply ? '输入客服回复，或先生成AI建议' : '请先点击右上角“开启对话”后再回复'"
             />
             <div class="reply-actions">
-              <el-button :loading="aiSuggestLoading" @click="requestAiSuggestion">AI建议</el-button>
-              <el-button :loading="replyLoading" type="primary" @click="sendReply">发送回复</el-button>
+              <el-button :disabled="!canReply" :loading="aiSuggestLoading" @click="requestAiSuggestion">AI建议</el-button>
+              <el-button :disabled="!canReply" :loading="replyLoading" type="primary" @click="sendReply">发送回复</el-button>
             </div>
           </div>
 

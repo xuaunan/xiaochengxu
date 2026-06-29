@@ -14,4 +14,6 @@ public interface AiSupportService {
     Map<String, Object> test(String prompt);
 
     Optional<String> generateSupportReply(String prompt, String userRole, List<Map<String, Object>> recentMessages, String businessContext);
+
+    Optional<String> generateSupportReply(String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext);
 }

@@ -46,18 +46,18 @@ public class AiSupportServiceImpl implements AiSupportService {
     private static final String KEY_DEBUG_ENABLED = "aiSupportDebugEnabled";
 
     private static final String DEFAULT_PROVIDER = "spark_lite";
-    private static final int RECENT_MESSAGE_CONTEXT_LIMIT = 16;
+    private static final int RECENT_MESSAGE_CONTEXT_LIMIT = 24;
     private static final List<String> DEFAULT_API_PASSWORD_ENV_KEYS = List.of("SPARK_AGENT_API_PASSWORD", "SPARK_API_PASSWORD");
     private static final String LEGACY_TRANSFER_RULE = "遇到投诉、事故、安全、账户资金异常或用户要求人工时，提示已转人工并说明客服会在后台跟进。";
     private static final String UPDATED_TRANSFER_RULE = "投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。";
     private static final String LEGACY_FALLBACK_MESSAGE = "AI客服暂时没有响应，已为你转接人工客服，请稍后查看后台客服回复。";
     private static final String COMPLAINT_GUIDANCE_REPLY = """
-            投诉建议可以在小程序内提交，也可以在这里把问题直接发给我。
+            投诉建议请按当前端可见入口提交：小程序端走【我的】-账户服务【投诉建议】，或订单详情【售后服务】-【投诉反馈】；网页端走网页订单/客服页可见入口。
             请补充：相关订单、发生时间、问题经过、希望处理方式；如果有截图或凭证也可以一并提交。
             我会先帮您梳理处理信息，涉及安全、事故、账户资金异常，或您明确要求人工时，再为您转人工跟进。
             """;
     private static final String DEFAULT_SYSTEM_PROMPT = """
-            你是阳光出行小程序的AI客服。回答要简洁、礼貌、可执行。
+            你是阳光出行多端AI客服。回答要简洁、礼貌、可执行。
             只能围绕乘客订单、支付退款、优惠券发票、司机听单接单、提现到账、资质审核、行程问题提供帮助。
             投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。
             用户只发送“投诉建议”时，表示想了解投诉/建议入口，不等于要求人工客服。禁止直接回复“已转人工”“已转接人工客服”“请稍候”。
@@ -126,7 +126,7 @@ public class AiSupportServiceImpl implements AiSupportService {
     public Map<String, Object> test(String prompt) {
         long start = System.currentTimeMillis();
         try {
-            String reply = callChatCompletion(prompt, "", List.of(), "");
+            String reply = callChatCompletion(prompt, "", "MINIAPP", List.of(), "");
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("ok", true);
             result.put("reply", reply);
@@ -143,12 +143,17 @@ public class AiSupportServiceImpl implements AiSupportService {
 
     @Override
     public Optional<String> generateSupportReply(String prompt, String userRole, List<Map<String, Object>> recentMessages, String businessContext) {
+        return generateSupportReply(prompt, userRole, "MINIAPP", recentMessages, businessContext);
+    }
+
+    @Override
+    public Optional<String> generateSupportReply(String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext) {
         Map<String, String> values = configValues();
         if (!boolValue(values, KEY_ENABLED, true)) {
             return Optional.empty();
         }
         try {
-            return Optional.ofNullable(normalizeReply(prompt, callChatCompletion(prompt, userRole, recentMessages, businessContext)));
+            return Optional.ofNullable(normalizeReply(prompt, callChatCompletion(prompt, userRole, channel, recentMessages, businessContext), channel));
         } catch (RuntimeException ex) {
             if (boolValue(values, KEY_DEBUG_ENABLED, false)) {
                 System.err.println("[AI_SUPPORT] " + safeError(ex));
@@ -158,7 +163,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         }
     }
 
-    private String callChatCompletion(String prompt, String userRole, List<Map<String, Object>> recentMessages, String businessContext) {
+    private String callChatCompletion(String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext) {
         Map<String, String> values = configValues();
         AiProvider provider = providerOf(values.getOrDefault(KEY_PROVIDER, DEFAULT_PROVIDER));
         String apiUrl = firstText(values.get(KEY_API_URL), provider.apiUrl());
@@ -183,7 +188,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         body.put("stream", false);
         body.put("temperature", doubleValue(values, KEY_TEMPERATURE, 0.4D));
         body.put("max_tokens", intValue(values, KEY_MAX_TOKENS, 900));
-        body.put("messages", buildMessages(values, prompt, userRole, recentMessages, businessContext));
+        body.put("messages", buildMessages(values, prompt, userRole, channel, recentMessages, businessContext));
 
         try {
             ResponseEntity<JsonNode> response = restTemplate.postForEntity(apiUrl, new HttpEntity<>(body, headers), JsonNode.class);
@@ -193,17 +198,19 @@ public class AiSupportServiceImpl implements AiSupportService {
         }
     }
 
-    private List<Map<String, String>> buildMessages(Map<String, String> values, String prompt, String userRole, List<Map<String, Object>> recentMessages, String businessContext) {
+    private List<Map<String, String>> buildMessages(Map<String, String> values, String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext) {
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(message("system", values.getOrDefault(KEY_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)));
+        messages.add(message("system", channelInstruction(channel)));
         if (StringUtils.hasText(userRole)) {
-            messages.add(message("system", "当前小程序端角色：" + userRole));
+            messages.add(message("system", "当前客服渠道：" + channelText(channel) + "；当前用户角色：" + userRole));
         }
         if (StringUtils.hasText(businessContext)) {
             messages.add(message("system", """
-                    下面是后端按当前客服会话从数据库读取并脱敏后的真实项目数据。
-                    你必须优先依据这些数据回答；不要编造未出现的订单、支付、退款、优惠券、审核、提现或投诉状态。
-                    如数据不足，明确说明系统暂未查询到，并让用户补充订单号、截图或问题描述；不要因为数据不足就直接声称已转人工。
+                    下面是后端按当前客服会话读取并脱敏后的真实业务数据和产品背景知识。
+                    你要像熟悉阳光出行产品的客服一样，结合用户当前问题、最近会话、真实业务数据和产品背景自然回答，不要机械复述资料。
+                    订单、支付、退款、优惠券、审核、提现或投诉状态以真实业务数据为准；入口、页面名称、按钮名称参考产品背景知识。
+                    如果用户问到的数据暂未查询到，或产品背景里没有明确入口，可以说明当前没有查到并引导用户补充订单号、截图或问题描述；不要为了凑答案编造路径，也不要因为数据不足就直接声称已转人工。
                     """ + "\n" + businessContext.trim()));
         }
         recentMessages.stream()
@@ -214,12 +221,67 @@ public class AiSupportServiceImpl implements AiSupportService {
                         return;
                     }
                     boolean assistant = Boolean.TRUE.equals(item.get("fromAdmin")) || Boolean.TRUE.equals(item.get("fromAi"));
+                    if (isWebChannel(channel) && assistant && containsMiniappPath(content)) {
+                        return;
+                    }
+                    if (!isWebChannel(channel) && assistant && containsInvalidMiniappEntry(content)) {
+                        return;
+                    }
                     messages.add(message(assistant ? "assistant" : "user", historyContent(item, content)));
                 });
         if (messages.stream().noneMatch(item -> prompt.equals(item.get("content")))) {
             messages.add(message("user", prompt));
         }
         return messages;
+    }
+
+    private String channelInstruction(String channel) {
+        if (isWebChannel(channel)) {
+            return """
+                    当前客服渠道是网页端，不是小程序。
+                    回答网页用户的操作步骤时，用网页端可见入口表达，例如：左侧导航【订单】、网页订单卡片、订单详情、支付/取消/发票按钮、左侧导航【客服】。
+                    不要把小程序路径直接套给网页用户；如果历史消息里有不同渠道的旧说法，要结合当前网页端上下文改成用户看得到的说法。
+                    """.trim();
+        }
+        return """
+                当前客服渠道是小程序端。
+                回答小程序用户的操作步骤时，用小程序端可见入口表达，不要混入网页端侧边栏或门户页路径。
+                产品背景知识来自当前小程序源码和后端真实业务数据。你可以自然解释流程，但入口名称要贴近当前版本的真实页面和按钮；不确定时先说明不确定并引导用户补充截图或转人工核实。
+                """.trim();
+    }
+
+    private boolean isWebChannel(String channel) {
+        if (!StringUtils.hasText(channel)) {
+            return false;
+        }
+        String normalized = channel.trim().toUpperCase();
+        return "WEB".equals(normalized) || "H5".equals(normalized) || "PC".equals(normalized);
+    }
+
+    private String channelText(String channel) {
+        return isWebChannel(channel) ? "网页端" : "小程序";
+    }
+
+    private boolean containsMiniappPath(String content) {
+        if (!StringUtils.hasText(content)) {
+            return false;
+        }
+        String normalized = content.replaceAll("\\s+", "");
+        return normalized.contains("小程序")
+                || normalized.contains("【我的】")
+                || normalized.contains("【全部订单】")
+                || normalized.contains("【行程】");
+    }
+
+    private boolean containsInvalidMiniappEntry(String content) {
+        if (!StringUtils.hasText(content)) {
+            return false;
+        }
+        String normalized = content.replaceAll("\\s+", "");
+        return normalized.contains("【帮助与反馈】")
+                || normalized.contains("帮助与反馈")
+                || normalized.contains("【我的投诉】")
+                || normalized.contains("我的投诉");
     }
 
     private String historyContent(Map<String, Object> item, String content) {
@@ -232,7 +294,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         return "用户历史消息：" + content;
     }
 
-    private String normalizeReply(String prompt, String reply) {
+    private String normalizeReply(String prompt, String reply, String channel) {
         if (!StringUtils.hasText(reply)) {
             return reply;
         }
@@ -351,6 +413,9 @@ public class AiSupportServiceImpl implements AiSupportService {
         String systemPrompt = values.get(KEY_SYSTEM_PROMPT);
         if (StringUtils.hasText(systemPrompt) && systemPrompt.contains(LEGACY_TRANSFER_RULE)) {
             updateValue(KEY_SYSTEM_PROMPT, systemPrompt.replace(LEGACY_TRANSFER_RULE, UPDATED_TRANSFER_RULE));
+        }
+        if (StringUtils.hasText(systemPrompt) && systemPrompt.contains("阳光出行小程序的AI客服")) {
+            updateValue(KEY_SYSTEM_PROMPT, systemPrompt.replace("阳光出行小程序的AI客服", "阳光出行多端AI客服"));
         }
         if (LEGACY_FALLBACK_MESSAGE.equals(values.get(KEY_FALLBACK_MESSAGE)) || !StringUtils.hasText(values.get(KEY_FALLBACK_MESSAGE))) {
             updateValue(KEY_FALLBACK_MESSAGE, DEFAULT_FALLBACK_MESSAGE);
