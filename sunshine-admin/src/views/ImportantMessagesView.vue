@@ -321,7 +321,21 @@ function openInvoiceDialog(item) {
   invoiceVisible.value = true
 }
 
+async function handleSupportReception(item) {
+  const conversationId = resolveTargetId(item, 'conversationId', 'support-')
+  if (!conversationId) {
+    ElMessage.warning('当前客服消息缺少会话ID，无法直接接待')
+    return
+  }
+  ElMessage.info('请在客服页点击“开启对话”接入人工客服')
+  router.push({ path: '/support', query: { conversationId } })
+}
+
 function handleMessageAction(item) {
+  if (item?.type === 'SUPPORT') {
+    handleSupportReception(item)
+    return
+  }
   if (item?.actionPath) {
     router.push(item.actionPath)
     return

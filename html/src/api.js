@@ -17,7 +17,7 @@ import { dispatchInvalidSession, resolveSessionFromToken } from './auth-session.
 const API_BASE_KEY = 'sunshine-web-api-base'
 const DEMO_DB_KEY = 'sunshine-web-demo-db-v2'
 const WEB_SUPPORT_HEADERS = { 'X-Sunshine-Client': 'WEB' }
-const DEMO_DB_VERSION = 4
+const DEMO_DB_VERSION = 5
 const DEFAULT_API_BASE = 'http://127.0.0.1:8080'
 const SUPPORT_AI_ROLE = 'AI'
 const DEFAULT_AI_WELCOME_MESSAGE = '您好，阳光出行客服已接入，请描述您遇到的问题。'
@@ -28,6 +28,7 @@ const LEGACY_DRIVER_WELCOME_MESSAGE = '司机端客服通道已接入，听单�
 const MANUAL_OPEN_NOTICE = '已接入人工客服'
 const MANUAL_CLOSE_NOTICE = '已关闭人工客服'
 const MANUAL_WAIT_WARNING = '人工客服等待时间太久啦，即将为您结束本次人工接待，后续您可以继续由AI客服为您服务。'
+const MANUAL_TRANSFER_REPLY = '正在为您转接人工客服，请稍后'
 const MANUAL_WARN_TIMEOUT_MS = 150 * 1000
 const MANUAL_IDLE_TIMEOUT_MS = 180 * 1000
 let backendBackoffUntil = 0
@@ -942,21 +943,24 @@ function demoRequest(path, options) {
       const item = supportMessage(conversation.id, actor.userId, actor.roleCode, content)
       db.supportMessages.push(item)
       const wasManual = conversation.status === 'MANUAL'
-      const manualActive = wasManual || isDemoManualSupportIntent(content)
-      conversation.status = manualActive ? 'MANUAL' : 'OPEN'
+      const manualIntent = isDemoManualSupportIntent(content)
+      conversation.status = wasManual ? 'MANUAL' : 'OPEN'
       conversation.lastMessage = item.content
       conversation.lastMessageAt = item.createdAt
       conversation.unreadForAdmin = Number(conversation.unreadForAdmin || 0) + 1
       conversation.unreadForUser = 0
-      if (manualActive) {
-        const notice = ensureDemoManualOpenNotice(db, conversation)
-        if (notice) {
-        conversation.lastMessage = notice.content
-        conversation.lastMessageAt = notice.createdAt
+      let notice = null
+      let transferReply = null
+      if (wasManual) {
+        // 人工接待中只记录用户消息，不再触发AI。
+      } else if (manualIntent) {
+        transferReply = supportMessage(conversation.id, null, SUPPORT_AI_ROLE, MANUAL_TRANSFER_REPLY)
+        db.supportMessages.push(transferReply)
+        conversation.lastMessage = transferReply.content
+        conversation.lastMessageAt = transferReply.createdAt
         conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
-        }
       }
-      if (!manualActive) {
+      if (!wasManual && !manualIntent) {
         const aiReply = supportMessage(conversation.id, null, SUPPORT_AI_ROLE, buildDemoSupportReply(content, actor.roleCode))
         db.supportMessages.push(aiReply)
         conversation.lastMessage = aiReply.content
@@ -965,11 +969,17 @@ function demoRequest(path, options) {
       }
       db.messages.unshift(message(actor.roleCode, '客服消息已发送', content))
       saveDemoDb(db)
-      return item
+      return {
+        message: item,
+        notice,
+        reply: transferReply,
+        conversation,
+        messages: listDemoSupportMessages(db, conversation.id)
+      }
     }
     conversation.unreadForUser = 0
     saveDemoDb(db)
-    return db.supportMessages.filter((item) => Number(item.conversationId) === Number(conversation.id))
+    return listDemoSupportMessages(db, conversation.id)
   }
 
   if (url.pathname === '/carpool/mine') {
@@ -1414,6 +1424,13 @@ function closeExpiredDemoManualConversation(db, conversation) {
     conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
   }
   if (idleMs < MANUAL_IDLE_TIMEOUT_MS) return false
+  const existingCloseNotice = latestDemoManualCloseAfter(db, conversation.id, anchorAt)
+  if (existingCloseNotice) {
+    conversation.status = 'OPEN'
+    conversation.lastMessage = existingCloseNotice.content
+    conversation.lastMessageAt = existingCloseNotice.createdAt
+    return true
+  }
   const closeNotice = supportMessage(conversation.id, null, 'ADMIN', MANUAL_CLOSE_NOTICE)
   db.supportMessages.push(closeNotice)
   conversation.status = 'OPEN'
@@ -1423,23 +1440,37 @@ function closeExpiredDemoManualConversation(db, conversation) {
   return true
 }
 
-function ensureDemoManualOpenNotice(db, conversation) {
-  if (!conversation) return null
-  const latestCloseAt = latestDemoMessageTime((db.supportMessages || []).filter((item) => (
-    Number(item.conversationId) === Number(conversation.id)
-    && item.senderRole === 'ADMIN'
-    && item.content === MANUAL_CLOSE_NOTICE
-  )))
-  const hasOpenNotice = (db.supportMessages || []).some((item) => (
-    Number(item.conversationId) === Number(conversation.id)
-    && item.senderRole === 'ADMIN'
-    && item.content === MANUAL_OPEN_NOTICE
-    && (!latestCloseAt || parseDemoTime(item.createdAt) > latestCloseAt)
-  ))
-  if (hasOpenNotice) return null
-  const notice = supportMessage(conversation.id, null, 'ADMIN', MANUAL_OPEN_NOTICE)
-  db.supportMessages.push(notice)
-  return notice
+function listDemoSupportMessages(db, conversationId) {
+  const messages = (db.supportMessages || [])
+    .filter((item) => Number(item.conversationId) === Number(conversationId))
+    .sort((left, right) => Number(left.id || 0) - Number(right.id || 0))
+  return collapseDuplicateDemoSystemNotices(messages)
+}
+
+function collapseDuplicateDemoSystemNotices(messages = []) {
+  return messages.reduce((result, message) => {
+    const previous = result[result.length - 1]
+    if (isSameDemoSystemNotice(previous, message)) return result
+    result.push(message)
+    return result
+  }, [])
+}
+
+function isSameDemoSystemNotice(left, right) {
+  return Boolean(left && right
+    && isDemoSystemNotice(left.senderId, left.senderRole, left.content)
+    && isDemoSystemNotice(right.senderId, right.senderRole, right.content)
+    && left.content === right.content)
+}
+
+function latestDemoManualCloseAfter(db, conversationId, sinceMs) {
+  return (db.supportMessages || [])
+    .filter((item) => (
+      Number(item.conversationId) === Number(conversationId)
+      && item.content === MANUAL_CLOSE_NOTICE
+      && parseDemoTime(item.createdAt) >= sinceMs
+    ))
+    .sort((left, right) => parseDemoTime(right.createdAt) - parseDemoTime(left.createdAt))[0] || null
 }
 
 function latestDemoManualActivityAt(db, conversationId) {
@@ -1812,14 +1843,8 @@ function seedDemoDb() {
       message('USER', '网页门户已准备好', '乘客端可下单、领券、支付、评价、投诉和发布顺风车。'),
       message('DRIVER', '听单大厅在线', '司机端可切换在线、抢单、开始接驾、完成行程和提现。')
     ],
-    supportConversations: [
-      { id: 7001, userId: 1, userRole: ROLE.USER, roleText: '乘客', channel: 'WEB', channelText: '网页端', nickname: demoAccounts.USER.nickname, phone: demoAccounts.USER.phone, member: true, memberLevel: '阳光会员', status: 'OPEN', lastMessage: DEFAULT_AI_WELCOME_MESSAGE, lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() },
-      { id: 7002, userId: 2, userRole: ROLE.DRIVER, roleText: '司机', channel: 'WEB', channelText: '网页端', nickname: demoAccounts.DRIVER.nickname, phone: demoAccounts.DRIVER.phone, member: false, memberLevel: '', status: 'OPEN', lastMessage: DRIVER_AI_WELCOME_MESSAGE, lastMessageAt: nowText(), unreadForAdmin: 0, unreadForUser: 0, createdAt: nowText() }
-    ],
-    supportMessages: [
-      supportMessage(7001, null, SUPPORT_AI_ROLE, DEFAULT_AI_WELCOME_MESSAGE),
-      supportMessage(7002, null, SUPPORT_AI_ROLE, DRIVER_AI_WELCOME_MESSAGE)
-    ],
+    supportConversations: [],
+    supportMessages: [],
     withdraws: [
       { id: 6001, driverId: 2, applyAmount: 188, bankName: '中国银行', bankAccount: '6222 **** 2026', status: 'PENDING', createdAt: '2026-05-14 18:20:00' }
     ]
@@ -1839,10 +1864,8 @@ function upgradeDemoDb(db) {
   upgraded.carpoolApplications = Array.isArray(db.carpoolApplications) ? db.carpoolApplications : []
   upgraded.messages = Array.isArray(db.messages) ? db.messages : seedDemoDb().messages
   upgraded.withdraws = Array.isArray(db.withdraws) ? db.withdraws : seedDemoDb().withdraws
-  upgraded.supportConversations = (Array.isArray(db.supportConversations) ? db.supportConversations : seedDemoDb().supportConversations)
-    .map(normalizeDemoSupportConversation)
-  upgraded.supportMessages = (Array.isArray(db.supportMessages) ? db.supportMessages : seedDemoDb().supportMessages)
-    .map(normalizeDemoSupportMessage)
+  upgraded.supportConversations = []
+  upgraded.supportMessages = []
   return upgraded
 }
 

@@ -159,20 +159,6 @@ INSERT INTO t_message_record (
     (4, 7, 'WITHDRAW', 'WITHDRAW_APPLY', '提现待审核', '你的提现申请正在等待管理员审核。', 'zh-CN', 'SUCCESS', '2026-04-18 16:30:10', '2026-04-18 16:30:10'),
     (5, 4, 'COMPLAINT', 'COMPLAINT_DONE', '投诉已处理', '客服已完成发票信息修改并重新发送。', 'zh-CN', 'SUCCESS', '2026-04-17 22:41:00', '2026-04-17 22:41:00');
 
-INSERT INTO t_support_conversation (
-    id, user_id, user_role, channel, status, last_message, last_message_at, unread_for_admin, unread_for_user, created_at, updated_at
-) VALUES
-    (1, 2, 'USER', 'MINIAPP', 'OPEN', '想确认会员每周券什么时候到账。', '2026-06-09 09:16:00', 1, 0, '2026-06-09 09:12:00', '2026-06-09 09:16:00'),
-    (2, 7, 'DRIVER', 'MINIAPP', 'OPEN', '车辆审核资料已经重新上传，请帮忙看一下。', '2026-06-09 09:20:00', 1, 0, '2026-06-09 09:18:00', '2026-06-09 09:20:00');
-
-INSERT INTO t_support_message (
-    id, conversation_id, sender_id, sender_role, content, created_at, updated_at
-) VALUES
-    (1, 1, NULL, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。', '2026-06-09 09:12:00', '2026-06-09 09:12:00'),
-    (2, 1, 2, 'USER', '想确认会员每周券什么时候到账。', '2026-06-09 09:16:00', '2026-06-09 09:16:00'),
-    (3, 2, NULL, 'ADMIN', '您好，阳光出行客服已接入，请描述您遇到的问题。', '2026-06-09 09:18:00', '2026-06-09 09:18:00'),
-    (4, 2, 7, 'DRIVER', '车辆审核资料已经重新上传，请帮忙看一下。', '2026-06-09 09:20:00', '2026-06-09 09:20:00');
-
 INSERT INTO t_operation_log (
     id, operator_id, operator_role, biz_module, biz_action, target_type, target_id,
     content, created_at, updated_at

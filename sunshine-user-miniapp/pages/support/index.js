@@ -7,6 +7,8 @@ const DEFAULT_USER_AVATAR = '/images/avatar-user.svg'
 const SUPPORT_AVATAR = '/images/support-avatar.png'
 const SUPPORT_WELCOME_MESSAGE = '您好，阳光出行客服已接入，请描述您遇到的问题。'
 const PREVIOUS_SUPPORT_WELCOME_MESSAGE = '您好，阳光出行AI客服已接入，请描述您遇到的问题。'
+const MANUAL_TRANSFER_REPLY = '正在为您转接人工客服，请稍后'
+const MANUAL_OPEN_NOTICE = '已接入人工客服'
 
 function normalizeSupportWelcomeContent(content) {
   return content === PREVIOUS_SUPPORT_WELCOME_MESSAGE ? SUPPORT_WELCOME_MESSAGE : content
@@ -75,7 +77,21 @@ async function fetchSupportSnapshot() {
   }
 }
 
-function createPendingMessages(content, userAvatarSrc) {
+function isManualRequest(content) {
+  const normalized = `${content || ''}`.replace(/\s+/g, '')
+  return normalized.includes('联系人工')
+    || normalized.includes('人工客服')
+    || normalized.includes('转人工')
+    || normalized.includes('找人工')
+    || normalized.includes('真人客服')
+    || normalized.includes('转接人工')
+}
+
+function pendingReplyText(content) {
+  return isManualRequest(content) ? MANUAL_TRANSFER_REPLY : 'AI回复中...'
+}
+
+function createPendingMessages(content, userAvatarSrc, replyContent = 'AI回复中...') {
   const now = Date.now()
   const userMessage = {
     id: `local-user-${now}`,
@@ -86,7 +102,7 @@ function createPendingMessages(content, userAvatarSrc) {
   const typingMessage = {
     id: `local-ai-${now}`,
     anchorId: `support-msg-local-ai-${now}`,
-    content: 'AI回复中...',
+    content: replyContent,
     fromAi: true,
     isTyping: true,
     timeText: '刚刚'
@@ -119,17 +135,43 @@ function appendPendingReplyIfNeeded(messages, content, userAvatarSrc) {
   if (!shouldKeepPendingReply(messages, content)) {
     return { messages, pending: false }
   }
-  const [, typingMessage] = createPendingMessages(content, userAvatarSrc)
+  const [, typingMessage] = createPendingMessages(content, userAvatarSrc, pendingReplyText(content))
   return { messages: messages.concat(typingMessage), pending: true }
 }
 
-function isManualRequest(content) {
-  const normalized = `${content || ''}`.replace(/\s+/g, '')
-  return normalized.includes('联系人工')
-    || normalized.includes('人工客服')
-    || normalized.includes('转人工')
-    || normalized.includes('找人工')
-    || normalized.includes('真人客服')
+function isManualTransferReply(message = {}) {
+  return message.fromAi && `${message.content || ''}`.trim() === MANUAL_TRANSFER_REPLY
+}
+
+function isManualOpenNotice(message = {}) {
+  return message.systemNotice && `${message.content || ''}`.trim() === MANUAL_OPEN_NOTICE
+}
+
+function prepareDisplayMessages(messages = []) {
+  return messages.reduce((result, message, index) => {
+    if (isManualTransferReply(message)) {
+      const hasManualOpenAfter = messages.slice(index + 1).some(isManualOpenNotice)
+      const hasManualTransferAfter = messages.slice(index + 1).some(isManualTransferReply)
+      if (hasManualOpenAfter) return result
+      if (hasManualTransferAfter) return result
+      result.push({
+        ...message,
+        isTyping: true,
+        senderRoleText: 'AI客服'
+      })
+      return result
+    }
+    result.push(message)
+    return result
+  }, [])
+}
+
+function hasPendingDisplayMessage(messages = []) {
+  return messages.some((message) => message && message.isTyping)
+}
+
+function removePendingDisplayMessages(messages = []) {
+  return messages.filter((message) => !(message && message.isTyping))
 }
 
 function supportStatusText(conversation = {}) {
@@ -158,8 +200,11 @@ Page({
 
   supportTimer: null,
   messageRevealTimer: null,
+  pendingReplyRefreshTimer: null,
+  pendingReplyRefreshCount: 0,
   sendingLock: false,
   pendingReplyContent: '',
+  supportSnapshotVersion: 0,
 
   async onShow() {
     this.clearMessageRevealTimer()
@@ -175,11 +220,13 @@ Page({
   onHide() {
     this.stopPolling()
     this.clearMessageRevealTimer()
+    this.clearPendingReplyRefreshTimer()
   },
 
   onUnload() {
     this.stopPolling()
     this.clearMessageRevealTimer()
+    this.clearPendingReplyRefreshTimer()
   },
 
   clearMessageRevealTimer() {
@@ -187,6 +234,35 @@ Page({
       clearTimeout(this.messageRevealTimer)
       this.messageRevealTimer = null
     }
+  },
+
+  clearPendingReplyRefreshTimer() {
+    if (this.pendingReplyRefreshTimer) {
+      clearTimeout(this.pendingReplyRefreshTimer)
+      this.pendingReplyRefreshTimer = null
+    }
+  },
+
+  schedulePendingReplyRefresh() {
+    this.clearPendingReplyRefreshTimer()
+    if (this.pendingReplyRefreshCount >= 24) return
+    const delay = this.pendingReplyRefreshCount < 8 ? 1200 : 2400
+    this.pendingReplyRefreshCount += 1
+    this.pendingReplyRefreshTimer = setTimeout(() => {
+      this.pendingReplyRefreshTimer = null
+      this.refreshSupport({ force: true, fromPendingWatch: true }).catch(() => {
+        this.schedulePendingReplyRefresh()
+      })
+    }, delay)
+  },
+
+  syncPendingReplyRefresh(messages) {
+    if (hasPendingDisplayMessage(messages)) {
+      this.schedulePendingReplyRefresh()
+      return
+    }
+    this.pendingReplyRefreshCount = 0
+    this.clearPendingReplyRefreshTimer()
   },
 
   revealMessagesAfterLoad() {
@@ -218,13 +294,17 @@ Page({
   },
 
   async refreshSupport(options = {}) {
+    const snapshotVersion = this.supportSnapshotVersion
     if (options.fromPolling && this.data.sending) return
-    return runExclusive(this, '__refreshSupportPromise', async () => {
+    const task = async () => {
       if (!options.fromPolling && !this.data.messages.length) {
         this.setData({ loading: true, loadError: '' })
       }
       try {
         const { conversationResponse, messageResponse } = await fetchSupportSnapshot()
+        if (options.fromPolling && (snapshotVersion !== this.supportSnapshotVersion || this.data.sending || this.sendingLock)) {
+          return
+        }
         const userAvatarSrc = this.getUserAvatarSrc()
         const conversation = conversationResponse.data || {}
         const serverMessages = normalizeMessageList(messageResponse.data).map((item, index) => decorateMessage(item, index, { userAvatarSrc }))
@@ -234,9 +314,10 @@ Page({
         if (this.pendingReplyContent && !pendingState.pending) {
           this.pendingReplyContent = ''
         }
-        const messages = pendingState.messages
+        const messages = prepareDisplayMessages(pendingState.messages)
         const nextLast = messages[messages.length - 1] || {}
         const shouldScroll = !options.fromPolling
+        this.syncPendingReplyRefresh(messages)
         this.setData({
           conversation,
           supportStatusText: supportStatusText(conversation),
@@ -263,7 +344,39 @@ Page({
           this.setData({ loading: false })
         }
       }
+    }
+    if (options.force) {
+      return task()
+    }
+    return runExclusive(this, '__refreshSupportPromise', task)
+  },
+
+  applySupportSnapshot(payload, options = {}) {
+    const snapshot = payload && payload.data ? payload.data : payload
+    if (!snapshot || typeof snapshot !== 'object' || !Array.isArray(snapshot.messages)) {
+      return false
+    }
+    const userAvatarSrc = this.getUserAvatarSrc()
+    const conversation = snapshot.conversation || this.data.conversation || {}
+    const serverMessages = normalizeMessageList(snapshot.messages).map((item, index) => decorateMessage(item, index, { userAvatarSrc }))
+    const pendingState = isManualConversation(conversation)
+      ? { messages: serverMessages, pending: false }
+      : appendPendingReplyIfNeeded(serverMessages, this.pendingReplyContent, userAvatarSrc)
+    if (this.pendingReplyContent && !pendingState.pending) {
+      this.pendingReplyContent = ''
+    }
+    const messages = prepareDisplayMessages(pendingState.messages)
+    const nextLast = messages[messages.length - 1] || {}
+    this.syncPendingReplyRefresh(messages)
+    this.setData({
+      conversation,
+      supportStatusText: supportStatusText(conversation),
+      messages,
+      messagesReady: true,
+      loadError: '',
+      scrollIntoView: options.scroll !== false && nextLast.anchorId ? nextLast.anchorId : ''
     })
+    return true
   },
 
   handleInput(e) {
@@ -305,21 +418,30 @@ Page({
     const content = `${typeof contentOverride === 'string' ? contentOverride : (this.data.inputText || '')}`.trim()
     if (!content || this.data.sending || this.sendingLock) return
     this.sendingLock = true
+    this.supportSnapshotVersion += 1
     const manualActive = await this.resolveManualActiveForSend()
-    const previousMessages = this.data.messages
-    const [userMessage, typingMessage] = createPendingMessages(content, this.getUserAvatarSrc())
-    const waitForAi = !manualActive && !isManualRequest(content)
+    const previousMessages = removePendingDisplayMessages(this.data.messages)
+    const [userMessage, typingMessage] = createPendingMessages(content, this.getUserAvatarSrc(), pendingReplyText(content))
+    const waitForAi = !manualActive
+    const nextMessages = waitForAi ? [userMessage, typingMessage] : [userMessage]
+    const nextLastMessage = nextMessages[nextMessages.length - 1]
     this.pendingReplyContent = waitForAi ? content : ''
+    this.pendingReplyRefreshCount = waitForAi ? 0 : this.pendingReplyRefreshCount
     this.setData({
       sending: true,
       inputText: '',
-      messages: previousMessages.concat(waitForAi ? [userMessage, typingMessage] : [userMessage]),
+      messages: previousMessages.concat(nextMessages),
       messagesReady: true,
-      scrollIntoView: waitForAi ? typingMessage.anchorId : userMessage.anchorId
+      scrollIntoView: nextLastMessage.anchorId
     })
+    if (waitForAi) {
+      this.schedulePendingReplyRefresh()
+    }
     try {
-      await sendSupportMessage(content)
-      await this.refreshSupport()
+      const response = await sendSupportMessage(content)
+      if (!this.applySupportSnapshot(response, { scroll: true })) {
+        await this.refreshSupport({ force: true })
+      }
     } catch (error) {
       this.pendingReplyContent = ''
       this.setData({

@@ -18066,11 +18066,12 @@ svg {
 
 .dashboard-shell .chat-row.ai-reply-pending {
   align-items: flex-start;
+  padding-right: clamp(20px, 5%, 72px);
 }
 
 .dashboard-shell .chat-bubble.pending {
-  min-width: 126px;
-  max-width: 180px;
+  min-width: min(286px, 100%);
+  max-width: min(100%, 520px);
   padding: 13px 15px 14px;
   border-color: rgba(105, 219, 166, .36);
   border-radius: 18px;
@@ -18094,6 +18095,7 @@ svg {
   color: #526173;
   font-size: 14px;
   font-weight: 760;
+  white-space: nowrap;
 }
 
 .dashboard-shell .chat-bubble.mine {
