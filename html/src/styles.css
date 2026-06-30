@@ -12366,6 +12366,132 @@ svg {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.captcha-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+  align-items: center;
+}
+
+.captcha-row .input-field {
+  min-width: 0;
+}
+
+.captcha-image-button {
+  position: relative;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  height: 46px;
+  min-height: 46px;
+  transform: translateY(-5px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, .82);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .58);
+}
+
+.captcha-art {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 46px;
+  display: block;
+  overflow: hidden;
+  border-radius: 11px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, .08);
+}
+
+.captcha-art::before,
+.captcha-art::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.captcha-art::before {
+  z-index: 1;
+  background:
+    repeating-linear-gradient(115deg, rgba(15, 23, 42, .18) 0 1px, transparent 1px 7px),
+    radial-gradient(circle at 22% 35%, rgba(255, 255, 255, .48), transparent 14px),
+    radial-gradient(circle at 78% 55%, rgba(15, 23, 42, .18), transparent 18px);
+  mix-blend-mode: multiply;
+}
+
+.captcha-art::after {
+  z-index: 5;
+  background:
+    repeating-linear-gradient(18deg, rgba(15, 23, 42, .16) 0 1px, transparent 1px 8px),
+    radial-gradient(circle at 18% 62%, rgba(255, 255, 255, .34), transparent 11px),
+    linear-gradient(90deg, rgba(255, 255, 255, .18), transparent 28%, rgba(15, 23, 42, .14) 72%, rgba(255, 255, 255, .22));
+  mix-blend-mode: multiply;
+}
+
+.captcha-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.captcha-line,
+.captcha-dot {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.captcha-line {
+  height: 2px;
+  border-radius: 999px;
+  transform-origin: left center;
+}
+
+.captcha-dot {
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .82);
+}
+
+.captcha-letter {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  width: 20px;
+  height: 23px;
+  transform-origin: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 23px;
+  text-align: center;
+  opacity: .86;
+  filter: blur(.32px);
+  text-shadow:
+    1px 0 0 rgba(255, 255, 255, .42),
+    -1px 0 0 rgba(15, 23, 42, .14),
+    0 1px 1px rgba(255, 255, 255, .35);
+  user-select: none;
+}
+
+.captcha-image-button svg {
+  position: absolute;
+  right: 6px;
+  bottom: 5px;
+  width: 14px;
+  height: 14px;
+  padding: 2px;
+  color: #9a4a00;
+  background: rgba(255, 255, 255, .78);
+  border-radius: 999px;
+  box-sizing: content-box;
+}
+
 .form-error {
   color: #a32121;
   font-size: 13px;
