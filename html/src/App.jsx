@@ -7254,6 +7254,33 @@ function supportConversationStatusLabel(conversation = {}) {
   return 'AI接待中'
 }
 
+const SUPPORT_MANUAL_TRANSFER_REPLY = '正在为您转接人工客服，请稍后'
+const SUPPORT_MANUAL_OPEN_NOTICE = '已接入人工客服'
+
+function isSupportManualRequest(content = '') {
+  return /联系人工|人工客服|转人工|找人工|转接人工|真人客服|人工跟进/.test(String(content).replace(/\s+/g, ''))
+}
+
+function supportPendingText(content = '') {
+  return isSupportManualRequest(content) ? SUPPORT_MANUAL_TRANSFER_REPLY : 'AI回复中...'
+}
+
+function isSupportManualTransferReply(message = {}) {
+  return message?.fromAi && String(message.content || '').trim() === SUPPORT_MANUAL_TRANSFER_REPLY
+}
+
+function isSupportManualOpenNotice(message = {}) {
+  return message?.systemNotice && String(message.content || '').trim() === SUPPORT_MANUAL_OPEN_NOTICE
+}
+
+function prepareWebSupportMessages(messages = []) {
+  return normalizeList(messages).filter((message, index, list) => {
+    if (!isSupportManualTransferReply(message)) return true
+    const nextMessages = list.slice(index + 1)
+    return !nextMessages.some(isSupportManualOpenNotice) && !nextMessages.some(isSupportManualTransferReply)
+  })
+}
+
 function SupportChatPanel({ conversation, messages = [], profile, role, onRefresh, onSend, orders = [] }) {
   const [draft, setDraft] = useState('')
   const [sendError, setSendError] = useState('')
@@ -7261,7 +7288,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
   const [refreshing, setRefreshing] = useState(false)
   const [aiReplyPending, setAiReplyPending] = useState(null)
   const threadEndRef = useRef(null)
-  const sortedMessages = normalizeList(messages).slice().sort((left, right) => {
+  const sortedMessages = prepareWebSupportMessages(messages).slice().sort((left, right) => {
     const a = dateLikeToMs(left.createdAt || left.time) || Number(left.id || 0)
     const b = dateLikeToMs(right.createdAt || right.time) || Number(right.id || 0)
     return a - b
@@ -7276,7 +7303,15 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
     : ['司机多久到？', '如何取消订单？', '费用有疑问', '联系司机']
   const lastMessage = sortedMessages[sortedMessages.length - 1]
   const mineCount = sortedMessages.filter((item) => item.senderRole === role).length
-  const showAiReplyPending = Boolean(aiReplyPending)
+  const pendingAt = aiReplyPending ? (dateLikeToMs(aiReplyPending.createdAt) || 0) : 0
+  const hasServerReplyForPending = Boolean(aiReplyPending) && sortedMessages.some((item) => {
+    const itemAt = dateLikeToMs(item.createdAt || item.time) || 0
+    return item.senderRole !== role && itemAt >= pendingAt
+  })
+  const hasServerManualTransferPending = Boolean(aiReplyPending)
+    && aiReplyPending.content === SUPPORT_MANUAL_TRANSFER_REPLY
+    && sortedMessages.some(isSupportManualTransferReply)
+  const showAiReplyPending = Boolean(aiReplyPending) && !hasServerReplyForPending && !hasServerManualTransferPending
   const supportOrders = useMemo(() => normalizeList(orders).filter(Boolean), [orders])
   const relatedOrder = useMemo(() => {
     const activeOrder = pickActiveRideOrder(supportOrders)
@@ -7315,15 +7350,30 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
 
   useEffect(() => {
     if (!aiReplyPending) return
-    const pendingAt = dateLikeToMs(aiReplyPending.createdAt) || 0
-    const hasNewServiceReply = sortedMessages.some((item) => {
-      const itemAt = dateLikeToMs(item.createdAt || item.time) || 0
-      return item.senderRole !== role && itemAt >= pendingAt
-    })
-    if (hasNewServiceReply) {
+    if (hasServerReplyForPending || hasServerManualTransferPending) {
       setAiReplyPending(null)
     }
-  }, [aiReplyPending, role, sortedMessages])
+  }, [aiReplyPending, hasServerReplyForPending, hasServerManualTransferPending])
+
+  useEffect(() => {
+    if (!aiReplyPending) return undefined
+    let cancelled = false
+    let attempts = 0
+    let timer = null
+
+    const pull = async () => {
+      attempts += 1
+      await onRefresh?.()
+      if (cancelled || attempts >= 24) return
+      timer = window.setTimeout(pull, attempts < 8 ? 1200 : 2400)
+    }
+
+    timer = window.setTimeout(pull, 900)
+    return () => {
+      cancelled = true
+      if (timer) window.clearTimeout(timer)
+    }
+  }, [aiReplyPending, onRefresh])
 
   const handleDraftChange = (event) => {
     const nextValue = event.target.value
@@ -7341,14 +7391,21 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
     }
     setSendError('')
     setSending(true)
+    const manualActive = conversation?.manualMode || conversation?.status === 'MANUAL'
+    if (!manualActive) {
+      setAiReplyPending({
+        id: `ai-pending-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        content: supportPendingText(content)
+      })
+    } else {
+      setAiReplyPending(null)
+    }
     try {
       const ok = await onSend(content)
       setDraft('')
-      if (ok !== false) {
-        setAiReplyPending({
-          id: `ai-pending-${Date.now()}`,
-          createdAt: new Date().toISOString()
-        })
+      if (ok === false || manualActive) {
+        setAiReplyPending(null)
       }
     } finally {
       setSending(false)
@@ -7410,13 +7467,14 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
           <div className="chat-thread" role="log" aria-live="polite" aria-relevant="additions text">
           {sortedMessages.length ? sortedMessages.map((item, index) => {
             const mine = item.senderRole === role
+            const waitingTransfer = !mine && isSupportManualTransferReply(item)
             const senderText = mine ? (isDriver ? '司机端' : '乘客端') : (item.systemNotice ? '系统' : (item.fromAdmin ? '人工客服' : 'AI客服'))
             return (
-              <div className={`chat-row ${mine ? 'mine' : 'service'}`} key={item.id || index}>
+              <div className={`chat-row ${mine ? 'mine' : 'service'}${waitingTransfer ? ' ai-reply-pending' : ''}`} key={item.id || index}>
                 <span className={`chat-avatar ${mine ? 'mine' : 'service'}`} aria-hidden="true">
                   {mine ? <User size={15} /> : <MessageSquare size={15} />}
                 </span>
-                <article className={`chat-bubble ${mine ? 'mine' : 'service'}`}>
+                <article className={`chat-bubble ${mine ? 'mine' : 'service'}${waitingTransfer ? ' pending' : ''}`}>
                   <div className="chat-bubble-meta">
                     <span>{mine ? profileName : serviceName}</span>
                     <small>{`${senderText} · ${formatDateTimeShort(item.createdAt || item.time)}`}</small>
@@ -7440,7 +7498,7 @@ function SupportChatPanel({ conversation, messages = [], profile, role, onRefres
                     <span>{serviceName}</span>
                     <small>AI客服 · 刚刚</small>
                   </div>
-                  <p>AI回复中...</p>
+                  <p>{aiReplyPending.content || 'AI回复中...'}</p>
                 </article>
               </div>
             )}

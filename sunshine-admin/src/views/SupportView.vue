@@ -1,9 +1,11 @@
 <script setup>
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import http from '../api/http'
 import { formatDateTime } from '../utils/admin'
 
+const route = useRoute()
 const loading = ref(false)
 const messageLoading = ref(false)
 const replyLoading = ref(false)
@@ -128,7 +130,13 @@ function isManualConversation(conversation) {
   return conversation?.manualMode === true || conversation?.status === 'MANUAL'
 }
 
+function needsManualReception(conversation) {
+  if (!conversation || isManualConversation(conversation)) return false
+  return conversation.needsManualReception === true
+}
+
 const canReply = computed(() => isManualConversation(selectedConversation.value))
+const selectedNeedsManualReception = computed(() => needsManualReception(selectedConversation.value))
 
 async function loadConversations(resetPage = false) {
   if (resetPage) {
@@ -139,7 +147,11 @@ async function loadConversations(resetPage = false) {
     const response = await http.get('/admin/support/conversations', { params: query })
     conversations.value = (response?.records || []).map(normalizeSupportConversation)
     total.value = response?.total || 0
-    if (selectedId.value) {
+    const targetId = Number(route.query.conversationId || 0)
+    const targetConversation = targetId ? conversations.value.find((item) => Number(item.id) === targetId) : null
+    if (targetConversation && selectedId.value !== targetConversation.id) {
+      await selectConversation(targetConversation)
+    } else if (selectedId.value) {
       const latestSelected = conversations.value.find((item) => item.id === selectedId.value)
       if (latestSelected) {
         selectedConversation.value = latestSelected
@@ -262,6 +274,12 @@ onMounted(() => {
   }, 3000)
 })
 
+watch(() => route.query.conversationId, () => {
+  if (route.path === '/support') {
+    loadConversations(true)
+  }
+})
+
 onBeforeUnmount(() => {
   clearInterval(supportTimer)
 })
@@ -311,7 +329,7 @@ onBeforeUnmount(() => {
             v-for="item in conversations"
             :key="item.id"
             class="support-row"
-            :class="{ active: selectedId === item.id }"
+            :class="{ active: selectedId === item.id, 'needs-manual': needsManualReception(item) }"
             type="button"
             @click="selectConversation(item)"
           >
@@ -373,6 +391,7 @@ onBeforeUnmount(() => {
               <el-button :loading="aiContextLoading" plain @click="loadAiContext(true)">AI读取资料</el-button>
               <el-button
                 :type="canReply ? 'warning' : 'primary'"
+                :class="{ 'manual-attention-button': selectedNeedsManualReception }"
                 plain
                 @click="toggleStatus"
               >
@@ -528,6 +547,7 @@ onBeforeUnmount(() => {
 }
 
 .support-row {
+  position: relative;
   width: 100%;
   min-height: auto;
   padding: 10px 12px;
@@ -543,6 +563,86 @@ onBeforeUnmount(() => {
 .support-row:hover {
   border-color: rgba(255, 122, 24, 0.42);
   box-shadow: 0 8px 20px rgba(255, 122, 24, 0.08);
+}
+
+.support-row.needs-manual {
+  border-color: rgba(37, 99, 235, 0.7);
+  background: linear-gradient(135deg, #eef6ff 0%, #ffffff 70%);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.14), 0 10px 22px rgba(37, 99, 235, 0.16);
+}
+
+.support-row.needs-manual::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 0 18px rgba(37, 99, 235, 0.82);
+  animation: manualGlowBar 0.92s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.support-row.needs-manual::after {
+  content: "待接入";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 650;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.32);
+  animation: manualBadgePulse 0.92s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.support-row.needs-manual.active {
+  border-color: rgba(37, 99, 235, 0.82);
+  background: linear-gradient(135deg, #eaf3ff 0%, #ffffff 70%);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2), 0 10px 24px rgba(37, 99, 235, 0.18);
+}
+
+.manual-attention-button {
+  border-color: #2563eb !important;
+  color: #fff !important;
+  background: #2563eb !important;
+  animation: manualButtonPulse 1.05s ease-in-out infinite;
+}
+
+@keyframes manualGlowBar {
+  0%, 100% {
+    opacity: 0.62;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 0 12px rgba(37, 99, 235, 0.58);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 7px rgba(37, 99, 235, 0.2), 0 0 28px rgba(37, 99, 235, 0.98);
+  }
+}
+
+@keyframes manualBadgePulse {
+  0%, 100% {
+    background: #2563eb;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
+  }
+  50% {
+    background: #1d4ed8;
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.16), 0 10px 22px rgba(37, 99, 235, 0.42);
+  }
+}
+
+@keyframes manualButtonPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.38), 0 8px 18px rgba(37, 99, 235, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(37, 99, 235, 0.16), 0 10px 24px rgba(37, 99, 235, 0.3);
+  }
 }
 
 .support-row__top,

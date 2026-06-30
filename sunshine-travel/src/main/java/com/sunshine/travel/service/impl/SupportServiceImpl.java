@@ -19,6 +19,7 @@ import com.sunshine.travel.service.support.AiSupportContextService;
 import com.sunshine.travel.service.support.OperationLogSupport;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +44,7 @@ public class SupportServiceImpl implements SupportService {
     private static final String MANUAL_WAIT_WARNING = "人工客服等待时间太久啦，即将为您结束本次人工接待，后续您可以继续由AI客服为您服务。";
     private static final String MANUAL_OPEN_NOTICE = "已接入人工客服";
     private static final String MANUAL_CLOSE_NOTICE = "已关闭人工客服";
+    private static final String MANUAL_TRANSFER_REPLY = "正在为您转接人工客服，请稍后";
     private static final String DEFAULT_AI_WELCOME_MESSAGE = "您好，阳光出行客服已接入，请描述您遇到的问题。";
     private static final String PREVIOUS_AI_WELCOME_MESSAGE = "您好，阳光出行AI客服已接入，请描述您遇到的问题。";
     private static final String LEGACY_DEFAULT_WELCOME_MESSAGE = "您好，阳光出行客服已接入，请描述您遇到的问题。";
@@ -104,25 +106,26 @@ public class SupportServiceImpl implements SupportService {
         SupportMessage message = insertMessage(conversation.getId(), UserContext.userId(), UserContext.role(), content);
         boolean wasManual = STATUS_MANUAL.equals(conversation.getStatus());
         boolean manualIntent = hasManualSupportIntent(message.getContent());
-        boolean manualActive = wasManual || manualIntent;
-        conversation.setStatus(manualActive ? STATUS_MANUAL : STATUS_OPEN);
+        conversation.setStatus(wasManual ? STATUS_MANUAL : STATUS_OPEN);
         conversation.setLastMessage(message.getContent());
         conversation.setLastMessageAt(message.getCreatedAt());
         conversation.setUnreadForAdmin(safeInt(conversation.getUnreadForAdmin()) + 1);
         conversation.setUnreadForUser(0);
-        if (manualActive) {
-            SupportMessage notice = ensureManualOpenNotice(conversation);
-            if (notice != null) {
-                conversation.setLastMessage(notice.getContent());
-                conversation.setLastMessageAt(notice.getCreatedAt());
-                conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
-            }
+        SupportMessage notice = null;
+        SupportMessage reply = null;
+        if (wasManual) {
+            // 人工接待中只记录用户消息，不再触发AI。
+        } else if (manualIntent) {
+            reply = insertMessage(conversation.getId(), null, ROLE_AI, MANUAL_TRANSFER_REPLY);
+            conversation.setLastMessage(reply.getContent());
+            conversation.setLastMessageAt(reply.getCreatedAt());
+            conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
         }
         supportConversationMapper.updateById(conversation);
-        if (!manualActive) {
+        if (!wasManual && !manualIntent) {
             scheduleAiReply(conversation.getId(), content);
         }
-        return mapMessage(message);
+        return buildSendResult(conversation, message, notice, reply);
     }
 
     @Override
@@ -211,7 +214,7 @@ public class SupportServiceImpl implements SupportService {
         String currentStatus = conversation.getStatus();
         conversation.setStatus(nextStatus);
         if (STATUS_MANUAL.equals(nextStatus)) {
-            SupportMessage notice = ensureManualOpenNotice(conversation);
+            SupportMessage notice = STATUS_MANUAL.equals(currentStatus) ? null : insertManualOpenNotice(conversation);
             if (notice != null) {
                 conversation.setLastMessage(notice.getContent());
                 conversation.setLastMessageAt(notice.getCreatedAt());
@@ -219,11 +222,18 @@ public class SupportServiceImpl implements SupportService {
                 conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
             }
         } else if (!STATUS_MANUAL.equals(nextStatus) && STATUS_MANUAL.equals(currentStatus)) {
-            SupportMessage notice = insertMessage(conversationId, null, RoleCode.ADMIN, MANUAL_CLOSE_NOTICE);
-            conversation.setLastMessage(notice.getContent());
-            conversation.setLastMessageAt(notice.getCreatedAt());
+            SupportMessage existingNotice = latestManualCloseNoticeAfter(conversation, null);
+            SupportMessage notice = existingNotice == null
+                    ? insertMessage(conversationId, null, RoleCode.ADMIN, MANUAL_CLOSE_NOTICE)
+                    : existingNotice;
+            if (notice != null) {
+                conversation.setLastMessage(notice.getContent());
+                conversation.setLastMessageAt(notice.getCreatedAt());
+            }
             conversation.setUnreadForAdmin(0);
-            conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+            if (existingNotice == null) {
+                conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+            }
         }
         supportConversationMapper.updateById(conversation);
         operationLogSupport.log("SUPPORT", "STATUS", "SUPPORT_CONVERSATION", conversationId, "客服会话状态更新为：" + nextStatus);
@@ -343,7 +353,40 @@ public class SupportServiceImpl implements SupportService {
         Page<SupportMessage> page = supportMessageMapper.selectPage(new Page<>(1, 200), new LambdaQueryWrapper<SupportMessage>()
                 .eq(SupportMessage::getConversationId, conversationId)
                 .orderByAsc(SupportMessage::getId));
-        return page.getRecords().stream().map(this::mapMessage).toList();
+        return collapseDuplicateSystemNotices(page.getRecords()).stream().map(this::mapMessage).toList();
+    }
+
+    private List<SupportMessage> collapseDuplicateSystemNotices(List<SupportMessage> messages) {
+        List<SupportMessage> result = new ArrayList<>();
+        for (SupportMessage message : messages) {
+            SupportMessage previous = result.isEmpty() ? null : result.get(result.size() - 1);
+            if (isSameSystemNotice(previous, message)) {
+                continue;
+            }
+            result.add(message);
+        }
+        return result;
+    }
+
+    private boolean isSameSystemNotice(SupportMessage left, SupportMessage right) {
+        if (!isSystemNotice(left) || !isSystemNotice(right)) {
+            return false;
+        }
+        return left.getContent() != null && left.getContent().equals(right.getContent());
+    }
+
+    private Map<String, Object> buildSendResult(SupportConversation conversation, SupportMessage message, SupportMessage notice, SupportMessage reply) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("message", mapMessage(message));
+        if (notice != null) {
+            map.put("notice", mapMessage(notice));
+        }
+        if (reply != null) {
+            map.put("reply", mapMessage(reply));
+        }
+        map.put("conversation", mapConversation(conversation));
+        map.put("messages", listMessageRows(conversation.getId()));
+        return map;
     }
 
     private Map<String, Object> mapConversation(SupportConversation conversation) {
@@ -362,6 +405,7 @@ public class SupportServiceImpl implements SupportService {
         map.put("memberLevel", member ? user.getMemberLevel() : "");
         map.put("status", conversation.getStatus());
         map.put("manualMode", STATUS_MANUAL.equals(conversation.getStatus()));
+        map.put("needsManualReception", needsManualReception(conversation));
         map.put("lastMessage", normalizeWelcomeContent(conversation.getLastMessage()));
         map.put("lastMessageAt", conversation.getLastMessageAt());
         map.put("unreadForAdmin", safeInt(conversation.getUnreadForAdmin()));
@@ -480,11 +524,18 @@ public class SupportServiceImpl implements SupportService {
         if (manualAnchorAt.isAfter(now.minus(MANUAL_IDLE_TIMEOUT))) {
             return false;
         }
-        SupportMessage closeNotice = insertMessage(conversation.getId(), null, RoleCode.ADMIN, MANUAL_CLOSE_NOTICE);
+        SupportMessage existingCloseNotice = latestManualCloseNoticeAfter(conversation, manualAnchorAt);
+        SupportMessage closeNotice = existingCloseNotice == null
+                ? insertMessage(conversation.getId(), null, RoleCode.ADMIN, MANUAL_CLOSE_NOTICE)
+                : existingCloseNotice;
         conversation.setStatus(STATUS_OPEN);
-        conversation.setLastMessage(closeNotice.getContent());
-        conversation.setLastMessageAt(closeNotice.getCreatedAt());
-        conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+        if (closeNotice != null) {
+            conversation.setLastMessage(closeNotice.getContent());
+            conversation.setLastMessageAt(closeNotice.getCreatedAt());
+        }
+        if (existingCloseNotice == null) {
+            conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+        }
         supportConversationMapper.updateById(conversation);
         return true;
     }
@@ -499,39 +550,28 @@ public class SupportServiceImpl implements SupportService {
                 .gt(SupportMessage::getCreatedAt, since)) > 0;
     }
 
-    private SupportMessage ensureManualOpenNotice(SupportConversation conversation) {
+    private SupportMessage insertManualOpenNotice(SupportConversation conversation) {
         if (conversation == null || conversation.getId() == null) {
-            return null;
-        }
-        LocalDateTime latestCloseAt = latestSystemNoticeAt(conversation.getId(), MANUAL_CLOSE_NOTICE);
-        if (hasManualOpenNoticeAfter(conversation.getId(), latestCloseAt)) {
             return null;
         }
         return insertMessage(conversation.getId(), null, RoleCode.ADMIN, MANUAL_OPEN_NOTICE);
     }
 
-    private boolean hasManualOpenNoticeAfter(Long conversationId, LocalDateTime since) {
-        if (conversationId == null) {
-            return false;
-        }
-        return supportMessageMapper.selectCount(new LambdaQueryWrapper<SupportMessage>()
-                .eq(SupportMessage::getConversationId, conversationId)
-                .eq(SupportMessage::getSenderRole, RoleCode.ADMIN)
-                .eq(SupportMessage::getContent, MANUAL_OPEN_NOTICE)
-                .gt(since != null, SupportMessage::getCreatedAt, since)) > 0;
-    }
-
-    private LocalDateTime latestSystemNoticeAt(Long conversationId, String content) {
-        if (conversationId == null || !StringUtils.hasText(content)) {
+    private SupportMessage latestManualCloseNoticeAfter(SupportConversation conversation, LocalDateTime manualAnchorAt) {
+        if (conversation == null || conversation.getId() == null) {
             return null;
         }
-        SupportMessage notice = supportMessageMapper.selectOne(new LambdaQueryWrapper<SupportMessage>()
-                .eq(SupportMessage::getConversationId, conversationId)
-                .eq(SupportMessage::getSenderRole, RoleCode.ADMIN)
-                .eq(SupportMessage::getContent, content)
-                .orderByDesc(SupportMessage::getId)
-                .last("limit 1"));
-        return notice == null ? null : notice.getCreatedAt();
+        LocalDateTime anchorAt = manualAnchorAt;
+        if (anchorAt == null) {
+            SupportMessage anchor = latestManualAdminAnchorMessage(conversation.getId());
+            anchorAt = anchor == null ? null : anchor.getCreatedAt();
+        }
+        SupportMessage latestClose = latestSystemNotice(conversation.getId(), MANUAL_CLOSE_NOTICE);
+        if (latestClose != null && latestClose.getCreatedAt() != null
+                && (anchorAt == null || !latestClose.getCreatedAt().isBefore(anchorAt))) {
+            return latestClose;
+        }
+        return null;
     }
 
     private SupportMessage latestManualAdminAnchorMessage(Long conversationId) {
@@ -573,5 +613,72 @@ public class SupportServiceImpl implements SupportService {
                 || normalized.contains("人工跟进")
                 || normalized.contains("账户资金异常")
                 || normalized.contains("安全事故");
+    }
+
+    private boolean needsManualReception(SupportConversation conversation) {
+        if (conversation == null || STATUS_MANUAL.equals(conversation.getStatus())) {
+            return false;
+        }
+        SupportMessage latestClose = latestSystemNotice(conversation.getId(), MANUAL_CLOSE_NOTICE);
+        SupportMessage latestOpen = latestSystemNotice(conversation.getId(), MANUAL_OPEN_NOTICE);
+        Long handledMessageId = latestMessageId(latestClose, latestOpen);
+        return latestMessagesAfter(conversation.getId(), handledMessageId).stream()
+                .anyMatch(message -> isTransferReply(message) || isUserMessage(message) && hasManualSupportIntent(message.getContent()));
+    }
+
+    private List<SupportMessage> latestMessagesAfter(Long conversationId, Long afterMessageId) {
+        if (conversationId == null) {
+            return List.of();
+        }
+        return supportMessageMapper.selectList(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .gt(afterMessageId != null, SupportMessage::getId, afterMessageId)
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 8"));
+    }
+
+    private boolean isTransferReply(SupportMessage message) {
+        return message != null && ROLE_AI.equals(message.getSenderRole()) && MANUAL_TRANSFER_REPLY.equals(message.getContent());
+    }
+
+    private boolean isUserMessage(SupportMessage message) {
+        return message != null && !RoleCode.ADMIN.equals(message.getSenderRole()) && !ROLE_AI.equals(message.getSenderRole());
+    }
+
+    private Long latestMessageId(SupportMessage left, SupportMessage right) {
+        if (left == null) {
+            return right == null ? null : right.getId();
+        }
+        if (right == null) {
+            return left.getId();
+        }
+        return left.getId() > right.getId() ? left.getId() : right.getId();
+    }
+
+    private LocalDateTime latestSystemNoticeAt(Long conversationId, String content) {
+        SupportMessage notice = latestSystemNotice(conversationId, content);
+        return notice == null ? null : notice.getCreatedAt();
+    }
+
+    private SupportMessage latestSystemNotice(Long conversationId, String content) {
+        if (conversationId == null || !StringUtils.hasText(content)) {
+            return null;
+        }
+        return supportMessageMapper.selectOne(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .eq(SupportMessage::getSenderRole, RoleCode.ADMIN)
+                .eq(SupportMessage::getContent, content)
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 1"));
+    }
+
+    private LocalDateTime latestTime(LocalDateTime left, LocalDateTime right) {
+        if (left == null) {
+            return right;
+        }
+        if (right == null) {
+            return left;
+        }
+        return left.isAfter(right) ? left : right;
     }
 }

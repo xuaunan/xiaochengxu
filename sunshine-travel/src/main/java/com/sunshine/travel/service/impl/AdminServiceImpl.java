@@ -1726,14 +1726,18 @@ public class AdminServiceImpl implements AdminService {
         if (conversation == null || conversation.getId() == null) {
             return false;
         }
-        if (safeInteger(conversation.getUnreadForAdmin()) > 0 && hasHumanSupportIntent(conversation.getLastMessage())) {
-            return true;
-        }
-        return latestUserSupportMessages(conversation.getId()).stream()
-                .anyMatch(message -> hasHumanSupportIntent(message.getContent()));
+        SupportMessage latestClose = latestSupportSystemNotice(conversation.getId(), "已关闭人工客服");
+        SupportMessage latestOpen = latestSupportSystemNotice(conversation.getId(), "已接入人工客服");
+        Long handledMessageId = latestMessageId(latestClose, latestOpen);
+        return latestSupportMessagesAfter(conversation.getId(), handledMessageId).stream()
+                .anyMatch(message -> isSupportTransferReply(message) || isSupportUserMessage(message) && hasHumanSupportIntent(message.getContent()));
     }
 
     private List<SupportMessage> latestUserSupportMessages(Long conversationId) {
+        return latestUserSupportMessages(conversationId, null);
+    }
+
+    private List<SupportMessage> latestUserSupportMessages(Long conversationId, LocalDateTime after) {
         if (conversationId == null) {
             return List.of();
         }
@@ -1741,8 +1745,65 @@ public class AdminServiceImpl implements AdminService {
                 .eq(SupportMessage::getConversationId, conversationId)
                 .ne(SupportMessage::getSenderRole, RoleCode.ADMIN)
                 .ne(SupportMessage::getSenderRole, "AI")
+                .gt(after != null, SupportMessage::getCreatedAt, after)
                 .orderByDesc(SupportMessage::getId)
                 .last("limit 8"));
+    }
+
+    private LocalDateTime latestSupportSystemNoticeAt(Long conversationId, String content) {
+        SupportMessage notice = latestSupportSystemNotice(conversationId, content);
+        return notice == null ? null : notice.getCreatedAt();
+    }
+
+    private SupportMessage latestSupportSystemNotice(Long conversationId, String content) {
+        if (conversationId == null || !StringUtils.hasText(content)) {
+            return null;
+        }
+        return supportMessageMapper.selectOne(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .eq(SupportMessage::getSenderRole, RoleCode.ADMIN)
+                .eq(SupportMessage::getContent, content)
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 1"));
+    }
+
+    private LocalDateTime latestTime(LocalDateTime left, LocalDateTime right) {
+        if (left == null) {
+            return right;
+        }
+        if (right == null) {
+            return left;
+        }
+        return left.isAfter(right) ? left : right;
+    }
+
+    private Long latestMessageId(SupportMessage left, SupportMessage right) {
+        if (left == null) {
+            return right == null ? null : right.getId();
+        }
+        if (right == null) {
+            return left.getId();
+        }
+        return left.getId() > right.getId() ? left.getId() : right.getId();
+    }
+
+    private List<SupportMessage> latestSupportMessagesAfter(Long conversationId, Long afterMessageId) {
+        if (conversationId == null) {
+            return List.of();
+        }
+        return supportMessageMapper.selectList(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .gt(afterMessageId != null, SupportMessage::getId, afterMessageId)
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 8"));
+    }
+
+    private boolean isSupportTransferReply(SupportMessage message) {
+        return message != null && "AI".equals(message.getSenderRole()) && "正在为您转接人工客服，请稍后".equals(message.getContent());
+    }
+
+    private boolean isSupportUserMessage(SupportMessage message) {
+        return message != null && !RoleCode.ADMIN.equals(message.getSenderRole()) && !"AI".equals(message.getSenderRole());
     }
 
     private boolean hasHumanSupportIntent(String content) {
