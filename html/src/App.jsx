@@ -9257,20 +9257,65 @@ function buildAuthForm(roleCode, mode) {
     phone: mode === 'login' ? roleMeta[roleCode].phone : '',
     nickname: '',
     password: mode === 'login' ? '123456' : '',
-    confirmPassword: ''
+    confirmPassword: '',
+    captcha: ''
+  }
+}
+
+const CAPTCHA_CHARACTERS = ['2', '3', '4', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'm', 'n', 'p', 'q', 'r', 't', 'u', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'M', 'N', 'P', 'Q', 'R', 'T', 'U', 'X', 'Y', 'Z']
+const CAPTCHA_IMAGES = Array.from({ length: 12 }, (_, index) => `/assets/captcha-images/${String(index + 1).padStart(2, '0')}.png`)
+
+function createImageCaptcha() {
+  const code = Array.from({ length: 4 }, () => CAPTCHA_CHARACTERS[Math.floor(Math.random() * CAPTCHA_CHARACTERS.length)]).join('')
+  const letterRanges = [[12, 30], [31, 49], [50, 68], [69, 88]]
+  const letters = code.split('').map((char, index) => ({
+    char,
+    left: `${letterRanges[index][0] + Math.floor(Math.random() * (letterRanges[index][1] - letterRanges[index][0]))}%`,
+    top: `${39 + Math.floor(Math.random() * 25)}%`,
+    rotate: `${-28 + Math.floor(Math.random() * 57)}deg`,
+    scaleX: `${0.82 + Math.random() * 0.36}`,
+    fontSize: `${20 + Math.floor(Math.random() * 5)}px`,
+    color: ['#182236', '#1d4b5e', '#6f2f1d', '#31421f'][Math.floor(Math.random() * 4)]
+  }))
+  const lines = Array.from({ length: 12 }, (_, index) => ({
+    left: `${-8 + Math.floor(Math.random() * 24)}px`,
+    top: `${3 + Math.floor(Math.random() * 24)}px`,
+    width: `${66 + Math.floor(Math.random() * 68)}px`,
+    rotate: `${-25 + Math.floor(Math.random() * 51)}deg`,
+    opacity: `${0.28 + Math.random() * 0.28}`,
+    color: index % 2 ? '#334155' : '#a8552f'
+  }))
+  const dots = Array.from({ length: 44 }, () => ({
+    left: `${Math.floor(Math.random() * 104)}px`,
+    top: `${Math.floor(Math.random() * 31)}px`,
+    size: `${1 + Math.floor(Math.random() * 3)}px`,
+    opacity: `${0.22 + Math.random() * 0.34}`
+  }))
+  return {
+    code,
+    image: CAPTCHA_IMAGES[Math.floor(Math.random() * CAPTCHA_IMAGES.length)],
+    letters,
+    lines,
+    dots
   }
 }
 
 function LoginModal({ roleCode, onClose, onSwitch, onLogin, onRegister }) {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState(() => buildAuthForm(roleCode, 'login'))
+  const [captcha, setCaptcha] = useState(() => createImageCaptcha())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const Icon = roleMeta[roleCode].icon
   const roleName = roleCode === 'DRIVER' ? '司机' : '乘客'
+  const refreshCaptcha = useCallback(() => {
+    setCaptcha(createImageCaptcha())
+    setForm((value) => ({ ...value, captcha: '' }))
+  }, [])
 
   useEffect(() => {
     setForm(buildAuthForm(roleCode, mode))
+    setCaptcha(createImageCaptcha())
     setError('')
   }, [roleCode, mode])
 
@@ -9286,6 +9331,13 @@ function LoginModal({ roleCode, onClose, onSwitch, onLogin, onRegister }) {
       }
       if (!password || password.length < 6 || password.length > 20) {
         throw new Error('密码长度需要 6-20 位')
+      }
+      if (!form.captcha.trim()) {
+        throw new Error('请输入图形验证码')
+      }
+      if (form.captcha.trim().toUpperCase() !== captcha.code.toUpperCase()) {
+        refreshCaptcha()
+        throw new Error('图形验证码不正确，请重新输入')
       }
       if (mode === 'register') {
         const nickname = form.nickname.trim()
@@ -9329,6 +9381,58 @@ function LoginModal({ roleCode, onClose, onSwitch, onLogin, onRegister }) {
         {mode === 'register' && (
           <label className="input-field"><ShieldCheck size={17} /><input placeholder="确认密码" type="password" value={form.confirmPassword} onChange={(event) => setForm((value) => ({ ...value, confirmPassword: event.target.value }))} /></label>
         )}
+        <div className="captcha-row">
+          <label className="input-field captcha-input"><ShieldCheck size={17} /><input placeholder="图形验证码" value={form.captcha} maxLength={4} onChange={(event) => setForm((value) => ({ ...value, captcha: event.target.value.toUpperCase() }))} /></label>
+          <button className="captcha-image-button" type="button" onClick={refreshCaptcha} aria-label="刷新图形验证码">
+            <span className="captcha-art" style={{ backgroundImage: `url(${captcha.image})` }} aria-hidden="true">
+              <span className="captcha-noise">
+                {captcha.lines.map((line, index) => (
+                  <span
+                    className="captcha-line"
+                    key={`line-${index}`}
+                    style={{
+                      left: line.left,
+                      top: line.top,
+                      width: line.width,
+                      opacity: line.opacity,
+                      backgroundColor: line.color,
+                      transform: `rotate(${line.rotate})`
+                    }}
+                  />
+                ))}
+                {captcha.dots.map((dot, index) => (
+                  <span
+                    className="captcha-dot"
+                    key={`dot-${index}`}
+                    style={{
+                      left: dot.left,
+                      top: dot.top,
+                      width: dot.size,
+                      height: dot.size,
+                      opacity: dot.opacity
+                    }}
+                  />
+                ))}
+              </span>
+              {captcha.letters.map((letter, index) => (
+                <span
+                  className="captcha-letter"
+                  key={`${letter.char}-${index}`}
+                  style={{
+                    left: letter.left,
+                    top: letter.top,
+                    color: letter.color,
+                    fontSize: letter.fontSize,
+                    transform: `translate(-50%, -50%) rotate(${letter.rotate}) scaleX(${letter.scaleX})`
+                  }}
+                >
+                  {letter.char}
+                </span>
+              ))}
+            </span>
+            <RefreshCw size={14} />
+          </button>
+        </div>
         {error && <p className="form-error">{error}</p>}
         <button className="solid-button fill" disabled={busy}>
           {busy ? (mode === 'register' ? '注册中...' : '登录中...') : (mode === 'register' ? '注册并进入' : '进入工作台')}
