@@ -1,3 +1,4 @@
+const fs = require('fs')
 const path = require('path')
 
 const projectRoot = path.resolve(__dirname, '..')
@@ -904,6 +905,45 @@ async function assertPaymentEligibility() {
   }
 }
 
+function assertSplitMapLayout(pageName, stageClass, cardClass) {
+  const pageDir = path.join(projectRoot, 'pages', pageName)
+  const wxml = fs.readFileSync(path.join(pageDir, 'index.wxml'), 'utf8')
+  const wxss = fs.readFileSync(path.join(pageDir, 'index.wxss'), 'utf8')
+  const js = fs.readFileSync(path.join(pageDir, 'index.js'), 'utf8')
+  const usesOverlayNavigation = pageName === 'trip-progress'
+  const navIndex = wxml.indexOf('<sun-nav')
+  const mapIndex = wxml.indexOf('<map')
+  const cardRule = wxss.match(new RegExp(`\\.${cardClass}\\s*\\{([^}]*)\\}`))
+
+  if (navIndex < 0 || mapIndex < 0 || navIndex > mapIndex) {
+    throw new Error(`${pageName}: navigation must render before the native map`)
+  }
+  const expectedMapHeightBinding = usesOverlayNavigation ? 'mapHeight' : 'mapBodyHeight'
+  if (!wxml.includes(`class="${stageClass}" style="height: {{${expectedMapHeightBinding}}}px;"`)) {
+    throw new Error(`${pageName}: map stage must use the home-page map height`)
+  }
+  if (!js.includes('const mapHeight = Math.round(availableHeight * 0.4)')) {
+    throw new Error(`${pageName}: map height must use the same calculation as the home page`)
+  }
+  const expectedMapBodyCalculation = usesOverlayNavigation
+    ? 'const mapBodyHeight = Math.max(mapHeight, 180)'
+    : 'const mapBodyHeight = Math.max(mapHeight - navHeight, 180)'
+  if (!js.includes(expectedMapBodyCalculation)) {
+    throw new Error(`${pageName}: navigation must be included in the home-sized map area`)
+  }
+  if (!wxml.includes('catchtap="handleDirectBack"') || !js.includes('handleDirectBack()')) {
+    throw new Error(`${pageName}: direct back navigation is missing`)
+  }
+  if (!cardRule || /position:\s*absolute/.test(cardRule[1])) {
+    throw new Error(`${pageName}: content card must sit below the map`)
+  }
+}
+
+function assertPassengerTripLayouts() {
+  assertSplitMapLayout('driver-arrival', 'arrival-map-stage', 'arrival-bottom')
+  assertSplitMapLayout('trip-progress', 'trip-map-stage', 'trip-card')
+}
+
 async function main() {
   const dataset = getDataset()
   const initialStore = createInitialStore(dataset)
@@ -960,6 +1000,17 @@ async function main() {
       error
     })
     console.log(`FAIL payment eligibility guards: ${error.message}`)
+  }
+
+  try {
+    assertPassengerTripLayouts()
+    console.log('PASS passenger trip split-map layouts')
+  } catch (error) {
+    failures.push({
+      pagePath: 'passenger trip split-map layouts',
+      error
+    })
+    console.log(`FAIL passenger trip split-map layouts: ${error.message}`)
   }
 
   if (failures.length) {

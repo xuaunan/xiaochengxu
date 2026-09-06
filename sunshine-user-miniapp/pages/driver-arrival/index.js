@@ -7,6 +7,8 @@ const { createSimulation } = require('../../utils/trip-simulator')
 const { runExclusive, runGuarded, switchTabSilky } = require('../../utils/page')
 const { requestRoute } = require('../../utils/route-planner')
 
+const MAP_FOLLOW_RESUME_DELAY = 10000
+
 function normalizePoint(point = {}) {
   return {
     latitude: Number(point.latitude || 0),
@@ -125,17 +127,21 @@ Page({
     etaText: '--',
     trafficText: '--',
     driverPosition: null,
+    mapCenter: {},
+    mapFollowMode: true,
     markers: [],
     polyline: [],
-    includePoints: [],
-    latitude: 31.2,
-    longitude: 121.33,
     orderId: '',
+    statusBarHeight: 20,
+    navHeight: 44,
+    mapHeight: 288,
+    mapBodyHeight: 244,
     actionButtonText: '刷新接驾状态',
     canceling: false
   },
 
   async onLoad(options) {
+    this.initLayoutMetrics()
     this.setData({
       orderId: options.id || ''
     })
@@ -151,12 +157,59 @@ Page({
 
   onShow() {
     if (!this.data.orderId) return
+    this.clearMapFollowTimer()
+    if (!this.data.mapFollowMode) {
+      this.setData({ mapFollowMode: true })
+    }
     this.refreshOrderView(true).catch(() => {})
     this.startPolling()
   },
 
+  onReady() {
+    if (wx.createMapContext) {
+      this.mapContext = wx.createMapContext('arrivalMap', this)
+    }
+  },
+
+  onHide() {
+    this.stopPolling()
+    this.clearMapFollowTimer()
+  },
+
   onUnload() {
     this.stopPolling()
+    this.clearMapFollowTimer()
+  },
+
+  initLayoutMetrics() {
+    const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+    const windowHeight = windowInfo.windowHeight || 720
+    const safeArea = windowInfo.safeArea || {}
+    const safeAreaBottomInset = Math.max(windowHeight - Number(safeArea.bottom || windowHeight), 0)
+    const availableHeight = Math.max(windowHeight - 56 - safeAreaBottomInset, 0)
+    const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null
+    const navHeight = menuButton ? Math.max(menuButton.height + 10, 44) : 44
+    const mapHeight = Math.round(availableHeight * 0.4)
+    const mapBodyHeight = Math.max(mapHeight - navHeight, 180)
+
+    this.setData({
+      statusBarHeight: windowInfo.statusBarHeight || 20,
+      navHeight,
+      mapHeight,
+      mapBodyHeight
+    })
+  },
+
+  handleDirectBack() {
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      wx.navigateBack({
+        delta: 1,
+        fail: () => wx.switchTab({ url: '/pages/home/index' })
+      })
+      return
+    }
+    wx.switchTab({ url: '/pages/home/index' })
   },
 
   stopPolling() {
@@ -205,9 +258,9 @@ Page({
         id: 2,
         latitude: driverPosition.latitude,
         longitude: driverPosition.longitude,
-        iconPath: '/images/map-driver.png',
-        width: 48,
-        height: 48,
+        iconPath: '/images/map-car-real-top.png',
+        width: 46,
+        height: 46,
         rotate: Number(activeRuntime.heading || fallback.heading || 0),
         anchor: {
           x: 0.5,
@@ -235,7 +288,10 @@ Page({
       remainWidth: 6
     })
 
-    this.setData({
+    const mapCenter = this.data.mapCenter || {}
+    const shouldUpdateMapCenter = this.data.mapFollowMode || !mapCenter.latitude || !mapCenter.longitude
+
+    const arrivalViewData = {
       order,
       progress: displayPercent / 100,
       driverPosition,
@@ -244,11 +300,12 @@ Page({
       progressText: `${displayPercent}%`,
       actionButtonText: driverArrived ? '我已上车' : '刷新接驾状态',
       markers,
-      polyline,
-      includePoints: [targetPoint, driverPosition],
-      latitude: targetPoint.latitude,
-      longitude: targetPoint.longitude
-    })
+      polyline
+    }
+    if (shouldUpdateMapCenter) {
+      arrivalViewData.mapCenter = driverPosition
+    }
+    this.setData(arrivalViewData)
 
     app.setCurrentRideOrder(order, {
       persist: false
@@ -359,6 +416,52 @@ Page({
         }
       }).catch(() => {})
     }, 3000)
+  },
+
+  handleMapRegionChange(event) {
+    const detail = event.detail || {}
+    const causedBy = detail.causedBy || event.causedBy
+    const changeType = detail.type || event.type
+    if (causedBy !== 'gesture') return
+
+    this.clearMapFollowTimer()
+    if (this.data.mapFollowMode) {
+      this.setData({ mapFollowMode: false })
+    }
+    if (changeType === 'end') {
+      this.scheduleMapFollowRestore()
+    }
+  },
+
+  scheduleMapFollowRestore() {
+    this.clearMapFollowTimer()
+    this.mapFollowTimer = setTimeout(() => {
+      this.restoreVehicleView()
+    }, MAP_FOLLOW_RESUME_DELAY)
+  },
+
+  clearMapFollowTimer() {
+    if (this.mapFollowTimer) {
+      clearTimeout(this.mapFollowTimer)
+      this.mapFollowTimer = null
+    }
+  },
+
+  restoreVehicleView() {
+    const driverPosition = normalizePoint(this.data.driverPosition)
+    if (!driverPosition.latitude || !driverPosition.longitude) return
+
+    this.clearMapFollowTimer()
+    this.setData({
+      mapFollowMode: true,
+      mapCenter: driverPosition
+    })
+    const mapContext = this.mapContext || (wx.createMapContext && wx.createMapContext('arrivalMap', this))
+    if (!mapContext || !mapContext.moveToLocation) return
+    mapContext.moveToLocation({
+      latitude: driverPosition.latitude,
+      longitude: driverPosition.longitude
+    })
   },
 
   contactDriver() {

@@ -135,8 +135,14 @@ function needsManualReception(conversation) {
   return conversation.needsManualReception === true
 }
 
+function isEmergencySupport(conversation) {
+  if (!conversation) return false
+  return conversation.emergencySupport === true
+}
+
 const canReply = computed(() => isManualConversation(selectedConversation.value))
 const selectedNeedsManualReception = computed(() => needsManualReception(selectedConversation.value))
+const selectedEmergencySupport = computed(() => isEmergencySupport(selectedConversation.value))
 
 async function loadConversations(resetPage = false) {
   if (resetPage) {
@@ -329,7 +335,11 @@ onBeforeUnmount(() => {
             v-for="item in conversations"
             :key="item.id"
             class="support-row"
-            :class="{ active: selectedId === item.id, 'needs-manual': needsManualReception(item) }"
+            :class="{
+              active: selectedId === item.id,
+              'needs-manual': needsManualReception(item),
+              emergency: isEmergencySupport(item) && !isManualConversation(item)
+            }"
             type="button"
             @click="selectConversation(item)"
           >
@@ -347,6 +357,9 @@ onBeforeUnmount(() => {
               </el-tag>
               <el-tag size="small" :type="supportStatusTagType(item.status)" effect="light">
                 {{ supportStatusLabel(item.status) }}
+              </el-tag>
+              <el-tag v-if="isEmergencySupport(item)" size="small" type="danger" effect="dark">
+                紧急安全
               </el-tag>
             </div>
             <p>{{ item.lastMessage || '暂无消息' }}</p>
@@ -391,7 +404,10 @@ onBeforeUnmount(() => {
               <el-button :loading="aiContextLoading" plain @click="loadAiContext(true)">AI读取资料</el-button>
               <el-button
                 :type="canReply ? 'warning' : 'primary'"
-                :class="{ 'manual-attention-button': selectedNeedsManualReception }"
+                :class="{
+                  'manual-attention-button': selectedNeedsManualReception,
+                  'emergency-attention-button': selectedEmergencySupport && !canReply
+                }"
                 plain
                 @click="toggleStatus"
               >
@@ -607,11 +623,80 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2), 0 10px 24px rgba(37, 99, 235, 0.18);
 }
 
+.support-row.emergency,
+.support-row.emergency.active {
+  border-color: rgba(220, 38, 38, 0.78);
+  background: linear-gradient(135deg, #fff0f0 0%, #ffffff 74%);
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.16), 0 10px 24px rgba(220, 38, 38, 0.2);
+  animation: none;
+}
+
+.support-row.emergency::before {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12), 0 0 12px rgba(220, 38, 38, 0.46);
+  animation: none;
+}
+
+.support-row.emergency::after {
+  content: "紧急待接入";
+  background: #dc2626;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(220, 38, 38, 0.26);
+  animation: none;
+}
+
 .manual-attention-button {
   border-color: #2563eb !important;
   color: #fff !important;
   background: #2563eb !important;
   animation: manualButtonPulse 1.05s ease-in-out infinite;
+}
+
+.emergency-attention-button {
+  border-color: #dc2626 !important;
+  color: #fff !important;
+  background: #dc2626 !important;
+  animation: none;
+}
+
+@keyframes emergencyRowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.14), 0 8px 20px rgba(220, 38, 38, 0.14);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2), 0 12px 30px rgba(220, 38, 38, 0.3);
+  }
+}
+
+@keyframes emergencyGlowBar {
+  0%, 100% {
+    opacity: 0.72;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14), 0 0 14px rgba(220, 38, 38, 0.62);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 7px rgba(220, 38, 38, 0.22), 0 0 30px rgba(220, 38, 38, 0.98);
+  }
+}
+
+@keyframes emergencyBadgePulse {
+  0%, 100% {
+    background: #dc2626;
+    box-shadow: 0 6px 14px rgba(220, 38, 38, 0.32);
+  }
+  50% {
+    background: #b91c1c;
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.18), 0 10px 24px rgba(220, 38, 38, 0.48);
+  }
+}
+
+@keyframes emergencyButtonPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.42), 0 8px 18px rgba(220, 38, 38, 0.24);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0.16), 0 10px 26px rgba(220, 38, 38, 0.38);
+  }
 }
 
 @keyframes manualGlowBar {

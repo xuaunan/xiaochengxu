@@ -405,6 +405,19 @@ Page({
     }, 260)
   },
 
+  clearKeyword() {
+    clearTimeout(this.searchDebounceTimer)
+    this.searchRequestId = (this.searchRequestId || 0) + 1
+    this.setData({
+      keyword: '',
+      searchItems: [],
+      loading: false,
+      loadError: false,
+      showSuggestionPanel: false
+    })
+    this.refreshStoredCollections({ forceVisibleRefresh: true })
+  },
+
   handleBack() {
     this.returnHomeSafely()
   },

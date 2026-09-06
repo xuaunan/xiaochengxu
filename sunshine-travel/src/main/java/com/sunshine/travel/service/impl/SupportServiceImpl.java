@@ -45,6 +45,7 @@ public class SupportServiceImpl implements SupportService {
     private static final String MANUAL_OPEN_NOTICE = "已接入人工客服";
     private static final String MANUAL_CLOSE_NOTICE = "已关闭人工客服";
     private static final String MANUAL_TRANSFER_REPLY = "正在为您转接人工客服，请稍后";
+    private static final String EMERGENCY_SUPPORT_PREFIX = "【紧急安全求助】";
     private static final String DEFAULT_AI_WELCOME_MESSAGE = "您好，阳光出行客服已接入，请描述您遇到的问题。";
     private static final String PREVIOUS_AI_WELCOME_MESSAGE = "您好，阳光出行AI客服已接入，请描述您遇到的问题。";
     private static final String LEGACY_DEFAULT_WELCOME_MESSAGE = "您好，阳光出行客服已接入，请描述您遇到的问题。";
@@ -78,6 +79,7 @@ public class SupportServiceImpl implements SupportService {
     @Transactional
     public Map<String, Object> currentConversation(String clientChannel) {
         SupportConversation conversation = findOrCreateCurrentConversation(clientChannel);
+        activateEmergencyConversationIfNeeded(conversation);
         closeExpiredManualConversation(conversation);
         return mapConversation(conversation);
     }
@@ -86,6 +88,7 @@ public class SupportServiceImpl implements SupportService {
     @Transactional
     public List<Map<String, Object>> currentMessages(String clientChannel) {
         SupportConversation conversation = findOrCreateCurrentConversation(clientChannel);
+        activateEmergencyConversationIfNeeded(conversation);
         closeExpiredManualConversation(conversation);
         conversation.setUnreadForUser(0);
         supportConversationMapper.updateById(conversation);
@@ -106,7 +109,9 @@ public class SupportServiceImpl implements SupportService {
         SupportMessage message = insertMessage(conversation.getId(), UserContext.userId(), UserContext.role(), content);
         boolean wasManual = STATUS_MANUAL.equals(conversation.getStatus());
         boolean manualIntent = hasManualSupportIntent(message.getContent());
-        conversation.setStatus(wasManual ? STATUS_MANUAL : STATUS_OPEN);
+        boolean emergencyIntent = isEmergencySupportRequest(message.getContent());
+        boolean directManual = !wasManual && emergencyIntent;
+        conversation.setStatus(wasManual || directManual ? STATUS_MANUAL : STATUS_OPEN);
         conversation.setLastMessage(message.getContent());
         conversation.setLastMessageAt(message.getCreatedAt());
         conversation.setUnreadForAdmin(safeInt(conversation.getUnreadForAdmin()) + 1);
@@ -115,6 +120,11 @@ public class SupportServiceImpl implements SupportService {
         SupportMessage reply = null;
         if (wasManual) {
             // 人工接待中只记录用户消息，不再触发AI。
+        } else if (directManual) {
+            notice = insertManualOpenNotice(conversation);
+            conversation.setLastMessage(notice.getContent());
+            conversation.setLastMessageAt(notice.getCreatedAt());
+            conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
         } else if (manualIntent) {
             reply = insertMessage(conversation.getId(), null, ROLE_AI, MANUAL_TRANSFER_REPLY);
             conversation.setLastMessage(reply.getContent());
@@ -122,7 +132,7 @@ public class SupportServiceImpl implements SupportService {
             conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
         }
         supportConversationMapper.updateById(conversation);
-        if (!wasManual && !manualIntent) {
+        if (!wasManual && !manualIntent && !emergencyIntent) {
             scheduleAiReply(conversation.getId(), content);
         }
         return buildSendResult(conversation, message, notice, reply);
@@ -133,15 +143,21 @@ public class SupportServiceImpl implements SupportService {
         closeExpiredManualConversations();
         String normalizedRole = StringUtils.hasText(role) ? role.trim().toUpperCase(Locale.ROOT) : "";
         String normalizedStatus = StringUtils.hasText(status) ? status.trim().toUpperCase(Locale.ROOT) : "";
-        List<Map<String, Object>> rows = supportConversationMapper.selectList(new LambdaQueryWrapper<SupportConversation>()
+        List<Map<String, Object>> rows = new ArrayList<>(supportConversationMapper.selectList(new LambdaQueryWrapper<SupportConversation>()
                         .eq(StringUtils.hasText(normalizedRole), SupportConversation::getUserRole, normalizedRole)
                         .eq(StringUtils.hasText(normalizedStatus), SupportConversation::getStatus, normalizedStatus)
                         .orderByDesc(SupportConversation::getLastMessageAt)
                         .orderByDesc(SupportConversation::getId))
                 .stream()
-                .map(this::mapConversation)
+                .map(conversation -> {
+                    activateEmergencyConversationIfNeeded(conversation);
+                    return mapConversation(conversation);
+                })
                 .filter(item -> matchesKeyword(item, keyword))
-                .toList();
+                .toList());
+        rows.sort((left, right) -> Boolean.compare(
+                Boolean.TRUE.equals(right.get("emergencySupport")),
+                Boolean.TRUE.equals(left.get("emergencySupport"))));
         long total = rows.size();
         int fromIndex = (int) Math.max((current - 1) * size, 0);
         if (fromIndex >= rows.size()) {
@@ -155,6 +171,7 @@ public class SupportServiceImpl implements SupportService {
     @Transactional
     public List<Map<String, Object>> adminMessages(Long conversationId) {
         SupportConversation conversation = requireConversation(conversationId);
+        activateEmergencyConversationIfNeeded(conversation);
         closeExpiredManualConversation(conversation);
         conversation.setUnreadForAdmin(0);
         supportConversationMapper.updateById(conversation);
@@ -392,6 +409,7 @@ public class SupportServiceImpl implements SupportService {
     private Map<String, Object> mapConversation(SupportConversation conversation) {
         PlatformUser user = platformUserMapper.selectById(conversation.getUserId());
         boolean member = isActiveMember(user);
+        List<SupportMessage> pendingSupportMessages = pendingSupportMessages(conversation);
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", conversation.getId());
         map.put("userId", conversation.getUserId());
@@ -405,7 +423,8 @@ public class SupportServiceImpl implements SupportService {
         map.put("memberLevel", member ? user.getMemberLevel() : "");
         map.put("status", conversation.getStatus());
         map.put("manualMode", STATUS_MANUAL.equals(conversation.getStatus()));
-        map.put("needsManualReception", needsManualReception(conversation));
+        map.put("needsManualReception", needsManualReception(conversation, pendingSupportMessages));
+        map.put("emergencySupport", hasEmergencySupport(conversation));
         map.put("lastMessage", normalizeWelcomeContent(conversation.getLastMessage()));
         map.put("lastMessageAt", conversation.getLastMessageAt());
         map.put("unreadForAdmin", safeInt(conversation.getUnreadForAdmin()));
@@ -615,26 +634,79 @@ public class SupportServiceImpl implements SupportService {
                 || normalized.contains("安全事故");
     }
 
-    private boolean needsManualReception(SupportConversation conversation) {
+    private List<SupportMessage> pendingSupportMessages(SupportConversation conversation) {
         if (conversation == null || STATUS_MANUAL.equals(conversation.getStatus())) {
-            return false;
+            return List.of();
         }
         SupportMessage latestClose = latestSystemNotice(conversation.getId(), MANUAL_CLOSE_NOTICE);
         SupportMessage latestOpen = latestSystemNotice(conversation.getId(), MANUAL_OPEN_NOTICE);
         Long handledMessageId = latestMessageId(latestClose, latestOpen);
-        return latestMessagesAfter(conversation.getId(), handledMessageId).stream()
+        return supportMessageMapper.selectList(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversation.getId())
+                .gt(handledMessageId != null, SupportMessage::getId, handledMessageId)
+                .orderByDesc(SupportMessage::getId));
+    }
+
+    private boolean needsManualReception(SupportConversation conversation, List<SupportMessage> pendingMessages) {
+        if (conversation == null || STATUS_MANUAL.equals(conversation.getStatus())) {
+            return false;
+        }
+        return pendingMessages.stream()
                 .anyMatch(message -> isTransferReply(message) || isUserMessage(message) && hasManualSupportIntent(message.getContent()));
     }
 
-    private List<SupportMessage> latestMessagesAfter(Long conversationId, Long afterMessageId) {
+    private boolean hasEmergencySupport(SupportConversation conversation) {
+        if (conversation == null || STATUS_CLOSED.equals(conversation.getStatus())) {
+            return false;
+        }
+        SupportMessage latestEmergency = latestEmergencySupportMessage(conversation.getId());
+        if (latestEmergency == null) {
+            return false;
+        }
+        SupportMessage latestClose = latestSystemNotice(conversation.getId(), MANUAL_CLOSE_NOTICE);
+        return latestClose == null || latestEmergency.getId() > latestClose.getId();
+    }
+
+    private void activateEmergencyConversationIfNeeded(SupportConversation conversation) {
+        if (conversation == null || !STATUS_OPEN.equals(conversation.getStatus())) {
+            return;
+        }
+        SupportMessage latestEmergency = latestEmergencySupportMessage(conversation.getId());
+        if (latestEmergency == null) {
+            return;
+        }
+        SupportMessage latestClose = latestSystemNotice(conversation.getId(), MANUAL_CLOSE_NOTICE);
+        if (latestClose != null && latestClose.getId() > latestEmergency.getId()) {
+            return;
+        }
+        SupportMessage latestOpen = latestSystemNotice(conversation.getId(), MANUAL_OPEN_NOTICE);
+        SupportMessage notice = latestOpen != null && latestOpen.getId() > latestEmergency.getId()
+                ? latestOpen
+                : insertManualOpenNotice(conversation);
+        conversation.setStatus(STATUS_MANUAL);
+        conversation.setLastMessage(notice.getContent());
+        conversation.setLastMessageAt(notice.getCreatedAt());
+        conversation.setUnreadForAdmin(0);
+        conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+        supportConversationMapper.updateById(conversation);
+    }
+
+    private SupportMessage latestEmergencySupportMessage(Long conversationId) {
         if (conversationId == null) {
-            return List.of();
+            return null;
         }
         return supportMessageMapper.selectList(new LambdaQueryWrapper<SupportMessage>()
-                .eq(SupportMessage::getConversationId, conversationId)
-                .gt(afterMessageId != null, SupportMessage::getId, afterMessageId)
-                .orderByDesc(SupportMessage::getId)
-                .last("limit 8"));
+                        .eq(SupportMessage::getConversationId, conversationId)
+                        .orderByDesc(SupportMessage::getId))
+                .stream()
+                .filter(this::isUserMessage)
+                .filter(message -> isEmergencySupportRequest(message.getContent()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isEmergencySupportRequest(String content) {
+        return StringUtils.hasText(content) && content.trim().startsWith(EMERGENCY_SUPPORT_PREFIX);
     }
 
     private boolean isTransferReply(SupportMessage message) {

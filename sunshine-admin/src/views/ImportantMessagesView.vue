@@ -327,7 +327,7 @@ async function handleSupportReception(item) {
     ElMessage.warning('当前客服消息缺少会话ID，无法直接接待')
     return
   }
-  ElMessage.info('请在客服页点击“开启对话”接入人工客服')
+  ElMessage.info('已打开客服对话，请根据当前会话状态处理')
   router.push({ path: '/support', query: { conversationId } })
 }
 

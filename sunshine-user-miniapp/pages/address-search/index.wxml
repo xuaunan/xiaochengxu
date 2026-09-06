@@ -22,42 +22,13 @@
           bindinput="updateKeyword"
           bindconfirm="handleInputConfirm"
         />
-      </view>
-    </view>
-
-    <view class="candidate-panel fade-in" wx:if="{{showSuggestionPanel}}">
-      <view class="candidate-panel__head">
-        <view class="candidate-panel__title">{{candidateTitle}}</view>
-        <view class="candidate-panel__count" wx:if="{{candidateItems.length}}">{{candidateItems.length}} 条</view>
-      </view>
-
-      <view
-        class="candidate-panel__item pressable-row"
-        wx:for="{{candidateItems}}"
-        wx:key="addressKey"
-        data-item="{{item}}"
-        bindtap="chooseAddress"
-        hover-class="pressable-hover"
-        hover-stay-time="60"
-      >
-        <view class="candidate-panel__marker {{type === 'end' ? 'candidate-panel__marker--end' : ''}}"></view>
-        <view class="address-content">
-          <view class="address-content__main">
-            <view class="address-content__name">{{item.name}}</view>
-            <view class="address-content__detail">{{item.address}}</view>
-          </view>
-          <view class="address-content__meta">
-            <view class="address-content__distance">{{item.distanceText}}</view>
-          </view>
-        </view>
-      </view>
-
-      <view class="candidate-panel__empty" wx:if="{{!loading && !candidateItems.length}}">
-        <view class="candidate-panel__empty-text">{{candidateEmptyText}}</view>
-      </view>
-
-      <view class="candidate-panel__empty" wx:if="{{loading && !candidateItems.length}}">
-        <view class="candidate-panel__empty-text">正在加载候选地址...</view>
+        <view
+          class="address-input__clear tap-scale"
+          wx:if="{{keyword}}"
+          catchtap="clearKeyword"
+          hover-class="pressable-hover"
+          hover-stay-time="60"
+        >×</view>
       </view>
     </view>
 
@@ -128,9 +99,12 @@
     <view class="address-scroll__inner {{listAnimating ? 'address-scroll__inner--animating' : ''}}">
       <view class="address-section">
         <view class="address-section__head">
-          <view class="address-section__title">{{displayMode === 'search' ? '搜索结果' : '历史搜索记录'}}</view>
-          <view class="address-section__desc" wx:if="{{displayMode === 'search'}}">实时匹配附近 POI 地址</view>
-          <view class="address-section__desc" wx:else>按最近搜索时间倒序排列</view>
+          <view class="address-section__heading">
+            <view class="address-section__title">{{displayMode === 'search' ? '搜索结果' : '历史搜索记录'}}</view>
+            <view class="address-section__desc" wx:if="{{displayMode === 'search'}}">实时匹配附近 POI 地址</view>
+            <view class="address-section__desc" wx:else>按最近搜索时间倒序排列</view>
+          </view>
+          <view class="address-section__count" wx:if="{{!loading && !loadError && listItems.length}}">{{listItems.length}} 条</view>
         </view>
 
         <view class="address-loading" wx:if="{{loading}}">
