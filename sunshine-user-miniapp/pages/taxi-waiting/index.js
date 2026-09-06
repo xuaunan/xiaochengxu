@@ -4,12 +4,26 @@ const { ORDER_STATUS } = require('../../utils/constants')
 const { redirectToOrderFlow } = require('../../utils/order-flow')
 const { runExclusive, runGuarded, switchTabSilky } = require('../../utils/page')
 
-const POLL_SECONDS = 3
+const POLL_INTERVAL_MS = 3000
+const ESTIMATED_WAIT_MINUTES = 3
+const MINUTE_MS = 60 * 1000
+
+function parseOrderTime(value) {
+  if (!value) return 0
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const text = `${value}`.trim()
+  if (!text) return 0
+  const timestamp = Date.parse(text.includes('T') ? text : text.replace(/-/g, '/'))
+  return Number.isFinite(timestamp) ? timestamp : 0
+}
 
 Page({
   data: {
     order: null,
-    countdown: POLL_SECONDS,
+    remainingMinutes: ESTIMATED_WAIT_MINUTES,
+    estimateTitle: `预估${ESTIMATED_WAIT_MINUTES}分钟有车主接单`,
+    estimateHint: '订单已发送给附近司机，请耐心等待',
+    expandedSearch: false,
     orderId: ''
   },
 
@@ -33,19 +47,31 @@ Page({
     this.startWaiting()
   },
 
+  onHide() {
+    this.stopWaiting()
+  },
+
   onUnload() {
     this.stopWaiting()
   },
 
   stopWaiting() {
-    if (this.timer) {
-      clearInterval(this.timer)
-      this.timer = null
+    if (this.estimateTimer) {
+      clearInterval(this.estimateTimer)
+      this.estimateTimer = null
+    }
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
     }
   },
 
   applyOrderState(rawOrder) {
     if (!rawOrder) return
+
+    if (!this.waitingStartedAt) {
+      this.waitingStartedAt = parseOrderTime(rawOrder.createdAt || rawOrder.orderTime) || Date.now()
+    }
 
     const carTypeMap = getCarTypeMap(getApp().globalData.userStore.home.carTypes || [])
     const order = buildRideOrderModel(rawOrder, {
@@ -57,6 +83,7 @@ Page({
     })
 
     this.setData({ order })
+    this.updateEstimateState()
   },
 
   async syncOrderState(silent = true) {
@@ -94,35 +121,77 @@ Page({
 
   startWaiting() {
     this.stopWaiting()
-    this.setData({ countdown: POLL_SECONDS })
+    if (!this.waitingStartedAt) {
+      this.waitingStartedAt = Date.now()
+    }
+    this.updateEstimateState()
+    this.estimateTimer = setInterval(() => {
+      this.updateEstimateState()
+    }, 1000)
+    this.pollTimer = setInterval(() => {
+      this.pollOrderState()
+    }, POLL_INTERVAL_MS)
+  },
 
-    this.timer = setInterval(() => {
-      const nextCountdown = Math.max(this.data.countdown - 1, 0)
-      this.setData({ countdown: nextCountdown })
+  updateEstimateState() {
+    const startedAt = this.waitingStartedAt || Date.now()
+    const elapsedMinutes = Math.floor(Math.max(0, Date.now() - startedAt) / MINUTE_MS)
+    const remainingMinutes = Math.max(ESTIMATED_WAIT_MINUTES - elapsedMinutes, 0)
+    const expandedSearch = remainingMinutes === 0
 
-      if (nextCountdown > 0) {
+    this.setData({
+      remainingMinutes,
+      expandedSearch,
+      estimateTitle: expandedSearch
+        ? '正在扩大范围寻找司机中...'
+        : `预估${remainingMinutes}分钟有车主接单`,
+      estimateHint: expandedSearch
+        ? '我们正在通知更远范围内的司机，请再耐心等一会儿'
+        : '订单已发送给附近司机，请耐心等待'
+    })
+
+    if (expandedSearch) {
+      this.showExpandedSearchNotice()
+    }
+  },
+
+  showExpandedSearchNotice() {
+    if (this.expansionNoticeShown) return
+    const noticeKey = `taxi-waiting-expanded:${this.data.orderId}`
+    if (wx.getStorageSync(noticeKey)) {
+      this.expansionNoticeShown = true
+      return
+    }
+
+    this.expansionNoticeShown = true
+    wx.setStorageSync(noticeKey, true)
+    wx.showModal({
+      title: '正在继续为你寻找司机',
+      content: '附近司机可能正忙，请别着急。我们已经扩大寻找范围，会持续为你匹配合适的司机。',
+      showCancel: false,
+      confirmText: '继续等待',
+      confirmColor: '#ff7a00'
+    })
+  },
+
+  pollOrderState() {
+    runGuarded(this, '__polling', async () => {
+      const rawOrder = await this.syncOrderState(true)
+
+      if (!rawOrder) return
+
+      if ([ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(rawOrder.orderStatus)) {
+        this.stopWaiting()
+        redirectToOrderFlow(this.route, rawOrder)
         return
       }
 
-      this.setData({ countdown: POLL_SECONDS })
-      runGuarded(this, '__polling', async () => {
-        const rawOrder = await this.syncOrderState(true)
-
-        if (!rawOrder) return
-
-        if ([ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(rawOrder.orderStatus)) {
-          this.stopWaiting()
-          redirectToOrderFlow(this.route, rawOrder)
-          return
-        }
-
-        if (rawOrder.orderStatus === ORDER_STATUS.CANCELLED) {
-          this.stopWaiting()
-          wx.showToast({ title: '订单已取消', icon: 'none' })
-          redirectToOrderFlow(this.route, rawOrder)
-        }
-      }).catch(() => {})
-    }, 1000)
+      if (rawOrder.orderStatus === ORDER_STATUS.CANCELLED) {
+        this.stopWaiting()
+        wx.showToast({ title: '订单已取消', icon: 'none' })
+        redirectToOrderFlow(this.route, rawOrder)
+      }
+    }).catch(() => {})
   },
 
   cancelOrder() {

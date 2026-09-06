@@ -1,34 +1,73 @@
 <view class="page-shell waiting-shell safe-bottom">
-  <view class="page-content page-enter">
-    <view class="hero-card waiting-banner">
-      <view class="pill">智能派单中</view>
-      <view class="waiting-title">正在为你呼叫附近司机</view>
-      <view class="waiting-desc">{{order.start.name}} → {{order.end.name}}</view>
-      <view class="waiting-circle">{{countdown}}s</view>
+  <view class="page-content waiting-content page-enter" wx:if="{{order}}">
+    <view class="waiting-banner {{expandedSearch ? 'waiting-banner--expanded' : ''}}">
+      <view class="waiting-status">
+        <view class="waiting-status__dot"></view>
+        <text>{{expandedSearch ? '扩大范围派单中' : '智能派单中'}}</text>
+      </view>
+
+      <view class="waiting-radar" aria-hidden="true">
+        <view class="waiting-radar__ring waiting-radar__ring--outer"></view>
+        <view class="waiting-radar__ring waiting-radar__ring--middle"></view>
+        <view class="waiting-radar__pulse"></view>
+        <view class="waiting-radar__car">
+          <image src="/images/service-icons/taxi.png" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <view class="waiting-title">{{estimateTitle}}</view>
+      <view class="waiting-desc">{{estimateHint}}</view>
+
+      <view class="waiting-progress" wx:if="{{!expandedSearch}}">
+        <view class="waiting-progress__segment {{remainingMinutes <= 3 ? 'waiting-progress__segment--active' : ''}}"></view>
+        <view class="waiting-progress__segment {{remainingMinutes <= 2 ? 'waiting-progress__segment--active' : ''}}"></view>
+        <view class="waiting-progress__segment {{remainingMinutes <= 1 ? 'waiting-progress__segment--active' : ''}}"></view>
+      </view>
     </view>
 
-    <view class="metric-grid waiting-metrics">
-      <view class="metric-item waiting-metric">
-        <view class="metric-value">{{order.nearbyDrivers}}</view>
-        <view class="metric-label">附近司机</view>
+    <view class="waiting-route-card">
+      <view class="waiting-card-head">
+        <view>
+          <view class="waiting-card-title">本次行程</view>
+          <view class="waiting-card-subtitle">司机接单后将按此路线前往接驾</view>
+        </view>
+        <view class="waiting-car-type">{{order.carType.name}}</view>
       </view>
-      <view class="metric-item waiting-metric">
-        <view class="metric-value">{{order.waitingMinutes}}分钟</view>
-        <view class="metric-label">预计接单</view>
-      </view>
-      <view class="metric-item waiting-metric">
-        <view class="metric-value">{{order.carType.name}}</view>
-        <view class="metric-label">已选车型</view>
+
+      <view class="waiting-route">
+        <view class="waiting-route__rail">
+          <view class="waiting-route__dot waiting-route__dot--start"></view>
+          <view class="waiting-route__line"></view>
+          <view class="waiting-route__dot waiting-route__dot--end"></view>
+        </view>
+        <view class="waiting-route__places">
+          <view class="waiting-route__place">
+            <view class="waiting-route__label">出发地</view>
+            <view class="waiting-route__name">{{order.start.name}}</view>
+          </view>
+          <view class="waiting-route__place">
+            <view class="waiting-route__label">目的地</view>
+            <view class="waiting-route__name">{{order.end.name}}</view>
+          </view>
+        </view>
       </view>
     </view>
 
-    <view class="panel-card waiting-rule">
-      <view class="section-title">取消规则</view>
-      <view class="section-subtitle">{{order.cancelRule}}</view>
+    <view class="waiting-rule">
+      <view class="waiting-rule__icon">i</view>
+      <view class="waiting-rule__content">
+        <view class="waiting-rule__title">取消规则</view>
+        <view class="waiting-rule__text">{{order.cancelRule}}</view>
+      </view>
     </view>
   </view>
 
+  <view class="waiting-loading" wx:else>
+    <view class="waiting-loading__spinner"></view>
+    <view>正在加载订单...</view>
+  </view>
+
   <view class="floating-bar">
-    <button class="warn-button" hover-class="button-hover" bindtap="cancelOrder">取消订单</button>
+    <button class="waiting-cancel" hover-class="button-hover" bindtap="cancelOrder" disabled="{{!order}}">取消订单</button>
   </view>
 </view>

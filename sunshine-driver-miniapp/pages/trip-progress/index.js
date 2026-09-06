@@ -9,6 +9,7 @@ const { TRACK_MODE, getCurrentTrackMode, getTrackModeLabel } = require('../../ut
 const { buildTrackReport } = require('../../utils/track-reporter')
 
 const POLL_INTERVAL = 3000
+const MAP_FOLLOW_RESUME_DELAY = 10000
 
 function toNumber(value, fallback = 0) {
   const numeric = Number(value)
@@ -239,9 +240,9 @@ function buildTripModel(order = {}, runtime = null) {
         id: 2,
         latitude: currentPoint.latitude,
         longitude: currentPoint.longitude,
-        iconPath: '/images/map-driver.png',
-        width: 42,
-        height: 42,
+        iconPath: '/images/map-car-real-top.png',
+        width: 46,
+        height: 46,
         rotate: heading,
         anchor: {
           x: 0.5,
@@ -267,7 +268,7 @@ function buildTripModel(order = {}, runtime = null) {
       remainColor: '#9db5ff',
       remainWidth: 6
     }),
-    includePoints: [start, end, currentPoint],
+    currentPoint,
     routePlan: {
       phase,
       currentPoint,
@@ -283,6 +284,9 @@ Page({
   data: {
     orderId: '',
     order: null,
+    currentPoint: {},
+    mapCenter: {},
+    mapFollowMode: true,
     noticePopup: {
       visible: false
     }
@@ -298,16 +302,28 @@ Page({
 
   onShow() {
     if (!this.data.orderId) return
+    this.clearMapFollowTimer()
+    if (!this.data.mapFollowMode) {
+      this.setData({ mapFollowMode: true })
+    }
     this.loadTrip(true).catch(() => {})
     this.startPolling()
   },
 
+  onReady() {
+    if (wx.createMapContext) {
+      this.mapContext = wx.createMapContext('driverTripMap', this)
+    }
+  },
+
   onHide() {
     this.stopPolling()
+    this.clearMapFollowTimer()
   },
 
   onUnload() {
     this.stopPolling()
+    this.clearMapFollowTimer()
   },
 
   startPolling() {
@@ -322,6 +338,25 @@ Page({
       clearInterval(this.timer)
       this.timer = null
     }
+  },
+
+  applyOrderView(orderView) {
+    if (!orderView) return
+    const currentPoint = normalizePoint(orderView.currentPoint || {})
+    const fallbackPoint = orderView.start || {}
+    const vehiclePoint = currentPoint.latitude && currentPoint.longitude
+      ? currentPoint
+      : normalizePoint(fallbackPoint)
+    const mapCenter = this.data.mapCenter || {}
+    const shouldUpdateMapCenter = this.data.mapFollowMode || !mapCenter.latitude || !mapCenter.longitude
+    const viewData = {
+      order: orderView,
+      currentPoint: vehiclePoint
+    }
+    if (shouldUpdateMapCenter) {
+      viewData.mapCenter = vehiclePoint
+    }
+    this.setData(viewData)
   },
 
   async syncOrderList() {
@@ -371,12 +406,13 @@ Page({
       let renderedOrderView = orderView
       if (canReportTrack(order)) {
         await this.syncPlannedRoute(orderView.id, { render: false }).catch(() => false)
-        renderedOrderView = await this.reportCurrentLocation(order, { force: true, returnView: true }).catch(() => null)
-          || orderView
+        const reportedOrderView = await this.reportCurrentLocation(order, { force: true, returnView: true }).catch(() => null)
+        renderedOrderView = reportedOrderView || orderView
+        if (!reportedOrderView) {
+          this.applyOrderView(orderView)
+        }
       } else {
-        this.setData({
-          order: orderView
-        })
+        this.applyOrderView(orderView)
       }
       this.handleTripVoice(renderedOrderView, order)
       await this.syncOrderList().catch(() => {})
@@ -456,9 +492,7 @@ Page({
             ...tripModel
           }
           delete orderView.routePlan
-          this.setData({
-            order: orderView
-          })
+          this.applyOrderView(orderView)
         }
       } else {
         this.currentRoutePlan = {
@@ -491,6 +525,52 @@ Page({
     })
   }
 ,
+
+  handleMapRegionChange(event) {
+    const detail = event.detail || {}
+    const causedBy = detail.causedBy || event.causedBy
+    const changeType = detail.type || event.type
+    if (causedBy !== 'gesture') return
+
+    this.clearMapFollowTimer()
+    if (this.data.mapFollowMode) {
+      this.setData({ mapFollowMode: false })
+    }
+    if (changeType === 'end') {
+      this.scheduleMapFollowRestore()
+    }
+  },
+
+  scheduleMapFollowRestore() {
+    this.clearMapFollowTimer()
+    this.mapFollowTimer = setTimeout(() => {
+      this.restoreVehicleView()
+    }, MAP_FOLLOW_RESUME_DELAY)
+  },
+
+  clearMapFollowTimer() {
+    if (this.mapFollowTimer) {
+      clearTimeout(this.mapFollowTimer)
+      this.mapFollowTimer = null
+    }
+  },
+
+  restoreVehicleView() {
+    const currentPoint = normalizePoint(this.data.currentPoint)
+    if (!currentPoint.latitude || !currentPoint.longitude) return
+
+    this.clearMapFollowTimer()
+    this.setData({
+      mapFollowMode: true,
+      mapCenter: currentPoint
+    })
+    const mapContext = this.mapContext || (wx.createMapContext && wx.createMapContext('driverTripMap', this))
+    if (!mapContext || !mapContext.moveToLocation) return
+    mapContext.moveToLocation({
+      latitude: currentPoint.latitude,
+      longitude: currentPoint.longitude
+    })
+  },
 
   async reportCurrentLocation(order = {}, options = {}) {
     if (!order.id || !canReportTrack(order)) return
@@ -527,9 +607,7 @@ Page({
       ...tripModel
     }
     delete orderView.routePlan
-    this.setData({
-      order: orderView
-    })
+    this.applyOrderView(orderView)
     return options.returnView ? orderView : undefined
   }
 })

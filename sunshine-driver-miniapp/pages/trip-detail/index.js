@@ -130,21 +130,40 @@ function buildDriveStatusView(trip = {}, runtime = {}, fallback = {}) {
     }
   }
 
-  if (trip.orderStatus === ORDER_STATUS.ACCEPTED || trip.orderStatus === ORDER_STATUS.PICKING_UP) {
+  if (trip.orderStatus === ORDER_STATUS.ACCEPTED) {
+    return {
+      sectionTitle: '接驾准备',
+      subtitle: '订单已接取',
+      description: '正在同步接驾状态，请稍候。',
+      badge: '准备出发',
+      visualType: 'approach',
+      visualTitle: '前往乘客上车点',
+      visualHint: '接驾状态确认后将自动开始导航',
+      progress: Math.max(12, progress),
+      state: 'accepted',
+      facts: compactFacts([
+        { label: '当前状态', value: '已接单' },
+        { label: '接驾状态', value: '正在同步' },
+        { label: '上车地点', value: trip.startName || '待同步' }
+      ])
+    }
+  }
+
+  if (trip.orderStatus === ORDER_STATUS.PICKING_UP) {
     return {
       sectionTitle: '接驾状态',
       subtitle: '接驾中',
-      description: runtimeText || firstText(fallback.trafficText, '正在前往上车点。'),
-      badge: '去接乘客',
+      description: runtimeText || firstText(fallback.trafficText, '正在前往乘客上车点。'),
+      badge: '正在前往',
       visualType: 'approach',
-      visualTitle: '当前位置 → 上车点',
+      visualTitle: '前往乘客上车点',
       visualHint: remainingDistanceText ? `距上车点约 ${remainingDistanceText}` : '到达后确认乘客上车',
       progress: Math.max(24, progress),
       state: 'approach',
       facts: compactFacts([
-        { label: '当前动作', value: nextActionText(trip.orderStatus) },
+        { label: '下一步', value: nextActionText(trip.orderStatus) },
         { label: '剩余距离', value: remainingDistanceText || '同步中' },
-        { label: '等待信息', value: firstText(runtime.waitingText, '暂无等待') }
+        { label: '行驶状态', value: firstText(runtime.waitingText, runtime.trafficText, '路线导航中') }
       ])
     }
   }

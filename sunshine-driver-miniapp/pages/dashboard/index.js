@@ -1,4 +1,4 @@
-const { acceptOrder, fetchDashboard, fetchHome, fetchWaitingOrders, rejectOrder, reportTrack, updateServiceStatus } = require('../../utils/api')
+const { acceptOrder, fetchDashboard, fetchHome, fetchWaitingOrders, rejectOrder, reportTrack, startOrder, updateServiceStatus } = require('../../utils/api')
 const { DRIVER_SERVICE_STATUS, ORDER_STATUS, SERVICE_TYPE, getDriverServiceActionText, getDriverServiceText } = require('../../utils/constants')
 const { buildVehicleView, buildWallet, getReceiveOrderPermission, mapDriverProfile, mapTripOrder, mapWaitingOrder } = require('../../utils/driver-store')
 const { broadcastDriver, notifyDriver } = require('../../utils/notify')
@@ -383,11 +383,12 @@ Page({
     this.autoAccepting = true
     try {
       await acceptOrder(order.id)
-      notifyDriver(this, '已自动接单', `${order.startName} 到 ${order.endName} 已自动接取。`, {
+      await startOrder(order.id)
+      notifyDriver(this, '已自动接单，开始接驾', `${order.startName} 到 ${order.endName} 已接取，正在前往上车点。`, {
         id: `auto-accept-${order.id}`,
         type: 'auto'
       })
-      broadcastDriver(this, `已自动接单，乘客从${order.startName}前往${order.endName}`, `auto-accept-${order.id}`)
+      broadcastDriver(this, `已自动接单，正在前往${order.startName}接乘客`, `auto-accept-${order.id}`)
       this.reportAcceptedTrack(order).catch(() => {})
       await this.loadDashboard(true)
       wx.navigateTo({
@@ -568,17 +569,18 @@ Page({
     const orderId = e.currentTarget.dataset.id
     const order = (this.data.availableOrders || []).find((item) => `${item.id}` === `${orderId}`)
     await acceptOrder(orderId)
+    await startOrder(orderId)
     if (order) {
-      notifyDriver(this, '接单成功', `${order.startName} 到 ${order.endName} 已接单。`, {
+      notifyDriver(this, '已接单，开始接驾', `${order.startName} 到 ${order.endName} 已接取，正在前往上车点。`, {
         id: `manual-accept-${order.id}`,
         type: 'order'
       })
-      broadcastDriver(this, `接单成功，乘客从${order.startName}前往${order.endName}`, `manual-accept-${order.id}`, {
+      broadcastDriver(this, `接单成功，正在前往${order.startName}接乘客`, `manual-accept-${order.id}`, {
         audioKey: 'auto-accept'
       })
     }
     this.reportAcceptedTrack(order || { id: orderId }).catch(() => {})
-    wx.showToast({ title: '接单成功', icon: 'success' })
+    wx.showToast({ title: '已接单，开始接驾', icon: 'success' })
     await this.loadDashboard()
     wx.navigateTo({
       url: `/pages/trip-progress/index?id=${orderId}`
@@ -589,7 +591,7 @@ Page({
     if (!order || !order.id) return
     const acceptedOrder = {
       ...order,
-      orderStatus: ORDER_STATUS.ACCEPTED,
+      orderStatus: ORDER_STATUS.PICKING_UP,
       acceptedAt: new Date().toISOString()
     }
     const simulation = createSimulation(acceptedOrder)

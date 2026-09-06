@@ -1,12 +1,15 @@
-const { fetchOrderDetail, fetchOrderRuntime } = require('../../utils/api')
+const { fetchOrderDetail, fetchOrderRuntime, sendSupportMessage } = require('../../utils/api')
 const { buildRoutePolylines, hasUsableRoute } = require('../../utils/route-display')
-const { formatDistance, formatDuration } = require('../../utils/format')
+const { formatDistance, formatDuration, formatPrice } = require('../../utils/format')
 const { buildRideOrderModel, findCachedOrder, getCarTypeMap, syncOrderToCache } = require('../../utils/user-store')
-const { ORDER_STATUS } = require('../../utils/constants')
+const { ORDER_STATUS, getServiceLabel } = require('../../utils/constants')
 const { redirectToOrderFlow } = require('../../utils/order-flow')
 const { createSimulation } = require('../../utils/trip-simulator')
 const { runExclusive, runGuarded } = require('../../utils/page')
 const { requestRoute } = require('../../utils/route-planner')
+
+const MAP_FOLLOW_RESUME_DELAY = 10000
+const EMERGENCY_SUPPORT_PREFIX = '【紧急安全求助】'
 
 function normalizePoint(point = {}) {
   return {
@@ -80,23 +83,60 @@ function getTrafficText(runtime = {}, fallback = {}) {
   return runtime.trafficText || fallback.trafficText || '--'
 }
 
+function buildServiceSteps(order = {}, phase = 'trip') {
+  const status = `${order.orderStatus || ''}`.toUpperCase()
+  const completed = status === ORDER_STATUS.FINISHED || phase === 'finished'
+  const currentIndex = completed ? 3 : phase === 'trip' ? 2 : phase === 'approach' ? 1 : 0
+  const titles = ['已接单', '接驾中', '行程中', '已完成']
+  return titles.map((title, index) => ({
+    key: title,
+    title,
+    state: index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'upcoming'
+  }))
+}
+
+function getTripPhaseLabel(phase = 'trip', order = {}) {
+  const status = `${order.orderStatus || ''}`.toUpperCase()
+  if (status === ORDER_STATUS.FINISHED || phase === 'finished') {
+    return { label: '已完成', state: 'complete' }
+  }
+  if (phase === 'approach') {
+    return { label: '接驾中', state: 'approach' }
+  }
+  if (phase === 'dispatch') {
+    return { label: '派单中', state: 'dispatch' }
+  }
+  return { label: '行程中', state: 'trip' }
+}
+
 Page({
   data: {
     order: null,
     progress: 0,
     currentPoint: null,
+    mapCenter: {},
+    mapFollowMode: true,
     markers: [],
     polyline: [],
-    includePoints: [],
     etaText: '--',
     trafficText: '--',
     mileageText: '--',
     durationText: '--',
     progressText: '0%',
-    orderId: ''
+    orderId: '',
+    statusBarHeight: 20,
+    navHeight: 44,
+    mapHeight: 288,
+    mapBodyHeight: 244,
+    serviceSteps: [],
+    tripPhaseLabel: '行程中',
+    tripPhaseState: 'trip',
+    safetySheetVisible: false,
+    emergencyConnecting: false
   },
 
   async onLoad(options) {
+    this.initLayoutMetrics()
     this.setData({
       orderId: options.id || ''
     })
@@ -112,12 +152,59 @@ Page({
 
   onShow() {
     if (!this.data.orderId) return
+    this.clearMapFollowTimer()
+    if (!this.data.mapFollowMode) {
+      this.setData({ mapFollowMode: true })
+    }
     this.updateTripStatus(true).catch(() => {})
     this.startPolling()
   },
 
+  onReady() {
+    if (wx.createMapContext) {
+      this.mapContext = wx.createMapContext('tripMap', this)
+    }
+  },
+
+  onHide() {
+    this.stopPolling()
+    this.clearMapFollowTimer()
+  },
+
   onUnload() {
     this.stopPolling()
+    this.clearMapFollowTimer()
+  },
+
+  initLayoutMetrics() {
+    const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+    const windowHeight = windowInfo.windowHeight || 720
+    const safeArea = windowInfo.safeArea || {}
+    const safeAreaBottomInset = Math.max(windowHeight - Number(safeArea.bottom || windowHeight), 0)
+    const availableHeight = Math.max(windowHeight - 56 - safeAreaBottomInset, 0)
+    const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null
+    const navHeight = menuButton ? Math.max(menuButton.height + 10, 44) : 44
+    const mapHeight = Math.round(availableHeight * 0.4)
+    const mapBodyHeight = Math.max(mapHeight, 180)
+
+    this.setData({
+      statusBarHeight: windowInfo.statusBarHeight || 20,
+      navHeight,
+      mapHeight,
+      mapBodyHeight
+    })
+  },
+
+  handleDirectBack() {
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      wx.navigateBack({
+        delta: 1,
+        fail: () => wx.switchTab({ url: '/pages/home/index' })
+      })
+      return
+    }
+    wx.switchTab({ url: '/pages/home/index' })
   },
 
   stopPolling() {
@@ -141,14 +228,29 @@ Page({
     this.currentRuntimeSnapshot = activeRuntime
     const currentPoint = normalizePoint(activeRuntime.currentPoint || fallback.currentPoint)
     const phase = activeRuntime.phase || fallback.phase || 'trip'
+    const phaseView = getTripPhaseLabel(phase, order)
+    const fareValue = rawOrder.payableAmount ?? rawOrder.actualAmount ?? rawOrder.estimatedAmount
     const routeStartPoint = phase === 'trip'
       ? order.start
       : normalizePoint(activeRuntime.driverStartPoint || fallback.driverStart || currentPoint)
     const routeEndPoint = phase === 'trip' ? order.end : order.start
     const remainMinutes = Math.max(0, Math.round(Number(activeRuntime.remainingSeconds || fallback.remainingSeconds || 0) / 60))
 
-    this.setData({
+    const mapCenter = this.data.mapCenter || {}
+    const shouldUpdateMapCenter = this.data.mapFollowMode || !mapCenter.latitude || !mapCenter.longitude
+
+    const tripViewData = {
       order,
+      orderSummary: {
+        orderNo: rawOrder.orderNo || rawOrder.id || '--',
+        serviceTypeText: rawOrder.serviceTypeText || rawOrder.serviceTypeLabel || getServiceLabel(rawOrder.serviceType),
+        fareText: fareValue === undefined || fareValue === null || fareValue === ''
+          ? ''
+          : formatPrice(fareValue, rawOrder.currencyCode || 'CNY')
+      },
+      serviceSteps: buildServiceSteps(order, phase),
+      tripPhaseLabel: phaseView.label,
+      tripPhaseState: phaseView.state,
       progress: Number(activeRuntime.progress || fallback.progress || 0),
       currentPoint,
       etaText: activeRuntime.routeSource === 'order_record' ? '等待司机位置更新' : (remainMinutes > 0 ? `${remainMinutes} 分钟后到达` : '即将到达终点'),
@@ -177,9 +279,9 @@ Page({
           id: 3,
           latitude: currentPoint.latitude,
           longitude: currentPoint.longitude,
-          iconPath: '/images/map-driver.png',
-          width: 48,
-          height: 48,
+          iconPath: '/images/map-car-real-top.png',
+          width: 46,
+          height: 46,
           rotate: Number(activeRuntime.heading || fallback.heading || 0),
           anchor: {
             x: 0.5,
@@ -204,9 +306,12 @@ Page({
         traveledWidth: 10,
         remainColor: '#9db5ff',
         remainWidth: 6
-      }),
-      includePoints: [order.start, order.end, currentPoint]
-    })
+      })
+    }
+    if (shouldUpdateMapCenter) {
+      tripViewData.mapCenter = currentPoint
+    }
+    this.setData(tripViewData)
 
     getApp().setCurrentRideOrder(order, {
       persist: false
@@ -319,22 +424,131 @@ Page({
     }, 3000)
   },
 
-  openSafetyCenter() {
-    const profile = getApp().globalData.userStore.profile
-    wx.showModal({
-      title: '安全中心',
-      content: `紧急联系人：${profile.emergencyContact || '未设置'} ${profile.emergencyPhone || ''}`.trim(),
-      showCancel: false
+  handleMapRegionChange(event) {
+    const detail = event.detail || {}
+    const causedBy = detail.causedBy || event.causedBy
+    const changeType = detail.type || event.type
+    if (causedBy !== 'gesture') return
+
+    this.clearMapFollowTimer()
+    if (this.data.mapFollowMode) {
+      this.setData({ mapFollowMode: false })
+    }
+    if (changeType === 'end') {
+      this.scheduleMapFollowRestore()
+    }
+  },
+
+  scheduleMapFollowRestore() {
+    this.clearMapFollowTimer()
+    this.mapFollowTimer = setTimeout(() => {
+      this.restoreVehicleView()
+    }, MAP_FOLLOW_RESUME_DELAY)
+  },
+
+  clearMapFollowTimer() {
+    if (this.mapFollowTimer) {
+      clearTimeout(this.mapFollowTimer)
+      this.mapFollowTimer = null
+    }
+  },
+
+  restoreVehicleView() {
+    const currentPoint = normalizePoint(this.data.currentPoint)
+    if (!currentPoint.latitude || !currentPoint.longitude) return
+
+    this.clearMapFollowTimer()
+    this.setData({
+      mapFollowMode: true,
+      mapCenter: currentPoint
+    })
+    const mapContext = this.mapContext || (wx.createMapContext && wx.createMapContext('tripMap', this))
+    if (!mapContext || !mapContext.moveToLocation) return
+    mapContext.moveToLocation({
+      latitude: currentPoint.latitude,
+      longitude: currentPoint.longitude
     })
   },
 
+  openSafetyCenter() {
+    this.setData({ safetySheetVisible: true })
+  },
+
+  closeSafetyCenter() {
+    this.setData({ safetySheetVisible: false })
+  },
+
+  stopEvent() {},
+
+  openTripComplaint() {
+    this.closeSafetyCenter()
+    wx.navigateTo({
+      url: `/pages/complaint/index?id=${encodeURIComponent(this.data.orderId)}`
+    })
+  },
+
+  openSupportFeedback() {
+    this.closeSafetyCenter()
+    wx.navigateTo({ url: '/pages/support/index' })
+  },
+
+  async openEmergencySupport() {
+    if (this.data.emergencyConnecting) return
+    const order = this.data.order || {}
+    const orderNo = order.orderNo || order.id || this.data.orderId || '--'
+    const routeText = order.start && order.end
+      ? `${order.start.name || '起点'} 至 ${order.end.name || '终点'}`
+      : '行程进行中'
+
+    this.setData({ emergencyConnecting: true })
+    wx.showLoading({ title: '正在联系客服', mask: true })
+    try {
+      await sendSupportMessage(`${EMERGENCY_SUPPORT_PREFIX}行程中需要紧急人工客服，订单号：${orderNo}，行程：${routeText}`)
+      this.closeSafetyCenter()
+      wx.navigateTo({ url: '/pages/support/index?source=emergency' })
+    } catch (error) {
+      console.warn('Failed to create emergency support request', error)
+      wx.showModal({
+        title: '联系失败',
+        content: '暂时无法连接平台客服，请立即联系您的紧急联系人或拨打 110。',
+        confirmText: '知道了',
+        showCancel: false
+      })
+    } finally {
+      wx.hideLoading()
+      this.setData({ emergencyConnecting: false })
+    }
+  },
+
   openEmergencyContact() {
-    const profile = getApp().globalData.userStore.profile
+    const profile = getApp().globalData.userStore.profile || {}
+    const contactName = `${profile.emergencyContact || ''}`.trim()
+    const contactPhone = `${profile.emergencyPhone || ''}`.trim()
+    if (!contactPhone) {
+      wx.showModal({
+        title: '尚未设置紧急联系人',
+        content: '设置后可在行程中一键拨打。',
+        confirmText: '去设置',
+        cancelText: '暂不设置',
+        success: (result) => {
+          if (result.confirm) {
+            wx.navigateTo({ url: '/pages/profileEdit/index' })
+          }
+        }
+      })
+      return
+    }
+
     wx.showModal({
       title: '紧急联系人',
-      content: `${profile.emergencyContact || '未设置'} ${profile.emergencyPhone || ''}`.trim() || '暂未设置紧急联系人',
-      confirmText: '知道了',
-      showCancel: false
+      content: `${contactName || '紧急联系人'}  ${contactPhone}`,
+      confirmText: '拨打电话',
+      cancelText: '取消',
+      success: (result) => {
+        if (result.confirm) {
+          wx.makePhoneCall({ phoneNumber: contactPhone })
+        }
+      }
     })
   },
 

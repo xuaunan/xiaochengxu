@@ -58,6 +58,65 @@
   z-index: 9;
 }
 
+.driver-map-follow {
+  position: fixed;
+  right: 28rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 620rpx);
+  z-index: 11;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  min-width: 64rpx;
+  max-width: 64rpx;
+  height: 64rpx;
+  min-height: 64rpx;
+  max-height: 64rpx;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1rpx solid rgba(31, 36, 50, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8rpx 20rpx rgba(31, 36, 50, 0.12);
+  color: #5d687a;
+}
+
+.driver-map-follow::after {
+  border: none;
+}
+
+.driver-map-follow__icon {
+  position: relative;
+  width: 28rpx;
+  height: 28rpx;
+  border: 4rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.driver-map-follow__icon::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.driver-map-follow.paused {
+  color: #ff7a00;
+  border-color: rgba(255, 122, 0, 0.22);
+}
+
+.driver-map-follow--hover {
+  transform: scale(0.94);
+  opacity: 0.9;
+}
+
 .trip-progress-card {
   position: fixed;
   left: 24rpx;

@@ -273,21 +273,22 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ErrorCode.DRIVER_INVALID, "Driver is offline");
         }
         if (!OrderStatus.DISPATCHING.equals(order.getOrderStatus())) {
-            if (Objects.equals(order.getDriverId(), driverId) && OrderStatus.ACCEPTED.equals(order.getOrderStatus())) {
+            if (Objects.equals(order.getDriverId(), driverId)
+                    && List.of(OrderStatus.ACCEPTED, OrderStatus.PICKING_UP).contains(order.getOrderStatus())) {
                 return;
             }
             throw new BusinessException(ErrorCode.STATUS_ERROR, "Current order status does not allow accepting");
         }
         order.setDriverId(driverId);
-        order.setOrderStatus(OrderStatus.ACCEPTED);
+        order.setOrderStatus(OrderStatus.PICKING_UP);
         order.setAcceptedAt(LocalDateTime.now());
         rideOrderMapper.updateById(order);
         orderRuntimeSupport.warmUpRoutes(order);
         profile.setServiceStatus(DriverServiceStatus.BUSY);
         driverProfileMapper.updateById(profile);
         PlatformUser driver = platformUserMapper.selectById(driverId);
-        messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ACCEPTED", "司机已接单",
-                (driver == null ? "司机" : driver.getNickname()) + "已接单，请准备上车。", order.getLanguageCode());
+        messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ON_THE_WAY", "司机接驾中",
+                (driver == null ? "司机" : driver.getNickname()) + "已接单并正在前往上车点，请准备上车。", order.getLanguageCode());
     }
 
     @Override
@@ -309,6 +310,9 @@ public class OrderServiceImpl implements OrderService {
     public void startOrder(Long orderId) {
         RideOrder order = syncAutoProgress(requireOrder(orderId));
         assertDriverOwnsOrder(order);
+        if (OrderStatus.PICKING_UP.equals(order.getOrderStatus())) {
+            return;
+        }
         transferStatus(order, OrderStatus.PICKING_UP);
         rideOrderMapper.updateById(order);
         messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ON_THE_WAY", "司机接驾中", "司机正在前往上车点，请保持电话畅通。", order.getLanguageCode());

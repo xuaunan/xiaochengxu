@@ -1,46 +1,183 @@
 <view class="home-page page-enter" wx:if="{{order}}">
-  <map
-    class="home-map"
-    longitude="{{currentPoint.longitude || order.start.longitude}}"
-    latitude="{{currentPoint.latitude || order.start.latitude}}"
-    scale="12"
-    markers="{{markers}}"
-    polyline="{{polyline}}"
-    include-points="{{includePoints}}"
-    enable-rotate
-    enable-overlooking
-  ></map>
-
-  <view class="home-overlay">
-    <sun-nav title="行程进行中" subtitle="车辆轨迹实时更新，支持安全中心入口" transparent backable></sun-nav>
+  <view class="trip-nav">
+    <sun-nav transparent title="行程进行中" subtitle="车辆轨迹实时更新，支持安全中心入口"></sun-nav>
+    <view class="trip-direct-back" style="top: {{statusBarHeight}}px; height: {{navHeight}}px;" role="button" aria-label="返回" hover-class="trip-direct-back--hover" catchtap="handleDirectBack">返回</view>
   </view>
 
-  <view class="trip-card glass-card">
-    <view class="row-between trip-head">
-      <view class="trip-summary">
-        <view class="section-title trip-route">{{order.start.name}} -> {{order.end.name}}</view>
-        <view class="section-subtitle">{{etaText}} | {{trafficText}}</view>
-      </view>
-      <view class="status-tag processing trip-status">行程中</view>
+  <view class="trip-map-stage" style="height: {{mapHeight}}px;">
+    <map
+      id="tripMap"
+      class="home-map trip-map"
+      style="height: {{mapHeight}}px;"
+      longitude="{{mapCenter.longitude || order.start.longitude}}"
+      latitude="{{mapCenter.latitude || order.start.latitude}}"
+      scale="12"
+      markers="{{markers}}"
+      polyline="{{polyline}}"
+      bindregionchange="handleMapRegionChange"
+      enable-rotate
+      enable-overlooking
+    ></map>
+
+    <view class="map-follow-control {{mapFollowMode ? 'following' : 'paused'}}" role="button" aria-label="回到车辆视角" hover-class="map-follow-control--hover" bindtap="restoreVehicleView">
+      <view class="map-follow-icon"></view>
     </view>
-    <view class="metric-grid arrival-metrics">
-      <view class="metric-item">
-        <view class="metric-value">{{mileageText}}</view>
-        <view class="metric-label">当前里程</view>
+  </view>
+
+  <view class="trip-content">
+    <view class="passenger-detail-hero">
+      <view class="passenger-detail-hero__head">
+        <view class="passenger-detail-hero__copy">
+          <view class="passenger-detail-route">{{order.start.name}} -> {{order.end.name}}</view>
+          <view class="passenger-detail-order">订单号 {{orderSummary.orderNo}}</view>
+          <view class="passenger-detail-tags">
+            <view class="passenger-detail-tag passenger-detail-tag--service">{{orderSummary.serviceTypeText}}</view>
+            <view class="passenger-detail-tag passenger-detail-tag--price" wx:if="{{orderSummary.fareText}}">{{orderSummary.fareText}}</view>
+          </view>
+        </view>
+        <view class="passenger-detail-status">{{tripPhaseLabel}}</view>
       </view>
-      <view class="metric-item">
-        <view class="metric-value">{{durationText}}</view>
-        <view class="metric-label">已用时长</view>
+      <view class="passenger-detail-city">
+        <view class="passenger-detail-building passenger-detail-building--1"></view>
+        <view class="passenger-detail-building passenger-detail-building--2"></view>
+        <view class="passenger-detail-building passenger-detail-building--3"></view>
+        <view class="passenger-detail-building passenger-detail-building--4"></view>
       </view>
-      <view class="metric-item">
-        <view class="metric-value">{{progressText}}</view>
-        <view class="metric-label">路线进度</view>
+      <view class="passenger-detail-road"></view>
+      <view class="passenger-detail-taxi">
+        <view class="passenger-detail-taxi__body"></view>
+        <view class="passenger-detail-taxi__top"></view>
+        <view class="passenger-detail-taxi__wheel passenger-detail-taxi__wheel--left"></view>
+        <view class="passenger-detail-taxi__wheel passenger-detail-taxi__wheel--right"></view>
+      </view>
+      <view class="passenger-detail-metrics">
+        <view class="passenger-detail-metric">
+          <view class="passenger-detail-metric__icon passenger-detail-metric__icon--route"></view>
+          <view>
+            <view class="passenger-detail-metric__value">{{mileageText}}</view>
+            <view class="passenger-detail-metric__label">已行驶里程</view>
+          </view>
+        </view>
+        <view class="passenger-detail-metric">
+          <view class="passenger-detail-metric__icon passenger-detail-metric__icon--time"></view>
+          <view>
+            <view class="passenger-detail-metric__value">{{durationText}}</view>
+            <view class="passenger-detail-metric__label">已行驶时长</view>
+          </view>
+        </view>
+        <view class="passenger-detail-metric">
+          <view class="passenger-detail-metric__icon passenger-detail-metric__icon--progress"></view>
+          <view>
+            <view class="passenger-detail-metric__value">{{progressText}}</view>
+            <view class="passenger-detail-metric__label">当前进度</view>
+          </view>
+        </view>
       </view>
     </view>
-    <view class="trip-actions">
-      <button class="ghost-button trip-action" hover-class="button-hover" bindtap="openSafetyCenter">安全中心</button>
-      <button class="ghost-button trip-action" hover-class="button-hover" bindtap="openEmergencyContact">紧急联系人</button>
+
+    <view class="passenger-detail-card passenger-flow-card">
+      <view class="trip-section-head">
+        <view class="trip-section-head__title">
+          <view class="trip-section-icon trip-section-icon--flow"></view>
+          <view class="trip-section-title">服务流程</view>
+        </view>
+      </view>
+      <view class="trip-flow">
+        <view class="trip-flow__step trip-flow__step--{{item.state}}" wx:for="{{serviceSteps}}" wx:key="key">
+          <view class="trip-flow__dot">{{item.state === 'upcoming' ? '' : '✓'}}</view>
+          <view class="trip-flow__line" wx:if="{{index !== serviceSteps.length - 1}}"></view>
+          <view class="trip-flow__label">{{item.title}}</view>
+        </view>
+      </view>
     </view>
-    <view class="trip-alert">若车辆偏离既定路线，系统将弹出风险提醒并建议联系平台客服。</view>
+
+    <view class="passenger-detail-card passenger-drive-card">
+      <view class="trip-section-head trip-section-head--status">
+        <view class="trip-section-head__title">
+          <view class="trip-section-icon trip-section-icon--car"></view>
+          <view class="trip-section-title">行驶状态</view>
+        </view>
+        <view class="trip-phase-badge trip-phase-badge--{{tripPhaseState}}">{{tripPhaseLabel}}</view>
+      </view>
+      <view class="passenger-drive-stage">
+        <view class="passenger-drive-stage__title">{{tripPhaseLabel}}</view>
+        <view class="passenger-drive-stage__subtitle">{{etaText}} · {{trafficText}}</view>
+        <view class="passenger-drive-stage__route">
+          <text>上车点 -> 目的地</text>
+          <text>{{progressText}}</text>
+        </view>
+        <view class="passenger-drive-stage__track">
+          <view class="passenger-drive-stage__fill" style="width: {{progressText}};"></view>
+        </view>
+        <view class="passenger-drive-stage__hint">按导航路线持续行驶</view>
+      </view>
+      <view class="trip-actions">
+        <button class="ghost-button trip-action" hover-class="button-hover" bindtap="openSafetyCenter">安全中心</button>
+        <button class="ghost-button trip-action" hover-class="button-hover" bindtap="openEmergencyContact">紧急联系人</button>
+      </view>
+      <view class="trip-alert">若车辆偏离既定路线，系统将弹出风险提醒并建议联系平台客服。</view>
+    </view>
+  </view>
+
+  <view wx:if="{{safetySheetVisible}}" class="safety-mask" bindtap="closeSafetyCenter">
+    <view class="safety-sheet" catchtap="stopEvent">
+      <view class="safety-sheet__handle"></view>
+      <view class="safety-sheet__head">
+        <view>
+          <view class="safety-sheet__title">行程安全中心</view>
+          <view class="safety-sheet__subtitle">当前行程安全服务</view>
+        </view>
+        <view class="safety-sheet__close" role="button" aria-label="关闭安全中心" hover-class="safety-sheet__close--hover" bindtap="closeSafetyCenter">
+          <view class="safety-sheet__close-line safety-sheet__close-line--left"></view>
+          <view class="safety-sheet__close-line safety-sheet__close-line--right"></view>
+        </view>
+      </view>
+
+      <view class="safety-options">
+        <view class="safety-option" role="button" hover-class="safety-option--hover" catchtap="openTripComplaint">
+          <view class="safety-option__icon safety-option__icon--warning">
+            <image src="/images/safety-icons/report.svg" mode="aspectFit"></image>
+          </view>
+          <view class="safety-option__content">
+            <text class="safety-option__title">举报行程</text>
+            <text class="safety-option__desc">司机服务、费用或车辆问题</text>
+          </view>
+          <view class="safety-option__end">
+            <text class="safety-option__state">提交</text>
+            <text class="safety-option__arrow">›</text>
+          </view>
+        </view>
+
+        <view class="safety-option" role="button" hover-class="safety-option--hover" catchtap="openSupportFeedback">
+          <view class="safety-option__icon safety-option__icon--support">
+            <image src="/images/safety-icons/support.svg" mode="aspectFit"></image>
+          </view>
+          <view class="safety-option__content">
+            <text class="safety-option__title">客服反馈</text>
+            <text class="safety-option__desc">咨询行程或反馈产品问题</text>
+          </view>
+          <view class="safety-option__end">
+            <text class="safety-option__state">在线</text>
+            <text class="safety-option__arrow">›</text>
+          </view>
+        </view>
+
+        <view class="safety-option safety-option--emergency {{emergencyConnecting ? 'is-disabled' : ''}}" role="button" hover-class="safety-option--hover" catchtap="openEmergencySupport">
+          <view class="safety-option__icon safety-option__icon--emergency">
+            <image src="/images/safety-icons/emergency.svg" mode="aspectFit"></image>
+          </view>
+          <view class="safety-option__content">
+            <text class="safety-option__title">紧急客服</text>
+            <text class="safety-option__desc">高优先级联系平台人工客服</text>
+          </view>
+          <view class="safety-option__end">
+            <text class="safety-option__badge">{{emergencyConnecting ? '连接中' : '优先接入'}}</text>
+            <text class="safety-option__arrow safety-option__arrow--danger">›</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="safety-sheet__tip">如遇人身安全威胁，请优先拨打 110。</view>
+    </view>
   </view>
 </view>

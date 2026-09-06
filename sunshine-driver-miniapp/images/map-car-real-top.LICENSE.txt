@@ -1,0 +1,6 @@
+Asset: map-car-real-top.png
+Source: https://commons.wikimedia.org/wiki/File:Audi_R8_(top_view).jpg
+Author: AKS.9955
+License: Creative Commons Attribution-ShareAlike 4.0 International
+License URL: https://creativecommons.org/licenses/by-sa/4.0/
+Changes: Rotated, cropped to the vehicle body, masked to a transparent background, and outlined for map readability.

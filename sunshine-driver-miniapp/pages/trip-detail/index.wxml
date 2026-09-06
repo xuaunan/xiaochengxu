@@ -152,16 +152,23 @@
 
       <block wx:elif="{{trip.driveStatus.visualType === 'approach'}}">
         <view class="status-stage status-stage--approach">
-          <view class="status-stage__copy">
-            <view class="drive-subtitle">{{trip.driveStatus.subtitle}}</view>
-            <view class="drive-description">{{trip.driveStatus.description}}</view>
-          </view>
-          <view class="arrival-board">
-            <view class="arrival-node arrival-node--driver">司机</view>
-            <view class="arrival-path">
-              <view class="arrival-car"></view>
+          <view class="pickup-task">
+            <view class="pickup-task__icon">
+              <image src="/images/map-start.png" mode="aspectFit"></image>
             </view>
-            <view class="arrival-node arrival-node--pickup">上车点</view>
+            <view class="pickup-task__copy">
+              <view class="pickup-task__eyebrow">当前接驾任务</view>
+              <view class="pickup-task__name">{{trip.startName}}</view>
+              <view class="pickup-task__hint">{{trip.driveStatus.visualHint}}</view>
+            </view>
+            <view class="pickup-task__state">
+              <view class="pickup-task__state-dot"></view>
+              <text>{{trip.driveStatus.state === 'accepted' ? '准备中' : '接驾中'}}</text>
+            </view>
+          </view>
+          <view class="pickup-task__footer">
+            <view class="pickup-task__footer-label">{{trip.driveStatus.subtitle}}</view>
+            <view class="pickup-task__footer-desc">{{trip.driveStatus.description}}</view>
           </view>
         </view>
       </block>

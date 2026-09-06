@@ -18,7 +18,7 @@
 }
 
 .address-top {
-  padding: 0 20rpx 14rpx;
+  padding: 0 28rpx 16rpx;
 }
 
 .address-searchbar {
@@ -92,6 +92,21 @@
   color: #1f2432;
 }
 
+.address-input__clear {
+  width: 42rpx;
+  height: 42rpx;
+  margin-left: 8rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #8b94a7;
+  background: #f2f4f8;
+  font-size: 30rpx;
+  line-height: 1;
+}
+
 .address-input__placeholder {
   color: #9aa3b6;
 }
@@ -156,15 +171,15 @@
 }
 
 .quick-actions {
-  margin-top: 16rpx;
+  margin-top: 18rpx;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12rpx;
 }
 
 .quick-action {
-  padding: 14rpx 10rpx;
-  border-radius: 22rpx;
+  padding: 16rpx 10rpx 14rpx;
+  border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.96);
   text-align: center;
   box-shadow: 0 12rpx 26rpx rgba(24, 34, 56, 0.08);
@@ -251,7 +266,7 @@
 
 .address-scroll__inner {
   min-height: 100%;
-  padding: 0 20rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  padding: 0 28rpx calc(env(safe-area-inset-bottom) + 32rpx);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -261,15 +276,23 @@
 }
 
 .address-section {
-  margin-top: 8rpx;
-  border-radius: 26rpx;
+  margin-top: 10rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 12rpx 26rpx rgba(24, 34, 56, 0.08);
   overflow: hidden;
 }
 
 .address-section__head {
-  padding: 20rpx 20rpx 6rpx;
+  padding: 20rpx 22rpx 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.address-section__heading {
+  min-width: 0;
 }
 
 .address-section__title {
@@ -282,6 +305,15 @@
   margin-top: 6rpx;
   font-size: 20rpx;
   color: #98a1b3;
+}
+
+.address-section__count {
+  flex-shrink: 0;
+  padding: 7rpx 12rpx;
+  border-radius: 999rpx;
+  color: #7f899c;
+  background: #f4f6f9;
+  font-size: 19rpx;
 }
 
 .address-loading,

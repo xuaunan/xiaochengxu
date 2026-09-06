@@ -5,13 +5,14 @@
   </view>
 
   <map
+    id="driverTripMap"
     class="trip-progress-map"
-    longitude="{{order.includePoints[2] && order.includePoints[2].longitude || order.start.longitude}}"
-    latitude="{{order.includePoints[2] && order.includePoints[2].latitude || order.start.latitude}}"
+    longitude="{{mapCenter.longitude || order.start.longitude}}"
+    latitude="{{mapCenter.latitude || order.start.latitude}}"
     scale="12"
     markers="{{order.markers}}"
     polyline="{{order.polyline}}"
-    include-points="{{order.includePoints}}"
+    bindregionchange="handleMapRegionChange"
     enable-rotate
     enable-overlooking
   ></map>
@@ -21,6 +22,10 @@
   </view>
 
   <view class="trip-progress-glow"></view>
+
+  <view class="driver-map-follow {{mapFollowMode ? 'following' : 'paused'}}" role="button" aria-label="回到车辆视角" hover-class="driver-map-follow--hover" bindtap="restoreVehicleView">
+    <view class="driver-map-follow__icon"></view>
+  </view>
 
   <view class="trip-progress-card glass-card">
     <view class="trip-progress-badge-row">
