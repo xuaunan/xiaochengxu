@@ -41,6 +41,30 @@ import {
   Zap
 } from 'lucide-react'
 import { api, getApiBase, normalizeList, setApiBase } from './api'
+import {
+  formatRideDistance,
+  formatRideDuration,
+  getRideProgressPercent as getRuntimeRideProgressPercent,
+  getRideStage,
+  normalizeRideRuntime
+} from './ride-flow'
+import {
+  DRIVER_VOICE_STYLES,
+  DRIVER_VOICE_EVENT_LABELS,
+  detectDriverVoiceEvents,
+  driverVoiceEventId,
+  driverVoiceStyleLabel as getDriverVoiceStyleLabel,
+  normalizeDriverVoiceStyle as normalizeWebDriverVoiceStyle,
+  playDriverVoice,
+  primeDriverVoice
+} from './driver-voice'
+import {
+  buildDemoTrackPayload,
+  createDemoRideRuntime,
+  getDispatchWaitState,
+  mapProgressOntoRoute,
+  resolveDemoRouteEndpoints
+} from './trip-simulator'
 import { isAnyOrderActionPending, isOrderActionPending, orderActionPendingKey } from './interaction-state'
 import sunshineLogo from './assets/sunshine-logo-transparent.png'
 import {
@@ -105,19 +129,10 @@ const passengerDefaultSettings = {
 }
 
 const driverTrackModeOptions = [
-  ['DEMO', '智能路线', '司机接单后显示在上车点附近，并按规划路线接驾。'],
-  ['REAL', '真实轨迹', '使用司机真实定位作为接驾位置并更新轨迹。']
+  ['DEMO', '自动路线', '根据订单状态自动更新接驾与行程轨迹。']
 ]
 
-const driverVoiceStyleOptions = [
-  ['default', '播音声音'],
-  ['original-default', '默认声音'],
-  ['gentle-female', '亲切自然女声'],
-  ['sunny-energetic', '阳光活力男声'],
-  ['mature-man', '稳重大叔声音'],
-  ['playful', '儿童声音'],
-  ['original-playful', '搞怪声音']
-]
+const driverVoiceStyleOptions = DRIVER_VOICE_STYLES.map(({ value, label }) => [value, label])
 
 const passengerPaymentMethods = [
   ['WECHAT', '微信支付', '推荐，和小程序支付入口一致'],
@@ -1136,7 +1151,9 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   const [supportMessages, setSupportMessages] = useState([])
   const [profile, setProfile] = useState(null)
   const [carpool, setCarpool] = useState({ list: [], mine: null })
-  const [activeRuntime, setActiveRuntime] = useState(null)
+  const [activeBackendRuntime, setActiveBackendRuntime] = useState(null)
+  const [activeRideNow, setActiveRideNow] = useState(() => Date.now())
+  const [activeRideSyncError, setActiveRideSyncError] = useState('')
   const [passengerSettings, setPassengerSettings] = usePersistentState(passengerSettingsKey, passengerDefaultSettings)
   const [focusOrderId, setFocusOrderId] = useState('')
   const [pendingOrderAction, setPendingOrderAction] = useState('')
@@ -1145,6 +1162,11 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
   const [toast, setToast] = useState('')
   const token = session?.token
   const activeRideOrder = useMemo(() => pickActiveRideOrder(orders), [orders])
+  const activeRuntime = useMemo(() => (
+    activeRideOrder
+      ? normalizeRideRuntime(createDemoRideRuntime(activeRideOrder, activeBackendRuntime, activeRideNow))
+      : null
+  ), [activeBackendRuntime, activeRideNow, activeRideOrder])
   const checkinAccount = profile || session
   const passengerCheckinBenefit = getDailyCheckinBenefit('USER', checkinState, checkinAccount)
 
@@ -1210,7 +1232,8 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
 
   useEffect(() => {
     if (!token || !activeRideOrder?.id) {
-      setActiveRuntime(null)
+      setActiveBackendRuntime(null)
+      setActiveRideSyncError('')
       return undefined
     }
 
@@ -1221,8 +1244,15 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
         api.orderRuntime(token, activeRideOrder.id)
       ])
       if (cancelled) return
-      setOrders(orderData.status === 'fulfilled' ? normalizeList(orderData.value) : [])
-      setActiveRuntime(runtimeData.status === 'fulfilled' ? runtimeData.value : null)
+      if (orderData.status === 'fulfilled') {
+        setOrders(normalizeList(orderData.value))
+        setActiveRideSyncError('')
+      } else {
+        setActiveRideSyncError(orderData.reason?.message || '订单状态暂未同步，请稍后重试')
+      }
+      if (runtimeData.status === 'fulfilled') {
+        setActiveBackendRuntime(normalizeRideRuntime(runtimeData.value))
+      }
     }
 
     syncActiveRide()
@@ -1232,6 +1262,13 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       window.clearInterval(timer)
     }
   }, [activeRideOrder?.id, token])
+
+  useEffect(() => {
+    if (!activeRideOrder?.id) return undefined
+    setActiveRideNow(Date.now())
+    const timer = window.setInterval(() => setActiveRideNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [activeRideOrder?.id])
 
   useEffect(() => {
     if (!token) return undefined
@@ -1344,7 +1381,7 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
       setCheckinState((state) => markDailyCheckinUsed(state, 'USER', checkinAccount))
     }
     changeTab('ride')
-  }, '订单已提交，地图已切换到实时派单状态')
+  }, '订单已提交，正在按小程序流程寻找司机')
 
   const createCarpoolRide = (form = {}, coupon = null) => run(async () => {
     const invalidMessage = validateCarpoolOrderForm(form)
@@ -1452,33 +1489,53 @@ function PassengerDashboard({ session, home, apiMode, onLogin, onLogout, onBack,
     >
       {toast && <Toast text={toast} />}
       {tab === 'ride' && (
-        <div className="dashboard-grid ride-workbench real-ride">
+        <div className={`dashboard-grid ride-workbench real-ride${activeRideOrder ? ' has-active-ride' : ''}`}>
           {activeRideOrder ? (
-            <ActiveRidePanel
-              order={activeRideOrder}
-              runtime={activeRuntime}
-              profile={profile || session}
-              onRefresh={load}
-              onOpenSupport={() => changeTab('support')}
-              pendingActionKey={pendingOrderAction}
-              onAction={(action) => runOrderAction(action, activeRideOrder)}
-            />
+            <>
+              <CityMap booking={booking} estimate={estimate} compact operational activeOrder={activeRideOrder} runtime={activeRuntime} showSummaryPanel={false} />
+              <ActiveRidePanel
+                order={activeRideOrder}
+                runtime={activeRuntime}
+                syncError={activeRideSyncError}
+                profile={profile || session}
+                onRefresh={load}
+                onOpenSupport={() => changeTab('support')}
+                onOpenFeedback={() => {
+                  setFocusOrderId(orderKey(activeRideOrder))
+                  changeTab('feedback')
+                }}
+                onEmergencySupport={async () => {
+                  const orderNo = activeRideOrder.orderNo || activeRideOrder.id || '--'
+                  const routeText = `${activeRideOrder.startName || '起点'} 至 ${activeRideOrder.endName || '终点'}`
+                  const result = await run(
+                    () => api.sendSupportMessage(token, `【紧急安全求助】行程中需要紧急人工客服，订单号：${orderNo}，行程：${routeText}`),
+                    '紧急求助已发送，正在接入人工客服'
+                  )
+                  if (result !== false) changeTab('support')
+                  return result
+                }}
+                pendingActionKey={pendingOrderAction}
+                onAction={(action) => runOrderAction(action, activeRideOrder)}
+              />
+            </>
           ) : (
-            <BookingPanel
-              title="乘客叫车"
-              booking={booking}
-              setBooking={setBooking}
-              estimate={estimate}
-              carTypes={home.carTypes}
-              onEstimate={estimateRide}
-              onPrimary={createRide}
-              primaryText="提交订单"
-              benefit={passengerCheckinBenefit}
-              lockedServiceType
-              showServiceTabs={false}
-            />
+            <>
+              <BookingPanel
+                title="乘客叫车"
+                booking={booking}
+                setBooking={setBooking}
+                estimate={estimate}
+                carTypes={home.carTypes}
+                onEstimate={estimateRide}
+                onPrimary={createRide}
+                primaryText="提交订单"
+                benefit={passengerCheckinBenefit}
+                lockedServiceType
+                showServiceTabs={false}
+              />
+              <CityMap booking={booking} estimate={estimate} compact operational showSummaryPanel={false} />
+            </>
           )}
-          <CityMap booking={booking} estimate={estimate} compact operational activeOrder={activeRideOrder} runtime={activeRuntime} showSummaryPanel={false} />
         </div>
       )}
 
@@ -1641,16 +1698,28 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   const [withdraws, setWithdraws] = useState([])
   const [supportConversation, setSupportConversation] = useState(null)
   const [supportMessages, setSupportMessages] = useState([])
+  const [activeDriverRuntime, setActiveDriverRuntime] = useState(null)
+  const [driverTrackState, setDriverTrackState] = useState({ status: 'idle', message: '等待活动行程' })
+  const [driverVoiceState, setDriverVoiceState] = useState({ status: 'ready', message: '小程序语音包已就绪' })
   const [focusOrderId, setFocusOrderId] = useState('')
   const [driverSettings, setDriverSettings] = useState(() => readDriverSettings())
   const [rejectDraft, setRejectDraft] = useState({ orderId: null, reason: driverRejectReasonOptions[0] })
   const autoAcceptingRef = useRef(false)
+  const previousDriverOrderRef = useRef(null)
+  const previousDriverRuntimeRef = useRef(null)
+  const driverBackendRuntimeRef = useRef(null)
+  const lastTrackReportAtRef = useRef(0)
+  const latestDriverPositionRef = useRef(null)
+  const trackReportPendingRef = useRef(false)
   const [pendingOrderAction, setPendingOrderAction] = useState('')
   const pendingOrderActionRef = useRef('')
   const [syncMeta, setSyncMeta] = useState({ lastSyncAt: 0, degradedCount: 0, totalCount: 0 })
   const [toast, setToast] = useState('')
   const token = session?.token
   const profile = dashboard?.profile || {}
+  const activeDriverTrip = useMemo(() => normalizeList(orders).find((order) => (
+    [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus)
+  )) || null, [orders])
 
   const load = useCallback(async () => {
     if (!token) return
@@ -1665,9 +1734,8 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
     ])
     const [dash, waiting, mine, msg, withdrawData, supportData, supportMessageData] = results
     if (dash.status === 'fulfilled') setDashboard(dash.value)
-    else setDashboard(null)
-    setWaitingOrders(waiting.status === 'fulfilled' ? normalizeList(waiting.value) : [])
-    setOrders(mine.status === 'fulfilled' ? normalizeList(mine.value) : [])
+    if (waiting.status === 'fulfilled') setWaitingOrders(normalizeList(waiting.value))
+    if (mine.status === 'fulfilled') setOrders(normalizeList(mine.value))
     if (msg.status === 'fulfilled') setMessages(normalizeList(msg.value))
     if (withdrawData.status === 'fulfilled') setWithdraws(normalizeList(withdrawData.value))
     if (supportData.status === 'fulfilled') setSupportConversation(supportData.value)
@@ -1740,8 +1808,63 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   }
 
   const runOrderAction = (action, order) => (
-    runPendingOrderMutation(action, order, () => driverOrderAction(action, order, token), actionText(action))
+    runPendingOrderMutation(
+      action,
+      order,
+      () => driverOrderAction(action, order, token, latestDriverPositionRef.current, activeDriverRuntime),
+      actionText(action)
+    )
   )
+
+  const playDriverEvent = useCallback(async (eventKey, order, options = {}) => {
+    if (!driverSettings.voiceBroadcast) return false
+    const label = DRIVER_VOICE_EVENT_LABELS[eventKey] || '行程语音提醒'
+    setDriverVoiceState({ status: 'playing', message: label })
+    try {
+      const played = await playDriverVoice(eventKey, driverSettings.voiceStyle, {
+        eventId: driverVoiceEventId(order, eventKey),
+        ...options
+      })
+      setDriverVoiceState({
+        status: played === false ? 'ready' : 'played',
+        message: played === false ? '该条行程提醒已播报' : label
+      })
+      return played
+    } catch (error) {
+      setDriverVoiceState({ status: 'blocked', message: '点击语音播报或试听后即可播放行程语音' })
+      return false
+    }
+  }, [driverSettings.voiceBroadcast, driverSettings.voiceStyle])
+
+  const acceptAndStartDriverOrder = useCallback(async (order) => {
+    if (!order?.id) throw new Error('订单信息不完整，请刷新后重试')
+    if (driverSettings.voiceBroadcast) {
+      try {
+        await primeDriverVoice(driverSettings.voiceStyle)
+      } catch (error) {}
+    }
+    await api.driverAccept(token, order.id)
+    try {
+      await api.driverStart(token, order.id)
+    } catch (error) {
+      await load()
+      throw new Error(`订单已接取，但开始接驾失败：${error.message || '请在订单页重试'}`)
+    }
+    const now = Date.now()
+    const demoOrder = {
+      ...order,
+      orderStatus: ORDER_STATUS.PICKING_UP,
+      acceptedAt: order.acceptedAt || new Date(now).toISOString(),
+      updatedAt: new Date(now).toISOString()
+    }
+    const runtime = normalizeRideRuntime(createDemoRideRuntime(demoOrder, null, now))
+    latestDriverPositionRef.current = runtime?.driverLocation || null
+    setActiveDriverRuntime(runtime)
+    await reportDriverTrackPoint(token, demoOrder, runtime, 'accept')
+    setFocusOrderId(String(order.id))
+    await playDriverEvent('auto-accept', order)
+    return true
+  }, [driverSettings.voiceBroadcast, driverSettings.voiceStyle, load, playDriverEvent, token])
 
   const navigateFromMessage = useCallback((target) => {
     if (!target?.tab) return
@@ -1803,6 +1926,122 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
   }, [profile.serviceStatus])
 
   useEffect(() => {
+    if (!token || !activeDriverTrip?.id) {
+      setActiveDriverRuntime(null)
+      setDriverTrackState({ status: 'idle', message: '等待活动行程' })
+      driverBackendRuntimeRef.current = null
+      latestDriverPositionRef.current = null
+      lastTrackReportAtRef.current = 0
+      previousDriverRuntimeRef.current = null
+      return undefined
+    }
+
+    let cancelled = false
+    const syncDriverTrip = async () => {
+      const [orderResult, runtimeResult] = await Promise.allSettled([
+        api.orders(token),
+        api.orderRuntime(token, activeDriverTrip.id)
+      ])
+      if (cancelled) return
+      if (orderResult.status === 'fulfilled') setOrders(normalizeList(orderResult.value))
+      if (runtimeResult.status === 'fulfilled') {
+        driverBackendRuntimeRef.current = normalizeRideRuntime(runtimeResult.value)
+      }
+    }
+
+    syncDriverTrip()
+    const timer = window.setInterval(syncDriverTrip, 3500)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [activeDriverTrip?.id, token])
+
+  useEffect(() => {
+    if (!token || !activeDriverTrip?.id) return undefined
+    let cancelled = false
+    const updateDemoTrip = async () => {
+      const now = Date.now()
+      const runtime = normalizeRideRuntime(createDemoRideRuntime(
+        activeDriverTrip,
+        driverBackendRuntimeRef.current,
+        now
+      ))
+      if (cancelled || !runtime) return
+      latestDriverPositionRef.current = runtime.driverLocation
+      setActiveDriverRuntime(runtime)
+      setDriverTrackState({
+        status: 'demo',
+        message: runtime.waitingRedLight
+          ? runtime.trafficText
+          : '车辆位置持续更新中'
+      })
+
+      if (trackReportPendingRef.current || now - lastTrackReportAtRef.current < 6000) return
+      const payload = buildDemoTrackPayload(activeDriverTrip, runtime, now)
+      if (!payload) return
+      trackReportPendingRef.current = true
+      try {
+        await api.reportTrack(token, activeDriverTrip.id, payload)
+        lastTrackReportAtRef.current = Date.now()
+      } catch (error) {
+        if (!cancelled) {
+          setDriverTrackState({ status: 'warning', message: '车辆位置正常更新，后台同步稍后重试' })
+        }
+      } finally {
+        trackReportPendingRef.current = false
+      }
+    }
+
+    updateDemoTrip()
+    const timer = window.setInterval(updateDemoTrip, 1000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      trackReportPendingRef.current = false
+      lastTrackReportAtRef.current = 0
+    }
+  }, [
+    activeDriverTrip?.acceptedAt,
+    activeDriverTrip?.endLat,
+    activeDriverTrip?.endLng,
+    activeDriverTrip?.id,
+    activeDriverTrip?.orderStatus,
+    activeDriverTrip?.startLat,
+    activeDriverTrip?.startLng,
+    activeDriverTrip?.startedAt,
+    activeDriverTrip?.updatedAt,
+    token
+  ])
+
+  useEffect(() => {
+    const previousOrder = previousDriverOrderRef.current
+    const previousRuntime = previousDriverRuntimeRef.current
+    const currentOrder = activeDriverTrip || (previousOrder
+      ? normalizeList(orders).find((order) => orderKey(order) === orderKey(previousOrder))
+      : null)
+
+    if (!currentOrder) {
+      previousDriverOrderRef.current = null
+      previousDriverRuntimeRef.current = null
+      return
+    }
+    if (!previousOrder || orderKey(previousOrder) !== orderKey(currentOrder)) {
+      previousDriverOrderRef.current = currentOrder
+      previousDriverRuntimeRef.current = activeDriverRuntime
+      return
+    }
+
+    const events = detectDriverVoiceEvents(previousOrder, currentOrder, previousRuntime, activeDriverRuntime)
+    previousDriverOrderRef.current = currentOrder
+    previousDriverRuntimeRef.current = activeDriverRuntime
+    events.forEach((eventKey) => {
+      playDriverEvent(eventKey, currentOrder)
+    })
+  }, [activeDriverRuntime, activeDriverTrip, orders, playDriverEvent])
+
+  useEffect(() => {
     if (!token || autoAcceptingRef.current) return
     if (!driverSettings.autoAccept || !driverSettings.listenMode || profile.serviceStatus !== DRIVER_STATUS.ONLINE) return
     const baselineOrderIds = new Set(normalizeList(driverSettings.listeningBaselineOrderIds).map((item) => String(item)))
@@ -1813,11 +2052,11 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
     }) || null
     if (!order?.id) return
     autoAcceptingRef.current = true
-    run(() => api.driverAccept(token, order.id), '已按设置自动接单')
+    run(() => acceptAndStartDriverOrder(order, { automatic: true }), '已自动接单，开始接驾')
       .finally(() => {
         autoAcceptingRef.current = false
       })
-  }, [token, driverSettings.autoAccept, driverSettings.listenMode, driverSettings.listeningBaselineOrderIds, driverSettings.listeningSince, profile.serviceStatus, waitingOrders])
+  }, [acceptAndStartDriverOrder, token, driverSettings.autoAccept, driverSettings.listenMode, driverSettings.listeningBaselineOrderIds, driverSettings.listeningSince, profile.serviceStatus, waitingOrders])
 
   if (!session) {
     return <LoginRequired role="DRIVER" onLogin={onLogin} onBack={onBack} />
@@ -1825,7 +2064,6 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
 
   const user = dashboard?.user || session
   const pendingWithdrawCount = normalizeList(withdraws.length ? withdraws : dashboard?.pendingWithdraw).filter((item) => String(item.status || '').toUpperCase() === 'PENDING').length
-  const activeDriverTrip = normalizeList(orders).find((order) => [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP, ORDER_STATUS.IN_TRIP].includes(order.orderStatus))
   const driverBusy = Boolean(activeDriverTrip) || profile.serviceStatus === DRIVER_STATUS.BUSY
   const driverOnline = profile.serviceStatus === DRIVER_STATUS.ONLINE
   const driverServiceText = driverBusy ? '服务中' : driverOnline ? '在线听单' : '休息中'
@@ -1878,7 +2116,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
                   aria-pressed={profile.serviceStatus === status}
                   title={activeDriverTrip ? '当前服务中，完成行程后再切换听单状态' : ''}
                   onClick={() => run(async () => {
-                    const location = await resolveDriverWebLocation(profile)
+                    const location = await resolveDriverWebLocation(profile, latestDriverPositionRef.current)
                     await api.driverStatus(token, {
                       serviceStatus: status,
                       longitude: String(location.longitude),
@@ -1907,16 +2145,6 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
               </div>
               <em>{servicePermission.canReceiveOrders === false ? '未解锁' : activeDriverTrip ? '进行中' : driverOnline ? '可接单' : '未上线'}</em>
             </div>
-            {activeDriverTrip && (
-              <button type="button" className="driver-current-trip-card" onClick={() => changeTab('orders')}>
-                <div>
-                  <span>当前进行中的行程</span>
-                  <strong>{activeDriverTrip.startName} → {activeDriverTrip.endName}</strong>
-                  <small>{driverNextActionText(activeDriverTrip)} · {formatMoney(activeDriverTrip.payableAmount || activeDriverTrip.actualAmount || activeDriverTrip.estimatedAmount, activeDriverTrip.currencyCode)}</small>
-                </div>
-                <ChevronRight size={17} />
-              </button>
-            )}
                 </div>
                 <div className="driver-listen-overview">
             <div className="stat-grid driver-listen-metrics">
@@ -1931,6 +2159,15 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
             </div>
                 </div>
               </div>
+              {activeDriverTrip && (
+                <DriverActiveTripPanel
+                  order={activeDriverTrip}
+                  runtime={activeDriverRuntime}
+                  trackState={driverTrackState}
+                  voiceState={driverVoiceState}
+                  onOpen={() => changeTab('orders')}
+                />
+              )}
             <div className="driver-service-panel">
               <div className={driverBusy || driverOnline ? 'active' : ''}>
                 <span>服务状态</span>
@@ -1978,12 +2215,12 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
                 <>
                   <button
                     className={`solid-button${acceptBusy ? ' is-busy' : ''}`}
-                    disabled={orderActionLocked}
-                    onClick={() => runPendingOrderMutation('accept', order, () => api.driverAccept(token, order.id), '接单成功')}
+                    disabled={orderActionLocked || driverBusy}
+                    onClick={() => runPendingOrderMutation('accept', order, () => acceptAndStartDriverOrder(order), '接单成功，已开始接驾')}
                   >
-                    <CheckCircle size={16} />{acceptBusy ? '接单中' : '接单'}
+                    <CheckCircle size={16} />{acceptBusy ? '接单中' : driverBusy ? '行程中' : '接单'}
                   </button>
-                  <button className="ghost-button" disabled={orderActionLocked} onClick={() => setRejectDraft({
+                  <button className="ghost-button" disabled={orderActionLocked || driverBusy} onClick={() => setRejectDraft({
                     orderId: rejectDraft.orderId === order.id ? null : order.id,
                     reason: rejectDraft.orderId === order.id ? driverRejectReasonOptions[0] : rejectDraft.reason || driverRejectReasonOptions[0]
                   })}>
@@ -2031,6 +2268,9 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
           onRefresh={load}
           focusOrderId={focusOrderId}
           pendingActionKey={pendingOrderAction}
+          activeRuntime={activeDriverRuntime}
+          activeOrderId={activeDriverTrip?.id}
+          trackState={driverTrackState}
           onAction={runOrderAction}
         />
       )}
@@ -2077,7 +2317,7 @@ function DriverDashboard({ session, apiMode, onLogin, onLogout, onBack, initialT
           settings={driverSettings}
           onSettingsChange={updateDriverSettingsFromPanel}
           onServiceStatus={(status) => run(async () => {
-            const location = await resolveDriverWebLocation(profile)
+            const location = await resolveDriverWebLocation(profile, latestDriverPositionRef.current)
             await api.driverStatus(token, {
               serviceStatus: status,
               longitude: String(location.longitude),
@@ -2470,9 +2710,28 @@ function BookingPanel({ title, kicker = '路线配置', booking, setBooking, est
   )
 }
 
-function ActiveRidePanel({ order, runtime, profile, onRefresh, onAction, onOpenSupport, pendingActionKey = '' }) {
-  const copy = getRideStatusCopy(order)
+function ActiveRidePanel({
+  order,
+  runtime,
+  syncError = '',
+  profile,
+  onRefresh,
+  onAction,
+  onOpenSupport,
+  onOpenFeedback,
+  onEmergencySupport,
+  pendingActionKey = ''
+}) {
+  const normalizedRuntime = normalizeRideRuntime(runtime)
+  const stage = getRideStage(order, normalizedRuntime)
   const timeline = normalizeTimeline(order)
+  const isDispatching = [ORDER_STATUS.CREATED, ORDER_STATUS.DISPATCHING].includes(order.orderStatus)
+  const [dispatchNow, setDispatchNow] = useState(() => Date.now())
+  const [expandedNoticeOpen, setExpandedNoticeOpen] = useState(false)
+  const [safetySheetOpen, setSafetySheetOpen] = useState(false)
+  const [contactSheetOpen, setContactSheetOpen] = useState(false)
+  const [emergencyConnecting, setEmergencyConnecting] = useState(false)
+  const [safetyError, setSafetyError] = useState('')
   const canCancel = [ORDER_STATUS.DISPATCHING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PICKING_UP].includes(order.orderStatus)
   const waitingForPickupArrival = order.orderStatus === ORDER_STATUS.PICKING_UP && !isPassengerPickupReady(runtime, order)
   const canPickup = order.orderStatus === ORDER_STATUS.PICKING_UP && !waitingForPickupArrival
@@ -2481,17 +2740,69 @@ function ActiveRidePanel({ order, runtime, profile, onRefresh, onAction, onOpenS
   const pickupBusy = isOrderActionPending(pendingActionKey, 'pickup', order)
   const payBusy = isOrderActionPending(pendingActionKey, 'pay', order)
   const actionLocked = isAnyOrderActionPending(pendingActionKey, order)
-  const isDispatching = [ORDER_STATUS.CREATED, ORDER_STATUS.DISPATCHING].includes(order.orderStatus)
-  const etaMinutes = Number(runtime?.etaMinutes || order.estimatedDurationMin || 8)
-  const nearbyDrivers = Math.max(1, Math.min(12, Math.round((Number(order.estimatedDistanceKm || runtime?.distanceKm || 4) * 1.8) + 2)))
-  const acceptMinutes = Math.max(2, Math.min(12, Math.round(etaMinutes / 2)))
-  const rideProgress = getRideProgressPercent(order)
-  const showSafetyCenter = () => {
-    window.alert(`安全中心\n订单：${order.orderNo || `#${order.id}`}\n紧急联系人：${profile?.emergencyContact || '未设置'} ${profile?.emergencyPhone || ''}`.trim())
+  const dispatchWait = getDispatchWaitState(order, dispatchNow)
+  const rideProgress = getRideProgressPercent(order, normalizedRuntime)
+  const etaText = isDispatching ? dispatchWait.title : formatRideDuration(normalizedRuntime?.remainingSeconds, '路线规划中')
+  const distanceText = isDispatching ? dispatchWait.hint : formatRideDistance(normalizedRuntime?.remainDistanceKm, '路线规划中')
+  const driverName = pickFirstCleanText(order.driverName, order.driverNickname, order.driverRealName)
+  const driverTitle = order.driverId ? `${driverName || '司机'}已接单` : '正在匹配附近司机'
+  const driverDetail = order.driverId
+    ? normalizedRuntime?.live
+      ? `${normalizedRuntime.trafficText || '车辆正沿规划路线前往上车点'}`
+      : '正在规划接驾路线'
+    : '司机接单后将显示车辆与接驾信息'
+
+  useEffect(() => {
+    if (!isDispatching) return undefined
+    setDispatchNow(Date.now())
+    const timer = window.setInterval(() => setDispatchNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [isDispatching, order.id])
+
+  useEffect(() => {
+    if (!isDispatching) setExpandedNoticeOpen(false)
+  }, [isDispatching])
+
+  useEffect(() => {
+    if (!isDispatching || !dispatchWait.expandedSearch) return
+    const noticeKey = `sunshine-web-wait-expanded:${order.id || order.orderNo || 'current'}`
+    try {
+      if (window.sessionStorage.getItem(noticeKey)) return
+      window.sessionStorage.setItem(noticeKey, '1')
+    } catch (error) {}
+    setExpandedNoticeOpen(true)
+  }, [dispatchWait.expandedSearch, isDispatching, order.id, order.orderNo])
+  const emergencyContactName = String(profile?.emergencyContact || '').trim()
+  const emergencyContactPhone = String(profile?.emergencyPhone || '').trim()
+  const openSafetyCenter = () => {
+    setSafetyError('')
+    setSafetySheetOpen(true)
   }
-  const showEmergencyContact = () => {
-    const contactText = `${profile?.emergencyContact || '未设置'} ${profile?.emergencyPhone || ''}`.trim()
-    window.alert(`紧急联系人\n${contactText || '暂未设置紧急联系人'}`)
+  const openEmergencyContact = () => {
+    setSafetyError('')
+    setContactSheetOpen(true)
+  }
+  const openSafetyFeedback = (target) => {
+    setSafetySheetOpen(false)
+    if (target === 'feedback') onOpenFeedback?.()
+    else onOpenSupport?.()
+  }
+  const connectEmergencySupport = async () => {
+    if (emergencyConnecting) return
+    setEmergencyConnecting(true)
+    setSafetyError('')
+    try {
+      const result = await onEmergencySupport?.(order)
+      if (result === false) {
+        setSafetyError('暂时无法连接平台客服，请联系紧急联系人或拨打 110。')
+        return
+      }
+      setSafetySheetOpen(false)
+    } catch (error) {
+      setSafetyError(error?.message || '暂时无法连接平台客服，请联系紧急联系人或拨打 110。')
+    } finally {
+      setEmergencyConnecting(false)
+    }
   }
 
   return (
@@ -2499,18 +2810,31 @@ function ActiveRidePanel({ order, runtime, profile, onRefresh, onAction, onOpenS
       <div className="active-ride-head">
         <div>
           <span className="section-kicker">行程状态</span>
-          <h2>{copy.title}</h2>
-          <p>{copy.desc}</p>
+          <h2>{stage.title}</h2>
+          <p>{stage.description}</p>
         </div>
         <StatusBadge value={order.orderStatus} />
       </div>
       {isDispatching && (
         <div className="dispatch-status-banner">
-          <div className="dispatch-count-ring"><span>{Math.max(12, 60 - acceptMinutes * 4)}s</span></div>
-          <div>
-            <strong>智能派单中</strong>
-            <small>系统正在把订单同步给附近空闲司机，接单后网页、后台和小程序会同步更新。</small>
+          <div className={`dispatch-count-ring${dispatchWait.expandedSearch ? ' is-expanding' : ''}`} aria-hidden="true">
+            {dispatchWait.expandedSearch ? (
+              <Radio size={20} />
+            ) : (
+              <><strong>{dispatchWait.remainingMinutes}</strong><small>分钟</small></>
+            )}
           </div>
+          <div>
+            <strong>{dispatchWait.title}</strong>
+            <small>{dispatchWait.hint}</small>
+          </div>
+        </div>
+      )}
+      {syncError && (
+        <div className="ride-sync-warning" role="status">
+          <AlertTriangle size={16} />
+          <span>{syncError}</span>
+          <button type="button" onClick={onRefresh}>重试</button>
         </div>
       )}
       <div className="active-route-line">
@@ -2518,28 +2842,29 @@ function ActiveRidePanel({ order, runtime, profile, onRefresh, onAction, onOpenS
         <div><span className="address-dot end" /><small>目的地</small><strong>{order.endName}</strong></div>
       </div>
       <div className="active-ride-metrics">
-        <MiniStat label={isDispatching ? '预计接单' : '预计接驾'} value={`${isDispatching ? acceptMinutes : etaMinutes} min`} />
-        <MiniStat label={isDispatching ? '附近司机' : '行程距离'} value={isDispatching ? `${nearbyDrivers} 位` : `${runtime?.distanceKm || order.estimatedDistanceKm || '-'} km`} />
+        <MiniStat label={isDispatching ? '接单预估' : '预计到达'} value={etaText} />
+        <MiniStat label={isDispatching ? '匹配进度' : '剩余距离'} value={isDispatching ? (dispatchWait.expandedSearch ? '扩大范围中' : `${dispatchWait.remainingMinutes} 分钟内`) : distanceText} />
         <MiniStat label="订单金额" value={formatMoney(order.payableAmount || order.actualAmount || order.estimatedAmount, order.currencyCode)} />
       </div>
       <div className="ride-progress-panel">
         <div className="ride-progress-head">
-          <span>{isDispatching ? '派单进度' : '路线进度'}</span>
-          <strong>{rideProgress}%</strong>
+          <span>{isDispatching ? '寻找附近司机' : '行程进度'}</span>
+          <strong>{isDispatching ? (dispatchWait.expandedSearch ? '持续寻找' : `${dispatchWait.remainingMinutes} 分钟`) : rideProgress === null ? '准备中' : `${rideProgress}%`}</strong>
         </div>
-        <div className="ride-progress-track"><i style={{ width: `${rideProgress}%` }} /></div>
-        <p>{isDispatching ? '取消前请留意司机接单状态，派单成功后会进入接驾流程。' : '若车辆偏离既定路线，请优先使用安全中心或联系客服。'}</p>
+        <div className={`ride-progress-track${!isDispatching && rideProgress === null ? ' is-syncing' : ''}`}><i style={{ width: `${isDispatching ? Math.max(8, dispatchWait.progressPercent) : rideProgress ?? 12}%` }} /></div>
+        <p>{isDispatching ? dispatchWait.hint : normalizedRuntime?.trafficText || '车辆位置与行程进度持续更新。'}</p>
       </div>
       <div className="active-driver-card">
         <CarTaxiFront size={20} />
         <div>
-          <strong>{order.driverId ? '李师傅已接单' : '正在匹配附近司机'}</strong>
-          <span>{order.driverId ? '车辆位置会随行程进度刷新' : '司机端听单大厅接单后这里会自动变化'}</span>
+          <strong>{driverTitle}</strong>
+          <span>{driverDetail}</span>
         </div>
+        {normalizedRuntime?.live && <em>行程中</em>}
       </div>
       <div className="active-safety-actions">
-        <button type="button" onClick={showSafetyCenter}><ShieldCheck size={15} />安全中心</button>
-        <button type="button" onClick={showEmergencyContact}><Phone size={15} />紧急联系人</button>
+        <button type="button" onClick={openSafetyCenter}><ShieldCheck size={15} />安全中心</button>
+        <button type="button" onClick={openEmergencyContact}><Phone size={15} />紧急联系人</button>
         <button type="button" onClick={onOpenSupport}><MessageSquare size={15} />联系客服</button>
       </div>
       <div className="active-timeline">
@@ -2554,24 +2879,107 @@ function ActiveRidePanel({ order, runtime, profile, onRefresh, onAction, onOpenS
         {canPickup && <button className={`solid-button${pickupBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pickup')}><Navigation size={16} />{pickupBusy ? '处理中' : '我已上车'}</button>}
         {canPay && <button className={`solid-button${payBusy ? ' is-busy' : ''}`} disabled={actionLocked} onClick={() => onAction('pay')}><CreditCard size={16} />{payBusy ? '支付中' : '支付'}</button>}
       </div>
+      {expandedNoticeOpen && (
+        <div className="ride-wait-modal" role="dialog" aria-modal="true" aria-labelledby="ride-wait-modal-title">
+          <div className="ride-wait-modal__card">
+            <span className="ride-wait-modal__icon"><Radio size={22} /></span>
+            <h3 id="ride-wait-modal-title">正在继续为你寻找司机</h3>
+            <p>附近司机可能正忙，请别着急。我们已经扩大寻找范围，会持续为你匹配合适的司机。</p>
+            <button type="button" className="solid-button" onClick={() => setExpandedNoticeOpen(false)}>继续等待</button>
+          </div>
+        </div>
+      )}
+      {safetySheetOpen && typeof document !== 'undefined' && createPortal(
+        <div className="ride-safety-modal" role="dialog" aria-modal="true" aria-labelledby="ride-safety-title" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setSafetySheetOpen(false)
+        }}>
+          <section className="ride-safety-sheet">
+            <div className="ride-safety-sheet__head">
+              <div>
+                <span>行程安全保障</span>
+                <h3 id="ride-safety-title">行程安全中心</h3>
+                <p>订单 {order.orderNo || `#${order.id}`} · {order.startName} 至 {order.endName}</p>
+              </div>
+              <button type="button" className="icon-button" aria-label="关闭安全中心" onClick={() => setSafetySheetOpen(false)}><XCircle size={19} /></button>
+            </div>
+            <div className="ride-safety-options">
+              <button type="button" onClick={() => openSafetyFeedback('feedback')}>
+                <span className="ride-safety-option__icon report"><AlertTriangle size={20} /></span>
+                <span><strong>行程举报</strong><small>提交行程问题、司机服务或安全投诉</small></span>
+                <ChevronRight size={18} />
+              </button>
+              <button type="button" onClick={() => openSafetyFeedback('support')}>
+                <span className="ride-safety-option__icon feedback"><MessageSquare size={20} /></span>
+                <span><strong>客服反馈</strong><small>咨询订单状态、费用及行程问题</small></span>
+                <ChevronRight size={18} />
+              </button>
+              <button type="button" className="is-emergency" disabled={emergencyConnecting} onClick={connectEmergencySupport}>
+                <span className="ride-safety-option__icon emergency"><Phone size={20} /></span>
+                <span><strong>{emergencyConnecting ? '正在连接紧急客服' : '紧急客服'}</strong><small>高优先级联系平台人工客服</small></span>
+                <ChevronRight size={18} />
+              </button>
+              <button type="button" onClick={() => {
+                setSafetySheetOpen(false)
+                setContactSheetOpen(true)
+              }}>
+                <span className="ride-safety-option__icon contact"><Users size={20} /></span>
+                <span><strong>紧急联系人</strong><small>{emergencyContactPhone ? `${emergencyContactName || '已设置'} · ${maskPhone(emergencyContactPhone)}` : '尚未设置紧急联系人'}</small></span>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            {safetyError && <p className="ride-safety-error"><AlertTriangle size={15} />{safetyError}</p>}
+            <p className="ride-safety-sheet__tip">如遇人身危险，请立即拨打 110。</p>
+          </section>
+        </div>,
+        document.body
+      )}
+      {contactSheetOpen && typeof document !== 'undefined' && createPortal(
+        <div className="ride-safety-modal" role="dialog" aria-modal="true" aria-labelledby="ride-contact-title" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setContactSheetOpen(false)
+        }}>
+          <section className="ride-contact-sheet">
+            <div className="ride-contact-sheet__icon"><Phone size={22} /></div>
+            <span>行程安全联系</span>
+            <h3 id="ride-contact-title">{emergencyContactName || '紧急联系人'}</h3>
+            <p>{emergencyContactPhone || '暂未设置紧急联系人，可前往资料设置补充。'}</p>
+            <div className="ride-contact-sheet__actions">
+              <button type="button" className="ghost-button" onClick={() => setContactSheetOpen(false)}>取消</button>
+              {emergencyContactPhone ? (
+                <a className="solid-button" href={`tel:${emergencyContactPhone}`}><Phone size={16} />拨打电话</a>
+              ) : (
+                <button type="button" className="solid-button" onClick={() => {
+                  setContactSheetOpen(false)
+                  onOpenFeedback?.()
+                }}>前往反馈帮助</button>
+              )}
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
     </section>
   )
 }
 
 function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }) {
-  const copy = getRideStatusCopy(order)
+  const normalizedRuntime = normalizeRideRuntime(runtime)
+  const stage = getRideStage(order, normalizedRuntime)
   const timeline = normalizeTimeline(order)
   const amountText = amount === null || amount === undefined ? '待同步' : formatMoney(amount, currency)
-  const etaText = runtime?.etaMinutes ?? duration
-  const distanceText = distance === null || distance === undefined ? '待同步' : `${distance} km`
+  const etaText = normalizedRuntime?.remainingSeconds === null || normalizedRuntime?.remainingSeconds === undefined
+    ? duration === null || duration === undefined ? '待同步' : `${duration} 分钟`
+    : formatRideDuration(normalizedRuntime.remainingSeconds)
+  const distanceText = normalizedRuntime?.remainDistanceKm === null || normalizedRuntime?.remainDistanceKm === undefined
+    ? distance === null || distance === undefined ? '待同步' : `${distance} km`
+    : formatRideDistance(normalizedRuntime.remainDistanceKm)
   return (
     <>
       <div className="active-map-sheet">
         <div className="active-map-sheet__head">
           <div>
             <span className="section-kicker">订单进度</span>
-            <h3>{copy.title}</h3>
-            <p>{copy.desc}</p>
+            <h3>{stage.title}</h3>
+            <p>{stage.description}</p>
           </div>
           <StatusBadge value={order.orderStatus} />
         </div>
@@ -2579,7 +2987,7 @@ function ActiveMapSheet({ order, runtime, amount, currency, duration, distance }
           <MiniStat label="订单号" value={order.orderNo || `#${order.id}`} />
           <MiniStat label="司机" value={order.driverId ? '已接单' : '待接单'} />
           <MiniStat label="预估费用" value={amountText} />
-          <MiniStat label="ETA" value={etaText === null || etaText === undefined ? '待同步' : `${etaText} min`} />
+          <MiniStat label="预计到达" value={etaText} />
         </div>
         <div className="active-map-sheet__line">
           <div><span className="address-dot start" /><small>从哪里出发</small><strong>{order.startName}</strong></div>
@@ -2696,8 +3104,16 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
   const distance = runtime?.distanceKm ?? (hasSyncedTripData ? (syncedEstimate?.distanceKm ?? route.distanceKm) : null)
   const currency = activeOrder?.currencyCode || estimate?.currencyCode || syncedEstimate?.currencyCode || 'CNY'
   const amountText = amount === null ? '待同步' : formatMoney(amount, currency)
-  const durationText = duration === null ? '待同步' : `${duration} min`
-  const distanceText = distance === null ? '待同步' : `${distance} km`
+  const durationText = duration === null
+    ? '待同步'
+    : activeOrder
+      ? formatRideDuration(runtime?.remainingSeconds, `${Math.ceil(Number(duration))} 分钟`)
+      : `${duration} min`
+  const distanceText = distance === null
+    ? '待同步'
+    : activeOrder
+      ? formatRideDistance(distance)
+      : `${distance} km`
   const mapStateText = activeOrder ? getRideStatusCopy(activeOrder).mapLabel : '等待提交订单'
   const trees = Array.from({ length: 8 }, (_, index) => ({
     left: `${index * 15 - 8}%`,
@@ -2801,15 +3217,105 @@ function CityMap({ booking, estimate, compact = false, operational = true, activ
   )
 }
 
+function createTencentVehicleOverlay(TMap, options) {
+  if (!TMap?.DOMOverlay) return null
+
+  function VehicleOverlay(overlayOptions) {
+    TMap.DOMOverlay.call(this, overlayOptions)
+  }
+
+  VehicleOverlay.prototype = Object.create(TMap.DOMOverlay.prototype)
+  VehicleOverlay.prototype.constructor = VehicleOverlay
+  VehicleOverlay.prototype.onInit = function onInit(overlayOptions) {
+    this.position = overlayOptions.position
+    this.heading = Number(overlayOptions.heading || 0)
+  }
+  VehicleOverlay.prototype.createDOM = function createDOM() {
+    const element = document.createElement('div')
+    element.className = 'tencent-driver-overlay'
+    element.setAttribute('aria-hidden', 'true')
+    const halo = document.createElement('span')
+    halo.className = 'tencent-driver-overlay__halo'
+    const image = document.createElement('img')
+    image.src = '/assets/map-car-real-top.png'
+    image.alt = ''
+    element.append(halo, image)
+    this.vehicleImage = image
+    return element
+  }
+  VehicleOverlay.prototype.updateDOM = function updateDOM() {
+    if (!this.map || !this.dom || !this.position) return
+    const pixel = this.map.projectToContainer(this.position)
+    if (!pixel) return
+    this.dom.style.transform = `translate3d(${pixel.getX()}px, ${pixel.getY()}px, 0) translate(-50%, -50%)`
+    if (this.vehicleImage) this.vehicleImage.style.transform = `rotate(${Number(this.heading || 0)}deg)`
+  }
+  VehicleOverlay.prototype.setVehicle = function setVehicle(position, heading) {
+    this.position = position
+    this.heading = Number(heading || 0)
+    this.updateDOM()
+  }
+  VehicleOverlay.prototype.onDestroy = function onDestroy() {
+    this.vehicleImage = null
+    this.dom?.remove()
+  }
+
+  return new VehicleOverlay(options)
+}
+
 function TencentRouteMapV2({ route, amount, currency, duration, distance, serviceType, order = null, runtime = null, showSummaryPanel = true, preferStableMap = false }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
+  const routeLayerRef = useRef(null)
+  const endpointMarkerLayerRef = useRef(null)
+  const driverMarkerLayerRef = useRef(null)
+  const driverLocationRef = useRef(null)
+  const mapIdleTimerRef = useRef(null)
   const [scriptReady, setScriptReady] = useState(false)
   const [scriptFailed, setScriptFailed] = useState(false)
   const [routePoints, setRoutePoints] = useState([])
-  const start = route.start
-  const end = route.end
+  const [followVehicle, setFollowVehicle] = useState(Boolean(order))
+  const routeEndpoints = order
+    ? resolveDemoRouteEndpoints(order, runtime)
+    : { phase: 'booking', start: route.start, end: route.end }
+  const start = routeEndpoints.start
+  const end = routeEndpoints.end
   const mapKey = getTencentMapKey()
+  const progress = Number.isFinite(Number(runtime?.progress))
+    ? Number(runtime.progress)
+    : Number.isFinite(Number(runtime?.percent))
+      ? Number(runtime.percent) / 100
+      : 0
+  const plannedRoutePoints = routePoints.length
+    ? mergeRouteEndpoints(routePoints, start, end)
+    : []
+  const mappedRoute = mapProgressOntoRoute(plannedRoutePoints, progress)
+  const visualRuntime = order && mappedRoute.currentPoint
+    ? {
+        ...runtime,
+        route: mappedRoute.routePoints,
+        routePoints: mappedRoute.routePoints,
+        traveledPoints: mappedRoute.traveledPoints,
+        remainPoints: mappedRoute.remainPoints,
+        currentPoint: mappedRoute.currentPoint,
+        driverLocation: mappedRoute.currentPoint,
+        heading: mappedRoute.heading,
+        routePlanned: true
+      }
+    : runtime
+  const mapRoute = order
+    ? {
+        ...route,
+        start: { ...start, name: routeEndpoints.phase === 'approach' ? '司机出发位置' : route.start.name },
+        end: { ...end, name: routeEndpoints.phase === 'approach' ? route.start.name : route.end.name }
+      }
+    : route
+
+  driverLocationRef.current = visualRuntime?.driverLocation || null
+
+  useEffect(() => {
+    if (order?.id) setFollowVehicle(true)
+  }, [order?.id])
 
   useEffect(() => {
     if (!mapKey) return
@@ -2834,6 +3340,7 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
   useEffect(() => {
     let cancelled = false
     const syncRoute = async () => {
+      setRoutePoints([])
       const points = await fetchTencentDrivingRoute(start, end, mapKey)
       if (!cancelled) setRoutePoints(points)
     }
@@ -2842,71 +3349,73 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
     return () => {
       cancelled = true
     }
-  }, [start, end, mapKey])
+  }, [end.latitude, end.longitude, mapKey, start.latitude, start.longitude])
 
   useEffect(() => {
     if (!scriptReady || !mapRef.current || !window.TMap?.Map) return
     const TMap = window.TMap
     const startPoint = new TMap.LatLng(start.latitude, start.longitude)
     const endPoint = new TMap.LatLng(end.latitude, end.longitude)
-    const center = new TMap.LatLng((start.latitude + end.latitude) / 2, (start.longitude + end.longitude) / 2)
+    const currentDriver = driverLocationRef.current
+    const center = currentDriver
+      ? new TMap.LatLng(currentDriver.latitude, currentDriver.longitude)
+      : new TMap.LatLng((start.latitude + end.latitude) / 2, (start.longitude + end.longitude) / 2)
     mapRef.current.innerHTML = ''
-    const map = new TMap.Map(mapRef.current, {
-      center,
-      zoom: 14,
-      pitch: 0,
-      rotation: 0,
-      showControl: false,
-      baseMap: {
-        type: 'vector',
-        features: ['base', 'building2d', 'label']
-      }
-    })
+    let map
+    try {
+      map = new TMap.Map(mapRef.current, {
+        center,
+        zoom: currentDriver ? 15 : 14,
+        pitch: 0,
+        rotation: 0,
+        showControl: false,
+        baseMap: {
+          type: 'vector',
+          features: ['base', 'building2d', 'label']
+        }
+      })
+    } catch (error) {
+      mapRef.current.innerHTML = ''
+      setScriptFailed(true)
+      return undefined
+    }
     mapInstanceRef.current = map
 
-    const renderRouteSource = mergeRouteEndpoints(
-      routePoints.length ? routePoints : (runtime?.route?.length ? runtime.route : [start, end]),
-      start,
-      end
-    )
-    const renderRoute = renderRouteSource
+    const renderRouteSource = mappedRoute.routePoints
+    const toMapPaths = (points = []) => points
       .map((point) => new TMap.LatLng(Number(point.latitude), Number(point.longitude)))
+    const routeGeometries = []
+    if (mappedRoute.traveledPoints.length > 1) {
+      routeGeometries.push({ id: 'traveled', styleId: 'traveled', paths: toMapPaths(mappedRoute.traveledPoints) })
+    }
+    if (mappedRoute.remainPoints.length > 1) {
+      routeGeometries.push({ id: 'remaining', styleId: 'remaining', paths: toMapPaths(mappedRoute.remainPoints) })
+    }
 
-    const routeLayer = new TMap.MultiPolyline({
-      map,
-      styles: {
-        route: new TMap.PolylineStyle({
-          color: '#1596c7',
-          width: 6,
-          borderWidth: 4,
-          borderColor: '#ffffff',
-          lineCap: 'round'
-        })
-      },
-      geometries: [{
-        id: 'route',
-        styleId: 'route',
-        paths: renderRoute
-      }]
-    })
-
-    const geometries = [{
-      id: 'start',
-      styleId: 'start',
-      position: startPoint
-    }, {
-      id: 'end',
-      styleId: 'end',
-      position: endPoint
-    }]
-    if (runtime?.driverLocation) {
-      geometries.push({
-        id: 'driver',
-        styleId: 'driver',
-        position: new TMap.LatLng(runtime.driverLocation.latitude, runtime.driverLocation.longitude)
+    if (routeGeometries.length) {
+      routeLayerRef.current = new TMap.MultiPolyline({
+        map,
+        styles: {
+          traveled: new TMap.PolylineStyle({
+            color: '#2c63ff',
+            width: 8,
+            borderWidth: 3,
+            borderColor: '#ffffff',
+            lineCap: 'round'
+          }),
+          remaining: new TMap.PolylineStyle({
+            color: '#8fb2ff',
+            width: 6,
+            borderWidth: 3,
+            borderColor: '#ffffff',
+            lineCap: 'round'
+          })
+        },
+        geometries: routeGeometries
       })
     }
-    const markerLayer = new TMap.MultiMarker({
+
+    endpointMarkerLayerRef.current = new TMap.MultiMarker({
       map,
       styles: {
         start: new TMap.MarkerStyle({
@@ -2920,52 +3429,239 @@ function TencentRouteMapV2({ route, amount, currency, duration, distance, servic
           height: 36,
           anchor: { x: 14, y: 32 },
           src: '/assets/map-end.png'
+        })
+      },
+      geometries: order
+        ? [{
+            id: 'target',
+            styleId: routeEndpoints.phase === 'trip' ? 'end' : 'start',
+            position: endPoint
+          }]
+        : [{
+            id: 'start',
+            styleId: 'start',
+            position: startPoint
+          }, {
+            id: 'end',
+            styleId: 'end',
+            position: endPoint
+          }]
+    })
+
+    if (!currentDriver && TMap.LatLngBounds) {
+      const source = renderRouteSource.length ? renderRouteSource : [start, end]
+      const latitudes = source.map((point) => Number(point.latitude)).filter(Number.isFinite)
+      const longitudes = source.map((point) => Number(point.longitude)).filter(Number.isFinite)
+      const latitudeSpan = latitudes.length ? Math.max(...latitudes) - Math.min(...latitudes) : 0
+      const longitudeSpan = longitudes.length ? Math.max(...longitudes) - Math.min(...longitudes) : 0
+      if (latitudes.length > 1 && longitudes.length > 1 && (latitudeSpan > 0.00001 || longitudeSpan > 0.00001)) {
+        const southWest = new TMap.LatLng(Math.min(...latitudes), Math.min(...longitudes))
+        const northEast = new TMap.LatLng(Math.max(...latitudes), Math.max(...longitudes))
+        const bounds = new TMap.LatLngBounds(southWest, northEast)
+        if (typeof map.fitBounds === 'function') {
+          try {
+            map.fitBounds(bounds)
+          } catch (error) {
+            map.setCenter(center)
+            if (typeof map.setZoom === 'function') map.setZoom(currentDriver ? 15 : 14)
+          }
+        }
+      }
+    }
+
+    const clearReturnTimer = () => {
+      if (!mapIdleTimerRef.current) return
+      window.clearTimeout(mapIdleTimerRef.current)
+      mapIdleTimerRef.current = null
+    }
+    const returnToVehicle = () => {
+      clearReturnTimer()
+      const driver = driverLocationRef.current
+      if (!driver || !mapInstanceRef.current) return
+      mapInstanceRef.current.setCenter(new TMap.LatLng(driver.latitude, driver.longitude))
+      if (typeof mapInstanceRef.current.setZoom === 'function') mapInstanceRef.current.setZoom(15)
+      setFollowVehicle(true)
+    }
+    const pauseVehicleFollow = () => {
+      clearReturnTimer()
+      setFollowVehicle(false)
+    }
+    const scheduleVehicleReturn = () => {
+      clearReturnTimer()
+      mapIdleTimerRef.current = window.setTimeout(returnToVehicle, 10000)
+    }
+    const mapElement = mapRef.current
+    let pointerActive = false
+    const startPointerInteraction = () => {
+      pointerActive = true
+      pauseVehicleFollow()
+    }
+    const continuePointerInteraction = () => {
+      if (pointerActive) pauseVehicleFollow()
+    }
+    const stopPointerInteraction = () => {
+      if (!pointerActive) return
+      pointerActive = false
+      scheduleVehicleReturn()
+    }
+    const noteWheelInteraction = () => {
+      pauseVehicleFollow()
+      scheduleVehicleReturn()
+    }
+    mapElement.addEventListener('pointerdown', startPointerInteraction)
+    mapElement.addEventListener('pointermove', continuePointerInteraction)
+    window.addEventListener('pointerup', stopPointerInteraction)
+    window.addEventListener('pointercancel', stopPointerInteraction)
+    mapElement.addEventListener('wheel', noteWheelInteraction, { passive: true })
+
+    return () => {
+      clearReturnTimer()
+      mapElement.removeEventListener('pointerdown', startPointerInteraction)
+      mapElement.removeEventListener('pointermove', continuePointerInteraction)
+      window.removeEventListener('pointerup', stopPointerInteraction)
+      window.removeEventListener('pointercancel', stopPointerInteraction)
+      mapElement.removeEventListener('wheel', noteWheelInteraction)
+      if (typeof driverMarkerLayerRef.current?.destroy === 'function') driverMarkerLayerRef.current.destroy()
+      else if (typeof driverMarkerLayerRef.current?.setMap === 'function') driverMarkerLayerRef.current.setMap(null)
+      if (typeof endpointMarkerLayerRef.current?.setMap === 'function') endpointMarkerLayerRef.current.setMap(null)
+      if (typeof routeLayerRef.current?.setMap === 'function') routeLayerRef.current.setMap(null)
+      if (typeof map.destroy === 'function') map.destroy()
+      if (mapInstanceRef.current === map) {
+        mapInstanceRef.current = null
+        routeLayerRef.current = null
+        endpointMarkerLayerRef.current = null
+        driverMarkerLayerRef.current = null
+      }
+    }
+  }, [
+    end.latitude,
+    end.longitude,
+    routePoints,
+    routeEndpoints.phase,
+    scriptReady,
+    start.latitude,
+    start.longitude
+  ])
+
+  useEffect(() => {
+    const layer = routeLayerRef.current
+    const TMap = window.TMap
+    const map = mapInstanceRef.current
+    if (!map || !TMap?.LatLng || !mappedRoute.routePoints.length) return
+    const toMapPaths = (points = []) => points
+      .map((point) => new TMap.LatLng(Number(point.latitude), Number(point.longitude)))
+    const geometries = []
+    if (mappedRoute.traveledPoints.length > 1) {
+      geometries.push({ id: 'traveled', styleId: 'traveled', paths: toMapPaths(mappedRoute.traveledPoints) })
+    }
+    if (mappedRoute.remainPoints.length > 1) {
+      geometries.push({ id: 'remaining', styleId: 'remaining', paths: toMapPaths(mappedRoute.remainPoints) })
+    }
+    if (!geometries.length) return
+    if (layer && typeof layer.setGeometries === 'function') {
+      layer.setGeometries(geometries)
+      return
+    }
+    routeLayerRef.current = new TMap.MultiPolyline({
+      map,
+      styles: {
+        traveled: new TMap.PolylineStyle({
+          color: '#2c63ff',
+          width: 8,
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          lineCap: 'round'
         }),
-        driver: new TMap.MarkerStyle({
-          width: 30,
-          height: 30,
-          anchor: { x: 15, y: 15 },
-          src: '/assets/map-driver.png'
+        remaining: new TMap.PolylineStyle({
+          color: '#8fb2ff',
+          width: 6,
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          lineCap: 'round'
         })
       },
       geometries
     })
+  }, [mappedRoute.currentPoint?.latitude, mappedRoute.currentPoint?.longitude, routePoints, scriptReady])
 
-    if (TMap.LatLngBounds) {
-      const source = renderRouteSource
-      const latitudes = source.map((point) => Number(point.latitude))
-      const longitudes = source.map((point) => Number(point.longitude))
-      const southWest = new TMap.LatLng(Math.min(...latitudes), Math.min(...longitudes))
-      const northEast = new TMap.LatLng(Math.max(...latitudes), Math.max(...longitudes))
-      const bounds = new TMap.LatLngBounds(southWest, northEast)
-      if (typeof map.fitBounds === 'function') {
-        map.fitBounds(bounds)
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    const TMap = window.TMap
+    const driver = visualRuntime?.driverLocation
+    if (!map || !TMap?.LatLng || !driver) return
+    const position = new TMap.LatLng(driver.latitude, driver.longitude)
+    const heading = Number(visualRuntime?.heading || 0)
+    if (typeof driverMarkerLayerRef.current?.setVehicle === 'function') {
+      driverMarkerLayerRef.current.setVehicle(position, heading)
+    } else {
+      if (typeof driverMarkerLayerRef.current?.destroy === 'function') driverMarkerLayerRef.current.destroy()
+      else if (typeof driverMarkerLayerRef.current?.setMap === 'function') driverMarkerLayerRef.current.setMap(null)
+      driverMarkerLayerRef.current = createTencentVehicleOverlay(TMap, { map, position, heading })
+      if (!driverMarkerLayerRef.current && TMap.MultiMarker) {
+        driverMarkerLayerRef.current = new TMap.MultiMarker({
+          map,
+          styles: {
+            driver: new TMap.MarkerStyle({
+              width: 42,
+              height: 58,
+              anchor: { x: 21, y: 29 },
+              src: '/assets/map-car-real-top.png'
+            })
+          },
+          geometries: [{ id: 'driver', styleId: 'driver', position }]
+        })
       }
     }
-
-    return () => {
-      if (typeof markerLayer.setMap === 'function') markerLayer.setMap(null)
-      if (typeof routeLayer.setMap === 'function') routeLayer.setMap(null)
-      if (typeof map.destroy === 'function') map.destroy()
-      if (mapInstanceRef.current === map) mapInstanceRef.current = null
+    if (followVehicle) {
+      map.setCenter(position)
     }
-  }, [scriptReady, start, end, runtime?.driverLocation, runtime?.route, routePoints])
+  }, [followVehicle, scriptReady, visualRuntime?.driverLocation?.latitude, visualRuntime?.driverLocation?.longitude, visualRuntime?.heading])
+
+  const focusVehicle = () => {
+    const map = mapInstanceRef.current
+    const TMap = window.TMap
+    const driver = driverLocationRef.current
+    if (!map || !TMap?.LatLng || !driver) return
+    if (mapIdleTimerRef.current) window.clearTimeout(mapIdleTimerRef.current)
+    setFollowVehicle(true)
+    map.setCenter(new TMap.LatLng(driver.latitude, driver.longitude))
+    if (typeof map.setZoom === 'function') map.setZoom(15)
+  }
 
   const useNativeMap = Boolean(!preferStableMap && mapKey && scriptReady && !scriptFailed && window.TMap?.Map)
   const mapSourceLabel = useNativeMap ? '腾讯地图' : (preferStableMap ? '腾讯地图路线' : '地图加载中')
   const amountText = amount === null || amount === undefined ? '待同步' : formatMoney(amount, currency)
-  const distanceText = distance === null || distance === undefined ? '待同步' : `${distance} km`
-  const durationText = duration === null || duration === undefined ? '待同步' : `${duration} min`
+  const distanceText = distance === null || distance === undefined
+    ? '待同步'
+    : order ? formatRideDistance(distance) : `${distance} km`
+  const durationText = duration === null || duration === undefined
+    ? '待同步'
+    : order ? formatRideDuration(runtime?.remainingSeconds, `${Math.ceil(Number(duration))} 分钟`) : `${duration} min`
 
   return (
     <div className="miniapp-sync-shell">
       <div className="miniapp-sync-map">
-        {(!useNativeMap || preferStableMap) && <RealTileRouteMap route={route} runtime={runtime} order={order} routePoints={routePoints} />}
+        {(!useNativeMap || preferStableMap) && (
+          <RealTileRouteMap
+            route={mapRoute}
+            runtime={visualRuntime}
+            order={order}
+            routePoints={mappedRoute.routePoints}
+            traveledPoints={mappedRoute.traveledPoints}
+            remainPoints={mappedRoute.remainPoints}
+            loadingRoute={Boolean(order && mapKey && !mappedRoute.routePoints.length)}
+          />
+        )}
         {mapKey && <div className={`tencent-map-canvas miniapp-map-native ${useNativeMap ? 'is-ready' : ''}`} ref={mapRef} />}
         <div className="miniapp-sync-brand">
           <strong>阳光出行</strong>
           <span>{mapSourceLabel}</span>
         </div>
+        {order && visualRuntime?.driverLocation && (
+          <button type="button" className={`map-follow-vehicle${followVehicle ? ' is-following' : ''}`} onClick={focusVehicle} title="回到车辆视角" aria-label="回到车辆视角">
+            <Locate size={16} />
+          </button>
+        )}
       </div>
       {showSummaryPanel && (
         <div className="miniapp-sync-panel">
@@ -3084,10 +3780,12 @@ function MiniappRouteMap({ route }) {
   return <RealTileRouteMap route={route} />
 }
 
-function RealTileRouteMap({ route, runtime = null, order = null, routePoints = [] }) {
+function RealTileRouteMap({ route, runtime = null, order = null, routePoints = [], traveledPoints = [], remainPoints = [], loadingRoute = false }) {
   const start = route.start
   const end = route.end
   const geometry = buildTileMapGeometry(start, end, routePoints)
+  const traveledPath = buildRoutePathInGeometry(traveledPoints, geometry)
+  const remainPath = buildRoutePathInGeometry(remainPoints, geometry)
   const driver = runtime?.driverLocation ? projectPointIntoGeometry(runtime.driverLocation, geometry) : null
   return (
     <div className="miniapp-map-fallback real-map-fallback">
@@ -3100,21 +3798,30 @@ function RealTileRouteMap({ route, runtime = null, order = null, routePoints = [
         ))}
       </div>
       <div className="real-map-soften" />
-      <svg className="real-map-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path className="real-map-route-shadow" d={geometry.routePath} />
-        <path className="real-map-route-line" d={geometry.routePath} />
-      </svg>
-      <div className="real-map-label school-road">学院大街</div>
-      <div className="real-map-label sanhe-road">三河妇幼</div>
-      <div className="real-map-pin start" style={{ left: `${geometry.start.x}%`, top: `${geometry.start.y}%` }}>
-        <span>起</span><strong>{start.name}</strong>
-      </div>
+      {!loadingRoute && geometry.routePath && (
+        <svg className="real-map-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path className="real-map-route-shadow" d={geometry.routePath} />
+          {remainPath && <path className="real-map-route-remain" d={remainPath} />}
+          {traveledPath && <path className="real-map-route-traveled" d={traveledPath} />}
+          {!remainPath && !traveledPath && <path className="real-map-route-line" d={geometry.routePath} />}
+        </svg>
+      )}
+      {loadingRoute && (
+        <div className="real-map-route-loading" role="status">
+          <RefreshCw size={15} />正在规划道路路线
+        </div>
+      )}
+      {!order && (
+        <div className="real-map-pin start" style={{ left: `${geometry.start.x}%`, top: `${geometry.start.y}%` }}>
+          <span>起</span><strong>{start.name}</strong>
+        </div>
+      )}
       <div className="real-map-pin end" style={{ left: `${geometry.end.x}%`, top: `${geometry.end.y}%` }}>
-        <span>终</span><strong>{end.name}</strong>
+        <span>{order && runtime?.phase !== 'trip' ? '上' : '终'}</span><strong>{end.name}</strong>
       </div>
       {driver && (
-        <div className="real-map-driver" style={{ left: `${driver.x}%`, top: `${driver.y}%` }}>
-          <span><CarTaxiFront size={14} /></span>
+        <div className="real-map-driver" style={{ left: `${driver.x}%`, top: `${driver.y}%`, '--driver-heading': `${Number(runtime?.heading || 0)}deg` }}>
+          <span><img src="/assets/map-car-real-top.png" alt="" /></span>
           <strong>{order?.driverId ? '司机位置' : '附近司机'}</strong>
         </div>
       )}
@@ -3214,6 +3921,15 @@ function buildTileMapGeometry(start, end, routePoints = []) {
     end: endPct,
     routePath
   }
+}
+
+function buildRoutePathInGeometry(points = [], geometry) {
+  if (!Array.isArray(points) || points.length < 2 || !geometry) return ''
+  return points.reduce((path, point, index) => {
+    const projected = projectMapPoint(point.latitude, point.longitude, geometry.zoom)
+    const pct = pixelToMapPct(projected, geometry.left, geometry.top, geometry.width, geometry.height)
+    return `${path}${index ? ' ' : ''}${index === 0 ? 'M' : 'L'} ${pct.x.toFixed(2)} ${pct.y.toFixed(2)}`
+  }, '')
 }
 
 function buildTileUrls(zoom, x, y) {
@@ -3707,7 +4423,7 @@ function DashboardShell({ role, icon: Icon, apiMode, profile, tabs, tab, setTab,
 }
 
 
-function OrderBoard({ orders, coupons = [], role, onAction, onRefresh, onOpenInvoice, focusOrderId = '', pendingActionKey = '' }) {
+function OrderBoard({ orders, coupons = [], role, onAction, onRefresh, onOpenInvoice, focusOrderId = '', pendingActionKey = '', activeRuntime = null, activeOrderId = '', trackState = null }) {
   const [listExpanded, setListExpanded] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [typeFilter, setTypeFilter] = useState('ALL')
@@ -3822,6 +4538,8 @@ function OrderBoard({ orders, coupons = [], role, onAction, onRefresh, onOpenInv
         order={selectedOrder}
         coupons={coupons}
         role={role}
+        runtime={role === 'DRIVER' && orderKey(selectedOrder) === String(activeOrderId) ? activeRuntime : null}
+        trackState={role === 'DRIVER' && orderKey(selectedOrder) === String(activeOrderId) ? trackState : null}
         onAction={(action, payload) => selectedOrder && onAction(action, selectedOrder, payload)}
         onOpenInvoice={onOpenInvoice}
         pendingActionKey={pendingActionKey}
@@ -3843,7 +4561,7 @@ function getOrderStatusBucket(order = {}) {
   return 'PROCESSING'
 }
 
-function OrderDetailPanel({ order, coupons = [], role, onAction, onOpenInvoice, pendingActionKey = '' }) {
+function OrderDetailPanel({ order, coupons = [], role, runtime = null, trackState = null, onAction, onOpenInvoice, pendingActionKey = '' }) {
   const [activeAction, setActiveAction] = useState('')
   const [payForm, setPayForm] = useState({ payChannel: 'WECHAT' })
   const [selectedPayCouponId, setSelectedPayCouponId] = useState('')
@@ -3906,7 +4624,8 @@ function OrderDetailPanel({ order, coupons = [], role, onAction, onOpenInvoice, 
   const driverPickupBusy = isOrderActionPending(pendingActionKey, 'pickup', order)
   const driverFinishBusy = isOrderActionPending(pendingActionKey, 'finish', order)
   const orderActionLocked = isAnyOrderActionPending(pendingActionKey, order)
-  const trackCount = normalizeList(order.track || order.trackHistory || order.locations).length
+  const normalizedRuntime = normalizeRideRuntime(runtime)
+  const trackCount = normalizedRuntime?.traceCount || normalizeList(order.track || order.trackHistory || order.locations).length
   const payMethod = passengerPaymentMethods.find(([value]) => value === payForm.payChannel) || passengerPaymentMethods[0]
 
   const submitPay = async () => {
@@ -4070,7 +4789,7 @@ function OrderDetailPanel({ order, coupons = [], role, onAction, onOpenInvoice, 
         ]} />
       </div>
 
-      {role === 'DRIVER' && <DriverTripProgressPanel order={order} trackCount={trackCount} />}
+      {role === 'DRIVER' && <DriverTripProgressPanel order={order} runtime={normalizedRuntime} trackCount={trackCount} trackState={trackState} />}
 
       <div className="order-detail-actions">
         {canPay && <button className="solid-button" disabled={orderActionLocked} onClick={() => setActiveAction(activeAction === 'pay' ? '' : 'pay')}><CreditCard size={16} />支付确认</button>}
@@ -4272,13 +4991,59 @@ function OrderDetailPanel({ order, coupons = [], role, onAction, onOpenInvoice, 
   )
 }
 
-function DriverTripProgressPanel({ order, trackCount }) {
+function DriverActiveTripPanel({ order, runtime, trackState, voiceState, onOpen }) {
+  const normalizedRuntime = normalizeRideRuntime(runtime)
+  const route = buildRouteFromOrder(order)
+  const stage = getRideStage(order, normalizedRuntime)
+  const progress = getRideProgressPercent(order, normalizedRuntime)
+  return (
+    <div className="driver-active-trip-panel">
+      <div className="driver-active-trip-map">
+        <TencentRouteMapV2
+          route={route}
+          amount={Number(order.payableAmount || order.actualAmount || order.estimatedAmount || 0)}
+          currency={order.currencyCode || 'CNY'}
+          duration={normalizedRuntime?.etaMinutes ?? order.estimatedDurationMin ?? null}
+          distance={normalizedRuntime?.remainDistanceKm ?? order.estimatedDistanceKm ?? null}
+          serviceType={order.serviceType || SERVICE_TYPE.TAXI}
+          order={order}
+          runtime={normalizedRuntime}
+          showSummaryPanel={false}
+        />
+        <span className="driver-demo-badge"><Radio size={13} />路线更新中</span>
+      </div>
+      <div className="driver-active-trip-content">
+        <div className="driver-active-trip-head">
+          <div>
+            <span>当前行程</span>
+            <strong>{stage.title}</strong>
+            <small>{order.startName} → {order.endName}</small>
+          </div>
+          <StatusBadge value={order.orderStatus} />
+        </div>
+        <div className="driver-active-trip-metrics">
+          <MiniStat label="路线进度" value={progress === null ? '准备中' : `${progress}%`} />
+          <MiniStat label="剩余距离" value={formatRideDistance(normalizedRuntime?.remainDistanceKm, '准备中')} />
+          <MiniStat label="预计到达" value={formatRideDuration(normalizedRuntime?.remainingSeconds, '准备中')} />
+        </div>
+        <div className="driver-active-trip-status">
+          <span><Route size={14} />{trackState?.message || '车辆位置持续更新中'}</span>
+          <span><Bell size={14} />{voiceState?.message || '语音包已就绪'}</span>
+        </div>
+        <button type="button" className="ghost-button" onClick={onOpen}>查看订单并推进状态<ChevronRight size={16} /></button>
+      </div>
+    </div>
+  )
+}
+
+function DriverTripProgressPanel({ order, runtime, trackCount, trackState }) {
   const nextAction = driverNextActionText(order)
   const incomeAmount = order.driverIncomeAmount !== undefined && order.driverIncomeAmount !== null
     ? Number(order.driverIncomeAmount)
     : Number(order.actualAmount || order.payableAmount || order.estimatedAmount || 0) * 0.8
   const income = formatMoney(incomeAmount, order.currencyCode)
-  const progress = getRideProgressPercent(order)
+  const normalizedRuntime = normalizeRideRuntime(runtime)
+  const progress = getRideProgressPercent(order, normalizedRuntime)
   return (
     <div className="driver-trip-progress-panel">
       <div className="order-action-panel-head">
@@ -4287,13 +5052,13 @@ function DriverTripProgressPanel({ order, trackCount }) {
       </div>
       <div className="driver-trip-progress-grid">
         <SummaryPill icon={Clock} value={nextAction} label="下一步" />
-        <SummaryPill icon={Route} value={trackCount ? `${trackCount} 条` : '待上报'} label="轨迹记录" />
+        <SummaryPill icon={Route} value={trackCount ? `${trackCount} 条` : '更新中'} label="轨迹同步" />
         <SummaryPill icon={DollarSign} value={income} label="预估收入" />
       </div>
       <div className="driver-trip-progress-track">
-        <div><span>路线进度</span><strong>{progress}%</strong></div>
-        <i><b style={{ width: `${progress}%` }} /></i>
-        <p>{order.orderStatus === ORDER_STATUS.IN_TRIP ? '保持轨迹上报，偏离路线时请主动联系乘客或客服。' : '按下一步操作推进，乘客端和后台会同步更新订单状态。'}</p>
+        <div><span>路线进度</span><strong>{progress === null ? '准备中' : `${progress}%`}</strong></div>
+        <i><b style={{ width: `${progress ?? 8}%` }} /></i>
+        <p>{trackState?.message || normalizedRuntime?.trafficText || '车辆位置会根据行程状态自动更新。'}</p>
       </div>
       <div className="driver-trip-checklist">
         {[
@@ -4312,7 +5077,7 @@ function DriverTripProgressPanel({ order, trackCount }) {
 }
 
 function driverNextActionText(order = {}) {
-  if (order.orderStatus === ORDER_STATUS.ACCEPTED) return '开始接驾'
+  if (order.orderStatus === ORDER_STATUS.ACCEPTED) return '正在进入接驾'
   if (order.orderStatus === ORDER_STATUS.PICKING_UP) return '确认乘客上车'
   if (order.orderStatus === ORDER_STATUS.IN_TRIP) return '到达后完成行程'
   if (order.orderStatus === ORDER_STATUS.FINISHED) return order.payStatus === PAY_STATUS.PAID ? '行程已闭环' : '等待乘客支付'
@@ -5198,14 +5963,8 @@ function getCarTypeDescription(item = {}) {
   return '日常通勤，响应更快'
 }
 
-function getRideProgressPercent(order = {}) {
-  if (order.orderStatus === ORDER_STATUS.CANCELLED) return 0
-  if (order.orderStatus === ORDER_STATUS.FINISHED) return 100
-  if (order.orderStatus === ORDER_STATUS.IN_TRIP) return 68
-  if (order.orderStatus === ORDER_STATUS.PICKING_UP) return 42
-  if (order.orderStatus === ORDER_STATUS.ACCEPTED) return 28
-  if (order.orderStatus === ORDER_STATUS.DISPATCHING) return 16
-  return 8
+function getRideProgressPercent(order = {}, runtime = null) {
+  return getRuntimeRideProgressPercent(order, runtime)
 }
 
 function isPassengerPickupReady(runtime = {}, order = {}) {
@@ -8633,16 +9392,17 @@ function DriverSettingsPanel({ settings, serviceStatus, onSettingsChange, onServ
     const nextStatus = safeSettings.listenMode ? DRIVER_STATUS.OFFLINE : DRIVER_STATUS.ONLINE
     onServiceStatus?.(nextStatus)
   }
-  const previewVoice = () => {
+  const previewVoice = async () => {
     const label = driverVoiceStyleLabel(safeSettings.voiceStyle)
-    setPreviewText(`已试听：${label}`)
-    if (!safeSettings.voiceBroadcast) return
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(`当前声音为${label}，请确认播报效果。`)
-      utterance.lang = 'zh-CN'
-      utterance.rate = safeSettings.voiceStyle === 'playful' ? 1.08 : 0.96
-      window.speechSynthesis.speak(utterance)
+    setPreviewText(`正在试听：${label}`)
+    try {
+      await playDriverVoice('auto-accept', safeSettings.voiceStyle, {
+        dedupe: false,
+        eventId: `preview:${safeSettings.voiceStyle}:${Date.now()}`
+      })
+      setPreviewText(`已试听：${label}`)
+    } catch (error) {
+      setPreviewText('浏览器阻止了自动播放，请再次点击试听')
     }
   }
 
@@ -8696,7 +9456,7 @@ function DriverSettingsPanel({ settings, serviceStatus, onSettingsChange, onServ
       <div className="settings-choice-panel">
         <div>
           <span>播报声音</span>
-          <p>与小程序声音选项保持一致，网页端会保存当前偏好。</p>
+          <p>直接使用小程序完整语音包，网页端会保存当前偏好。</p>
         </div>
         <div className="voice-chip-grid">
           {driverVoiceStyleOptions.map(([value, label]) => (
@@ -10540,15 +11300,18 @@ function passengerOrderAction(action, order, token, payload = {}) {
   return Promise.resolve()
 }
 
-async function driverOrderAction(action, order, token) {
+async function driverOrderAction(action, order, token, currentPosition = null, runtime = null) {
   if (action === 'start') {
     const result = await api.driverStart(token, order.id)
-    await reportDriverTrackPoint(token, order, action)
+    const nextOrder = { ...order, orderStatus: ORDER_STATUS.PICKING_UP, updatedAt: new Date().toISOString() }
+    await reportDriverTrackPoint(token, nextOrder, runtime || { currentPoint: currentPosition }, action)
     return result
   }
   if (action === 'pickup') {
     const result = await api.driverPickup(token, order.id)
-    await reportDriverTrackPoint(token, order, action)
+    const nextOrder = { ...order, orderStatus: ORDER_STATUS.IN_TRIP, startedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+    const nextRuntime = normalizeRideRuntime(createDemoRideRuntime(nextOrder, null, Date.now()))
+    await reportDriverTrackPoint(token, nextOrder, nextRuntime, action)
     return result
   }
   if (action === 'finish') {
@@ -10556,58 +11319,36 @@ async function driverOrderAction(action, order, token) {
       actualDistanceKm: order.actualDistanceKm || order.estimatedDistanceKm || 3,
       actualDurationMin: order.actualDurationMin || order.estimatedDurationMin || 15
     })
-    await reportDriverTrackPoint(token, order, action)
+    const nextOrder = { ...order, orderStatus: ORDER_STATUS.FINISHED, finishedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+    const nextRuntime = normalizeRideRuntime(createDemoRideRuntime(nextOrder, null, Date.now()))
+    await reportDriverTrackPoint(token, nextOrder, nextRuntime, action)
     return result
   }
   return Promise.resolve()
 }
 
-async function reportDriverTrackPoint(token, order = {}, action = '') {
+async function reportDriverTrackPoint(token, order = {}, runtime = null, action = '') {
   if (!token || !order?.id) return
-  const useEndPoint = action === 'finish'
-  const latitude = Number(useEndPoint ? order.endLat : order.startLat)
-  const longitude = Number(useEndPoint ? order.endLng : order.startLng)
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+  const payload = buildDemoTrackPayload(order, runtime, Date.now())
+  if (!payload) return
   try {
     await api.reportTrack(token, order.id, {
-      latitude,
-      longitude,
+      ...payload,
       source: 'WEB_DRIVER',
-      eventType: action,
-      heading: action === 'finish' ? 180 : 0
+      eventType: action
     })
   } catch (error) {}
 }
 
-function resolveDriverWebLocation(profile = {}) {
-  const fallback = {
-    longitude: Number(profile.lastLongitude || 117.0810),
-    latitude: Number(profile.lastLatitude || 39.9820)
-  }
-  if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    return Promise.resolve(fallback)
-  }
-  return new Promise((resolve) => {
-    const timer = window.setTimeout(() => resolve(fallback), 2500)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        window.clearTimeout(timer)
-        resolve({
-          longitude: Number(position.coords.longitude),
-          latitude: Number(position.coords.latitude)
-        })
-      },
-      () => {
-        window.clearTimeout(timer)
-        resolve(fallback)
-      },
-      { enableHighAccuracy: true, timeout: 2200, maximumAge: 30000 }
-    )
+function resolveDriverWebLocation(profile = {}, demoPosition = null) {
+  return Promise.resolve({
+    longitude: Number(demoPosition?.longitude || profile.lastLongitude || 117.0810),
+    latitude: Number(demoPosition?.latitude || profile.lastLatitude || 39.9820)
   })
 }
 
-function normalizeDriverTrackMode(value) {
-  return value === 'DEMO' ? 'DEMO' : 'REAL'
+function normalizeDriverTrackMode() {
+  return 'DEMO'
 }
 
 function normalizeDriverVoiceStyle(value) {
