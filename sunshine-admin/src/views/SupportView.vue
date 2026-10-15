@@ -1,6 +1,7 @@
 <script setup>
 import { ElMessage } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { ChatDotRound, Service, User } from '@element-plus/icons-vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import http from '../api/http'
 import { formatDateTime } from '../utils/admin'
@@ -16,6 +17,7 @@ const conversations = ref([])
 const selectedId = ref(null)
 const selectedConversation = ref(null)
 const messages = ref([])
+const messageListRef = ref(null)
 const aiContext = ref(null)
 const aiContextVisible = ref(false)
 const replyText = ref('')
@@ -61,7 +63,11 @@ const sourceLabelMap = {
   t_coupon: '优惠券规则',
   t_driver_profile: '司机资料',
   t_vehicle: '车辆资料',
-  t_withdraw_application: '提现记录'
+  t_withdraw_application: '提现记录',
+  t_support_conversation: '其他渠道会话',
+  t_support_message: '其他渠道消息',
+  miniapp_navigation_knowledge: '小程序产品知识',
+  web_navigation_knowledge: '网页端产品知识'
 }
 
 function sourceLabel(source) {
@@ -79,6 +85,13 @@ function contextRows(section) {
 function contextRowEntries(row) {
   if (!row || typeof row !== 'object') return []
   return Object.entries(row).filter(([, value]) => value !== null && value !== undefined && `${value}`.trim() !== '')
+}
+
+function messageSenderName(message = {}) {
+  if (message.systemNotice) return '系统'
+  if (message.fromAdmin) return '人工客服'
+  if (message.fromAi) return 'AI客服'
+  return selectedConversation.value?.nickname || '乘客'
 }
 
 function normalizeList(payload) {
@@ -176,15 +189,28 @@ async function selectConversation(item) {
   aiContext.value = null
   aiContextVisible.value = false
   replyText.value = ''
+  messages.value = []
   await loadMessages()
+}
+
+function scrollMessageListToBottom(smooth = false) {
+  const el = messageListRef.value
+  if (!el) return
+  el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
 }
 
 async function loadMessages() {
   if (!selectedId.value) return
   messageLoading.value = true
   try {
+    const previousLength = messages.value.length
     const response = await http.get(`/admin/support/conversations/${selectedId.value}/messages`)
-    messages.value = normalizeList(response).map(normalizeSupportMessage)
+    const nextMessages = normalizeList(response).map(normalizeSupportMessage)
+    messages.value = nextMessages
+    if (nextMessages.length !== previousLength) {
+      await nextTick()
+      scrollMessageListToBottom(previousLength > 0 && nextMessages.length > 4)
+    }
   } finally {
     messageLoading.value = false
   }
@@ -426,17 +452,34 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <div v-loading="messageLoading" class="message-list">
+          <div ref="messageListRef" v-loading="messageLoading" class="message-list">
             <div
               v-for="message in messages"
               :key="message.id"
-              class="message-item"
-              :class="{ admin: message.fromAdmin, ai: message.fromAi }"
+              class="message-block"
+              :class="{
+                admin: message.fromAdmin || message.systemNotice,
+                ai: message.fromAi && !message.systemNotice,
+                system: message.systemNotice
+              }"
             >
-              <div class="message-bubble">
-                <div v-if="message.fromAi" class="message-badge">AI客服</div>
-                <p>{{ message.content }}</p>
-                <span>{{ formatDateTime(message.createdAt) }}</span>
+              <div class="message-meta">
+                <span class="message-sender">{{ messageSenderName(message) }}</span>
+                <span class="message-time">{{ formatDateTime(message.createdAt) }}</span>
+              </div>
+              <div class="message-item">
+                <span
+                  class="message-avatar"
+                  :class="{ 'message-avatar--admin': message.fromAdmin || message.systemNotice, 'message-avatar--ai': message.fromAi }"
+                  aria-hidden="true"
+                >
+                  <el-icon v-if="message.fromAdmin || message.systemNotice"><Service /></el-icon>
+                  <el-icon v-else-if="message.fromAi"><ChatDotRound /></el-icon>
+                  <el-icon v-else><User /></el-icon>
+                </span>
+                <div class="message-bubble">
+                  <p>{{ message.content }}</p>
+                </div>
               </div>
             </div>
             <el-empty v-if="!messageLoading && !messages.length" description="暂无消息" />
@@ -944,54 +987,123 @@ onBeforeUnmount(() => {
 
 .message-list {
   min-height: 0;
-  padding: 14px;
-  border-radius: 8px;
-  background: #f7f8fb;
+  padding: 18px 16px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f6f7fb 0%, #f1f3f8 100%);
   overscroll-behavior: contain;
   overflow-y: auto;
 }
 
+.message-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #d7dde8;
+}
+
+.message-block {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
 .message-item {
   display: flex;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.message-item.admin {
+.message-block.admin .message-item {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(226, 232, 240, 0.82);
+  border-radius: 11px;
+  color: #f05a00;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 20px rgba(31, 41, 55, 0.08);
+  user-select: none;
+}
+
+.message-avatar .el-icon {
+  font-size: 16px;
+}
+
+/* 乘客/司机：与网页端"我方"同款橙色渐变方块（还原原色） */
+.message-block:not(.admin):not(.ai):not(.system) .message-avatar {
+  border-color: rgba(255, 122, 0, 0.28);
+  color: #fff7ed;
+  background: linear-gradient(135deg, #ff8f1f, #f05a00);
+  box-shadow: 0 8px 20px rgba(240, 90, 0, 0.22);
+}
+
+/* AI：白底橙色机器人线条 */
+.message-avatar--ai {
+  color: #f05a00;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* 人工客服：白底橙色耳麦 */
+.message-avatar--admin {
+  color: #f05a00;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  /* 缩进一个头像位（32px 头像 + 10px 间距），和气泡左缘对齐 */
+  padding: 0 4px 0 42px;
+}
+
+.message-block.admin .message-meta {
   justify-content: flex-end;
+  padding: 0 42px 0 4px;
 }
 
-.message-item.ai {
-  justify-content: flex-start;
-}
-
-.message-bubble {
-  max-width: 68%;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #edf1f6;
-}
-
-.message-item.admin .message-bubble {
-  color: #fff;
-  background: #ff7a18;
-  border-color: transparent;
-}
-
-.message-item.ai .message-bubble {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.message-badge {
-  display: inline-flex;
-  margin-bottom: 6px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  color: #15803d;
-  background: #dcfce7;
+.message-sender {
+  color: #64748b;
   font-size: 11px;
   font-weight: 600;
+}
+
+.message-time {
+  color: #a3adbd;
+  font-size: 11px;
+}
+
+/* 乘客/AI 气泡：保持原样式（12px 圆角 + 左下尾角） */
+.message-bubble {
+  max-width: min(68%, 560px);
+  padding: 10px 14px;
+  border: 1px solid #e8edf4;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(23, 32, 51, 0.05);
+}
+
+/* 仅人工客服气泡：只换外观（网页端 chat-bubble.mine 同款奶油橙底 + 橙细边 + 17px 圆角），内部结构与文字不动 */
+.message-block.admin .message-bubble {
+  border-color: rgba(255, 122, 0, 0.28);
+  border-radius: 17px;
+  border-top-right-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 245, 234, 0.98), rgba(255, 236, 214, 0.94));
+  box-shadow: 0 2px 6px rgba(255, 122, 0, 0.05);
+}
+
+.message-block.ai .message-bubble {
+  border-color: #d3f3de;
+  background: #f2fdf5;
 }
 
 .message-bubble p {
@@ -999,17 +1111,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
-}
-
-.message-bubble span {
-  display: block;
-  margin-top: 6px;
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.message-item.admin .message-bubble span {
-  color: rgba(255, 255, 255, 0.78);
+  word-break: break-word;
 }
 
 .reply-box {

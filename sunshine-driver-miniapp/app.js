@@ -24,17 +24,37 @@ App({
       voiceBroadcast: true,
       voiceStyle: 'default',
       trackMode: 'DEMO',
+      locationMode: 'DEMO',
+      realLocationReady: false,
+      realLatitude: null,
+      realLongitude: null,
       manualResting: false,
       listeningSince: 0,
       ...(this.globalData.driverStore.settings || {})
     }
     this.globalData.driverStore.settings.trackMode = this.globalData.driverStore.settings.trackMode === 'REAL' ? 'REAL' : 'DEMO'
+    this.globalData.driverStore.settings.locationMode = this.globalData.driverStore.settings.locationMode === 'REAL' ? 'REAL' : 'DEMO'
     this.globalData.driverStore.messages = this.globalData.driverStore.messages || []
     this.globalData.driverStore.noticeHistory = this.globalData.driverStore.noticeHistory || {}
     this.globalData.driverStore.voiceHistory = this.globalData.driverStore.voiceHistory || {}
     this.globalData.token = wx.getStorageSync('sunshine-driver-token') || ''
     this.globalData.loginInfo = wx.getStorageSync('sunshine-driver-login-info') || null
     this.globalData.driverStore.loggedIn = Boolean(this.globalData.token)
+    // 后台「全局参数 → 地图服务」下发的腾讯地图Key：优先用缓存，缺失时保留默认 Key
+    const cachedMapKey = wx.getStorageSync('sunshine-tencent-map-key')
+    if (cachedMapKey) {
+      this.globalData.mapConfig.tencentKey = cachedMapKey
+    }
+  },
+
+  // /app/home 返回 systemConfigs.tencentMapKey 时更新本端地图Key并持久化
+  updateTencentMapKey(value) {
+    const key = `${value || ''}`.trim()
+    if (!key || key === this.globalData.mapConfig.tencentKey) return
+    this.globalData.mapConfig.tencentKey = key
+    try {
+      wx.setStorageSync('sunshine-tencent-map-key', key)
+    } catch (error) {}
   },
 
   saveStore() {

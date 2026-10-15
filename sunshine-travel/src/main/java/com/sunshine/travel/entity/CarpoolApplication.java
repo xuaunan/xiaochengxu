@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 public class CarpoolApplication extends BaseEntity {
 
     private Long tripId;
+    private Long requestId;
     private Long passengerUserId;
     private Integer companionCount;
     private BigDecimal sharedAmount;

@@ -52,18 +52,51 @@ public class AiSupportServiceImpl implements AiSupportService {
     private static final String UPDATED_TRANSFER_RULE = "投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。";
     private static final String LEGACY_FALLBACK_MESSAGE = "AI客服暂时没有响应，已为你转接人工客服，请稍后查看后台客服回复。";
     private static final String COMPLAINT_GUIDANCE_REPLY = """
-            投诉建议请按当前端可见入口提交：小程序端走【我的】-账户服务【投诉建议】，或订单详情【售后服务】-【投诉反馈】；网页端走网页订单/客服页可见入口。
-            请补充：相关订单、发生时间、问题经过、希望处理方式；如果有截图或凭证也可以一并提交。
+            投诉建议的提交入口：网页端在左侧导航点【投诉建议】进入投诉反馈页提交；小程序端在【我的】-账户服务【投诉建议】，或订单详情【售后服务】-【投诉反馈】提交。
+            请补充：相关订单、发生时间、问题经过、希望的处理方式；如果有截图或凭证也可以一并提交。
             我会先帮您梳理处理信息，涉及安全、事故、账户资金异常，或您明确要求人工时，再为您转人工跟进。
             """;
-    private static final String DEFAULT_SYSTEM_PROMPT = """
+    private static final String LEGACY_DEFAULT_SYSTEM_PROMPT = """
             你是阳光出行多端AI客服。回答要简洁、礼貌、可执行。
             只能围绕乘客订单、支付退款、优惠券发票、司机听单接单、提现到账、资质审核、行程问题提供帮助。
             投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。
             用户只发送“投诉建议”时，表示想了解投诉/建议入口，不等于要求人工客服。禁止直接回复“已转人工”“已转接人工客服”“请稍候”。
             不要编造订单状态、金额、审核结论或政策；不确定时请用户补充订单号或等待人工客服。
             """;
-    private static final String DEFAULT_FALLBACK_MESSAGE = "AI客服暂时没有响应，已转接人工客服。";
+    private static final String DEFAULT_SYSTEM_PROMPT = """
+            你是阳光出行多端AI客服。回答要简洁、礼貌、可执行，并根据每位用户的真实业务数据个性化作答，避免千篇一律的模板话术。
+            只能围绕乘客订单、支付退款、优惠券发票、司机听单接单、提现到账、资质审核、行程问题提供帮助。
+            用户咨询订单、支付退款、提现、审核、听单接单等问题时，优先使用后端提供的真实业务数据直接回答，自然引用订单号、状态、金额、时间等关键信息；数据里已有的信息不要反过来向用户索要。
+            投诉或建议类问题先正常说明处理入口、需要补充的信息和查看进度方式；只有事故、安全、账户资金异常或用户明确要求人工时，才提示转人工。
+            用户只发送“投诉建议”时，表示想了解投诉/建议入口，不等于要求人工客服。禁止直接回复“已转人工”“已转接人工客服”“请稍候”。
+            不要编造订单状态、金额、审核结论或政策；数据里查不到时如实说明，再引导用户补充订单号或等待人工客服。
+            """;
+    private static final String DEFAULT_FALLBACK_MESSAGE = "AI客服暂时没有响应，请稍后再试，或回复\"转人工\"联系人工客服。";
+    private static final String LEGACY_DEFAULT_FALLBACK_MESSAGE = "AI客服暂时没有响应，已转接人工客服。";
+    private static final List<String> HISTORY_SOURCE_PREFIXES = List.of(
+            "AI客服历史回复：", "AI客服历史回复:",
+            "人工客服历史回复：", "人工客服历史回复:",
+            "用户历史消息：", "用户历史消息:");
+    private static final java.util.regex.Pattern FORBIDDEN_LINK_PATTERN =
+            java.util.regex.Pattern.compile("(?i)(https?://|www\\.|[a-z0-9-]+\\.(com|cn|net|org|top|vip|xyz))");
+    private static final String TRANSFER_MARKER = "[转人工]";
+    private static final String TRANSFER_MARKER_ALT = "【转人工】";
+    private static final String PRODUCT_FACTS_INSTRUCTION = """
+            产品事实（必须遵守，禁止向用户编造任何不存在的渠道或功能）：
+            1. 阳光出行只有微信小程序（乘客端小程序、司机端小程序）和网页端；没有独立手机APP。禁止出现"下载APP""应用商店""司机端APP"等说法。
+            2. 平台通知只通过小程序【消息通知】和网页端站内消息送达；禁止出现"短信通知""电话通知""邮件通知"。
+            3. 平台没有对外官网网址。提到网页端时只说"阳光出行平台网页版"或"网页端"，禁止说出任何具体网址、域名或链接（如 www.xxx.com）。
+            4. 乘客想成为司机：引导其在微信内使用司机端小程序，或在网页端选择司机身份登录，完成实名认证并提交车辆资料，等待平台审核。
+            5. 审核时效、到账时效等平台未明确规定的口径，不要编造具体天数（如"1-3个工作日"），如实说明以平台通知为准，或建议转人工确认。
+            """;
+    /** 违禁话术重试后仍出现时的最终修正文案：保证用户永远看不到编造的渠道。 */
+    private static final String SAFE_PRODUCT_REPLY = """
+            抱歉，刚才的说明有误，更正一下：阳光出行只有微信小程序（乘客端、司机端）和网页端，没有独立手机APP，无需下载任何应用。乘客想成为司机，可以在微信内使用司机端小程序，完成实名认证并提交车辆资料，等待平台审核；审核结果会通过小程序【消息通知】或网页端站内消息送达，平台不发送短信。如需进一步帮助，您可以回复"转人工"。""";
+    private static final String TRANSFER_INTENT_INSTRUCTION = """
+            转人工的处理规则（由你判断，但必须先征得用户确认，宁缺毋滥）：
+            1. 只有当同一问题你已经认真尝试解答仍未解决、用户明显不满并多次抱怨，或用户明确、强烈表达要人工客服时，才回复固定标记：[转人工]，不要附加任何其他文字。系统会先询问用户是否确认转接，用户确认后才会真正转接。
+            2. 用户第一次提出问题、只是补充信息、情绪轻微，或问题你能解答时：正常回答，禁止输出该标记。宁可多解答一轮，也不要轻易建议转人工。
+            """;
 
     private final SystemConfigMapper systemConfigMapper;
     private final OperationLogSupport operationLogSupport;
@@ -95,7 +128,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         map.put("fallbackMessage", values.getOrDefault(KEY_FALLBACK_MESSAGE, DEFAULT_FALLBACK_MESSAGE));
         map.put("debugEnabled", boolValue(values, KEY_DEBUG_ENABLED, false));
         map.put("dataContextEnabled", true);
-        map.put("dataContextScopes", List.of("客服会话", "订单", "支付/退款", "优惠券", "司机资料", "车辆", "提现", "投诉"));
+        map.put("dataContextScopes", List.of("当前问题焦点", "客服会话", "订单", "支付/退款", "优惠券", "司机资料", "车辆", "提现", "投诉"));
         return map;
     }
 
@@ -126,7 +159,7 @@ public class AiSupportServiceImpl implements AiSupportService {
     public Map<String, Object> test(String prompt) {
         long start = System.currentTimeMillis();
         try {
-            String reply = callChatCompletion(prompt, "", "MINIAPP", List.of(), "");
+            String reply = callChatCompletion(prompt, "", "MINIAPP", List.of(), "", null);
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("ok", true);
             result.put("reply", reply);
@@ -153,7 +186,14 @@ public class AiSupportServiceImpl implements AiSupportService {
             return Optional.empty();
         }
         try {
-            return Optional.ofNullable(normalizeReply(prompt, callChatCompletion(prompt, userRole, channel, recentMessages, businessContext), channel));
+            String reply = normalizeReply(prompt, callChatCompletion(prompt, userRole, channel, recentMessages, businessContext, null), channel);
+            if (containsForbiddenChannelClaim(reply) || containsForbiddenLink(reply)) {
+                String warning = "你刚才的回答错误提到了\"下载APP/应用商店/短信通知/具体网址\"，这些在阳光出行不存在，平台也没有任何官网网址。请严格依据产品事实重新回答：平台只有微信小程序（乘客端、司机端）和网页端；提到网页端只说\"阳光出行平台网页版\"；所有通知只通过小程序【消息通知】和网页站内消息。";
+                String retried = normalizeReply(prompt, callChatCompletion(prompt, userRole, channel, recentMessages, businessContext, warning), channel);
+                reply = (containsForbiddenChannelClaim(retried) || containsForbiddenLink(retried)) ? SAFE_PRODUCT_REPLY : retried;
+            }
+            reply = avoidParroting(prompt, userRole, channel, recentMessages, businessContext, reply);
+            return Optional.ofNullable(reply);
         } catch (RuntimeException ex) {
             if (boolValue(values, KEY_DEBUG_ENABLED, false)) {
                 System.err.println("[AI_SUPPORT] " + safeError(ex));
@@ -163,7 +203,66 @@ public class AiSupportServiceImpl implements AiSupportService {
         }
     }
 
-    private String callChatCompletion(String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext) {
+    /**
+     * 弱模型容易原样复读上一条AI回复：检测到复读时带警告重试一次，
+     * 仍复读则原样返回，由 Support 侧的重复回复兜底处理。
+     */
+    private String avoidParroting(String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext, String reply) {
+        String previousAi = lastAiContent(recentMessages);
+        if (!StringUtils.hasText(reply) || !StringUtils.hasText(previousAi)
+                || !stripHistoryPrefix(reply).equals(stripHistoryPrefix(previousAi))) {
+            return reply;
+        }
+        String warning = "你刚才的回答和上一条AI客服回复完全一样，属于重复。请针对用户最新一条消息重新作答，用不同的表达直接解决用户当前的问题，不要复述历史。";
+        try {
+            String retried = normalizeReply(prompt, callChatCompletion(prompt, userRole, channel, recentMessages, businessContext, warning), channel);
+            return StringUtils.hasText(retried) ? retried : reply;
+        } catch (RuntimeException ex) {
+            return reply;
+        }
+    }
+
+    private String lastAiContent(List<Map<String, Object>> recentMessages) {
+        String content = "";
+        for (Map<String, Object> item : recentMessages) {
+            if (Boolean.TRUE.equals(item.get("fromAi"))) {
+                content = String.valueOf(item.getOrDefault("content", ""));
+            }
+        }
+        return content.trim();
+    }
+
+    /** 输出防线：识别对不存在渠道的编造（应用商店/下载司机端/短信通知），触发重试或兜底修正。 */
+    private boolean containsForbiddenChannelClaim(String reply) {
+        if (!StringUtils.hasText(reply)) {
+            return false;
+        }
+        String normalized = reply.toLowerCase().replace(" ", "");
+        if (normalized.contains("应用商店") || normalized.contains("下载司机端")) {
+            return true;
+        }
+        return mentionsSmsWithoutNegation(normalized);
+    }
+
+    /** "短信"只有前面紧邻否定词（没有/无/不/未）才算合规表述，如"没有短信""不发送短信"。 */
+    private boolean mentionsSmsWithoutNegation(String normalized) {
+        int idx = normalized.indexOf("短信");
+        while (idx >= 0) {
+            String before = normalized.substring(Math.max(0, idx - 4), idx);
+            if (!before.contains("没有") && !before.contains("无") && !before.contains("不") && !before.contains("未")) {
+                return true;
+            }
+            idx = normalized.indexOf("短信", idx + 2);
+        }
+        return false;
+    }
+
+    /** 输出防线：禁止编造任何网址/域名/链接，提到网页端只能说"阳光出行平台网页版"。 */
+    private boolean containsForbiddenLink(String reply) {
+        return StringUtils.hasText(reply) && FORBIDDEN_LINK_PATTERN.matcher(reply).find();
+    }
+
+    private String callChatCompletion(String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext, String retryWarning) {
         Map<String, String> values = configValues();
         AiProvider provider = providerOf(values.getOrDefault(KEY_PROVIDER, DEFAULT_PROVIDER));
         String apiUrl = firstText(values.get(KEY_API_URL), provider.apiUrl());
@@ -188,7 +287,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         body.put("stream", false);
         body.put("temperature", doubleValue(values, KEY_TEMPERATURE, 0.4D));
         body.put("max_tokens", intValue(values, KEY_MAX_TOKENS, 900));
-        body.put("messages", buildMessages(values, prompt, userRole, channel, recentMessages, businessContext));
+        body.put("messages", buildMessages(values, prompt, userRole, channel, recentMessages, businessContext, retryWarning));
 
         try {
             ResponseEntity<JsonNode> response = restTemplate.postForEntity(apiUrl, new HttpEntity<>(body, headers), JsonNode.class);
@@ -198,40 +297,63 @@ public class AiSupportServiceImpl implements AiSupportService {
         }
     }
 
-    private List<Map<String, String>> buildMessages(Map<String, String> values, String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext) {
+    private List<Map<String, String>> buildMessages(Map<String, String> values, String prompt, String userRole, String channel, List<Map<String, Object>> recentMessages, String businessContext, String retryWarning) {
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(message("system", values.getOrDefault(KEY_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)));
         messages.add(message("system", channelInstruction(channel)));
+        messages.add(message("system", TRANSFER_INTENT_INSTRUCTION));
         if (StringUtils.hasText(userRole)) {
             messages.add(message("system", "当前客服渠道：" + channelText(channel) + "；当前用户角色：" + userRole));
         }
         if (StringUtils.hasText(businessContext)) {
             messages.add(message("system", """
-                    下面是后端按当前客服会话读取并脱敏后的真实业务数据和产品背景知识。
-                    你要像熟悉阳光出行产品的客服一样，结合用户当前问题、最近会话、真实业务数据和产品背景自然回答，不要机械复述资料。
-                    订单、支付、退款、优惠券、审核、提现或投诉状态以真实业务数据为准；入口、页面名称、按钮名称参考产品背景知识。
-                    如果用户问到的数据暂未查询到，或产品背景里没有明确入口，可以说明当前没有查到并引导用户补充订单号、截图或问题描述；不要为了凑答案编造路径，也不要因为数据不足就直接声称已转人工。
+                    下面是后端按当前客服会话读取并脱敏后的真实业务数据、产品背景知识和“当前问题焦点”。
+                    回答规则：
+                    1. 像熟悉这位用户资料的专属客服：咨询订单、支付退款、提现、审核、听单接单、优惠券、发票、投诉等问题时，先看“当前问题焦点”和对应真实数据，直接结合具体记录回答，并自然引用订单号、状态、金额、时间等关键信息。
+                    2. 数据里已有的信息（提现记录、订单状态、审核状态、接单权限、钱包余额等）不要反过来让用户提供，也不要只给千篇一律的导航话术；只有当数据不足以确定用户所指的具体记录时，才列出候选并请用户说明是哪一条。
+                    3. 未查询到的数据要如实说明“当前没有查到”，再引导用户补充订单号、截图或问题描述，或建议人工跟进；严禁编造数据、状态、金额或政策。
+                    4. 入口、页面名称以产品背景知识为准，解释要口语自然，不要机械罗列资料。
                     """ + "\n" + businessContext.trim()));
         }
-        recentMessages.stream()
-                .skip(Math.max(recentMessages.size() - RECENT_MESSAGE_CONTEXT_LIMIT, 0))
-                .forEach(item -> {
-                    String content = String.valueOf(item.getOrDefault("content", "")).trim();
-                    if (!StringUtils.hasText(content) || isLegacyAutoTransferReply(content)) {
-                        return;
-                    }
-                    boolean assistant = Boolean.TRUE.equals(item.get("fromAdmin")) || Boolean.TRUE.equals(item.get("fromAi"));
-                    if (isWebChannel(channel) && assistant && containsMiniappPath(content)) {
-                        return;
-                    }
-                    if (!isWebChannel(channel) && assistant && containsInvalidMiniappEntry(content)) {
-                        return;
-                    }
-                    messages.add(message(assistant ? "assistant" : "user", historyContent(item, content)));
-                });
-        if (messages.stream().noneMatch(item -> prompt.equals(item.get("content")))) {
-            messages.add(message("user", prompt));
+        String normalizedPrompt = stripHistoryPrefix(prompt == null ? "" : prompt.trim());
+        int fromIndex = Math.max(recentMessages.size() - RECENT_MESSAGE_CONTEXT_LIMIT, 0);
+        List<Map<String, Object>> history = recentMessages.subList(fromIndex, recentMessages.size());
+        // 历史里若已有与当前问题相同的用户消息（同一问题重发），跳过它并始终把 prompt
+        // 追加为最后一条 user 消息，让弱模型明确"最后一条才是要回答的问题"，避免复读历史。
+        int skipIndex = -1;
+        for (int i = history.size() - 1; i >= 0; i--) {
+            Map<String, Object> item = history.get(i);
+            boolean assistant = Boolean.TRUE.equals(item.get("fromAdmin")) || Boolean.TRUE.equals(item.get("fromAi"));
+            if (!assistant && normalizedPrompt.equals(stripHistoryPrefix(String.valueOf(item.getOrDefault("content", "")).trim()))) {
+                skipIndex = i;
+                break;
+            }
         }
+        for (int i = 0; i < history.size(); i++) {
+            if (i == skipIndex) {
+                continue;
+            }
+            Map<String, Object> item = history.get(i);
+            String content = String.valueOf(item.getOrDefault("content", "")).trim();
+            if (!StringUtils.hasText(content) || isLegacyAutoTransferReply(content)) {
+                continue;
+            }
+            boolean assistant = Boolean.TRUE.equals(item.get("fromAdmin")) || Boolean.TRUE.equals(item.get("fromAi"));
+            if (isWebChannel(channel) && assistant && containsMiniappPath(content)) {
+                continue;
+            }
+            if (!isWebChannel(channel) && assistant && containsInvalidMiniappEntry(content)) {
+                continue;
+            }
+            messages.add(message(assistant ? "assistant" : "user", historyContent(item, content)));
+        }
+        messages.add(message("system", """
+                以上历史消息带有“用户历史消息：”“AI客服历史回复：”“人工客服历史回复：”来源标记，仅供区分来源。
+                请针对用户最新一条消息直接作答：如果是追问，结合历史继续回答；不要原样重复之前的回复，也不要复述这些标记。
+                """));
+        // 产品事实放在最贴近用户问题处以强化弱模型的遵从度
+        messages.add(message("system", PRODUCT_FACTS_INSTRUCTION + (StringUtils.hasText(retryWarning) ? "\n" + retryWarning.trim() : "")));
+        messages.add(message("user", prompt));
         return messages;
     }
 
@@ -239,7 +361,7 @@ public class AiSupportServiceImpl implements AiSupportService {
         if (isWebChannel(channel)) {
             return """
                     当前客服渠道是网页端，不是小程序。
-                    回答网页用户的操作步骤时，用网页端可见入口表达，例如：左侧导航【订单】、网页订单卡片、订单详情、支付/取消/发票按钮、左侧导航【客服】。
+                    回答网页用户的操作步骤时，用网页端可见入口表达，例如：左侧导航【行程】、【投诉建议】、【钱包】、【发票】，以及订单卡片、订单详情按钮、左侧导航【客服】；网页左侧导航里没有【订单】这一项，订单在【行程】中。
                     不要把小程序路径直接套给网页用户；如果历史消息里有不同渠道的旧说法，要结合当前网页端上下文改成用户看得到的说法。
                     """.trim();
         }
@@ -294,15 +416,35 @@ public class AiSupportServiceImpl implements AiSupportService {
         return "用户历史消息：" + content;
     }
 
-    private String normalizeReply(String prompt, String reply, String channel) {
+    String normalizeReply(String prompt, String reply, String channel) {
         if (!StringUtils.hasText(reply)) {
             return reply;
         }
-        String trimmed = reply.trim();
+        String trimmed = stripHistoryPrefix(reply.trim());
+        if (trimmed.contains(TRANSFER_MARKER) || trimmed.contains(TRANSFER_MARKER_ALT)) {
+            // AI 判断可能需要人工：只产出征询文案，等用户确认后才由 Support 侧进入排队
+            return MANUAL_TRANSFER_ASK;
+        }
         if (isComplaintOrSuggestionPrompt(prompt) && !isManualRequest(prompt) && isAutoTransferReply(trimmed)) {
             return COMPLAINT_GUIDANCE_REPLY.trim();
         }
         return trimmed;
+    }
+
+    /** 输出兜底：弱模型有时会复述历史消息的来源前缀，这里强制剥离，避免用户看到内部标记。 */
+    private String stripHistoryPrefix(String reply) {
+        String result = reply;
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String prefix : HISTORY_SOURCE_PREFIXES) {
+                if (result.startsWith(prefix)) {
+                    result = result.substring(prefix.length()).trim();
+                    changed = true;
+                }
+            }
+        }
+        return result;
     }
 
     private boolean isComplaintOrSuggestionPrompt(String content) {
@@ -417,7 +559,12 @@ public class AiSupportServiceImpl implements AiSupportService {
         if (StringUtils.hasText(systemPrompt) && systemPrompt.contains("阳光出行小程序的AI客服")) {
             updateValue(KEY_SYSTEM_PROMPT, systemPrompt.replace("阳光出行小程序的AI客服", "阳光出行多端AI客服"));
         }
-        if (LEGACY_FALLBACK_MESSAGE.equals(values.get(KEY_FALLBACK_MESSAGE)) || !StringUtils.hasText(values.get(KEY_FALLBACK_MESSAGE))) {
+        if (StringUtils.hasText(systemPrompt) && systemPrompt.trim().equals(LEGACY_DEFAULT_SYSTEM_PROMPT.trim())) {
+            updateValue(KEY_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT);
+        }
+        if (LEGACY_FALLBACK_MESSAGE.equals(values.get(KEY_FALLBACK_MESSAGE))
+                || LEGACY_DEFAULT_FALLBACK_MESSAGE.equals(values.get(KEY_FALLBACK_MESSAGE))
+                || !StringUtils.hasText(values.get(KEY_FALLBACK_MESSAGE))) {
             updateValue(KEY_FALLBACK_MESSAGE, DEFAULT_FALLBACK_MESSAGE);
         }
     }

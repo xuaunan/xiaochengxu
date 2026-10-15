@@ -1,6 +1,7 @@
 package com.sunshine.travel.service;
 
 import com.sunshine.travel.dto.ComplaintRequest;
+import com.sunshine.travel.dto.CarpoolTollRequest;
 import com.sunshine.travel.dto.EvaluationRequest;
 import com.sunshine.travel.dto.InvoiceApplyRequest;
 import com.sunshine.travel.dto.MockPayRequest;
@@ -21,6 +22,11 @@ public interface OrderService {
 
     RideOrder detail(Long orderId);
 
+    /**
+     * 批量同步订单的支付状态/顺风车超时/默认好评，供列表页使用，避免逐单查询支付记录。
+     */
+    List<RideOrder> syncBatchForList(List<RideOrder> orders);
+
     Map<String, Object> detailView(Long orderId);
 
     Map<String, Object> runtime(Long orderId);
@@ -36,6 +42,12 @@ public interface OrderService {
     void pickupOrder(Long orderId);
 
     void finishOrder(Long orderId, OrderFinishRequest request);
+
+    void setCarpoolToll(Long orderId, CarpoolTollRequest request);
+
+    void respondCarpoolToll(Long orderId, boolean confirm);
+
+    void payCarpoolPenalty(Long orderId);
 
     RideOrder mockPay(MockPayRequest request);
 

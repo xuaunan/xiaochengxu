@@ -45,7 +45,7 @@
                 </el-tooltip>
               </div>
             </div>
-            <div class="metric-value">{{ card.value }}</div>
+            <div class="metric-value" :class="{ 'is-compact': String(card.value ?? '').length > 7 }">{{ card.value }}</div>
             <div class="metric-label">{{ card.label }}</div>
           </div>
         </div>
@@ -240,7 +240,7 @@ const autoRefresh = ref(true)
 const range = ref('day')
 const shareDimension = ref('orderCountDimension')
 const regionDimension = ref('ALL')
-const liveOrdersExpanded = ref(false)
+const liveOrdersExpanded = ref(true)
 const dashboard = ref({})
 const animated = reactive({
   userTotal: 0,
@@ -360,6 +360,8 @@ const regionAliasMap = {
   上海迪士尼度假区: '上海市',
   苏州工业园区: '江苏省',
   深圳湾口岸: '广东省',
+  白云区: '广东省',
+  白云机场: '广东省',
   香港国际机场: '香港特别行政区',
   澳门渔人码头: '澳门特别行政区',
   石家庄学院: '河北省',
@@ -434,6 +436,17 @@ function getProvinceFromOrderCoordinates(order = {}) {
   return getProvinceByCoordinate(getOrderPoint(order, 'end'))
 }
 
+const regionAliasKeys = Object.keys(regionAliasMap)
+  .filter((key) => key.length >= 2)
+  .sort((a, b) => b.length - a.length)
+
+// 出发地名称常被截断（如「石家庄学院(」「燕郊站[地铁」），这里做包含匹配兜底
+function matchRegionAlias(value = '') {
+  if (!value) return ''
+  const key = regionAliasKeys.find((alias) => value.includes(alias))
+  return key ? regionAliasMap[key] : ''
+}
+
 function normalizeRegionName(name = '') {
   const raw = `${name || ''}`.trim()
   if (!raw) return '未知'
@@ -444,6 +457,9 @@ function normalizeRegionName(name = '') {
   const normalized = raw.replace(/省|市|自治区|特别行政区|地区|盟|自治州|州/g, '')
   if (regionAliasMap[normalized]) return regionAliasMap[normalized]
   if (cityCoordinateMap[normalized]) return normalized
+
+  const matchedAlias = matchRegionAlias(raw) || matchRegionAlias(normalized)
+  if (matchedAlias) return matchedAlias
 
   const provinceName = Object.keys(provinceCenterMap).find((item) => item.includes(normalized) || normalized.includes(item.replace(/省|市|自治区|特别行政区/g, '')))
   if (provinceName) return provinceName
@@ -802,23 +818,44 @@ function renderMapChart() {
   const rawSource = distribution[regionDimension.value]?.length
     ? distribution[regionDimension.value]
     : (regionDimension.value === 'ALL' ? dashboard.value.userCityDistribution || [] : [])
-  const source = rawSource.map((item) => ({
-    name: item.city,
-    value: [...getRegionCoordinate(item.city), Number(item.count || 0)]
-  }))
   const dimensionLabel = regionDimension.value === 'TAXI'
     ? '打车订单数'
     : regionDimension.value === 'CARPOOL'
       ? '顺风车订单数'
       : '综合订单数'
 
+  // 解析到同一坐标（含无法识别而落到「未知」）的出发地先合并成一个点，
+  // 否则十几个点叠在一处，波纹互相交叠会把整张地图糊满。
+  const mergedMap = new Map()
+  rawSource.forEach((item) => {
+    const [lng, lat] = getRegionCoordinate(item.city)
+    const key = `${Number(lng).toFixed(3)},${Number(lat).toFixed(3)}`
+    const count = Number(item.count || 0)
+    const exist = mergedMap.get(key)
+    if (exist) {
+      exist.value[2] += count
+      exist.names.push(item.city)
+    } else {
+      mergedMap.set(key, { name: item.city, value: [lng, lat, count], names: [item.city] })
+    }
+  })
+  const source = Array.from(mergedMap.values())
+  const maxCount = Math.max(...source.map((item) => Number(item.value?.[2] || 0)), 1)
+
   mapChart.setOption({
     tooltip: {
-      formatter: (params) => params.data ? `${params.name}<br/>${dimensionLabel}：${params.data.value[2]}` : params.name
+      formatter: (params) => {
+        if (!params.data) return params.name
+        const names = params.data.names || [params.name]
+        const head = names.length > 3
+          ? `${names.slice(0, 3).join('、')} 等 ${names.length} 个出发地`
+          : names.join('、')
+        return `${head}<br/>${dimensionLabel}：${params.data.value[2]}`
+      }
     },
     visualMap: {
       min: 0,
-      max: Math.max(...source.map((item) => Number(item.value?.[2] || 0)), 1),
+      max: maxCount,
       left: 'left',
       bottom: 10,
       text: ['高', '低'],
@@ -842,14 +879,31 @@ function renderMapChart() {
     },
     series: [
       {
+        // 底层：扩散波纹。形态用最初的效果（实心圆符号 + 填充式扩散），只是整体尺寸收敛。
+        // 颜色一律不写死：rippleEffect.color / itemStyle.color 只要出现一个，就会盖掉
+        // visualMap 的等级色（EffectSymbol.updateData 里 effectCfg.color 取的是
+        // data.getItemVisual(idx,'style').fill），所以这两处都必须留空。
         type: 'effectScatter',
         coordinateSystem: 'geo',
-        rippleEffect: { scale: 4 },
-        symbolSize: (value) => 10 + Number(value[2] || 0) * 2,
-        itemStyle: {
-          color: '#f97316'
-        },
+        silent: true,
+        showEffectOn: 'render',
+        z: 1,
+        rippleEffect: { scale: 4, brushType: 'fill', period: 5, number: 3 },
+        symbolSize: (value) => Math.min(14, 6 + Math.sqrt(Number(value[2] || 0)) * 1.5),
         data: source
+      },
+      {
+        // 上层：小而实的中心圆点，颜色同样交给 visualMap；顺带承接 tooltip 与悬浮放大
+        type: 'scatter',
+        coordinateSystem: 'geo',
+        z: 3,
+        symbolSize: (value) => Math.min(10, 4 + Math.sqrt(Number(value[2] || 0)) * 1.2),
+        itemStyle: {
+          shadowBlur: 5,
+          shadowColor: 'rgba(15, 23, 42, 0.18)'
+        },
+        emphasis: { scale: 1.4 },
+        data: source.map((item) => ({ ...item }))
       }
     ]
   })
@@ -1061,6 +1115,12 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
+/* 6 列栅格下卡片较窄，金额/大数值会超宽被省略号截断，这里自动降一号字 */
+.metric-value.is-compact {
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+
 .metric-label {
   margin-top: 9px;
   color: #6b7280;
@@ -1197,7 +1257,7 @@ onBeforeUnmount(() => {
 .live-list {
   display: grid;
   gap: 8px;
-  max-height: 320px;
+  max-height: 420px;
   padding-right: 4px;
   overflow-y: auto;
 }

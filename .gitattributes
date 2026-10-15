@@ -1,0 +1,9 @@
+# 本机密钥脱敏（clean/smudge 过滤器）：
+# 提交与推送的内容中会自动把真实密钥替换为占位符占位（YOUR_TENCENT_MAP_KEY 等），
+# 本机检出时会自动还原真实密钥；过滤器脚本位于 .git/keymask.py（不随仓库分发）。
+# 克隆本仓库后，请在管理端「系统配置」或本机配置中填写自己的密钥。
+sunshine-travel/src/main/resources/application.yml filter=keymask
+sunshine-travel/src/main/java/com/sunshine/travel/config/DatabaseMigrationConfig.java filter=keymask
+sunshine-user-miniapp/app.js filter=keymask
+sunshine-driver-miniapp/app.js filter=keymask
+html/src/App.jsx filter=keymask

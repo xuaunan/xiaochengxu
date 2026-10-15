@@ -5,17 +5,20 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sunshine.travel.common.BusinessException;
 import com.sunshine.travel.common.CarpoolApplyStatus;
 import com.sunshine.travel.common.CarpoolTripStatus;
+import com.sunshine.travel.common.CarpoolRequestStatus;
 import com.sunshine.travel.common.ErrorCode;
 import com.sunshine.travel.common.UserContext;
-import com.sunshine.travel.dto.CarpoolApplyRequest;
 import com.sunshine.travel.dto.CarpoolCancelRequest;
 import com.sunshine.travel.dto.CarpoolConfirmRequest;
 import com.sunshine.travel.dto.CarpoolPublishRequest;
+import com.sunshine.travel.dto.CarpoolRideRequestCreateRequest;
 import com.sunshine.travel.entity.CarpoolApplication;
 import com.sunshine.travel.entity.CarpoolTrip;
+import com.sunshine.travel.entity.CarpoolRideRequest;
 import com.sunshine.travel.entity.PlatformUser;
 import com.sunshine.travel.mapper.CarpoolApplicationMapper;
 import com.sunshine.travel.mapper.CarpoolTripMapper;
+import com.sunshine.travel.mapper.CarpoolRideRequestMapper;
 import com.sunshine.travel.mapper.PlatformUserMapper;
 import com.sunshine.travel.service.CarpoolService;
 import java.math.BigDecimal;
@@ -38,13 +41,16 @@ public class CarpoolServiceImpl implements CarpoolService {
     private final CarpoolTripMapper carpoolTripMapper;
     private final CarpoolApplicationMapper carpoolApplicationMapper;
     private final PlatformUserMapper platformUserMapper;
+    private final CarpoolRideRequestMapper carpoolRideRequestMapper;
 
     public CarpoolServiceImpl(CarpoolTripMapper carpoolTripMapper,
                               CarpoolApplicationMapper carpoolApplicationMapper,
-                              PlatformUserMapper platformUserMapper) {
+                              PlatformUserMapper platformUserMapper,
+                              CarpoolRideRequestMapper carpoolRideRequestMapper) {
         this.carpoolTripMapper = carpoolTripMapper;
         this.carpoolApplicationMapper = carpoolApplicationMapper;
         this.platformUserMapper = platformUserMapper;
+        this.carpoolRideRequestMapper = carpoolRideRequestMapper;
     }
 
     @Override
@@ -74,18 +80,108 @@ public class CarpoolServiceImpl implements CarpoolService {
     }
 
     @Override
-    public List<Map<String, Object>> search(String keyword) {
-        LambdaQueryWrapper<CarpoolTrip> wrapper = new LambdaQueryWrapper<CarpoolTrip>()
-                .in(CarpoolTrip::getStatus, List.of(CarpoolTripStatus.PUBLISHED, CarpoolTripStatus.MATCHING, CarpoolTripStatus.FULL))
-                .ge(CarpoolTrip::getDepartTime, LocalDateTime.now())
-                .orderByAsc(CarpoolTrip::getDepartTime);
-        if (StringUtils.hasText(keyword)) {
-            wrapper.and(q -> q.like(CarpoolTrip::getStartName, keyword).or().like(CarpoolTrip::getEndName, keyword));
+    @Transactional
+    public Map<String, Object> publishRideRequest(CarpoolRideRequestCreateRequest request) {
+        if (request.getDepartTime().isBefore(LocalDateTime.now().plusMinutes(30))) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "出发时间至少晚于当前30分钟");
         }
-        Long currentUserId = UserContext.userId();
-        return carpoolTripMapper.selectList(wrapper).stream()
-                .map(item -> buildTripCard(item, currentUserId))
+        if (request.getStartName().equals(request.getEndName())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "顺风车起终点不能相同");
+        }
+        CarpoolRideRequest rideRequest = new CarpoolRideRequest();
+        rideRequest.setPassengerUserId(UserContext.userId());
+        rideRequest.setRequestNo("CR" + IdUtil.getSnowflakeNextIdStr());
+        rideRequest.setStartName(request.getStartName());
+        rideRequest.setEndName(request.getEndName());
+        rideRequest.setDepartTime(request.getDepartTime());
+        rideRequest.setPassengerCount(request.getPassengerCount());
+        rideRequest.setAcceptCarpool(!Boolean.FALSE.equals(request.getAcceptCarpool()));
+        rideRequest.setSharedAmount(request.getSharedAmount());
+        rideRequest.setBaggageRule(request.getBaggageRule());
+        rideRequest.setRequestRemark(request.getRequestRemark());
+        rideRequest.setStatus(CarpoolRequestStatus.PUBLISHED);
+        carpoolRideRequestMapper.insert(rideRequest);
+        return buildRideRequestCard(rideRequest);
+    }
+
+    @Override
+    public List<Map<String, Object>> matchRideRequests(Long tripId) {
+        CarpoolTrip trip = requireTrip(tripId);
+        if (!Objects.equals(trip.getOwnerUserId(), UserContext.userId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有车主可以查看匹配需求");
+        }
+        LocalDateTime from = trip.getDepartTime().minusMinutes(30);
+        LocalDateTime to = trip.getDepartTime().plusMinutes(30);
+        return carpoolRideRequestMapper.selectList(new LambdaQueryWrapper<CarpoolRideRequest>()
+                        .eq(CarpoolRideRequest::getStatus, CarpoolRequestStatus.PUBLISHED)
+                        .ge(CarpoolRideRequest::getDepartTime, from)
+                        .le(CarpoolRideRequest::getDepartTime, to)
+                        .le(CarpoolRideRequest::getPassengerCount, trip.getRemainSeatCount())
+                        .orderByAsc(CarpoolRideRequest::getDepartTime))
+                .stream()
+                .filter(request -> routeCompatible(trip, request))
+                .sorted(Comparator
+                        .comparingInt((CarpoolRideRequest request) -> routeMatchScore(trip, request)).reversed()
+                        .thenComparingLong(request -> Math.abs(java.time.Duration.between(trip.getDepartTime(), request.getDepartTime()).toMinutes()))
+                        .thenComparing(CarpoolRideRequest::getSharedAmount))
+                .map(this::buildRideRequestCard)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void acceptRideRequest(Long requestId, Long tripId) {
+        CarpoolTrip trip = requireTripForUpdate(tripId);
+        CarpoolRideRequest request = carpoolRideRequestMapper.selectOne(new LambdaQueryWrapper<CarpoolRideRequest>()
+                .eq(CarpoolRideRequest::getId, requestId).last("FOR UPDATE"));
+        if (request == null) throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "乘客需求不存在");
+        if (!Objects.equals(trip.getOwnerUserId(), UserContext.userId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有车主可以接单");
+        }
+        if (!CarpoolRequestStatus.PUBLISHED.equals(request.getStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "该需求已被其他车主处理");
+        }
+        if (!routeCompatible(trip, request) || !Objects.equals(trip.getDepartTime().toLocalDate(), request.getDepartTime().toLocalDate())
+                || Math.abs(java.time.Duration.between(trip.getDepartTime(), request.getDepartTime()).toMinutes()) > 30) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前行程与乘客需求不匹配");
+        }
+        int seats = request.getPassengerCount();
+        if (trip.getRemainSeatCount() < seats) throw new BusinessException(ErrorCode.BUSINESS_ERROR, "剩余座位不足");
+        Long duplicate = carpoolApplicationMapper.selectCount(new LambdaQueryWrapper<CarpoolApplication>()
+                .eq(CarpoolApplication::getRequestId, requestId)
+                .in(CarpoolApplication::getApplicationStatus, List.of(CarpoolApplyStatus.OWNER_CONFIRMED, CarpoolApplyStatus.CONFIRMED)));
+        if (duplicate != null && duplicate > 0) throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "该需求已接单");
+        CarpoolApplication application = new CarpoolApplication();
+        application.setTripId(trip.getId());
+        application.setRequestId(requestId);
+        application.setPassengerUserId(request.getPassengerUserId());
+        application.setCompanionCount(Math.max(0, seats - 1));
+        application.setSharedAmount(trip.getSharedAmount().multiply(BigDecimal.valueOf(seats)));
+        application.setApplicationStatus(CarpoolApplyStatus.OWNER_CONFIRMED);
+        application.setOwnerConfirmedAt(LocalDateTime.now());
+        application.setNote("车主主动接单，等待乘客确认");
+        carpoolApplicationMapper.insert(application);
+        request.setStatus(CarpoolRequestStatus.MATCHED);
+        carpoolRideRequestMapper.updateById(request);
+        trip.setRemainSeatCount(trip.getRemainSeatCount() - seats);
+        syncTripStatus(trip);
+    }
+
+    @Override
+    @Transactional
+    public void cancelRideRequest(Long requestId, String reason) {
+        CarpoolRideRequest request = carpoolRideRequestMapper.selectOne(new LambdaQueryWrapper<CarpoolRideRequest>()
+                .eq(CarpoolRideRequest::getId, requestId).last("FOR UPDATE"));
+        if (request == null) throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "乘客需求不存在");
+        if (!Objects.equals(request.getPassengerUserId(), UserContext.userId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布需求的乘客可以取消");
+        }
+        if (!CarpoolRequestStatus.PUBLISHED.equals(request.getStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "已被车主接单的需求请在同行申请中处理");
+        }
+        request.setStatus(CarpoolRequestStatus.CANCELLED);
+        request.setRequestRemark(reason);
+        carpoolRideRequestMapper.updateById(request);
     }
 
     @Override
@@ -107,61 +203,35 @@ public class CarpoolServiceImpl implements CarpoolService {
 
     @Override
     @Transactional
-    public void apply(CarpoolApplyRequest request) {
-        CarpoolTrip trip = requireTrip(request.getTripId());
-        if (Objects.equals(trip.getOwnerUserId(), UserContext.userId())) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "不能申请自己的顺风车行程");
-        }
-        if (List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED, CarpoolTripStatus.CONFIRMED).contains(trip.getStatus())) {
-            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前行程不可申请");
-        }
-        int needSeat = request.getCompanionCount() + 1;
-        if (trip.getRemainSeatCount() < needSeat) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "剩余座位不足");
-        }
-        Long count = carpoolApplicationMapper.selectCount(new LambdaQueryWrapper<CarpoolApplication>()
-                .eq(CarpoolApplication::getTripId, trip.getId())
-                .eq(CarpoolApplication::getPassengerUserId, UserContext.userId())
-                .in(CarpoolApplication::getApplicationStatus, List.of(
-                        CarpoolApplyStatus.APPLIED,
-                        CarpoolApplyStatus.OWNER_CONFIRMED,
-                        CarpoolApplyStatus.PASSENGER_CONFIRMED,
-                        CarpoolApplyStatus.CONFIRMED)));
-        if (count != null && count > 0) {
-            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "您已申请过该行程");
-        }
-        CarpoolApplication application = new CarpoolApplication();
-        application.setTripId(trip.getId());
-        application.setPassengerUserId(UserContext.userId());
-        application.setCompanionCount(request.getCompanionCount());
-        application.setSharedAmount(trip.getSharedAmount().multiply(BigDecimal.valueOf(needSeat)));
-        application.setApplicationStatus(CarpoolApplyStatus.APPLIED);
-        application.setNote(request.getNote());
-        carpoolApplicationMapper.insert(application);
-        trip.setRemainSeatCount(trip.getRemainSeatCount() - needSeat);
-        syncTripStatus(trip);
-    }
-
-    @Override
-    @Transactional
     public void ownerConfirm(CarpoolConfirmRequest request) {
         CarpoolApplication application = requireApplication(request.getApplicationId());
-        CarpoolTrip trip = requireTrip(application.getTripId());
+        CarpoolTrip trip = requireTripForUpdate(application.getTripId());
+        application = requireApplicationForUpdate(request.getApplicationId());
         if (!Objects.equals(trip.getOwnerUserId(), UserContext.userId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有车主可以执行该操作");
+        }
+        if (List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED).contains(trip.getStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前行程已结束，不能处理申请");
+        }
+        if (!CarpoolApplyStatus.APPLIED.equals(application.getApplicationStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前申请状态不允许车主处理");
         }
         if ("REJECT".equalsIgnoreCase(request.getAction())) {
             application.setApplicationStatus(CarpoolApplyStatus.REJECTED);
             application.setCancelReason(request.getNote());
             carpoolApplicationMapper.updateById(application);
+            if (application.getRequestId() != null) {
+                CarpoolRideRequest rideRequest = carpoolRideRequestMapper.selectById(application.getRequestId());
+                if (rideRequest != null) {
+                    rideRequest.setStatus(CarpoolRequestStatus.PUBLISHED);
+                    carpoolRideRequestMapper.updateById(rideRequest);
+                }
+            }
             releaseSeat(trip, application);
             return;
         }
         if (!"APPROVE".equalsIgnoreCase(request.getAction())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "车主操作类型不合法");
-        }
-        if (!CarpoolApplyStatus.APPLIED.equals(application.getApplicationStatus())) {
-            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前申请状态不允许车主确认");
         }
         application.setApplicationStatus(CarpoolApplyStatus.OWNER_CONFIRMED);
         application.setOwnerConfirmedAt(LocalDateTime.now());
@@ -173,8 +243,13 @@ public class CarpoolServiceImpl implements CarpoolService {
     @Transactional
     public void passengerConfirm(CarpoolConfirmRequest request) {
         CarpoolApplication application = requireApplication(request.getApplicationId());
+        CarpoolTrip trip = requireTripForUpdate(application.getTripId());
+        application = requireApplicationForUpdate(request.getApplicationId());
         if (!Objects.equals(application.getPassengerUserId(), UserContext.userId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有申请乘客可以执行该操作");
+        }
+        if (List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED).contains(trip.getStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前行程已结束，不能确认同行");
         }
         if (!"CONFIRM".equalsIgnoreCase(request.getAction())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "乘客操作类型不合法");
@@ -186,26 +261,104 @@ public class CarpoolServiceImpl implements CarpoolService {
         application.setPassengerConfirmedAt(LocalDateTime.now());
         application.setNote(request.getNote());
         carpoolApplicationMapper.updateById(application);
-        syncTripStatus(requireTrip(application.getTripId()));
+        if (application.getRequestId() != null) {
+            CarpoolRideRequest rideRequest = carpoolRideRequestMapper.selectById(application.getRequestId());
+            if (rideRequest != null) {
+                rideRequest.setStatus(CarpoolRequestStatus.CONFIRMED);
+                carpoolRideRequestMapper.updateById(rideRequest);
+            }
+        }
+        syncTripStatus(trip);
     }
 
     @Override
     @Transactional
     public void cancel(CarpoolCancelRequest request) {
         CarpoolApplication application = requireApplication(request.getApplicationId());
-        CarpoolTrip trip = requireTrip(application.getTripId());
+        CarpoolTrip trip = requireTripForUpdate(application.getTripId());
+        application = requireApplicationForUpdate(request.getApplicationId());
         boolean isOwner = Objects.equals(trip.getOwnerUserId(), UserContext.userId());
         boolean isPassenger = Objects.equals(application.getPassengerUserId(), UserContext.userId());
         if (!isOwner && !isPassenger) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权限取消该拼车申请");
         }
-        if (List.of(CarpoolApplyStatus.CANCELLED, CarpoolApplyStatus.REJECTED).contains(application.getApplicationStatus())) {
+        if (CarpoolApplyStatus.CANCELLED.equals(application.getApplicationStatus())) {
             return;
+        }
+        if (CarpoolApplyStatus.REJECTED.equals(application.getApplicationStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "已拒绝的申请不能取消");
         }
         application.setApplicationStatus(CarpoolApplyStatus.CANCELLED);
         application.setCancelReason(request.getReason());
         carpoolApplicationMapper.updateById(application);
+        if (application.getRequestId() != null) {
+            CarpoolRideRequest rideRequest = carpoolRideRequestMapper.selectById(application.getRequestId());
+            if (rideRequest != null && !CarpoolRequestStatus.CONFIRMED.equals(rideRequest.getStatus())) {
+                rideRequest.setStatus(isOwner ? CarpoolRequestStatus.PUBLISHED : CarpoolRequestStatus.CANCELLED);
+                carpoolRideRequestMapper.updateById(rideRequest);
+            }
+        }
         releaseSeat(trip, application);
+    }
+
+    @Override
+    @Transactional
+    public void cancelTrip(Long tripId, String reason) {
+        CarpoolTrip trip = requireTripForUpdate(tripId);
+        if (!Objects.equals(trip.getOwnerUserId(), UserContext.userId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有车主可以取消行程");
+        }
+        if (List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED).contains(trip.getStatus())) {
+            return;
+        }
+        if (trip.getDepartTime() != null && !trip.getDepartTime().isAfter(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "出发后不能取消行程");
+        }
+        List<CarpoolApplication> activeApplications = listApplicationsByTrip(trip.getId()).stream()
+                .filter(item -> isActiveApplication(item.getApplicationStatus()))
+                .toList();
+        for (CarpoolApplication application : activeApplications) {
+            application.setApplicationStatus(CarpoolApplyStatus.CANCELLED);
+            application.setCancelReason(reason);
+            carpoolApplicationMapper.updateById(application);
+            if (application.getRequestId() != null) {
+                CarpoolRideRequest rideRequest = carpoolRideRequestMapper.selectById(application.getRequestId());
+                if (rideRequest != null) {
+                    rideRequest.setStatus(CarpoolRequestStatus.CANCELLED);
+                    carpoolRideRequestMapper.updateById(rideRequest);
+                }
+            }
+        }
+        trip.setRemainSeatCount(trip.getSeatCount());
+        trip.setStatus(CarpoolTripStatus.CANCELLED);
+        carpoolTripMapper.updateById(trip);
+    }
+
+    @Override
+    @Transactional
+    public void finishTrip(Long tripId) {
+        CarpoolTrip trip = requireTripForUpdate(tripId);
+        if (!Objects.equals(trip.getOwnerUserId(), UserContext.userId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有车主可以结束行程");
+        }
+        if (trip.getDepartTime() != null && trip.getDepartTime().isAfter(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "出发前不能结束行程");
+        }
+        if (CarpoolTripStatus.CANCELLED.equals(trip.getStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "已取消的行程不能结束");
+        }
+        trip.setStatus(CarpoolTripStatus.FINISHED);
+        carpoolTripMapper.updateById(trip);
+        List<CarpoolApplication> applications = listApplicationsByTrip(trip.getId());
+        for (CarpoolApplication application : applications) {
+            if (application.getRequestId() != null && CarpoolApplyStatus.CONFIRMED.equals(application.getApplicationStatus())) {
+                CarpoolRideRequest request = carpoolRideRequestMapper.selectById(application.getRequestId());
+                if (request != null) {
+                    request.setStatus(CarpoolRequestStatus.FINISHED);
+                    carpoolRideRequestMapper.updateById(request);
+                }
+            }
+        }
     }
 
     @Override
@@ -230,6 +383,10 @@ public class CarpoolServiceImpl implements CarpoolService {
         result.put("summary", buildMineSummary(ownerRecords, passengerRecords));
         result.put("ownerRecords", ownerRecords);
         result.put("passengerRecords", passengerRecords);
+        result.put("passengerRequests", carpoolRideRequestMapper.selectList(new LambdaQueryWrapper<CarpoolRideRequest>()
+                        .eq(CarpoolRideRequest::getPassengerUserId, currentUserId)
+                        .orderByDesc(CarpoolRideRequest::getId))
+                .stream().map(this::buildRideRequestCard).toList());
         return result;
     }
 
@@ -241,8 +398,28 @@ public class CarpoolServiceImpl implements CarpoolService {
         return trip;
     }
 
+    private CarpoolTrip requireTripForUpdate(Long tripId) {
+        CarpoolTrip trip = carpoolTripMapper.selectOne(new LambdaQueryWrapper<CarpoolTrip>()
+                .eq(CarpoolTrip::getId, tripId)
+                .last("FOR UPDATE"));
+        if (trip == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "顺风车行程不存在");
+        }
+        return trip;
+    }
+
     private CarpoolApplication requireApplication(Long applicationId) {
         CarpoolApplication application = carpoolApplicationMapper.selectById(applicationId);
+        if (application == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "拼车申请不存在");
+        }
+        return application;
+    }
+
+    private CarpoolApplication requireApplicationForUpdate(Long applicationId) {
+        CarpoolApplication application = carpoolApplicationMapper.selectOne(new LambdaQueryWrapper<CarpoolApplication>()
+                .eq(CarpoolApplication::getId, applicationId)
+                .last("FOR UPDATE"));
         if (application == null) {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "拼车申请不存在");
         }
@@ -261,7 +438,7 @@ public class CarpoolServiceImpl implements CarpoolService {
 
     private void releaseSeat(CarpoolTrip trip, CarpoolApplication application) {
         int seat = application.getCompanionCount() + 1;
-        trip.setRemainSeatCount(trip.getRemainSeatCount() + seat);
+        trip.setRemainSeatCount(Math.min(trip.getSeatCount(), trip.getRemainSeatCount() + seat));
         syncTripStatus(trip);
     }
 
@@ -291,8 +468,14 @@ public class CarpoolServiceImpl implements CarpoolService {
         }
         return applications.stream()
                 .filter(item -> Objects.equals(item.getPassengerUserId(), currentUserId))
+                .filter(item -> isActiveApplication(item.getApplicationStatus()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private boolean isActiveApplication(String status) {
+        return List.of(CarpoolApplyStatus.APPLIED, CarpoolApplyStatus.OWNER_CONFIRMED,
+                CarpoolApplyStatus.PASSENGER_CONFIRMED, CarpoolApplyStatus.CONFIRMED).contains(status);
     }
 
     private Map<String, Object> buildTripCard(CarpoolTrip trip, Long currentUserId) {
@@ -327,7 +510,7 @@ public class CarpoolServiceImpl implements CarpoolService {
         map.put("applicationCount", summary.get("applicationCount"));
         map.put("currentUserRole", resolveCurrentUserRole(trip, currentUserId, myApplication));
         map.put("hasApplied", myApplication != null);
-        map.put("canApply", canApplyTrip(trip, currentUserId, myApplication));
+        map.put("canApply", false);
         map.put("myApplicationStatus", myApplication == null ? "" : myApplication.getApplicationStatus());
         map.put("myApplicationStatusText", myApplication == null ? "" : applicationStatusText(myApplication.getApplicationStatus()));
         map.put("canPassengerConfirm", myApplication != null
@@ -336,7 +519,64 @@ public class CarpoolServiceImpl implements CarpoolService {
         map.put("canPassengerCancel", myApplication != null
                 && Objects.equals(currentUserId, myApplication.getPassengerUserId())
                 && canCancelApplication(myApplication));
+        map.put("canCancelTrip", Objects.equals(trip.getOwnerUserId(), currentUserId)
+                && trip.getDepartTime() != null
+                && trip.getDepartTime().isAfter(LocalDateTime.now())
+                && !List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED).contains(trip.getStatus()));
+        map.put("canFinishTrip", Objects.equals(trip.getOwnerUserId(), currentUserId)
+                && trip.getDepartTime() != null
+                && !trip.getDepartTime().isAfter(LocalDateTime.now())
+                && !List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED).contains(trip.getStatus()));
         return map;
+    }
+
+    private Map<String, Object> buildRideRequestCard(CarpoolRideRequest request) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", request.getId());
+        map.put("requestNo", request.getRequestNo());
+        map.put("passengerUserId", request.getPassengerUserId());
+        map.put("startName", request.getStartName());
+        map.put("endName", request.getEndName());
+        map.put("departTime", request.getDepartTime());
+        map.put("departTimeText", formatDateTime(request.getDepartTime()));
+        map.put("passengerCount", request.getPassengerCount());
+        map.put("acceptCarpool", request.getAcceptCarpool());
+        map.put("sharedAmount", request.getSharedAmount());
+        map.put("baggageRule", request.getBaggageRule());
+        map.put("requestRemark", request.getRequestRemark());
+        map.put("status", request.getStatus());
+        map.put("statusText", rideRequestStatusText(request.getStatus()));
+        map.put("statusTone", rideRequestStatusTone(request.getStatus()));
+        map.put("routeText", request.getStartName() + " → " + request.getEndName());
+        return map;
+    }
+
+    private boolean routeCompatible(CarpoolTrip trip, CarpoolRideRequest request) {
+        return routePartCompatible(trip.getStartName(), request.getStartName())
+                && routePartCompatible(trip.getEndName(), request.getEndName());
+    }
+
+    private int routeMatchScore(CarpoolTrip trip, CarpoolRideRequest request) {
+        return routePartScore(trip.getStartName(), request.getStartName())
+                + routePartScore(trip.getEndName(), request.getEndName());
+    }
+
+    private int routePartScore(String left, String right) {
+        String a = normalizeRoutePart(left);
+        String b = normalizeRoutePart(right);
+        if (a.equals(b)) return 3;
+        if (a.contains(b) || b.contains(a)) return 2;
+        return 0;
+    }
+
+    private boolean routePartCompatible(String left, String right) {
+        String a = normalizeRoutePart(left);
+        String b = normalizeRoutePart(right);
+        return !a.isBlank() && !b.isBlank() && (a.contains(b) || b.contains(a));
+    }
+
+    private String normalizeRoutePart(String value) {
+        return value == null ? "" : value.replaceAll("[\\s,，。.!！?？-]", "").toLowerCase();
     }
 
     private Map<String, Object> buildTripSummary(CarpoolTrip trip, List<CarpoolApplication> applications) {
@@ -491,7 +731,7 @@ public class CarpoolServiceImpl implements CarpoolService {
         if (trip.getRemainSeatCount() == null || trip.getRemainSeatCount() <= 0) {
             return false;
         }
-        return !List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED, CarpoolTripStatus.CONFIRMED).contains(trip.getStatus());
+        return !List.of(CarpoolTripStatus.CANCELLED, CarpoolTripStatus.FINISHED).contains(trip.getStatus());
     }
 
     private boolean canCancelApplication(CarpoolApplication application) {
@@ -563,6 +803,24 @@ public class CarpoolServiceImpl implements CarpoolService {
             case CarpoolApplyStatus.CONFIRMED, CarpoolApplyStatus.PASSENGER_CONFIRMED -> "success";
             case CarpoolApplyStatus.CANCELLED, CarpoolApplyStatus.REJECTED -> "danger";
             case CarpoolApplyStatus.OWNER_CONFIRMED -> "warning";
+            default -> "processing";
+        };
+    }
+
+    private String rideRequestStatusText(String status) {
+        return switch (status) {
+            case CarpoolRequestStatus.MATCHED -> "车主已接单，待你确认";
+            case CarpoolRequestStatus.CONFIRMED -> "双方已确认同行";
+            case CarpoolRequestStatus.CANCELLED -> "需求已取消";
+            default -> "等待车主接单";
+        };
+    }
+
+    private String rideRequestStatusTone(String status) {
+        return switch (status) {
+            case CarpoolRequestStatus.CONFIRMED -> "success";
+            case CarpoolRequestStatus.CANCELLED -> "danger";
+            case CarpoolRequestStatus.MATCHED -> "warning";
             default -> "processing";
         };
     }

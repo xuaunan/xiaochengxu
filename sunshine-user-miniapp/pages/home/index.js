@@ -444,6 +444,7 @@ Page({
     ])
 
     const homeData = homeResponse.data || {}
+    app.updateTencentMapKey((homeData.systemConfigs || {}).tencentMapKey)
     const carTypes = (homeData.carTypes || []).map((item) => decorateCarType(item))
     const carTypeMap = getCarTypeMap(carTypes)
     const coupons = mergeCoupons(myCouponsResponse.data || [], centerCouponsResponse.data || homeData.couponCenter || [])

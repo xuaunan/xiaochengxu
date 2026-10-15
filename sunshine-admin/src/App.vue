@@ -35,23 +35,36 @@
           </span>
         </RouterLink>
       </nav>
+
+      <button class="logout-btn" type="button" @click="handleLogout">
+        <el-icon><SwitchButton /></el-icon>
+        <span>退出登录</span>
+      </button>
     </aside>
 
     <main class="main">
       <RouterView />
     </main>
   </div>
+
+  <AdminLoginGate v-if="!unlocked" @success="handleLoginSuccess" />
 </template>
 
 <script setup>
-import { ElMessage } from 'element-plus'
+import { SwitchButton } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+import AdminLoginGate from './components/AdminLoginGate.vue'
 import http, { adminLogin, baseURL } from './api/http'
+import { clearAdminSession, hasAdminSession } from './utils/adminAuth'
 
 const importantMessageCount = ref(0)
 let importantMessageTimer
 let healthTimer
+
+// 登录门禁：未登录时后台界面照常渲染，但会被登录弹窗盖住并深度模糊
+const unlocked = ref(hasAdminSession())
 
 const navItems = [
   { path: '/dashboard', label: '数据大盘', desc: '实时运营洞察' },
@@ -91,15 +104,16 @@ const connectionTooltip = computed(() => {
   return offline.length ? `未连接：${offline.join('、')}` : '全部连接正常'
 })
 
-async function handleAdminLogin() {
+// 静默准备后台接口凭证，保证登录弹窗后面的页面能渲染出真实数据
+async function ensureAdminToken() {
+  if (localStorage.getItem('sunshine_admin_token')) return
   try {
     const result = await adminLogin()
     localStorage.setItem('sunshine_admin_token', result.token)
-    ElMessage.success('管理员登录成功')
-    window.location.reload()
   } catch (error) {
-    ElMessage.error(error.message || '管理员登录失败')
+    return
   }
+  window.location.reload()
 }
 
 async function loadImportantMessageCount() {
@@ -110,6 +124,32 @@ async function loadImportantMessageCount() {
   } catch (error) {
     importantMessageCount.value = 0
   }
+}
+
+function startMessagePolling() {
+  loadImportantMessageCount()
+  clearInterval(importantMessageTimer)
+  importantMessageTimer = setInterval(loadImportantMessageCount, 30000)
+}
+
+function handleLoginSuccess() {
+  unlocked.value = true
+  startMessagePolling()
+}
+
+async function handleLogout() {
+  try {
+    await ElMessageBox.confirm('退出后需要重新输入管理员账号和密码才能进入后台。', '退出登录', {
+      type: 'warning',
+      confirmButtonText: '退出登录',
+      cancelButtonText: '取消'
+    })
+  } catch (error) {
+    return
+  }
+  clearAdminSession()
+  ElMessage.success('已退出登录')
+  window.setTimeout(() => window.location.reload(), 400)
 }
 
 async function checkBackendAndDatabase() {
@@ -148,11 +188,9 @@ onMounted(() => {
   if (localStorage.getItem('sunshine_admin_token') === 'mock-admin-token') {
     localStorage.removeItem('sunshine_admin_token')
   }
-  if (!localStorage.getItem('sunshine_admin_token')) {
-    handleAdminLogin()
-  } else {
-    loadImportantMessageCount()
-    importantMessageTimer = setInterval(loadImportantMessageCount, 30000)
+  ensureAdminToken()
+  if (unlocked.value) {
+    startMessagePolling()
   }
 })
 
@@ -161,3 +199,30 @@ onBeforeUnmount(() => {
   clearInterval(healthTimer)
 })
 </script>
+
+<style scoped>
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.75);
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.logout-btn:hover {
+  color: #c2410c;
+  border-color: rgba(253, 186, 116, 0.95);
+  background: rgba(255, 247, 237, 0.95);
+}
+</style>

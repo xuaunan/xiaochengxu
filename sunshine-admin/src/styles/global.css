@@ -48,15 +48,16 @@ a {
 .layout-shell {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 .sidebar {
-  position: sticky;
-  top: 0;
   height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 22px 18px;
   background: rgba(255, 255, 255, 0.94);
   color: var(--text-main);
@@ -239,6 +240,9 @@ a {
 }
 
 .main {
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px 24px 32px;
   min-width: 0;
 }
@@ -586,11 +590,14 @@ a {
 @media (max-width: 1200px) {
   .layout-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .sidebar {
     position: relative;
     height: auto;
+    overflow-y: visible;
   }
 
   .nav-list {
@@ -712,6 +719,8 @@ a {
   }
 
   .main {
+    height: auto;
+    overflow-y: visible;
     padding: 12px;
   }
 

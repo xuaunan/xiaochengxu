@@ -4,13 +4,12 @@ import com.sunshine.travel.common.PageResult;
 import com.sunshine.travel.dto.CouponCreateRequest;
 import com.sunshine.travel.dto.CouponGrantRequest;
 import com.sunshine.travel.entity.Coupon;
-import com.sunshine.travel.entity.UserCoupon;
 import java.util.List;
 import java.util.Map;
 
 public interface CouponService {
 
-    List<UserCoupon> currentUserCoupons();
+    List<Map<String, Object>> currentUserCoupons();
 
     List<Coupon> availableCoupons();
 

@@ -212,6 +212,64 @@ Page({
       clearInterval(this.timer)
       this.timer = null
     }
+    this.stopCarAnimation()
+  },
+
+  // 剩余时间“只减不增”钳制：多司机端模拟总时长不一致或接驾转行程瞬间，
+  // 后端 remainingSeconds 可能突然变大（如冒出 50+ 分钟）。按“基线值 - 已流逝时间”封顶，
+  // 基线只在阶段切换或后端值更小时重置；后端值正常递减时行为与原来一致。
+  clampRemainingSeconds(orderId, phase, rawSeconds) {
+    if (!Number.isFinite(rawSeconds)) return rawSeconds
+    const key = `${orderId || ''}:${phase || ''}`
+    const baseline = this.remainingBaseline
+    if (!baseline || baseline.key !== key || rawSeconds <= baseline.value) {
+      this.remainingBaseline = { key, value: rawSeconds, at: Date.now() }
+      return rawSeconds
+    }
+    const floorValue = baseline.value - (Date.now() - baseline.at) / 1000
+    if (rawSeconds <= floorValue + 1) {
+      this.remainingBaseline = { key, value: rawSeconds, at: Date.now() }
+      return rawSeconds
+    }
+    return Math.max(0, floorValue)
+  },
+
+  stopCarAnimation() {
+    if (this.carAnimTimer) {
+      clearInterval(this.carAnimTimer)
+      this.carAnimTimer = null
+    }
+  },
+
+  // 车辆补间动画：轮询每 3 秒才更新一次坐标，两点之间线性插值让车连续行驶；
+  // 跨阶段切换（接驾→行程）或距离过大时直接吸附，不做跨城“瞬移飞行”。
+  applyCarAnimation(fromPoint, toPoint) {
+    this.carFrom = fromPoint
+    this.carTo = toPoint
+    this.carAnimStart = Date.now()
+    if (!this.carAnimTimer) {
+      this.carAnimTimer = setInterval(() => this.tickCarAnimation(), 80)
+    }
+  },
+
+  tickCarAnimation() {
+    if (!this.carFrom || !this.carTo) return
+    const t = Math.min(1, (Date.now() - this.carAnimStart) / 3000)
+    const latitude = this.carFrom.latitude + (this.carTo.latitude - this.carFrom.latitude) * t
+    const longitude = this.carFrom.longitude + (this.carTo.longitude - this.carFrom.longitude) * t
+    const point = { latitude, longitude }
+    this.latestCarPoint = point
+    const patch = {
+      'markers[2].latitude': latitude,
+      'markers[2].longitude': longitude
+    }
+    if (this.data.mapFollowMode) {
+      patch.mapCenter = point
+    }
+    this.setData(patch)
+    if (t >= 1) {
+      this.stopCarAnimation()
+    }
   },
 
   applyTripView(rawOrder, runtime) {
@@ -234,7 +292,31 @@ Page({
       ? order.start
       : normalizePoint(activeRuntime.driverStartPoint || fallback.driverStart || currentPoint)
     const routeEndPoint = phase === 'trip' ? order.end : order.start
-    const remainMinutes = Math.max(0, Math.round(Number(activeRuntime.remainingSeconds || fallback.remainingSeconds || 0) / 60))
+    const rawRemainingSeconds = Number(activeRuntime.remainingSeconds ?? fallback.remainingSeconds)
+    const clampedRemainingSeconds = this.clampRemainingSeconds(order.id, phase, rawRemainingSeconds)
+    const remainMinutes = Math.max(0, Math.round(clampedRemainingSeconds / 60))
+
+    // 车辆位置补间：与上次展示点衔接，阶段切换或跳变过大（>800 米）时直接吸附
+    const prevCarPoint = this.latestCarPoint || this.data.currentPoint
+    const phaseKey = `${order.id}:${phase}`
+    if (this.phaseKey !== phaseKey) {
+      this.phaseKey = phaseKey
+      this.stopCarAnimation()
+      this.latestCarPoint = currentPoint
+    } else if (
+      prevCarPoint && prevCarPoint.latitude &&
+      (prevCarPoint.latitude !== currentPoint.latitude || prevCarPoint.longitude !== currentPoint.longitude)
+    ) {
+      const jumpKm = Math.abs(prevCarPoint.latitude - currentPoint.latitude) + Math.abs(prevCarPoint.longitude - currentPoint.longitude)
+      if (jumpKm > 0.012) {
+        this.stopCarAnimation()
+        this.latestCarPoint = currentPoint
+      } else {
+        this.applyCarAnimation(prevCarPoint, currentPoint)
+      }
+    } else {
+      this.latestCarPoint = currentPoint
+    }
 
     const mapCenter = this.data.mapCenter || {}
     const shouldUpdateMapCenter = this.data.mapFollowMode || !mapCenter.latitude || !mapCenter.longitude
@@ -277,8 +359,8 @@ Page({
         },
         {
           id: 3,
-          latitude: currentPoint.latitude,
-          longitude: currentPoint.longitude,
+          latitude: (this.latestCarPoint || currentPoint).latitude,
+          longitude: (this.latestCarPoint || currentPoint).longitude,
           iconPath: '/images/map-car-real-top.png',
           width: 46,
           height: 46,

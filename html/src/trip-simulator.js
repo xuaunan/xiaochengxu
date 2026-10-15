@@ -265,9 +265,15 @@ function buildActiveRoutePoints(points, progress) {
 }
 
 export function resolveDemoRouteEndpoints(order = {}, runtime = null) {
-  const phase = ['IN_TRIP', 'FINISHED'].includes(String(order.orderStatus || '')) ? 'trip' : 'approach'
+  const status = String(order.orderStatus || '')
   const pickup = normalizePoint({ latitude: order.startLat, longitude: order.startLng })
   const destination = normalizePoint({ latitude: order.endLat, longitude: order.endLng })
+  // 对齐小程序：司机真实接单前（CREATED/DISPATCHING）地图只展示起点→终点路线，
+  // 不进入接驾（approach）阶段，避免画出一辆“假司机车”。
+  if (['CREATED', 'DISPATCHING'].includes(status)) {
+    return { phase: 'booking', start: pickup, end: destination }
+  }
+  const phase = ['IN_TRIP', 'FINISHED'].includes(status) ? 'trip' : 'approach'
   const approachRoute = normalizeRoutePoints(runtime?.approachRoute?.points || runtime?.approachRoutePoints)
   const driverStart = normalizePoint(
     runtime?.driverStartPoint ||

@@ -931,3 +931,115 @@
   color: #ffffff;
   box-shadow: 0 14rpx 26rpx rgba(255, 122, 0, 0.16);
 }
+
+.carpool-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 28rpx;
+}
+
+.carpool-loading__spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  border: 6rpx solid #ffe1c2;
+  border-top-color: #ff7a00;
+  animation: carpool-loading-spin 0.8s linear infinite;
+}
+
+.carpool-loading__text {
+  font-size: 26rpx;
+  color: #7a8396;
+}
+
+@keyframes carpool-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ongoing-card {
+  margin-top: 20rpx;
+  padding: 28rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(160deg, #fff7ef 0%, #ffffff 60%);
+  border: 2rpx solid #ffe3c4;
+  box-sizing: border-box;
+}
+
+.ongoing-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.ongoing-status {
+  flex-shrink: 0;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #ff8d1a 0%, #ff6b00 100%);
+  color: #ffffff;
+  font-size: 21rpx;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ongoing-price {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ff6b00;
+  white-space: nowrap;
+}
+
+.ongoing-route {
+  margin-top: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.ongoing-route__row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.ongoing-route__name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #262a33;
+  line-height: 1.4;
+}
+
+.ongoing-route__divider {
+  margin-left: 11rpx;
+  width: 2rpx;
+  height: 26rpx;
+  background-image: linear-gradient(to bottom, #ffb26b 0%, #ffb26b 50%, transparent 50%, transparent 100%);
+  background-size: 2rpx 10rpx;
+  background-repeat: repeat-y;
+}
+
+.ongoing-order-no {
+  margin-top: 20rpx;
+  font-size: 20rpx;
+  color: #9aa1b2;
+}
+
+.ongoing-detail-button {
+  margin-top: 26rpx;
+  padding: 18rpx 24rpx;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+}
+
+.ongoing-tip {
+  margin-top: 24rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #aab0bd;
+}

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { formatRideDistance, formatRideDuration, getRideProgressPercent, normalizeRideRuntime } from './ride-flow.js'
+import { formatRideDistance, formatRideDuration, getRideProgressPercent, mergeRideRuntimeForDisplay, normalizeRideRuntime } from './ride-flow.js'
 
 test('normalizeRideRuntime maps backend runtime fields to the web map model', () => {
   const runtime = normalizeRideRuntime({
@@ -31,4 +31,35 @@ test('ride metric formatters keep short values readable', () => {
   assert.equal(formatRideDuration(20), '< 1 分钟')
   assert.equal(formatRideDistance(0.42), '420 米')
   assert.equal(formatRideDistance(12.34), '12.3 公里')
+})
+
+test('trace snapshots keep their vehicle position and progress', () => {
+  const fallback = normalizeRideRuntime({
+    currentPoint: { latitude: 39.9, longitude: 116.3 },
+    progress: 0.4,
+    route: [{ latitude: 39.9, longitude: 116.3 }, { latitude: 39.91, longitude: 116.31 }]
+  })
+  const trace = normalizeRideRuntime({
+    currentPoint: { latitude: 39.92, longitude: 116.32 },
+    percent: 72,
+    heading: 128,
+    routeSource: 'travel_trace'
+  })
+  const merged = mergeRideRuntimeForDisplay(trace, fallback)
+  assert.deepEqual(merged.driverLocation, { latitude: 39.92, longitude: 116.32 })
+  assert.equal(merged.percent, 72)
+  assert.equal(merged.heading, 128)
+  assert.equal(merged.route.length, fallback.route.length)
+})
+
+test('runtime merge falls back cleanly when a trace omits progress', () => {
+  const fallback = normalizeRideRuntime({
+    currentPoint: { latitude: 39.9, longitude: 116.3 },
+    progress: 0.35,
+    route: [{ latitude: 39.9, longitude: 116.3 }, { latitude: 39.91, longitude: 116.31 }]
+  })
+  const merged = mergeRideRuntimeForDisplay({ currentPoint: { latitude: 39.91, longitude: 116.31 } }, fallback)
+  assert.equal(merged.percent, 35)
+  assert.equal(Number.isNaN(merged.percent), false)
+  assert.equal(merged.route.length, 2)
 })

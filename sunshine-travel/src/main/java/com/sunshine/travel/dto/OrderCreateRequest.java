@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
@@ -41,4 +42,7 @@ public class OrderCreateRequest {
     private String webExclusiveDiscountScope;
     private String webCheckinAccountKey;
     private String remark;
+    private LocalDateTime carpoolDepartureAt;
+    private LocalDateTime carpoolDepartureEndAt;
+    private Integer carpoolPassengerCount;
 }

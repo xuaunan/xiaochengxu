@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,10 +42,14 @@ public class SupportServiceImpl implements SupportService {
     private static final String STATUS_CLOSED = "CLOSED";
     private static final Duration MANUAL_WARN_TIMEOUT = Duration.ofSeconds(150);
     private static final Duration MANUAL_IDLE_TIMEOUT = Duration.ofMinutes(3);
+    private static final Duration MANUAL_PENDING_REMIND_TIMEOUT = Duration.ofSeconds(60);
     private static final String MANUAL_WAIT_WARNING = "人工客服等待时间太久啦，即将为您结束本次人工接待，后续您可以继续由AI客服为您服务。";
     private static final String MANUAL_OPEN_NOTICE = "已接入人工客服";
     private static final String MANUAL_CLOSE_NOTICE = "已关闭人工客服";
-    private static final String MANUAL_TRANSFER_REPLY = "正在为您转接人工客服，请稍后";
+    private static final String MANUAL_PENDING_REMIND = "当前时段咨询量较大，请稍等。";
+    private static final String MANUAL_TRANSFER_REPLY = AiSupportService.MANUAL_TRANSFER_REPLY;
+    private static final String MANUAL_TRANSFER_ASK = AiSupportService.MANUAL_TRANSFER_ASK;
+    private static final String REPEATED_REPLY_NOTICE = "抱歉，刚才的回复可能没有完全解决您的问题。您可以把问题说得更具体一点（例如订单号、金额、时间或所在页面），我再帮您进一步核实。";
     private static final String EMERGENCY_SUPPORT_PREFIX = "【紧急安全求助】";
     private static final String DEFAULT_AI_WELCOME_MESSAGE = "您好，阳光出行客服已接入，请描述您遇到的问题。";
     private static final String PREVIOUS_AI_WELCOME_MESSAGE = "您好，阳光出行AI客服已接入，请描述您遇到的问题。";
@@ -81,6 +86,7 @@ public class SupportServiceImpl implements SupportService {
         SupportConversation conversation = findOrCreateCurrentConversation(clientChannel);
         activateEmergencyConversationIfNeeded(conversation);
         closeExpiredManualConversation(conversation);
+        remindPendingManualTransfer(conversation);
         return mapConversation(conversation);
     }
 
@@ -90,6 +96,7 @@ public class SupportServiceImpl implements SupportService {
         SupportConversation conversation = findOrCreateCurrentConversation(clientChannel);
         activateEmergencyConversationIfNeeded(conversation);
         closeExpiredManualConversation(conversation);
+        remindPendingManualTransfer(conversation);
         conversation.setUnreadForUser(0);
         supportConversationMapper.updateById(conversation);
         return listMessageRows(conversation.getId());
@@ -106,9 +113,11 @@ public class SupportServiceImpl implements SupportService {
     public Map<String, Object> sendCurrentMessage(String content, String clientChannel) {
         SupportConversation conversation = findOrCreateCurrentConversation(clientChannel);
         closeExpiredManualConversation(conversation);
+        remindPendingManualTransfer(conversation);
         SupportMessage message = insertMessage(conversation.getId(), UserContext.userId(), UserContext.role(), content);
         boolean wasManual = STATUS_MANUAL.equals(conversation.getStatus());
-        boolean manualIntent = hasManualSupportIntent(message.getContent());
+        boolean transferConfirm = hasPendingTransferAsk(conversation.getId()) && isTransferConfirmation(message.getContent());
+        boolean manualIntent = hasManualSupportIntent(message.getContent()) || transferConfirm;
         boolean emergencyIntent = isEmergencySupportRequest(message.getContent());
         boolean directManual = !wasManual && emergencyIntent;
         conversation.setStatus(wasManual || directManual ? STATUS_MANUAL : STATUS_OPEN);
@@ -126,14 +135,16 @@ public class SupportServiceImpl implements SupportService {
             conversation.setLastMessageAt(notice.getCreatedAt());
             conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
         } else if (manualIntent) {
+            // 用户主动要求转人工（原始逻辑）：只回复排队提示，会话保持待接入（后台显示"开启对话"）；
+            // 管理员点击开启对话后才真正接入（出现"已接入人工客服"）；等待期间AI不再回复（见 hasPendingManualTransfer）。
             reply = insertMessage(conversation.getId(), null, ROLE_AI, MANUAL_TRANSFER_REPLY);
             conversation.setLastMessage(reply.getContent());
             conversation.setLastMessageAt(reply.getCreatedAt());
             conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
         }
         supportConversationMapper.updateById(conversation);
-        if (!wasManual && !manualIntent && !emergencyIntent) {
-            scheduleAiReply(conversation.getId(), content);
+        if (!wasManual && !manualIntent && !emergencyIntent && !hasPendingManualTransfer(conversation.getId())) {
+            scheduleAiReply(conversation.getId(), message.getId(), content);
         }
         return buildSendResult(conversation, message, notice, reply);
     }
@@ -155,9 +166,7 @@ public class SupportServiceImpl implements SupportService {
                 })
                 .filter(item -> matchesKeyword(item, keyword))
                 .toList());
-        rows.sort((left, right) -> Boolean.compare(
-                Boolean.TRUE.equals(right.get("emergencySupport")),
-                Boolean.TRUE.equals(left.get("emergencySupport"))));
+        rows.sort(this::compareSupportQueueRows);
         long total = rows.size();
         int fromIndex = (int) Math.max((current - 1) * size, 0);
         if (fromIndex >= rows.size()) {
@@ -199,12 +208,18 @@ public class SupportServiceImpl implements SupportService {
     public Map<String, Object> adminAiSuggest(Long conversationId) {
         SupportConversation conversation = requireConversation(conversationId);
         List<Map<String, Object>> rows = listMessageRows(conversationId);
-        Map<String, Object> context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole(), conversation.getChannel());
         String prompt = rows.stream()
                 .filter(item -> !Boolean.TRUE.equals(item.get("fromAdmin")) && !Boolean.TRUE.equals(item.get("fromAi")))
                 .reduce((first, second) -> second)
                 .map(item -> String.valueOf(item.getOrDefault("content", "")))
                 .orElse(conversation.getLastMessage());
+        Map<String, Object> context;
+        String[] focus = focusInputs(rows);
+        if (StringUtils.hasText(focus[0])) {
+            context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole(), conversation.getChannel(), focus[0], focus[1]);
+        } else {
+            context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole(), conversation.getChannel(), prompt);
+        }
         String reply = aiSupportService.generateSupportReply(prompt, conversation.getUserRole(), conversation.getChannel(), rows, String.valueOf(context.getOrDefault("contextText", "")))
                 .orElse("");
         Map<String, Object> map = new LinkedHashMap<>();
@@ -288,7 +303,9 @@ public class SupportServiceImpl implements SupportService {
         next.setCreatedAt(now);
         next.setUpdatedAt(now);
         supportConversationMapper.insert(next);
-        SupportMessage welcome = insertMessage(next.getId(), null, ROLE_AI, DEFAULT_AI_WELCOME_MESSAGE);
+        String welcomeText = aiSupportContextService.buildWelcomeText(userId, role, channel);
+        SupportMessage welcome = insertMessage(next.getId(), null, ROLE_AI,
+                StringUtils.hasText(welcomeText) ? welcomeText : DEFAULT_AI_WELCOME_MESSAGE);
         next.setLastMessage(welcome.getContent());
         next.setLastMessageAt(welcome.getCreatedAt());
         supportConversationMapper.updateById(next);
@@ -312,35 +329,61 @@ public class SupportServiceImpl implements SupportService {
         return content == null ? "" : content.trim();
     }
 
-    private void insertAiReplyIfAvailable(SupportConversation conversation, String userContent) {
+    private void insertAiReplyIfAvailable(SupportConversation conversation, Long triggerMessageId, String userContent) {
         SupportConversation latestConversation = supportConversationMapper.selectById(conversation.getId());
         if (latestConversation == null || STATUS_MANUAL.equals(latestConversation.getStatus())) {
             return;
         }
+        if (hasPendingManualTransfer(conversation.getId())) {
+            return;
+        }
+        if (hasNewerUserMessage(conversation.getId(), triggerMessageId, conversation.getUserRole())) {
+            return;
+        }
         List<Map<String, Object>> recentMessages = listMessageRows(conversation.getId());
-        Map<String, Object> context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole(), conversation.getChannel());
-        aiSupportService.generateSupportReply(userContent, conversation.getUserRole(), conversation.getChannel(), recentMessages, String.valueOf(context.getOrDefault("contextText", "")))
-                .filter(StringUtils::hasText)
-                .map(reply -> insertMessage(conversation.getId(), null, ROLE_AI, reply))
-                .ifPresent(replyMessage -> {
-                    SupportConversation current = supportConversationMapper.selectById(conversation.getId());
-                    if (current == null || STATUS_MANUAL.equals(current.getStatus())) {
-                        return;
-                    }
-                    current.setStatus(hasManualSupportIntent(replyMessage.getContent()) ? STATUS_MANUAL : STATUS_OPEN);
-                    current.setLastMessage(replyMessage.getContent());
-                    current.setLastMessageAt(replyMessage.getCreatedAt());
-                    current.setUnreadForUser(safeInt(current.getUnreadForUser()) + 1);
-                    supportConversationMapper.updateById(current);
-                });
+        String previousAiContent = latestAiMessageContent(recentMessages);
+        String[] focus = focusInputs(recentMessages);
+        if (!StringUtils.hasText(focus[0])) {
+            focus[0] = userContent;
+        }
+        Map<String, Object> context = aiSupportContextService.buildContext(conversation.getUserId(), conversation.getUserRole(), conversation.getChannel(), focus[0], focus[1]);
+        Optional<String> replyOptional = aiSupportService.generateSupportReply(focus[0], conversation.getUserRole(), conversation.getChannel(), recentMessages, String.valueOf(context.getOrDefault("contextText", "")));
+        if (replyOptional.isEmpty()) {
+            return;
+        }
+        String reply = replyOptional.get().trim();
+        // LLM 调用期间可能已人工接管或出现更新的用户消息，插入前重新核对，避免迟到、错序回复
+        latestConversation = supportConversationMapper.selectById(conversation.getId());
+        if (latestConversation == null || STATUS_MANUAL.equals(latestConversation.getStatus())
+                || hasNewerUserMessage(conversation.getId(), triggerMessageId, conversation.getUserRole())) {
+            return;
+        }
+        String contentToInsert = reply;
+        boolean protectedReply = MANUAL_TRANSFER_REPLY.equals(reply) || MANUAL_TRANSFER_ASK.equals(reply);
+        if (!protectedReply && StringUtils.hasText(previousAiContent) && previousAiContent.equals(reply)) {
+            // 复读/重复兜底：统一引导用户补充信息并保持AI接待；是否转人工由用户确认决定，不再自动转。
+            contentToInsert = REPEATED_REPLY_NOTICE;
+        }
+        SupportMessage replyMessage = insertMessage(conversation.getId(), null, ROLE_AI, contentToInsert);
+        SupportConversation current = supportConversationMapper.selectById(conversation.getId());
+        if (current == null || STATUS_MANUAL.equals(current.getStatus())) {
+            return;
+        }
+        // AI 回复一律不改变会话状态：转人工只能由用户显式请求或确认后进入排队，
+        // 真正接入以管理员点击"开启对话"为准。
+        current.setStatus(STATUS_OPEN);
+        current.setLastMessage(replyMessage.getContent());
+        current.setLastMessageAt(replyMessage.getCreatedAt());
+        current.setUnreadForUser(safeInt(current.getUnreadForUser()) + 1);
+        supportConversationMapper.updateById(current);
     }
 
-    private void scheduleAiReply(Long conversationId, String userContent) {
+    private void scheduleAiReply(Long conversationId, Long triggerMessageId, String userContent) {
         Runnable task = () -> CompletableFuture.runAsync(() -> {
             try {
                 SupportConversation latest = supportConversationMapper.selectById(conversationId);
                 if (latest != null) {
-                    insertAiReplyIfAvailable(latest, userContent);
+                    insertAiReplyIfAvailable(latest, triggerMessageId, userContent);
                 }
             } catch (Exception ex) {
                 log.warn("AI support reply failed, conversationId={}", conversationId, ex);
@@ -358,6 +401,32 @@ public class SupportServiceImpl implements SupportService {
         task.run();
     }
 
+    /**
+     * 并发防护：用户连续发送消息时，每个消息各自触发一次 AI 生成。若本条消息之后
+     * 已有更新的用户消息，说明本次生成已过期，直接丢弃，由新消息自己的任务负责回复，
+     * 避免重复回复和"回复顺序与提问顺序错位"。
+     */
+    private boolean hasNewerUserMessage(Long conversationId, Long afterMessageId, String userRole) {
+        if (afterMessageId == null) {
+            return false;
+        }
+        Long count = supportMessageMapper.selectCount(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .gt(SupportMessage::getId, afterMessageId)
+                .eq(SupportMessage::getSenderRole, userRole));
+        return count != null && count > 0;
+    }
+
+    private String latestAiMessageContent(List<Map<String, Object>> rows) {
+        String content = "";
+        for (Map<String, Object> item : rows) {
+            if (Boolean.TRUE.equals(item.get("fromAi"))) {
+                content = String.valueOf(item.getOrDefault("content", ""));
+            }
+        }
+        return content.trim();
+    }
+
     private SupportConversation requireConversation(Long conversationId) {
         SupportConversation conversation = supportConversationMapper.selectById(conversationId);
         if (conversation == null) {
@@ -371,6 +440,29 @@ public class SupportServiceImpl implements SupportService {
                 .eq(SupportMessage::getConversationId, conversationId)
                 .orderByAsc(SupportMessage::getId));
         return collapseDuplicateSystemNotices(page.getRecords()).stream().map(this::mapMessage).toList();
+    }
+
+    /**
+     * 提取用户最近几条发言供 AI 上下文做"当前问题焦点"判断：第一个元素是最新一条，
+     * 第二个是它之前最多三条的拼接，保证"那第二单呢""怎么还没到"这类追问不丢失上一轮话题。
+     */
+    private String[] focusInputs(List<Map<String, Object>> rows) {
+        List<String> contents = new ArrayList<>();
+        for (Map<String, Object> item : rows) {
+            if (Boolean.TRUE.equals(item.get("fromAdmin")) || Boolean.TRUE.equals(item.get("fromAi"))) {
+                continue;
+            }
+            String content = String.valueOf(item.getOrDefault("content", "")).trim();
+            if (StringUtils.hasText(content)) {
+                contents.add(content);
+            }
+        }
+        if (contents.isEmpty()) {
+            return new String[]{"", ""};
+        }
+        int latestIndex = contents.size() - 1;
+        int historyStart = Math.max(0, latestIndex - 3);
+        return new String[]{contents.get(latestIndex), String.join("\n", contents.subList(historyStart, latestIndex))};
     }
 
     private List<SupportMessage> collapseDuplicateSystemNotices(List<SupportMessage> messages) {
@@ -423,6 +515,7 @@ public class SupportServiceImpl implements SupportService {
         map.put("memberLevel", member ? user.getMemberLevel() : "");
         map.put("status", conversation.getStatus());
         map.put("manualMode", STATUS_MANUAL.equals(conversation.getStatus()));
+        map.put("transferPending", hasPendingManualTransfer(conversation.getId()));
         map.put("needsManualReception", needsManualReception(conversation, pendingSupportMessages));
         map.put("emergencySupport", hasEmergencySupport(conversation));
         map.put("lastMessage", normalizeWelcomeContent(conversation.getLastMessage()));
@@ -468,7 +561,8 @@ public class SupportServiceImpl implements SupportService {
             return false;
         }
         String content = message.getContent();
-        return MANUAL_OPEN_NOTICE.equals(content) || MANUAL_CLOSE_NOTICE.equals(content) || MANUAL_WAIT_WARNING.equals(content);
+        return MANUAL_OPEN_NOTICE.equals(content) || MANUAL_CLOSE_NOTICE.equals(content) || MANUAL_WAIT_WARNING.equals(content)
+                || MANUAL_PENDING_REMIND.equals(content);
     }
 
     private boolean matchesKeyword(Map<String, Object> item, String keyword) {
@@ -559,6 +653,150 @@ public class SupportServiceImpl implements SupportService {
         return true;
     }
 
+    /**
+     * AI 已发出转接征询且用户尚未答复：最新一条 AI 消息是征询文案。
+     * 用户确认后由 sendCurrentMessage 进入排队；用户继续描述问题则征询自然失效。
+     */
+    private boolean hasPendingTransferAsk(Long conversationId) {
+        if (conversationId == null) {
+            return false;
+        }
+        SupportMessage lastAi = supportMessageMapper.selectOne(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .eq(SupportMessage::getSenderRole, ROLE_AI)
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 1"));
+        return lastAi != null && MANUAL_TRANSFER_ASK.equals(lastAi.getContent());
+    }
+
+    private boolean isTransferConfirmation(String content) {
+        String normalized = content == null ? "" : content.replaceAll("\s+", "").trim();
+        if (!StringUtils.hasText(normalized)) {
+            return false;
+        }
+        if (List.of("确认", "需要", "要", "好", "好的", "是", "是的", "确定", "同意", "可以", "要人工", "转人工", "人工", "人工客服", "联系人工", "转接人工").contains(normalized)) {
+            return true;
+        }
+        return normalized.contains("确认") || normalized.contains("转人工") || normalized.contains("联系人工");
+    }
+
+    /**
+     * 用户已请求转人工且人工尚未接入：最新转接提示之后没有任何管理员消息（开启对话/回复/关闭）。
+     * 等待期间 AI 保持沉默；管理员点击"开启对话"（出现"已接入人工客服"）、回复或关闭人工后恢复。
+     */
+    private boolean hasPendingManualTransfer(Long conversationId) {
+        SupportMessage transferReply = latestManualTransferReply(conversationId);
+        if (transferReply == null || transferReply.getId() == null) {
+            return false;
+        }
+        Long adminAfter = supportMessageMapper.selectCount(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .eq(SupportMessage::getSenderRole, RoleCode.ADMIN)
+                .ne(SupportMessage::getContent, MANUAL_PENDING_REMIND)
+                .gt(SupportMessage::getId, transferReply.getId()));
+        return adminAfter == null || adminAfter == 0;
+    }
+
+    /**
+     * 用户主动转人工后的排队提醒：转接提示（AI 消息）之后若还没有任何真实人工消息，
+     * 超过 60 秒提示"当前时段咨询量较大，请稍等"，只提示一次。
+     * 人工真正接入（产生 ADMIN 消息）后不再提醒。
+     */
+    private void remindPendingManualTransfer(SupportConversation conversation) {
+        SupportMessage transferReply = latestManualTransferReply(conversation.getId());
+        if (transferReply == null || transferReply.getCreatedAt() == null) {
+            return;
+        }
+        LocalDateTime transferAt = transferReply.getCreatedAt();
+        SupportMessage lastAdminMessage = latestManualAdminAnchorMessage(conversation.getId());
+        if (lastAdminMessage != null && lastAdminMessage.getCreatedAt() != null
+                && !lastAdminMessage.getCreatedAt().isBefore(transferAt)) {
+            return;
+        }
+        if (hasManualPendingRemindAfter(conversation.getId(), transferReply.getId())) {
+            return;
+        }
+        if (transferAt.isAfter(LocalDateTime.now().minus(MANUAL_PENDING_REMIND_TIMEOUT))) {
+            return;
+        }
+        SupportMessage remind = insertMessage(conversation.getId(), null, RoleCode.ADMIN, MANUAL_PENDING_REMIND);
+        conversation.setLastMessage(remind.getContent());
+        conversation.setLastMessageAt(remind.getCreatedAt());
+        conversation.setUnreadForUser(safeInt(conversation.getUnreadForUser()) + 1);
+        supportConversationMapper.updateById(conversation);
+    }
+
+    private SupportMessage latestManualTransferReply(Long conversationId) {
+        if (conversationId == null) {
+            return null;
+        }
+        return supportMessageMapper.selectOne(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .eq(SupportMessage::getSenderRole, ROLE_AI)
+                .eq(SupportMessage::getContent, MANUAL_TRANSFER_REPLY)
+                .orderByDesc(SupportMessage::getId)
+                .last("limit 1"));
+    }
+
+    private boolean hasManualPendingRemindAfter(Long conversationId, Long afterMessageId) {
+        if (conversationId == null || afterMessageId == null) {
+            return false;
+        }
+        Long count = supportMessageMapper.selectCount(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getConversationId, conversationId)
+                .eq(SupportMessage::getContent, MANUAL_PENDING_REMIND)
+                .gt(SupportMessage::getId, afterMessageId));
+        return count != null && count > 0;
+    }
+
+    /**
+     * 客服队列排序规则（产品定义）：
+     * 紧急置顶（不区分会员，按时间）> 等待人工接应（会员>非会员）> 人工接待中（会员>非会员）> AI接待（会员>非会员），
+     * 同级同等身份按最近消息时间倒序。
+     */
+    private int compareSupportQueueRows(Map<String, Object> left, Map<String, Object> right) {
+        int leftTier = supportQueueTier(left);
+        int rightTier = supportQueueTier(right);
+        int tierDiff = Integer.compare(leftTier, rightTier);
+        if (tierDiff != 0) {
+            return tierDiff;
+        }
+        if (leftTier != 0) {
+            int memberDiff = Boolean.compare(Boolean.TRUE.equals(right.get("member")), Boolean.TRUE.equals(left.get("member")));
+            if (memberDiff != 0) {
+                return memberDiff;
+            }
+        }
+        return compareSupportQueueTime(left, right);
+    }
+
+    private int supportQueueTier(Map<String, Object> row) {
+        if (Boolean.TRUE.equals(row.get("emergencySupport"))) {
+            return 0;
+        }
+        if (Boolean.TRUE.equals(row.get("transferPending")) || Boolean.TRUE.equals(row.get("needsManualReception"))) {
+            return 1;
+        }
+        if (Boolean.TRUE.equals(row.get("manualMode"))) {
+            return 2;
+        }
+        return 3;
+    }
+
+    private int compareSupportQueueTime(Map<String, Object> left, Map<String, Object> right) {
+        Object leftAt = left.get("lastMessageAt");
+        Object rightAt = right.get("lastMessageAt");
+        Long leftId = left.get("id") instanceof Long ? (Long) left.get("id") : 0L;
+        Long rightId = right.get("id") instanceof Long ? (Long) right.get("id") : 0L;
+        if (leftAt instanceof LocalDateTime && rightAt instanceof LocalDateTime) {
+            int diff = ((LocalDateTime) rightAt).compareTo((LocalDateTime) leftAt);
+            if (diff != 0) {
+                return diff;
+            }
+        }
+        return Long.compare(rightId, leftId);
+    }
+
     private boolean hasManualWaitWarningAfter(Long conversationId, LocalDateTime since) {
         if (conversationId == null || since == null) {
             return false;
@@ -623,6 +861,9 @@ public class SupportServiceImpl implements SupportService {
             return false;
         }
         String normalized = content.replaceAll("\\s+", "").trim().toLowerCase(Locale.ROOT);
+        if ("人工".equals(normalized) || "人工客服".equals(normalized) || "真人".equals(normalized)) {
+            return true;
+        }
         return normalized.contains("联系人工")
                 || normalized.contains("人工客服")
                 || normalized.contains("转人工")

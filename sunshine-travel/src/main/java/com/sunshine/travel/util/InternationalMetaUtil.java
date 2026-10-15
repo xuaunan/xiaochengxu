@@ -51,7 +51,7 @@ public final class InternationalMetaUtil {
     }
 
     public static String cleanText(String remark) {
-        return strip(remark).replaceAll("\\s*\\|\\s*(SMART dispatch|Manual dispatch)\\s*$", "").trim();
+        return strip(remark).replaceAll("\\s*\\|\\s*(SMART dispatch|Manual dispatch|智能派单|手动派单)\\s*$", "").trim();
     }
 
     private static String readBody(String remark) {

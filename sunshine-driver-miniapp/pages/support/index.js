@@ -189,6 +189,7 @@ function removePendingDisplayMessages(messages = []) {
 
 function supportStatusText(conversation = {}) {
   if (conversation.status === 'MANUAL' || conversation.manualMode) return '人工接待中'
+  if (conversation.transferPending) return '转人工排队中'
   if (conversation.status === 'CLOSED') return '已关闭'
   return 'AI接待中'
 }
@@ -322,7 +323,7 @@ Page({
       const userAvatarSrc = this.getUserAvatarSrc()
       const conversation = conversationResponse.data || {}
       const serverMessages = normalizeMessageList(messageResponse.data).map((item, index) => decorateMessage(item, index, { userAvatarSrc }))
-      const pendingState = isManualConversation(conversation)
+      const pendingState = (isManualConversation(conversation) || conversation.transferPending)
         ? { messages: serverMessages, pending: false }
         : appendPendingReplyIfNeeded(serverMessages, this.pendingReplyContent, userAvatarSrc)
       if (this.pendingReplyContent && !pendingState.pending) {
@@ -369,7 +370,7 @@ Page({
     const userAvatarSrc = this.getUserAvatarSrc()
     const conversation = snapshot.conversation || this.data.conversation || {}
     const serverMessages = normalizeMessageList(snapshot.messages).map((item, index) => decorateMessage(item, index, { userAvatarSrc }))
-    const pendingState = isManualConversation(conversation)
+    const pendingState = (isManualConversation(conversation) || conversation.transferPending)
       ? { messages: serverMessages, pending: false }
       : appendPendingReplyIfNeeded(serverMessages, this.pendingReplyContent, userAvatarSrc)
     if (this.pendingReplyContent && !pendingState.pending) {
@@ -433,7 +434,8 @@ Page({
     const previousMessages = removePendingDisplayMessages(this.data.messages)
     const userAvatarSrc = this.getUserAvatarSrc()
     const [userMessage, typingMessage] = createPendingMessages(content, userAvatarSrc, pendingReplyText(content))
-    const waitForAi = !manualActive
+    const transferPending = !manualActive && Boolean(this.data.conversation.transferPending)
+    const waitForAi = !manualActive && !transferPending
     const nextMessages = waitForAi ? [userMessage, typingMessage] : [userMessage]
     const nextLastMessage = nextMessages[nextMessages.length - 1]
     this.pendingReplyContent = waitForAi ? content : ''

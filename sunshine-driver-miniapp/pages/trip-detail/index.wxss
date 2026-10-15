@@ -65,6 +65,11 @@
     #ffffff;
 }
 
+.trip-hero--carpool {
+  min-height: 0;
+  padding-bottom: 24rpx;
+}
+
 .trip-hero__head {
   position: relative;
   z-index: 2;
@@ -967,6 +972,43 @@
   background: #edf7ff;
 }
 
+.status-stage--accepted {
+  min-height: 154rpx;
+  background: linear-gradient(135deg, #f5f8ff 0%, #eef3ff 100%);
+}
+
+.accepted-board {
+  display: grid;
+  grid-template-columns: 92rpx minmax(0, 1fr) 124rpx;
+  align-items: center;
+  gap: 12rpx;
+  min-height: 62rpx;
+}
+
+.accepted-board__person,
+.accepted-board__status {
+  min-height: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14rpx;
+  color: #344054;
+  background: #ffffff;
+  font-size: 20rpx;
+  font-weight: 550;
+}
+
+.accepted-board__status {
+  color: #4969b2;
+  background: #eaf0ff;
+}
+
+.accepted-board__line {
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: repeating-linear-gradient(90deg, #aab8dc 0 16rpx, transparent 16rpx 28rpx);
+}
+
 .status-stage--trip {
   background: #ebf8f0;
 }
@@ -1582,4 +1624,377 @@
     opacity: 1;
     transform: scale(1.14);
   }
+}
+
+.carpool-penalty-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  margin-top: 18rpx;
+  padding: 16rpx 18rpx;
+  border: 1rpx solid rgba(182, 78, 61, 0.22);
+  border-radius: 14rpx;
+  color: #8e3325;
+  background: #fff4f1;
+  font-size: 21rpx;
+  line-height: 1.45;
+}
+
+.carpool-penalty-notice button {
+  flex: none;
+  width: 150rpx;
+  min-height: 58rpx;
+  margin: 0;
+  padding: 0 12rpx;
+  border-radius: 12rpx;
+  font-size: 21rpx;
+}
+
+.carpool-drive-note,
+.carpool-approach-note {
+  margin-top: 18rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 14rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #3c6b52;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+/* ============ 顺风车视觉重构（信息优先 · 清爽绿调） ============ */
+
+/* --- Hero：白底淡绿，路线改为起终点站点结构 --- */
+.trip-hero--carpool {
+  padding: 24rpx;
+  border: 1rpx solid rgba(15, 157, 99, 0.14);
+  background: linear-gradient(135deg, #ffffff 0%, #f3faf6 100%);
+  box-shadow: 0 12rpx 28rpx rgba(15, 157, 99, 0.06);
+}
+
+.carpool-kicker {
+  display: inline-block;
+  margin-bottom: 16rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  color: #d96a00;
+  background: rgba(255, 138, 26, 0.12);
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.carpool-route__stop {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.carpool-route__dot {
+  width: 16rpx;
+  height: 16rpx;
+  flex: none;
+  border-radius: 50%;
+}
+
+.carpool-route__dot--start {
+  background: #0f9d63;
+  box-shadow: 0 0 0 6rpx rgba(15, 157, 99, 0.14);
+}
+
+.carpool-route__dot--end {
+  background: #ff6f00;
+  box-shadow: 0 0 0 6rpx rgba(255, 111, 0, 0.13);
+}
+
+.carpool-route__gap {
+  padding: 4rpx 0 4rpx 7rpx;
+}
+
+.carpool-route__line {
+  width: 2rpx;
+  height: 24rpx;
+  background: repeating-linear-gradient(180deg, #aed6c4 0 6rpx, transparent 6rpx 12rpx);
+}
+
+.carpool-route__name {
+  min-width: 0;
+  color: #152033;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.trip-hero--carpool .trip-order-no {
+  margin-top: 14rpx;
+  color: #98a1b3;
+  font-size: 20rpx;
+}
+
+.trip-hero--carpool .trip-detail-tags {
+  margin-top: 14rpx;
+}
+
+.trip-hero--carpool .trip-fare {
+  color: #e8720c;
+  background: #ffefe0;
+  font-weight: 600;
+}
+
+/* --- 预约信息卡：时段横条 + 三列信息 --- */
+.carpool-panel {
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  background: #ffffff;
+}
+
+.carpool-panel .panel-title-icon {
+  color: #0f9d63;
+  background: #e5f5ec;
+}
+
+.carpool-panel__time {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(15, 157, 99, 0.1);
+  background: linear-gradient(135deg, #ecf8f1 0%, #e2f3ea 100%);
+}
+
+.carpool-panel__time-label {
+  color: #4f7a64;
+  font-size: 20rpx;
+}
+
+.carpool-panel__time-value {
+  margin-top: 6rpx;
+  color: #0b5e3e;
+  font-size: 28rpx;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.carpool-panel__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.carpool-panel__fact {
+  min-width: 0;
+  padding: 14rpx 16rpx;
+  border-radius: 14rpx;
+  background: #f6f8fa;
+}
+
+.carpool-panel__fact-label {
+  color: #8b94a7;
+  font-size: 19rpx;
+}
+
+.carpool-panel__fact-value {
+  margin-top: 6rpx;
+  color: #172033;
+  font-size: 23rpx;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.carpool-panel__note {
+  margin-top: 14rpx;
+  color: #98a1b3;
+  font-size: 21rpx;
+  line-height: 1.5;
+}
+
+/* --- 高速费填报卡：与全局橙调一致的操作卡 --- */
+.carpool-toll {
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(240, 160, 32, 0.26);
+  background: linear-gradient(135deg, #fffaf2 0%, #fff5e4 100%);
+}
+
+.carpool-toll__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.carpool-toll__title {
+  color: #3a2b1c;
+  font-size: 25rpx;
+  font-weight: 650;
+}
+
+.carpool-toll__schedule {
+  flex: none;
+  color: #a58a63;
+  font-size: 20rpx;
+}
+
+.carpool-toll__hint {
+  margin-top: 8rpx;
+  color: #8a7558;
+  font-size: 21rpx;
+  line-height: 1.45;
+}
+
+.carpool-toll__row {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 16rpx;
+}
+
+.carpool-toll__row input {
+  flex: 1;
+  min-width: 0;
+  height: 72rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid rgba(240, 160, 32, 0.34);
+  border-radius: 14rpx;
+  background: #ffffff;
+  color: #3a2b1c;
+  font-size: 25rpx;
+  box-sizing: border-box;
+}
+
+.carpool-toll__placeholder {
+  color: #c3b299;
+  font-size: 24rpx;
+}
+
+.carpool-toll__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx;
+  min-width: 140rpx;
+  height: 72rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 14rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff9a3c 0%, #ff6f00 100%);
+  box-shadow: 0 8rpx 16rpx rgba(255, 111, 0, 0.24);
+  font-size: 23rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.carpool-toll__submit::after {
+  border: none;
+}
+
+.carpool-toll__submit[disabled] {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.carpool-toll-done {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 14rpx;
+  background: #eaf7f0;
+  color: #0b7a4b;
+  font-size: 23rpx;
+  font-weight: 550;
+}
+
+.carpool-toll-done__check {
+  width: 32rpx;
+  height: 32rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #0f9d63;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+/* --- 顺风车阶段面板：绿调 --- */
+.drive-panel--carpool {
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+}
+
+.drive-panel--carpool .panel-title-icon {
+  color: #0f9d63;
+  background: #e5f5ec;
+}
+
+.drive-panel--carpool .status-stage--accepted,
+.drive-panel--carpool .status-stage--dispatch {
+  background: linear-gradient(135deg, #f2faf6 0%, #e9f6f0 100%);
+}
+
+.drive-panel--carpool .accepted-board__person {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+.drive-panel--carpool .accepted-board__status {
+  color: #0b7a4b;
+  background: #dff2e8;
+  box-shadow: none;
+}
+
+.drive-panel--carpool .accepted-board__line {
+  background: repeating-linear-gradient(90deg, #a9d4c0 0 14rpx, transparent 14rpx 26rpx);
+}
+
+.drive-panel--carpool .dispatch-board__row--active {
+  box-shadow: 0 10rpx 22rpx rgba(15, 157, 99, 0.1);
+}
+
+/* --- 高速费等待乘客确认：琥珀色状态条（隐藏输入与提交） --- */
+.carpool-toll-done--pending {
+  margin-top: 0;
+  background: rgba(255, 255, 255, 0.78);
+  color: #b2770e;
+}
+
+.carpool-toll-done__icon {
+  width: 32rpx;
+  height: 32rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #f0a020;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1;
+  padding-bottom: 6rpx;
+  box-sizing: border-box;
+}
+
+.carpool-toll-done__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.carpool-toll-done__title {
+  color: #8a5a0b;
+  font-size: 23rpx;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.carpool-toll-done__desc {
+  margin-top: 4rpx;
+  color: #a58a63;
+  font-size: 20rpx;
+  line-height: 1.4;
 }

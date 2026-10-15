@@ -11,6 +11,22 @@
   padding-top: 14rpx;
 }
 
+.detail-page--carpool .detail-hero {
+  background: linear-gradient(110deg, #ffffff 0%, #fffaf4 66%, #ffecd9 100%);
+  border-color: rgba(255, 122, 0, 0.24);
+}
+
+.detail-page--carpool .detail-route {
+  max-width: 560rpx;
+  font-size: 29rpx;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.detail-page--carpool .drive-panel {
+  border-color: rgba(255, 122, 0, 0.12);
+}
+
 .has-pay-bar {
   padding-bottom: 204rpx;
 }
@@ -949,6 +965,11 @@
   background: #edf7ff;
 }
 
+.status-stage--accepted {
+  min-height: 154rpx;
+  background: linear-gradient(135deg, #f5f8ff 0%, #eef3ff 100%);
+}
+
 .status-stage--trip {
   background: #ebf8f0;
 }
@@ -1050,6 +1071,39 @@
   border-radius: 16rpx 18rpx 10rpx 10rpx;
   background: #ff7a00;
   box-shadow: 0 12rpx 20rpx rgba(255, 122, 0, 0.22);
+}
+
+.accepted-board {
+  display: grid;
+  grid-template-columns: 92rpx minmax(0, 1fr) 124rpx;
+  align-items: center;
+  gap: 12rpx;
+  min-height: 62rpx;
+}
+
+.accepted-board__person,
+.accepted-board__status {
+  min-height: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14rpx;
+  color: #344054;
+  background: #ffffff;
+  font-size: 20rpx;
+  font-weight: 550;
+  box-shadow: 0 6rpx 14rpx rgba(24, 34, 56, 0.06);
+}
+
+.accepted-board__status {
+  color: #4969b2;
+  background: #eaf0ff;
+}
+
+.accepted-board__line {
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: repeating-linear-gradient(90deg, #aab8dc 0 16rpx, transparent 16rpx 28rpx);
 }
 
 .nav-board {
@@ -1734,4 +1788,526 @@
 .status-stage--cancelled .drive-description {
   margin-top: 6rpx;
   font-size: 20rpx;
+}
+
+/* 顺风车订单使用信息优先的版式，避免通用打车插画抢占首屏。 */
+.detail-page--carpool .detail-hero {
+  padding: 22rpx 20rpx 18rpx;
+  background: #ffffff;
+  border-color: rgba(18, 132, 92, 0.16);
+}
+
+.detail-page--carpool .detail-city,
+.detail-page--carpool .detail-road,
+.detail-page--carpool .detail-taxi {
+  display: none;
+}
+
+.carpool-kicker {
+  margin-bottom: 8rpx;
+  color: #12845c;
+  font-size: 21rpx;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.detail-page--carpool .detail-route {
+  max-width: none;
+  color: #172033;
+  font-size: 31rpx;
+  font-weight: 650;
+}
+
+.detail-page--carpool .detail-tags {
+  margin-top: 12rpx;
+}
+
+.detail-page--carpool .detail-tag--type {
+  color: #12845c;
+  background: #e8f8ef;
+}
+
+.detail-page--carpool .detail-tag--price {
+  color: #172033;
+  background: #f2f5f8;
+}
+
+.detail-page--carpool .detail-metrics {
+  margin-top: 20rpx;
+}
+
+.detail-page--carpool .detail-metric {
+  min-height: 76rpx;
+  background: #f7faf8;
+  border-color: rgba(18, 132, 92, 0.1);
+}
+
+.carpool-hero-note {
+  margin-top: 12rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 14rpx;
+  background: #f0f8f3;
+}
+
+.carpool-hero-note__label {
+  color: #5f7769;
+  font-size: 19rpx;
+}
+
+.carpool-drive-note {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  background: #eef8f1;
+  color: #26734a;
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+
+.detail-page--carpool .status-stage--dispatch {
+  min-height: 148rpx;
+  justify-content: flex-start;
+  gap: 16rpx;
+  background: linear-gradient(135deg, #fffaf3 0%, #fff4e7 100%);
+}
+
+.detail-page--carpool .status-stage--dispatch .drive-description {
+  margin-top: 6rpx;
+}
+
+.carpool-hero-note__value {
+  margin-top: 5rpx;
+  color: #176d4d;
+  font-size: 22rpx;
+  font-weight: 550;
+  line-height: 1.4;
+}
+
+.carpool-trip-card {
+  padding: 18rpx;
+  border-color: rgba(18, 132, 92, 0.1);
+}
+
+.carpool-trip-card__hint {
+  color: #8b94a7;
+  font-size: 19rpx;
+}
+
+.carpool-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.carpool-fact {
+  min-width: 0;
+  padding: 12rpx;
+  border-radius: 14rpx;
+  background: #f7f8fb;
+}
+
+.carpool-fact--wide {
+  grid-column: 1 / -1;
+  background: #f0f8f3;
+}
+
+.carpool-fact__label {
+  display: block;
+  color: #8b94a7;
+  font-size: 19rpx;
+}
+
+.carpool-fact__value {
+  display: block;
+  margin-top: 5rpx;
+  color: #172033;
+  font-size: 23rpx;
+  font-weight: 550;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.cancel-order-button {
+  width: 100%;
+  min-height: 68rpx;
+  margin-top: 12rpx;
+  border-color: rgba(190, 78, 61, 0.2);
+  color: #b64e3d;
+  background: #fff7f5;
+  font-size: 23rpx;
+}
+
+.detail-page--carpool .aftersale-panel {
+  border-color: rgba(18, 132, 92, 0.08);
+}
+
+.detail-page--carpool .service-steps {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 16rpx;
+  padding: 0;
+}
+
+.detail-page--carpool .service-step {
+  flex: none;
+  min-height: 54rpx;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14rpx;
+  padding-bottom: 10rpx;
+}
+
+.detail-page--carpool .service-dot {
+  width: 28rpx;
+  height: 28rpx;
+  flex: none;
+  font-size: 17rpx;
+}
+
+.detail-page--carpool .service-line {
+  left: 12rpx;
+  right: auto;
+  top: 29rpx;
+  bottom: -1rpx;
+  width: 4rpx;
+  height: auto;
+  background: #d4dae5;
+}
+
+.detail-page--carpool .service-step--completed .service-line,
+.detail-page--carpool .service-step--completed-muted .service-line,
+.detail-page--carpool .service-step--current .service-line {
+  background: #ff8a1f;
+}
+
+.detail-page--carpool .service-label {
+  margin: 3rpx 0 0;
+  text-align: left;
+  font-size: 21rpx;
+  line-height: 1.3;
+}
+
+@media (max-width: 360px) {
+  .carpool-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .carpool-fact--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.carpool-boarding-confirm {
+  margin-top: 20rpx;
+}
+
+/* ============ 顺风车视觉重构（信息优先 · 清爽绿调） ============ */
+
+.detail-page--carpool {
+  gap: 16rpx;
+}
+
+/* --- Hero：白底淡绿，路线改为起终点站点结构 --- */
+.detail-page--carpool .detail-hero {
+  padding: 24rpx 24rpx 22rpx;
+  border: 1rpx solid rgba(15, 157, 99, 0.14);
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f3faf6 100%);
+  box-shadow: 0 12rpx 28rpx rgba(15, 157, 99, 0.06);
+}
+
+.carpool-kicker {
+  display: inline-block;
+  margin-bottom: 16rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  color: #d96a00;
+  background: rgba(255, 138, 26, 0.12);
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.carpool-route__stop {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.carpool-route__dot {
+  width: 16rpx;
+  height: 16rpx;
+  flex: none;
+  border-radius: 50%;
+}
+
+.carpool-route__dot--start {
+  background: #0f9d63;
+  box-shadow: 0 0 0 6rpx rgba(15, 157, 99, 0.14);
+}
+
+.carpool-route__dot--end {
+  background: #ff6f00;
+  box-shadow: 0 0 0 6rpx rgba(255, 111, 0, 0.13);
+}
+
+.carpool-route__gap {
+  padding: 4rpx 0 4rpx 7rpx;
+}
+
+.carpool-route__line {
+  width: 2rpx;
+  height: 24rpx;
+  background: repeating-linear-gradient(180deg, #aed6c4 0 6rpx, transparent 6rpx 12rpx);
+}
+
+.carpool-route__name {
+  min-width: 0;
+  color: #152033;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.detail-page--carpool .detail-order-no {
+  margin-top: 14rpx;
+  color: #98a1b3;
+  font-size: 20rpx;
+}
+
+.detail-page--carpool .detail-tags {
+  margin-top: 14rpx;
+}
+
+.detail-page--carpool .detail-tag--type {
+  color: #0b7a4b;
+  background: rgba(15, 157, 99, 0.1);
+  font-weight: 600;
+}
+
+.detail-page--carpool .detail-tag--price {
+  color: #e8720c;
+  background: #ffefe0;
+  font-weight: 600;
+}
+
+/* --- 出发信息卡：时段横条 + 三列信息 --- */
+.detail-page--carpool .carpool-trip-card {
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+}
+
+.detail-page--carpool .detail-section-icon {
+  color: #0f9d63;
+  background: #e5f5ec;
+}
+
+.detail-page--carpool .carpool-trip-card__hint {
+  color: #a7afbf;
+  font-size: 19rpx;
+}
+
+.detail-page--carpool .carpool-facts {
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.detail-page--carpool .carpool-fact {
+  padding: 14rpx 16rpx;
+  border-radius: 14rpx;
+  background: #f6f8fa;
+}
+
+.detail-page--carpool .carpool-fact--wide {
+  padding: 18rpx 20rpx;
+  background: linear-gradient(135deg, #ecf8f1 0%, #e2f3ea 100%);
+  border: 1rpx solid rgba(15, 157, 99, 0.1);
+}
+
+.detail-page--carpool .carpool-fact--wide .carpool-fact__label {
+  color: #4f7a64;
+}
+
+.detail-page--carpool .carpool-fact--wide .carpool-fact__value {
+  color: #0b5e3e;
+  font-size: 26rpx;
+  font-weight: 650;
+}
+
+.detail-page--carpool .carpool-fact__value {
+  color: #172033;
+  font-weight: 600;
+}
+
+/* --- 车主状态卡：绿调阶段面板 --- */
+.detail-page--carpool .drive-panel {
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  border-radius: 20rpx;
+  background: #ffffff;
+}
+
+.detail-page--carpool .status-stage--accepted {
+  background: linear-gradient(135deg, #f2faf6 0%, #e9f6f0 100%);
+}
+
+.detail-page--carpool .status-stage--dispatch {
+  background: linear-gradient(135deg, #f2faf6 0%, #e9f6f0 100%);
+}
+
+.detail-page--carpool .accepted-board__status {
+  color: #0b7a4b;
+  background: #dff2e8;
+  box-shadow: none;
+}
+
+.detail-page--carpool .accepted-board__person {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.detail-page--carpool .accepted-board__line {
+  background: repeating-linear-gradient(90deg, #a9d4c0 0 14rpx, transparent 14rpx 26rpx);
+}
+
+.detail-page--carpool .carpool-drive-note,
+.detail-page--carpool .carpool-status-note {
+  padding: 16rpx 20rpx;
+  border-radius: 14rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #3c6b52;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.detail-page--carpool .carpool-status-note {
+  margin-top: 0;
+}
+
+/* --- 高速费确认卡：醒目的待办操作卡 --- */
+.carpool-toll-card {
+  padding: 22rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(240, 160, 32, 0.28);
+  background: linear-gradient(135deg, #fffaf2 0%, #fff4e2 100%);
+  box-shadow: 0 12rpx 26rpx rgba(240, 160, 32, 0.1);
+}
+
+.carpool-toll-card__top {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.carpool-toll-card__badge {
+  width: 64rpx;
+  height: 64rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ffb64d 0%, #ff8a1f 100%);
+  box-shadow: 0 8rpx 16rpx rgba(255, 138, 31, 0.24);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.carpool-toll-card__heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.carpool-toll-card__title {
+  color: #3a2b1c;
+  font-size: 27rpx;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.carpool-toll-card__note {
+  margin-top: 5rpx;
+  color: #8a7558;
+  font-size: 21rpx;
+  line-height: 1.45;
+}
+
+.carpool-toll-card__amount {
+  flex: none;
+  color: #e8720c;
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.carpool-toll-card__buttons {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.carpool-toll-btn {
+  flex: 1;
+  min-height: 74rpx;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
+.carpool-toll-btn::after {
+  border: none;
+}
+
+.carpool-toll-btn--ghost {
+  color: #b64e3d;
+  background: #ffffff;
+  border: 1rpx solid rgba(182, 78, 61, 0.32);
+}
+
+.carpool-toll-btn--primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff9a3c 0%, #ff6f00 100%);
+  box-shadow: 0 8rpx 18rpx rgba(255, 111, 0, 0.26);
+}
+
+/* --- 取消订单：弱化为低调的次要操作 --- */
+.detail-page--carpool .cancel-order-button {
+  min-height: 64rpx;
+  margin-top: 14rpx;
+  border: 1rpx solid rgba(182, 78, 61, 0.22);
+  color: #c05a49;
+  background: transparent;
+  font-size: 22rpx;
+}
+
+/* --- 售后操作：与顺风车绿调统一 --- */
+.detail-page--carpool .aftersale-panel {
+  border: 1rpx solid rgba(31, 36, 50, 0.05);
+  background: #ffffff;
+}
+
+.detail-page--carpool .action-card {
+  color: #0b7a4b;
+  background: rgba(15, 157, 99, 0.06);
+  border-color: rgba(15, 157, 99, 0.12);
+}
+
+.detail-page--carpool .action-card--review {
+  color: #e8720c;
+  background: rgba(255, 138, 31, 0.08);
+  border-color: rgba(255, 138, 31, 0.16);
 }

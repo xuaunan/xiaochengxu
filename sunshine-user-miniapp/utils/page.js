@@ -108,11 +108,15 @@ function runSilkyAction(context, action, options = {}) {
     }
 
     if (selector && typeof context.animate === 'function') {
-      context.animate(selector, [
-        { opacity: 1, transform: 'translateY(0) scale(1)' },
-        { opacity: 0.86, transform: 'translateY(6rpx) scale(0.996)' }
-      ], duration, execute)
       context.__silkyLeaveFallbackTimer = setTimeout(execute, duration + 60)
+      try {
+        context.animate(selector, [
+          { opacity: 1, transform: 'translateY(0) scale(1)' },
+          { opacity: 0.86, transform: 'translateY(6rpx) scale(0.996)' }
+        ], duration, execute)
+      } catch (error) {
+        execute()
+      }
       return
     }
 
@@ -219,12 +223,23 @@ function navigateBackSilky(context, options = {}) {
   clearTimeout(context.__silkyLeaveTimer)
 
   if (selector && typeof context.animate === 'function') {
-    context.animate(selector, [
-      { opacity: 1, transform: 'translateY(0) scale(1)' },
-      { opacity: 0.84, transform: 'translateY(5rpx) scale(0.998)' }
-    ], duration, () => {
+    let navigated = false
+    const navigateOnce = () => {
+      if (navigated) return
+      navigated = true
+      clearTimeout(context.__silkyLeaveTimer)
       doNavigateBack()
-    })
+    }
+    // 兜底：animate 完成回调在部分基础库版本可能不触发，必须保证跳转一定执行
+    context.__silkyLeaveTimer = setTimeout(navigateOnce, duration + 80)
+    try {
+      context.animate(selector, [
+        { opacity: 1, transform: 'translateY(0) scale(1)' },
+        { opacity: 0.84, transform: 'translateY(5rpx) scale(0.998)' }
+      ], duration, navigateOnce)
+    } catch (error) {
+      navigateOnce()
+    }
     return null
   }
 

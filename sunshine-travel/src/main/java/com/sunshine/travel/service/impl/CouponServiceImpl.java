@@ -56,7 +56,7 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     @Transactional
-    public List<UserCoupon> currentUserCoupons() {
+    public List<Map<String, Object>> currentUserCoupons() {
         List<UserCoupon> coupons = userCouponMapper.selectList(new LambdaQueryWrapper<UserCoupon>()
                 .eq(UserCoupon::getUserId, UserContext.userId())
                 .orderByDesc(UserCoupon::getId));
@@ -66,7 +66,42 @@ public class CouponServiceImpl implements CouponService {
                         && item.getValidEndTime() != null
                         && item.getValidEndTime().isBefore(now))
                 .forEach(this::markExpired);
-        return coupons;
+        // 关联券模板，补齐名称/类型/金额/门槛/规则，避免前端只能显示"优惠券 #id"
+        Map<Long, Coupon> templates = new LinkedHashMap<>();
+        for (UserCoupon item : coupons) {
+            if (item.getCouponId() != null && !templates.containsKey(item.getCouponId())) {
+                templates.put(item.getCouponId(), couponMapper.selectById(item.getCouponId()));
+            }
+        }
+        return coupons.stream()
+                .map(item -> mapUserCoupon(item, templates.get(item.getCouponId())))
+                .toList();
+    }
+
+    private Map<String, Object> mapUserCoupon(UserCoupon item, Coupon template) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", item.getId());
+        map.put("userId", item.getUserId());
+        map.put("couponId", item.getCouponId());
+        map.put("couponStatus", item.getCouponStatus());
+        map.put("serviceScope", item.getServiceScope());
+        map.put("validStartTime", item.getValidStartTime());
+        map.put("validEndTime", item.getValidEndTime());
+        map.put("bindOrderId", item.getBindOrderId());
+        map.put("receiveMode", item.getReceiveMode());
+        map.put("usedAt", item.getUsedAt());
+        map.put("createdAt", item.getCreatedAt());
+        map.put("updatedAt", item.getUpdatedAt());
+        if (template != null) {
+            map.put("couponName", template.getCouponName());
+            map.put("couponType", template.getCouponType());
+            map.put("thresholdAmount", template.getThresholdAmount());
+            map.put("discountAmount", template.getDiscountAmount());
+            map.put("discountRate", template.getDiscountRate());
+            map.put("ruleDesc", template.getRuleDesc());
+            map.put("stackable", template.getStackable());
+        }
+        return map;
     }
 
     @Override

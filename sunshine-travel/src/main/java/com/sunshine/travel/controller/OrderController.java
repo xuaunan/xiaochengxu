@@ -5,6 +5,8 @@ import com.sunshine.travel.common.ApiResponse;
 import com.sunshine.travel.common.RoleCode;
 import com.sunshine.travel.common.UserContext;
 import com.sunshine.travel.dto.ComplaintRequest;
+import com.sunshine.travel.dto.CarpoolTollRequest;
+import com.sunshine.travel.dto.CarpoolTollResponseRequest;
 import com.sunshine.travel.dto.EvaluationRequest;
 import com.sunshine.travel.dto.InvoiceApplyRequest;
 import com.sunshine.travel.dto.MockPayRequest;
@@ -116,6 +118,30 @@ public class OrderController {
     public ApiResponse<?> finish(@PathVariable Long orderId, @Valid @RequestBody OrderFinishRequest request) {
         orderService.finishOrder(orderId, request);
         return ApiResponse.success("行程已结束");
+    }
+
+    @Operation(summary = "车主填写顺风车高速费")
+    @RequireRole(RoleCode.DRIVER)
+    @PostMapping("/{orderId}/carpool-toll")
+    public ApiResponse<?> setCarpoolToll(@PathVariable Long orderId, @Valid @RequestBody CarpoolTollRequest request) {
+        orderService.setCarpoolToll(orderId, request);
+        return ApiResponse.success("高速费已提交，等待乘客确认");
+    }
+
+    @Operation(summary = "乘客确认或拒绝顺风车高速费")
+    @RequireRole(RoleCode.USER)
+    @PostMapping("/{orderId}/carpool-toll/response")
+    public ApiResponse<?> respondCarpoolToll(@PathVariable Long orderId, @Valid @RequestBody CarpoolTollResponseRequest request) {
+        orderService.respondCarpoolToll(orderId, request.getConfirm());
+        return ApiResponse.success(request.getConfirm() ? "高速费已确认" : "订单已取消");
+    }
+
+    @Operation(summary = "车主缴纳顺风车超时违约金")
+    @RequireRole(RoleCode.DRIVER)
+    @PostMapping("/{orderId}/carpool-penalty/pay")
+    public ApiResponse<?> payCarpoolPenalty(@PathVariable Long orderId) {
+        orderService.payCarpoolPenalty(orderId);
+        return ApiResponse.success("违约金已缴纳");
     }
 
     @Operation(summary = "取消订单")

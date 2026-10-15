@@ -5,6 +5,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.sunshine.travel.common.BusinessException;
 import com.sunshine.travel.common.CouponStatus;
 import com.sunshine.travel.common.CouponType;
@@ -17,6 +18,7 @@ import com.sunshine.travel.common.RoleCode;
 import com.sunshine.travel.common.ServiceType;
 import com.sunshine.travel.common.UserContext;
 import com.sunshine.travel.dto.ComplaintRequest;
+import com.sunshine.travel.dto.CarpoolTollRequest;
 import com.sunshine.travel.dto.EvaluationRequest;
 import com.sunshine.travel.dto.InvoiceApplyRequest;
 import com.sunshine.travel.dto.MockPayRequest;
@@ -173,8 +175,14 @@ public class OrderServiceImpl implements OrderService {
         ensureNoDuplicateOpenOrder(userId, request);
         CarType carType = requireCarType(request.getCarTypeId());
         PricingResult pricing = calcAmount(carType, request.getServiceType(), request.getEstimatedDistanceKm(), request.getEstimatedDurationMin());
-        CouponUseResult couponUseResult = useCouponIfNeeded(request.getUserCouponId(), pricing.finalAmount(), request.getServiceType());
-        BigDecimal webExclusiveDiscount = resolveWebExclusiveDiscount(request, pricing.finalAmount(), couponUseResult.discountAmount());
+        int carpoolPassengerCount = ServiceType.CARPOOL.equals(request.getServiceType())
+                ? Math.max(1, request.getCarpoolPassengerCount() == null ? 1 : request.getCarpoolPassengerCount())
+                : 1;
+        BigDecimal quotedAmount = ServiceType.CARPOOL.equals(request.getServiceType())
+                ? divideCarpoolAmount(pricing.finalAmount(), carpoolPassengerCount)
+                : pricing.finalAmount();
+        CouponUseResult couponUseResult = useCouponIfNeeded(request.getUserCouponId(), quotedAmount, request.getServiceType());
+        BigDecimal webExclusiveDiscount = resolveWebExclusiveDiscount(request, quotedAmount, couponUseResult.discountAmount());
         BigDecimal totalDiscount = couponUseResult.discountAmount().add(webExclusiveDiscount).setScale(2, RoundingMode.HALF_UP);
 
         RideOrder order = new RideOrder();
@@ -191,10 +199,11 @@ public class OrderServiceImpl implements OrderService {
         order.setEndLat(request.getEndLat());
         order.setEstimatedDistanceKm(request.getEstimatedDistanceKm());
         order.setEstimatedDurationMin(request.getEstimatedDurationMin());
-        order.setEstimatedAmount(pricing.finalAmount());
+        order.setEstimatedAmount(quotedAmount);
+        order.setCarpoolPassengerCount(carpoolPassengerCount);
         order.setCouponDiscount(totalDiscount);
         order.setUserCouponId(couponUseResult.userCouponId());
-        order.setPayableAmount(pricing.finalAmount().subtract(totalDiscount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
+        order.setPayableAmount(quotedAmount.subtract(totalDiscount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
         order.setActualAmount(order.getPayableAmount());
         order.setNightSurchargeAmount(pricing.nightSurchargeAmount());
         order.setLongDistanceSurchargeAmount(pricing.longDistanceSurchargeAmount());
@@ -207,14 +216,30 @@ public class OrderServiceImpl implements OrderService {
         order.setComplaintStatus("NONE");
         order.setSettlementStatus("PENDING");
         order.setLanguageCode(StringUtils.hasText(request.getLanguageCode()) ? request.getLanguageCode() : "zh-CN");
+        if (ServiceType.CARPOOL.equals(order.getServiceType())) {
+            if (request.getCarpoolDepartureAt() == null || request.getCarpoolDepartureEndAt() == null
+                    || !request.getCarpoolDepartureAt().isAfter(LocalDateTime.now())
+                    || !request.getCarpoolDepartureEndAt().isAfter(request.getCarpoolDepartureAt())) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "请填写有效的顺风车出发时间段");
+            }
+            order.setCarpoolDepartureAt(request.getCarpoolDepartureAt());
+            order.setCarpoolDepartureEndAt(request.getCarpoolDepartureEndAt());
+            order.setCarpoolTollAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            order.setCarpoolTollStatus("NONE");
+            order.setDriverPenaltyAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            order.setDriverPenaltyStatus("NONE");
+        }
         order.setRemark(buildDispatchRemark(request.getDispatchMode(), appendWebExclusiveMeta(request.getRemark(), request, webExclusiveDiscount)));
         rideOrderMapper.insert(order);
         bindCouponIfNecessary(order);
-        messagePushSupport.push(userId, "ORDER", "ORDER_CREATED", "订单已创建", "订单已提交，正在等待司机接单。", order.getLanguageCode());
+        messagePushSupport.push(userId, "ORDER", "ORDER_CREATED", "订单已创建",
+                ServiceType.CARPOOL.equals(order.getServiceType()) ? "顺风车订单已提交，正在等待车主接单。" : "订单已提交，正在等待司机接单。",
+                order.getLanguageCode());
         return order;
     }
 
     @Override
+    @Transactional
     public RideOrder detail(Long orderId) {
         RideOrder order = syncAutoProgress(requireOrder(orderId));
         assertOrderReadable(order);
@@ -224,6 +249,30 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Map<String, Object> detailView(Long orderId) {
         return mapOrderView(detail(orderId));
+    }
+
+    @Override
+    @Transactional
+    public List<RideOrder> syncBatchForList(List<RideOrder> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return orders == null ? List.of() : orders;
+        }
+        List<Long> orderIds = orders.stream()
+                .map(RideOrder::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Long, List<PaymentRecord>> paymentsByOrder = orderIds.isEmpty()
+                ? Map.of()
+                : paymentRecordMapper.selectList(new LambdaQueryWrapper<PaymentRecord>()
+                                .in(PaymentRecord::getOrderId, orderIds)
+                                .orderByDesc(PaymentRecord::getId))
+                        .stream()
+                        .collect(java.util.stream.Collectors.groupingBy(PaymentRecord::getOrderId));
+        List<RideOrder> synced = new java.util.ArrayList<>(orders.size());
+        for (RideOrder order : orders) {
+            synced.add(syncAutoProgress(order, paymentsByOrder.getOrDefault(order.getId(), List.of())));
+        }
+        return synced;
     }
 
     @Override
@@ -280,15 +329,30 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ErrorCode.STATUS_ERROR, "Current order status does not allow accepting");
         }
         order.setDriverId(driverId);
-        order.setOrderStatus(OrderStatus.PICKING_UP);
+        // 顺风车接单后先停留在“车主已接单”，由车主明确点击开始接驾。
+        // 即时打车仍保持接单后直接进入接驾状态。
+        order.setOrderStatus(ServiceType.CARPOOL.equals(order.getServiceType())
+                ? OrderStatus.ACCEPTED
+                : OrderStatus.PICKING_UP);
         order.setAcceptedAt(LocalDateTime.now());
+        if (ServiceType.CARPOOL.equals(order.getServiceType())) {
+            order.setCarpoolTollAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            order.setCarpoolTollStatus("NONE");
+            order.setCarpoolTollConfirmedAt(LocalDateTime.now());
+        }
         rideOrderMapper.updateById(order);
         orderRuntimeSupport.warmUpRoutes(order);
         profile.setServiceStatus(DriverServiceStatus.BUSY);
         driverProfileMapper.updateById(profile);
         PlatformUser driver = platformUserMapper.selectById(driverId);
-        messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ON_THE_WAY", "司机接驾中",
-                (driver == null ? "司机" : driver.getNickname()) + "已接单并正在前往上车点，请准备上车。", order.getLanguageCode());
+        String driverDisplayName = driver == null ? (ServiceType.CARPOOL.equals(order.getServiceType()) ? "车主" : "司机") : driver.getNickname();
+        if (ServiceType.CARPOOL.equals(order.getServiceType())) {
+            messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ACCEPTED", "车主已接单",
+                    driverDisplayName + "已确认同行，等待开始接驾。", order.getLanguageCode());
+        } else {
+            messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ON_THE_WAY", "司机接驾中",
+                    driverDisplayName + "已接单并正在前往上车点，请准备上车。", order.getLanguageCode());
+        }
     }
 
     @Override
@@ -310,12 +374,30 @@ public class OrderServiceImpl implements OrderService {
     public void startOrder(Long orderId) {
         RideOrder order = syncAutoProgress(requireOrder(orderId));
         assertDriverOwnsOrder(order);
+        if (ServiceType.CARPOOL.equals(order.getServiceType()) && OrderStatus.CANCELLED.equals(order.getOrderStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "顺风车订单已取消，无法开始接驾");
+        }
         if (OrderStatus.PICKING_UP.equals(order.getOrderStatus())) {
             return;
         }
+        if (ServiceType.CARPOOL.equals(order.getServiceType())) {
+            if ("PENDING".equals(order.getCarpoolTollStatus())) {
+                throw new BusinessException(ErrorCode.STATUS_ERROR, "请等待乘客确认高速费后再开始接驾");
+            }
+            LocalDateTime now = LocalDateTime.now();
+            if (order.getCarpoolDepartureAt() != null && now.isBefore(order.getCarpoolDepartureAt())) {
+                throw new BusinessException(ErrorCode.STATUS_ERROR, "尚未到约定出发时间，暂不能开始接驾");
+            }
+            if (order.getCarpoolDepartureAt() != null && !now.isBefore(carpoolLatestStartAt(order))) {
+                expireCarpoolOrder(order);
+                throw new BusinessException(ErrorCode.STATUS_ERROR, "已超过可开始接驾时间，订单已取消并记录违约金");
+            }
+        }
         transferStatus(order, OrderStatus.PICKING_UP);
         rideOrderMapper.updateById(order);
-        messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ON_THE_WAY", "司机接驾中", "司机正在前往上车点，请保持电话畅通。", order.getLanguageCode());
+        messagePushSupport.push(order.getUserId(), "ORDER", "DRIVER_ON_THE_WAY",
+                ServiceType.CARPOOL.equals(order.getServiceType()) ? "车主接驾中" : "司机接驾中",
+                (ServiceType.CARPOOL.equals(order.getServiceType()) ? "车主" : "司机") + "正在前往上车点，请保持电话畅通。", order.getLanguageCode());
     }
 
     @Override
@@ -323,6 +405,12 @@ public class OrderServiceImpl implements OrderService {
     public void pickupOrder(Long orderId) {
         RideOrder order = syncAutoProgress(requireOrder(orderId));
         assertPickupAllowed(order);
+        if (ServiceType.CARPOOL.equals(order.getServiceType()) && !RoleCode.USER.equals(UserContext.role())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "顺风车需要乘客确认上车");
+        }
+        if (ServiceType.CARPOOL.equals(order.getServiceType()) && !OrderStatus.PICKING_UP.equals(order.getOrderStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "车主开始接驾后，乘客才可以确认上车");
+        }
         if (OrderStatus.IN_TRIP.equals(order.getOrderStatus())) {
             return;
         }
@@ -375,6 +463,87 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
+    public void setCarpoolToll(Long orderId, CarpoolTollRequest request) {
+        RideOrder order = requireOrder(orderId);
+        assertDriverOwnsOrder(order);
+        if (!ServiceType.CARPOOL.equals(order.getServiceType()) || !OrderStatus.ACCEPTED.equals(order.getOrderStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "只有已接单且尚未开始接驾的顺风车订单可以填写高速费");
+        }
+        BigDecimal amount = request.getTollAmount().setScale(2, RoundingMode.HALF_UP);
+        if (amount.compareTo(BigDecimal.ZERO) == 0) {
+            order.setCarpoolTollAmount(amount);
+            order.setCarpoolTollStatus("NONE");
+            order.setCarpoolTollConfirmedAt(LocalDateTime.now());
+            rideOrderMapper.updateById(order);
+            return;
+        }
+        order.setCarpoolTollAmount(amount);
+        order.setCarpoolTollStatus("PENDING");
+        order.setCarpoolTollConfirmedAt(null);
+        rideOrderMapper.updateById(order);
+        messagePushSupport.push(order.getUserId(), "ORDER", "CARPOOL_TOLL_CONFIRM", "请确认高速费",
+                "车主填写高速费 " + amount.toPlainString() + " 元，确认后才能开始接驾。", order.getLanguageCode());
+    }
+
+    @Override
+    @Transactional
+    public void respondCarpoolToll(Long orderId, boolean confirm) {
+        RideOrder order = requireOrder(orderId);
+        if (!ServiceType.CARPOOL.equals(order.getServiceType()) || !Objects.equals(order.getUserId(), requireLoginUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有乘客可以确认高速费");
+        }
+        if (!OrderStatus.ACCEPTED.equals(order.getOrderStatus()) || !"PENDING".equals(order.getCarpoolTollStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前没有待确认的高速费");
+        }
+        if (confirm) {
+            order.setCarpoolTollStatus("CONFIRMED");
+            order.setCarpoolTollConfirmedAt(LocalDateTime.now());
+            rideOrderMapper.updateById(order);
+            messagePushSupport.push(order.getDriverId(), "ORDER", "CARPOOL_TOLL_CONFIRMED", "乘客已确认高速费", "可以按约定时间开始接驾。", order.getLanguageCode());
+            return;
+        }
+        order.setCarpoolTollStatus("REJECTED");
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        order.setCancelByRole(RoleCode.USER);
+        order.setCancelReason("乘客未确认车主填写的高速费");
+        order.setCancelFee(BigDecimal.ZERO);
+        order.setActualAmount(BigDecimal.ZERO);
+        order.setPayableAmount(BigDecimal.ZERO);
+        order.setSettlementStatus("CANCELLED");
+        rideOrderMapper.updateById(order);
+        releaseCouponIfUnused(order);
+        restoreDriverStatus(order.getDriverId());
+        messagePushSupport.push(order.getDriverId(), "ORDER", "CARPOOL_TOLL_REJECTED", "乘客未确认高速费", "该顺风车订单已取消。", order.getLanguageCode());
+    }
+
+    @Override
+    @Transactional
+    public void payCarpoolPenalty(Long orderId) {
+        RideOrder order = requireOrder(orderId);
+        assertDriverOwnsOrder(order);
+        if (!ServiceType.CARPOOL.equals(order.getServiceType()) || !"DUE".equals(order.getDriverPenaltyStatus())) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "当前没有待缴纳的顺风车违约金");
+        }
+        PlatformUser driver = platformUserMapper.selectById(order.getDriverId());
+        BigDecimal penalty = safeDecimal(order.getDriverPenaltyAmount());
+        if (driver == null || safeDecimal(driver.getWalletBalance()).compareTo(penalty) < 0) {
+            throw new BusinessException(ErrorCode.STATUS_ERROR, "车主余额不足，暂时无法缴纳违约金");
+        }
+        int claimed = rideOrderMapper.update(null, new LambdaUpdateWrapper<RideOrder>()
+                .eq(RideOrder::getId, orderId)
+                .eq(RideOrder::getDriverPenaltyStatus, "DUE")
+                .set(RideOrder::getDriverPenaltyStatus, "PAID"));
+        if (claimed == 0) {
+            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "顺风车违约金已处理");
+        }
+        driver.setWalletBalance(safeDecimal(driver.getWalletBalance()).subtract(penalty));
+        platformUserMapper.updateById(driver);
+        order.setDriverPenaltyStatus("PAID");
+        rideOrderMapper.updateById(order);
+    }
+
+    @Override
     public List<RideOrder> currentUserOrders(String roleCode) {
         LambdaQueryWrapper<RideOrder> wrapper = new LambdaQueryWrapper<>();
         if (RoleCode.DRIVER.equals(roleCode)) {
@@ -408,6 +577,7 @@ public class OrderServiceImpl implements OrderService {
             return orders;
         }
         Long driverId = UserContext.userId();
+        assertNoUnpaidCarpoolPenalty(driverId);
         if (!hasDriverOrderPermission(driverId)) {
             return List.of();
         }
@@ -436,7 +606,7 @@ public class OrderServiceImpl implements OrderService {
         if (!"PENDING".equals(order.getEvaluationStatus())) {
             throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "Order already evaluated");
         }
-        order.setEvaluationStatus("DONE:" + request.getScore() + ":" + (request.getContent() == null ? "" : request.getContent()));
+        order.setEvaluationStatus("DONE:" + request.getScore() + ":" + System.currentTimeMillis() + ":" + (request.getContent() == null ? "" : request.getContent()));
         rideOrderMapper.updateById(order);
         refreshDriverScore(order.getDriverId());
     }
@@ -460,6 +630,22 @@ public class OrderServiceImpl implements OrderService {
         refreshAllDriverScoresFromEvaluations();
         if (changedCount > 0) {
             log.info("Applied {} default five-star evaluations for expired orders", changedCount);
+        }
+    }
+
+    @Scheduled(initialDelay = 30_000L, fixedDelay = 60_000L)
+    @Transactional
+    public void cancelExpiredCarpoolOrders() {
+        List<RideOrder> orders = rideOrderMapper.selectList(new LambdaQueryWrapper<RideOrder>()
+                .eq(RideOrder::getServiceType, ServiceType.CARPOOL)
+                .eq(RideOrder::getOrderStatus, OrderStatus.ACCEPTED)
+                .isNotNull(RideOrder::getDriverId)
+                .isNotNull(RideOrder::getCarpoolDepartureAt));
+        LocalDateTime now = LocalDateTime.now();
+        for (RideOrder order : orders) {
+            if (!now.isBefore(carpoolLatestStartAt(order))) {
+                expireCarpoolOrder(order);
+            }
         }
     }
 
@@ -755,12 +941,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private RideOrder syncPaymentStatus(RideOrder order) {
+        return syncPaymentStatus(order, null);
+    }
+
+    private RideOrder syncPaymentStatus(RideOrder order, List<PaymentRecord> prefetchedRecords) {
         if (order == null || order.getId() == null) {
             return order;
         }
-        List<PaymentRecord> records = paymentRecordMapper.selectList(new LambdaQueryWrapper<PaymentRecord>()
-                .eq(PaymentRecord::getOrderId, order.getId())
-                .orderByDesc(PaymentRecord::getId));
+        List<PaymentRecord> records = prefetchedRecords != null
+                ? prefetchedRecords
+                : paymentRecordMapper.selectList(new LambdaQueryWrapper<PaymentRecord>()
+                        .eq(PaymentRecord::getOrderId, order.getId())
+                        .orderByDesc(PaymentRecord::getId));
         if (records.isEmpty()) {
             return order;
         }
@@ -815,7 +1007,60 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private RideOrder syncAutoProgress(RideOrder order) {
-        return applyDefaultEvaluationIfExpired(syncPaymentStatus(order));
+        return syncAutoProgress(order, null);
+    }
+
+    private RideOrder syncAutoProgress(RideOrder order, List<PaymentRecord> prefetchedPayments) {
+        if (order != null && ServiceType.CARPOOL.equals(order.getServiceType())
+                && OrderStatus.ACCEPTED.equals(order.getOrderStatus())
+                && order.getDriverId() != null && order.getCarpoolDepartureAt() != null
+                && !LocalDateTime.now().isBefore(carpoolLatestStartAt(order))) {
+            expireCarpoolOrder(order);
+            return order;
+        }
+        return applyDefaultEvaluationIfExpired(syncPaymentStatus(order, prefetchedPayments));
+    }
+
+    private void expireCarpoolOrder(RideOrder order) {
+        if (order == null || !ServiceType.CARPOOL.equals(order.getServiceType())
+                || !OrderStatus.ACCEPTED.equals(order.getOrderStatus()) || order.getDriverId() == null) return;
+        int claimed = rideOrderMapper.update(null, new LambdaUpdateWrapper<RideOrder>()
+                .eq(RideOrder::getId, order.getId())
+                .eq(RideOrder::getOrderStatus, OrderStatus.ACCEPTED)
+                .set(RideOrder::getOrderStatus, OrderStatus.CANCELLED));
+        if (claimed == 0) return;
+        BigDecimal base = firstPositiveAmount(order.getEstimatedAmount(), order.getPayableAmount());
+        BigDecimal penalty = base.multiply(BigDecimal.valueOf(0.15)).setScale(2, RoundingMode.HALF_UP);
+        PlatformUser driver = platformUserMapper.selectById(order.getDriverId());
+        boolean paid = driver != null && safeDecimal(driver.getWalletBalance()).compareTo(penalty) >= 0;
+        if (paid && penalty.compareTo(BigDecimal.ZERO) > 0) {
+            driver.setWalletBalance(safeDecimal(driver.getWalletBalance()).subtract(penalty));
+            platformUserMapper.updateById(driver);
+        }
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        order.setCancelByRole(RoleCode.DRIVER);
+        order.setCancelReason("车主未在约定出发时间后30分钟内开始接驾");
+        order.setCancelFee(BigDecimal.ZERO);
+        order.setActualAmount(BigDecimal.ZERO);
+        order.setPayableAmount(BigDecimal.ZERO);
+        order.setDriverPenaltyAmount(penalty);
+        order.setDriverPenaltyStatus(paid || penalty.compareTo(BigDecimal.ZERO) == 0 ? "PAID" : "DUE");
+        order.setSettlementStatus("CANCELLED");
+        rideOrderMapper.updateById(order);
+        releaseCouponIfUnused(order);
+        restoreDriverStatus(order.getDriverId());
+        messagePushSupport.push(order.getUserId(), "ORDER", "CARPOOL_AUTO_CANCELLED", "顺风车订单已取消", "车主未按时开始接驾，订单已取消并记录违约金。", order.getLanguageCode());
+        messagePushSupport.push(order.getDriverId(), "ORDER", "CARPOOL_DRIVER_PENALTY", "顺风车履约超时", "订单已取消，违约金 " + penalty.toPlainString() + " 元" + (paid ? "已从余额扣除。" : "未缴清前暂停接单。"), order.getLanguageCode());
+    }
+
+    private void assertNoUnpaidCarpoolPenalty(Long driverId) {
+        Long count = rideOrderMapper.selectCount(new LambdaQueryWrapper<RideOrder>()
+                .eq(RideOrder::getDriverId, driverId)
+                .eq(RideOrder::getServiceType, ServiceType.CARPOOL)
+                .eq(RideOrder::getDriverPenaltyStatus, "DUE"));
+        if (count != null && count > 0) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "存在未缴清的顺风车违约金，暂时无法接单");
+        }
     }
 
     private RideOrder applyDefaultEvaluationIfExpired(RideOrder order) {
@@ -830,7 +1075,7 @@ public class OrderServiceImpl implements OrderService {
         if (anchorAt == null || anchorAt.isAfter(LocalDateTime.now().minusDays(AUTO_DEFAULT_EVALUATION_DAYS))) {
             return order;
         }
-        order.setEvaluationStatus("DONE:5:" + DEFAULT_EVALUATION_CONTENT);
+        order.setEvaluationStatus("DONE:5:" + System.currentTimeMillis() + ":" + DEFAULT_EVALUATION_CONTENT);
         rideOrderMapper.updateById(order);
         refreshDriverScore(order.getDriverId());
         return requireOrder(order.getId());
@@ -903,14 +1148,23 @@ public class OrderServiceImpl implements OrderService {
 
     private void completeOrder(RideOrder order, BigDecimal actualDistanceKm, BigDecimal actualDurationMin, LocalDateTime finishedAt) {
         transferStatus(order, OrderStatus.FINISHED);
-        CarType carType = requireCarType(order.getCarTypeId());
-        PricingResult pricing = calcAmount(carType, order.getServiceType(), actualDistanceKm, actualDurationMin);
         BigDecimal discount = order.getCouponDiscount() == null ? BigDecimal.ZERO : order.getCouponDiscount();
-        BigDecimal actualAmount = pricing.finalAmount().subtract(discount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        PricingResult pricing = null;
+        BigDecimal actualAmount;
+        if (ServiceType.CARPOOL.equals(order.getServiceType())) {
+            actualAmount = safeDecimal(order.getEstimatedAmount()).subtract(discount).max(BigDecimal.ZERO)
+                    .add(safeDecimal(order.getCarpoolTollAmount())).setScale(2, RoundingMode.HALF_UP);
+        } else {
+            CarType carType = requireCarType(order.getCarTypeId());
+            pricing = calcAmount(carType, order.getServiceType(), actualDistanceKm, actualDurationMin);
+            actualAmount = pricing.finalAmount().subtract(discount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        }
         order.setActualDistanceKm(actualDistanceKm);
         order.setActualDurationMin(actualDurationMin);
-        order.setNightSurchargeAmount(pricing.nightSurchargeAmount());
-        order.setLongDistanceSurchargeAmount(pricing.longDistanceSurchargeAmount());
+        if (pricing != null) {
+            order.setNightSurchargeAmount(pricing.nightSurchargeAmount());
+            order.setLongDistanceSurchargeAmount(pricing.longDistanceSurchargeAmount());
+        }
         order.setActualAmount(actualAmount);
         order.setPayableAmount(actualAmount);
         order.setFinishedAt(finishedAt);
@@ -937,11 +1191,15 @@ public class OrderServiceImpl implements OrderService {
     private void ensureNoDuplicateOpenOrder(Long userId, OrderCreateRequest request) {
         RideOrder latest = rideOrderMapper.selectOne(new LambdaQueryWrapper<RideOrder>()
                 .eq(RideOrder::getUserId, userId)
+                .eq(RideOrder::getServiceType, request.getServiceType())
                 .in(RideOrder::getOrderStatus, List.of(OrderStatus.DISPATCHING, OrderStatus.ACCEPTED, OrderStatus.PICKING_UP, OrderStatus.IN_TRIP))
                 .orderByDesc(RideOrder::getId)
                 .last("limit 1"));
         if (latest != null) {
-            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, "An active order already exists");
+            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST,
+                    ServiceType.CARPOOL.equals(request.getServiceType())
+                            ? "您有正在进行的顺风车行程，行程结束后才能发布新的行程"
+                            : "您还有未结束的行程，请先完成当前订单");
         }
     }
 
@@ -1407,7 +1665,7 @@ public class OrderServiceImpl implements OrderService {
 
     private String buildDispatchRemark(String dispatchMode, String originalRemark) {
         String mode = StringUtils.hasText(dispatchMode) ? dispatchMode : "SMART";
-        String suffix = "SMART".equalsIgnoreCase(mode) ? "SMART dispatch" : "Manual dispatch";
+        String suffix = "SMART".equalsIgnoreCase(mode) ? "智能派单" : "手动派单";
         if (!StringUtils.hasText(originalRemark)) {
             return suffix;
         }
@@ -1442,6 +1700,19 @@ public class OrderServiceImpl implements OrderService {
 
     private BigDecimal safeDecimal(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal divideCarpoolAmount(BigDecimal total, int passengerCount) {
+        return safeDecimal(total)
+                .divide(BigDecimal.valueOf(Math.max(1, passengerCount)), 2, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private LocalDateTime carpoolLatestStartAt(RideOrder order) {
+        if (order.getCarpoolDepartureEndAt() != null) {
+            return order.getCarpoolDepartureEndAt().minusMinutes(30);
+        }
+        return order.getCarpoolDepartureAt().plusMinutes(30);
     }
 
     private BigDecimal toBigDecimal(Object value) {

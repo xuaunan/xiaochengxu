@@ -27,6 +27,24 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
         ensureSystemConfigValueText();
         ensureSystemNoticeDisplayTimeRange();
         ensureMessageReadColumns();
+        ensureCarpoolRequestTables();
+        ensureCarpoolOrderColumns();
+        ensureTencentMapConfig();
+    }
+
+    private void ensureTencentMapConfig() {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM t_system_config WHERE config_key = 'tencentMapKey'");
+            resultSet.next();
+            if (resultSet.getLong(1) == 0) {
+                statement.executeUpdate("INSERT INTO t_system_config (config_key, config_name, config_value, config_type, config_group, remark) "
+                        + "VALUES ('tencentMapKey', '腾讯地图Key', 'YOUR_TENCENT_MAP_KEY', 'STRING', '地图服务', "
+                        + "'网页端与小程序地图/路线服务的腾讯地图Key，保存后各端自动生效；可点击输入框后的测试按钮验证可用性')");
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to migrate t_system_config tencentMapKey", ex);
+        }
     }
 
     private void ensurePlatformUserMemberColumns() {
@@ -166,6 +184,60 @@ public class DatabaseMigrationConfig implements ApplicationRunner {
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("Failed to migrate t_message_record read columns", ex);
+        }
+    }
+
+    private void ensureCarpoolRequestTables() {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            if (!hasColumn(connection, "t_carpool_application", "request_id")) {
+                statement.executeUpdate("ALTER TABLE t_carpool_application ADD COLUMN request_id BIGINT DEFAULT NULL COMMENT '乘客需求ID' AFTER trip_id");
+                statement.executeUpdate("ALTER TABLE t_carpool_application ADD KEY idx_carpool_application_request (request_id)");
+            }
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS t_carpool_ride_request (
+                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                        passenger_user_id BIGINT NOT NULL,
+                        request_no VARCHAR(64) NOT NULL,
+                        start_name VARCHAR(255) NOT NULL,
+                        end_name VARCHAR(255) NOT NULL,
+                        depart_time DATETIME NOT NULL,
+                        passenger_count INT NOT NULL,
+                        accept_carpool TINYINT(1) NOT NULL DEFAULT 1,
+                        shared_amount DECIMAL(10,2) NOT NULL,
+                        baggage_rule VARCHAR(255) DEFAULT NULL,
+                        request_remark VARCHAR(255) DEFAULT NULL,
+                        status VARCHAR(20) NOT NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        UNIQUE KEY uk_carpool_request_no (request_no),
+                        KEY idx_carpool_request_passenger (passenger_user_id),
+                        KEY idx_carpool_request_depart_status (depart_time, status)
+                    ) COMMENT='carpool passenger requests'
+                    """);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to migrate carpool request tables", ex);
+        }
+    }
+
+    private void ensureCarpoolOrderColumns() {
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            addColumnIfMissing(connection, statement, "carpool_departure_at", "DATETIME DEFAULT NULL COMMENT '顺风车约定出发时间'");
+            addColumnIfMissing(connection, statement, "carpool_departure_end_at", "DATETIME DEFAULT NULL COMMENT '顺风车约定出发时间段结束时间'");
+            addColumnIfMissing(connection, statement, "carpool_passenger_count", "INT NOT NULL DEFAULT 1 COMMENT '顺风车乘车人数'");
+            addColumnIfMissing(connection, statement, "carpool_toll_amount", "DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '顺风车高速费'");
+            addColumnIfMissing(connection, statement, "carpool_toll_status", "VARCHAR(20) NOT NULL DEFAULT 'NONE' COMMENT '顺风车高速费确认状态'");
+            addColumnIfMissing(connection, statement, "carpool_toll_confirmed_at", "DATETIME DEFAULT NULL COMMENT '高速费确认时间'");
+            addColumnIfMissing(connection, statement, "driver_penalty_amount", "DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '车主未按时开始违约金'");
+            addColumnIfMissing(connection, statement, "driver_penalty_status", "VARCHAR(20) NOT NULL DEFAULT 'NONE' COMMENT '车主违约金状态'");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to migrate carpool order columns", ex);
+        }
+    }
+
+    private void addColumnIfMissing(Connection connection, Statement statement, String column, String definition) throws SQLException {
+        if (!hasColumn(connection, "t_ride_order", column)) {
+            statement.executeUpdate("ALTER TABLE t_ride_order ADD COLUMN " + column + " " + definition);
         }
     }
 

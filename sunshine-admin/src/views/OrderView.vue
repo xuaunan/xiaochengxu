@@ -135,7 +135,14 @@
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="statusForm.remark" type="textarea" :rows="3" maxlength="120" show-word-limit />
+          <el-input
+            v-model="statusForm.remark"
+            type="textarea"
+            :rows="3"
+            maxlength="120"
+            show-word-limit
+            :placeholder="`留空则不修改备注。当前备注：${statusRemarkPlaceholder}`"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -199,33 +206,6 @@
 
     <el-drawer v-model="detailVisible" title="订单详情" size="min(860px, 100vw)" destroy-on-close>
       <div v-if="detail.order" class="drawer-stack">
-        <div class="stat-grid">
-          <div class="stat-card">
-            <span>订单状态</span>
-            <strong>{{ getOrderStatusLabel(detail.order) }}</strong>
-          </div>
-          <div class="stat-card">
-            <span>支付状态</span>
-            <strong>{{ getOrderPayStatusLabel(detail.order) }}</strong>
-          </div>
-          <div class="stat-card">
-            <span>发票状态</span>
-            <strong>{{ getInvoiceStatusLabel(detail.order.invoiceStatus) }}</strong>
-          </div>
-          <div class="stat-card">
-            <span>行程时长</span>
-            <strong>{{ detail.runtime.elapsedText }}</strong>
-          </div>
-          <div class="stat-card">
-            <span>进度</span>
-            <strong>{{ detail.runtime.percent }}%</strong>
-          </div>
-          <div class="stat-card">
-            <span>行程状态</span>
-            <strong>{{ detail.runtime.phaseText }}</strong>
-          </div>
-        </div>
-
         <el-descriptions title="基础信息" :column="2" border>
           <el-descriptions-item label="订单号">{{ detail.order.orderNo }}</el-descriptions-item>
           <el-descriptions-item label="业务类型">{{ textOf(serviceTypeMap, detail.order.serviceType) }}</el-descriptions-item>
@@ -270,41 +250,11 @@
         </el-descriptions>
 
         <div>
-          <h4 class="sub-title">轨迹记录</h4>
-          <el-table v-if="detail.trackList?.length" class="detail-table" :data="detail.trackList" stripe>
-            <el-table-column label="上报时间" min-width="170">
-              <template #default="{ row }">{{ formatDateTime(row.reportedAt) }}</template>
-            </el-table-column>
-            <el-table-column prop="bizRole" label="角色" width="110" />
-            <el-table-column label="行驶进度" width="110">
-              <template #default="{ row }">{{ parseTraceRemark(row.remark).percentText }}</template>
-            </el-table-column>
-            <el-table-column label="已行驶" width="110">
-              <template #default="{ row }">{{ parseTraceRemark(row.remark).distanceText }}</template>
-            </el-table-column>
-            <el-table-column label="行驶时长" width="110">
-              <template #default="{ row }">{{ parseTraceRemark(row.remark).elapsedText }}</template>
-            </el-table-column>
-            <el-table-column label="等待/路况" min-width="150">
-              <template #default="{ row }">
-                {{ row.waitingRedLight ? (row.waitingText || '红灯等待中') : (row.trafficText || '实时轨迹') }}
-              </template>
-            </el-table-column>
-            <el-table-column label="等待秒数" width="110">
-              <template #default="{ row }">{{ row.currentWaitSeconds || row.waitSeconds || 0 }}s</template>
-            </el-table-column>
-          </el-table>
-          <div v-else class="empty-block">
-            <el-empty description="暂无轨迹数据：只有小程序在接驾或行程中上报定位后才会出现" />
-          </div>
-        </div>
-
-        <div>
           <h4 class="sub-title">支付记录</h4>
           <el-table v-if="detail.payments?.length" class="detail-table" :data="detail.payments" stripe>
             <el-table-column prop="payNo" label="支付单号" min-width="190" />
             <el-table-column prop="payChannel" label="渠道" width="130" />
-            <el-table-column label="Status" width="120">
+            <el-table-column label="状态" width="120">
               <template #default="{ row }">
                 <el-tag :type="getPayStatusType(row.payStatus)">{{ textOf(payStatusMap, row.payStatus) }}</el-tag>
               </template>
@@ -316,9 +266,7 @@
               <template #default="{ row }">{{ formatDateTime(row.displayTime) }}</template>
             </el-table-column>
           </el-table>
-          <div v-else class="empty-block">
-            <el-empty description="暂无支付记录" />
-          </div>
+          <div v-else class="empty-inline">暂无支付记录</div>
         </div>
 
         <div>
@@ -359,9 +307,7 @@
               </template>
             </el-table-column>
           </el-table>
-          <div v-else class="empty-block">
-            <el-empty description="暂无投诉记录" />
-          </div>
+          <div v-else class="empty-inline">暂无投诉记录</div>
         </div>
       </div>
     </el-drawer>
@@ -413,6 +359,9 @@ const statusForm = reactive({
   remark: ''
 })
 
+// 状态修改弹窗的备注占位（展示当前净备注，供参考；后端追加式保存，元数据块自动保留）
+const statusRemarkPlaceholder = ref('')
+
 const invoiceForm = reactive({
   orderId: null,
   orderNo: '',
@@ -426,24 +375,6 @@ const invoiceForm = reactive({
 const pendingComplaintCount = computed(() => (detail.value.complaints || []).filter((item) => item.handleStatus !== 'DONE').length)
 const detailCarpoolMeta = computed(() => parseCarpoolMeta(detail.value.order))
 const detailInternationalMeta = computed(() => parseInternationalMeta(detail.value.order))
-
-function parseTraceRemark(remark = '') {
-  const meta = `${remark || ''}`.split(';').reduce((result, part) => {
-    const [key, value] = part.split('=')
-    if (key && value !== undefined) {
-      result[key.trim()] = value.trim()
-    }
-    return result
-  }, {})
-  const elapsedSeconds = Number(meta.elapsed || 0)
-  const distanceKm = Number(meta.distance || 0)
-  const percent = Number(meta.percent)
-  return {
-    elapsedText: elapsedSeconds > 0 ? `${Math.round(elapsedSeconds / 60)} min` : '--',
-    distanceText: distanceKm > 0 ? `${distanceKm.toFixed(1)} km` : '--',
-    percentText: Number.isFinite(percent) ? `${Math.min(100, Math.max(0, Math.round(percent)))}%` : '--'
-  }
-}
 
 const runtimePercentFallbackMap = {
   DISPATCHING: 8,
@@ -520,8 +451,10 @@ function getTraceModeText(runtime = {}) {
   return '暂无轨迹'
 }
 
-function buildRuntimePhaseText(status, runtime = {}) {
+function buildRuntimePhaseText(status, runtime = {}, serviceType = '') {
   if (status === 'DISPATCHING' || status === 'CREATED') return '等待派单'
+  // 顺风车车主接单后需手动点击“开始接驾”，此阶段行程尚未开始
+  if (serviceType === 'CARPOOL' && status === 'ACCEPTED') return '车主待出发'
   if (status === 'ACCEPTED' || status === 'PICKING_UP') return '接驾中'
   if (status === 'IN_TRIP') return '行程中'
   if (status === 'FINISHED' || status === 'REFUNDED') return '已完成'
@@ -529,9 +462,10 @@ function buildRuntimePhaseText(status, runtime = {}) {
   return runtime.stateText || runtime.phaseText || (runtime.phase === 'trip' ? '行程中' : '接驾中')
 }
 
-function buildRuntimeDisplayText(status, runtime = {}, phaseText = '') {
+function buildRuntimeDisplayText(status, runtime = {}, phaseText = '', serviceType = '') {
   if (status === 'FINISHED' || status === 'REFUNDED') return '行程已完成'
   if (status === 'CANCELLED') return '订单已取消'
+  if (serviceType === 'CARPOOL' && status === 'ACCEPTED') return '车主已接单，等待出发'
   if (runtime.waitingRedLight) return runtime.waitingText || runtime.displayText || phaseText
   return runtime.displayText || runtime.waitingText || runtime.trafficText || phaseText
 }
@@ -593,20 +527,30 @@ async function fetchOrderRuntimeSnapshot(orderId) {
 
 function buildRuntimeBase(order = {}, runtime = {}) {
   const status = order.displayStatus || order.orderStatus || order.status || ''
+  const serviceType = order.serviceType || ''
+  const isCarpoolPending = serviceType === 'CARPOOL' && status === 'ACCEPTED'
   const isFinished = status === 'FINISHED' || status === 'REFUNDED'
   const isTerminal = isFinished || status === 'CANCELLED'
   const actualSeconds = Number(order.actualDurationMin || 0) * 60
-  const usedSeconds = Number(runtime.usedSeconds ?? runtime.elapsedSeconds ?? (isFinished ? actualSeconds : 0))
-  const phasePercent = clampPercent(runtime.percent ?? runtime.progressPercent ?? runtimePercentFallbackMap[status] ?? 0)
+  const usedSeconds = isCarpoolPending
+    ? 0
+    : Number(runtime.usedSeconds ?? runtime.elapsedSeconds ?? (isFinished ? actualSeconds : 0))
+  const phasePercent = isCarpoolPending
+    ? 10
+    : clampPercent(runtime.percent ?? runtime.progressPercent ?? runtimePercentFallbackMap[status] ?? 0)
   const percent = isFinished
     ? 100
     : status === 'CANCELLED'
       ? 0
       : phasePercent
-  const traveledDistanceKm = Number(runtime.traveledDistanceKm ?? runtime.distanceKm ?? (isFinished ? order.actualDistanceKm || order.estimatedDistanceKm || 0 : 0))
-  const remainDistanceKm = Number(runtime.remainDistanceKm ?? runtime.remainingDistanceKm ?? Math.max(0, Number(order.actualDistanceKm || order.estimatedDistanceKm || 0) - traveledDistanceKm))
-  const phaseText = buildRuntimePhaseText(status, runtime)
-  const displayText = buildRuntimeDisplayText(status, runtime, phaseText)
+  const traveledDistanceKm = isCarpoolPending
+    ? 0
+    : Number(runtime.traveledDistanceKm ?? runtime.distanceKm ?? (isFinished ? order.actualDistanceKm || order.estimatedDistanceKm || 0 : 0))
+  const remainDistanceKm = isCarpoolPending
+    ? Number(order.estimatedDistanceKm || runtime.remainDistanceKm || 0)
+    : Number(runtime.remainDistanceKm ?? runtime.remainingDistanceKm ?? Math.max(0, Number(order.actualDistanceKm || order.estimatedDistanceKm || 0) - traveledDistanceKm))
+  const phaseText = buildRuntimePhaseText(status, runtime, serviceType)
+  const displayText = buildRuntimeDisplayText(status, runtime, phaseText, serviceType)
   let waitingText = runtime.waitingText || ''
 
   if (isTerminal) {
@@ -624,12 +568,12 @@ function buildRuntimeBase(order = {}, runtime = {}) {
     usedSeconds,
     traveledDistanceKm,
     remainDistanceKm: isFinished ? 0 : remainDistanceKm,
-    elapsedText: `${Math.max(0, Math.round(usedSeconds / 60))} min`,
-    distanceText: `${traveledDistanceKm.toFixed(1)} km`,
-    remainingText: `${(isFinished ? 0 : remainDistanceKm).toFixed(1)} km`,
+    elapsedText: `${Math.max(0, Math.round(usedSeconds / 60))} 分钟`,
+    distanceText: `${traveledDistanceKm.toFixed(1)} 公里`,
+    remainingText: `${(isFinished ? 0 : remainDistanceKm).toFixed(1)} 公里`,
     phaseText,
     displayText,
-    traceModeText: getTraceModeText(runtime),
+    traceModeText: isCarpoolPending ? '暂无轨迹' : getTraceModeText(runtime),
     waitingText
   }
 }
@@ -731,11 +675,25 @@ function parseInternationalMeta(order = {}) {
 }
 
 function stripOrderMetaRemark(remark = '') {
-  return `${remark || ''}`
+  const parts = `${remark || ''}`
+    // 剥离各类 META 元数据块（展示层不显示，解析依赖保留在原始数据里）
     .replace(/\[CARPOOL_META\][\s\S]*?\[\/CARPOOL_META\]/g, '')
     .replace(/\[INTERNATIONAL_META\][\s\S]*?\[\/INTERNATIONAL_META\]/g, '')
     .replace(/\[INVOICE_META\][\s\S]*?\[\/INVOICE_META\]/g, '')
-    .trim()
+    .replace(/\[WEB_EXCLUSIVE_META\][\s\S]*?\[\/WEB_EXCLUSIVE_META\]/g, '')
+    .split('|')
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+  // 历史数据里同一段落被反复拼接过，这里按片段去重，只保留首次出现
+  const seen = new Set()
+  const unique = []
+  parts.forEach((part) => {
+    const key = part.replace(/\bSMART dispatch\b/g, '智能派单').replace(/\bManual dispatch\b/g, '手动派单')
+    if (seen.has(key)) return
+    seen.add(key)
+    unique.push(part)
+  })
+  return unique.join(' | ')
 }
 
 function normalizeDetailPayload(payload = {}, runtime = {}) {
@@ -781,14 +739,17 @@ function openStatusDialog(row) {
   currentOrderId.value = row.id
   statusForm.orderStatus = row.orderStatus || row.status
   statusForm.payStatus = row.payStatus || 'UNPAID'
-  statusForm.remark = row.remark || ''
+  // 只收集新增备注：整条旧备注不再回填/回传，避免"追加整条"导致备注翻倍污染
+  statusRemarkPlaceholder.value = stripOrderMetaRemark(row.remark) || '无备注'
+  statusForm.remark = ''
   statusVisible.value = true
 }
 
 async function submitStatus() {
   statusSubmitting.value = true
   try {
-    await http.post(`/admin/orders/${currentOrderId.value}/status`, { ...statusForm })
+    const remark = `${statusForm.remark || ''}`.trim()
+    await http.post(`/admin/orders/${currentOrderId.value}/status`, { ...statusForm, remark })
     ElMessage.success('订单状态已更新')
     statusVisible.value = false
     await refreshPageData()
@@ -1010,6 +971,16 @@ onUnmounted(() => {
 
 .empty-block {
   padding: 24px 0;
+}
+
+.empty-inline {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px dashed rgba(203, 213, 225, 0.9);
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
 }
 
 .pagination-wrap {

@@ -154,10 +154,38 @@ function formatPassengerRecord(item = {}) {
   return record
 }
 
+function formatPassengerRequest(item = {}) {
+  const statusMap = {
+    PUBLISHED: '等待车主接单',
+    MATCHED: '车主已接单，待你确认',
+    CONFIRMED: '双方已确认同行',
+    CANCELLED: '需求已取消',
+    FINISHED: '行程已完成'
+  }
+  const status = item.status || 'PUBLISHED'
+  return {
+    id: 'request-' + item.id,
+    requestId: item.id,
+    tripId: '',
+    role: 'request',
+    roleText: '乘客需求',
+    routeText: item.routeText || ((item.startName || '') + ' → ' + (item.endName || '')),
+    departTimeText: item.departTimeText || item.departTime || '',
+    priceText: formatPrice(item.sharedAmount),
+    statusText: statusMap[status] || '等待车主接单',
+    statusClassName: status === 'CONFIRMED' || status === 'FINISHED' ? 'success' : status === 'CANCELLED' ? 'danger' : status === 'MATCHED' ? 'waiting' : 'processing',
+    statusBucket: status === 'CONFIRMED' || status === 'FINISHED' ? 'upcoming' : status === 'CANCELLED' ? 'completed' : 'pending',
+    requestStatus: status,
+    passengerCount: toNumber(item.passengerCount, 1),
+    action: status === 'PUBLISHED' ? { type: 'cancelRequest', text: '取消需求' } : { type: 'requestStatus', text: '查看状态' }
+  }
+}
+
 function formatMyCarpool(payload = {}) {
   const ownerRecords = (payload.ownerRecords || []).map(formatOwnerRecord)
   const passengerRecords = (payload.passengerRecords || []).map(formatPassengerRecord)
-  const allList = ownerRecords.concat(passengerRecords)
+  const passengerRequests = (payload.passengerRequests || []).map(formatPassengerRequest)
+  const allList = ownerRecords.concat(passengerRecords, passengerRequests)
   return {
     summary: {
       ownerTripTotal: toNumber(payload.summary && payload.summary.ownerTripTotal),
@@ -169,6 +197,7 @@ function formatMyCarpool(payload = {}) {
     },
     ownerRecords,
     passengerRecords,
+    passengerRequests,
     allList
   }
 }

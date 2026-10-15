@@ -1,5 +1,5 @@
 <view class="welcome-page page-enter">
-  <image class="welcome-bg-image" src="/images/auth/passenger-welcome-hero.png" mode="aspectFill"></image>
+    <image class="welcome-bg-image" src="/images/auth/passenger-welcome-hero.png" mode="aspectFill"></image>
   <view class="welcome-bg-mask"></view>
 
   <view class="welcome-hero">

@@ -460,6 +460,14 @@
   line-height: 1.45;
 }
 
+.order-carpool-info {
+  margin-top: 8rpx;
+  color: #d97706;
+  font-size: 20rpx;
+  line-height: 1.4;
+  white-space: normal;
+}
+
 .order-card__bottom {
   margin-top: 12rpx;
 }

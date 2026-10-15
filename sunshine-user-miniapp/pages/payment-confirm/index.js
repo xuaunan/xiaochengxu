@@ -330,7 +330,7 @@ Page({
 
       this.redirectTimer = setTimeout(() => {
         this.redirectToDetail(paidOrder)
-      }, 2000)
+      }, 1500)
     } catch (error) {
       wx.hideLoading()
       this.setData({ processing: false })
@@ -346,6 +346,9 @@ Page({
   },
 
   redirectToDetail(order = this.lastPaidOrder) {
+    if (this.__redirectingToDetail) return
+    this.__redirectingToDetail = true
+
     const pages = getCurrentPages()
     const previousPage = pages[pages.length - 2]
 
@@ -356,18 +359,40 @@ Page({
       `${previousPage.orderId || ''}` === `${this.orderId}` &&
       typeof previousPage.applyRawOrder === 'function'
     ) {
-      previousPage.applyRawOrder(order, {
-        immediate: true
-      })
+      try {
+        previousPage.applyRawOrder(order, {
+          immediate: true
+        })
+      } catch (error) {
+        // 同步上一页数据失败不阻塞返回
+      }
+    }
+
+    if (pages.length > 1) {
       navigateBackSilky(this, {
         delta: 1,
-        selector: '.payment-page'
+        selector: '.payment-page',
+        fail: () => {
+          this.forceRedirectToDetail()
+        }
       })
       return
     }
 
+    this.forceRedirectToDetail()
+  },
+
+  forceRedirectToDetail() {
     redirectToSilky(this, {
-      url: `/pages/order-detail/index?id=${this.orderId}`
+      url: `/pages/order-detail/index?id=${this.orderId}`,
+      fail: () => {
+        wx.reLaunch({
+          url: `/pages/order-detail/index?id=${this.orderId}`,
+          fail: () => {
+            this.__redirectingToDetail = false
+          }
+        })
+      }
     }, {
       selector: '.payment-page'
     })

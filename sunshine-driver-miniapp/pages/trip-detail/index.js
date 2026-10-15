@@ -1,6 +1,6 @@
-const { fetchOrderDetail, fetchOrderRuntime, fetchOrders, finishOrder, pickupOrder, startOrder } = require('../../utils/api')
-const { ORDER_STATUS, getOrderStatusMeta, getServiceTypeMeta } = require('../../utils/constants')
-const { formatPrice, mapTripOrder, nextActionText, parseInternationalMeta } = require('../../utils/driver-store')
+const { fetchOrderDetail, fetchOrderRuntime, fetchOrders, finishOrder, payCarpoolPenalty, pickupOrder, setCarpoolToll, startOrder } = require('../../utils/api')
+const { ORDER_STATUS, SERVICE_TYPE, getOrderStatusMeta, getServiceTypeMeta } = require('../../utils/constants')
+const { formatPrice, mapTripOrder, nextActionText, parseCarpoolMeta, parseInternationalMeta } = require('../../utils/driver-store')
 const { createSimulation } = require('../../utils/trip-simulator')
 const { broadcastDriver, notifyDriver } = require('../../utils/notify')
 
@@ -17,6 +17,14 @@ function formatMetric(value, suffix, digits = 0, fallback = '--') {
 function firstText(...values) {
   const matched = values.find((value) => `${value || ''}`.trim())
   return matched === undefined ? '' : `${matched}`.trim()
+}
+
+function getCarpoolLatestStartAt(trip = {}) {
+  const start = trip.carpoolDepartureAt ? new Date(trip.carpoolDepartureAt).getTime() : NaN
+  const end = trip.carpoolDepartureEndAt ? new Date(trip.carpoolDepartureEndAt).getTime() : NaN
+  if (Number.isFinite(end)) return end - 30 * 60 * 1000
+  if (Number.isFinite(start)) return start + 30 * 60 * 1000
+  return NaN
 }
 
 function hasRuntimeRoute(runtime = {}) {
@@ -122,23 +130,20 @@ function buildDriveStatusView(trip = {}, runtime = {}, fallback = {}) {
       visualHint: '可在钱包查看入账与提现记录',
       progress: 100,
       state: 'finished',
-      facts: compactFacts([
-        { label: '本单金额', value: incomeText, tone: 'strong' },
-        { label: '行驶里程', value: traveledDistanceText },
-        { label: '行驶时长', value: elapsedText }
-      ])
+      facts: compactFacts([{ label: '本单金额', value: incomeText, tone: 'strong' }])
     }
   }
 
   if (trip.orderStatus === ORDER_STATUS.ACCEPTED) {
+    const isCarpool = trip.serviceType === SERVICE_TYPE.CARPOOL
     return {
-      sectionTitle: '接驾准备',
-      subtitle: '订单已接取',
-      description: '正在同步接驾状态，请稍候。',
-      badge: '准备出发',
-      visualType: 'approach',
-      visualTitle: '前往乘客上车点',
-      visualHint: '接驾状态确认后将自动开始导航',
+      sectionTitle: isCarpool ? '接驾准备' : '接驾准备',
+      subtitle: isCarpool ? '顺风车订单已接取' : '订单已接取',
+      description: isCarpool ? '请确认行程信息，准备好后点击开始接驾。' : '正在同步接驾状态，请稍候。',
+      badge: isCarpool ? '等待出发' : '准备出发',
+      visualType: isCarpool ? 'accepted' : 'approach',
+      visualTitle: isCarpool ? '确认后开始接驾' : '前往乘客上车点',
+      visualHint: isCarpool ? '乘客端会在你开始接驾后看到实时状态' : '接驾状态确认后将自动开始导航',
       progress: Math.max(12, progress),
       state: 'accepted',
       facts: compactFacts([
@@ -157,7 +162,7 @@ function buildDriveStatusView(trip = {}, runtime = {}, fallback = {}) {
       badge: '正在前往',
       visualType: 'approach',
       visualTitle: '前往乘客上车点',
-      visualHint: remainingDistanceText ? `距上车点约 ${remainingDistanceText}` : '到达后确认乘客上车',
+      visualHint: trip.serviceType === SERVICE_TYPE.CARPOOL ? '到达上车点后等待乘客确认上车' : (remainingDistanceText ? `距上车点约 ${remainingDistanceText}` : '到达后确认乘客上车'),
       progress: Math.max(24, progress),
       state: 'approach',
       facts: compactFacts([
@@ -174,12 +179,12 @@ function buildDriveStatusView(trip = {}, runtime = {}, fallback = {}) {
       subtitle: '行程进行中',
       description: runtimeText || firstText(fallback.trafficText, '车辆正在前往目的地。'),
       badge: '送达中',
-      visualType: 'trip',
+      visualType: trip.serviceType === SERVICE_TYPE.CARPOOL ? 'carpool-trip' : 'trip',
       visualTitle: '上车点 → 目的地',
-      visualHint: remainingDistanceText ? `剩余约 ${remainingDistanceText}` : '按导航继续行驶',
+      visualHint: trip.serviceType === SERVICE_TYPE.CARPOOL ? '按约定路线同行' : (remainingDistanceText ? `剩余约 ${remainingDistanceText}` : '按导航继续行驶'),
       progress: Math.max(42, progress),
       state: 'trip',
-      facts: compactFacts([
+      facts: trip.serviceType === SERVICE_TYPE.CARPOOL ? [] : compactFacts([
         { label: '行程进度', value: `${Math.max(42, progress)}%`, tone: 'strong' },
         { label: '已行驶', value: traveledDistanceText },
         { label: '已用时', value: elapsedText }
@@ -212,10 +217,36 @@ function asPlainObject(value) {
   return value
 }
 
+function formatCarpoolDateTime(value) {
+  const raw = `${value || ''}`.trim()
+  if (!raw) return ''
+  // 兼容 "2026,9,28,12,0"（LocalDateTime 数组序列化）与常规日期字符串
+  const parts = raw.split(',').map((item) => parseInt(item, 10))
+  if (parts.length >= 5 && parts.every((num) => !isNaN(num))) {
+    const pad = (num) => `${num}`.padStart(2, '0')
+    return `${parts[0]}-${pad(parts[1])}-${pad(parts[2])} ${pad(parts[3])}:${pad(parts[4])}`
+  }
+  return raw.replace('T', ' ').slice(0, 16)
+}
+
+function enrichCarpoolMeta(meta) {
+  if (!meta) return null
+  const segments = `${meta.summaryText || ''}`.split(' · ')
+  return {
+    ...meta,
+    timeText: segments[0] || '时间待确认',
+    passengerCountText: segments[1] || '1人',
+    luggageText: segments[2] || '无行李',
+    tollModeText: segments[3] || '高速费协商',
+    departureText: formatCarpoolDateTime(meta.departureAt) || '待确认'
+  }
+}
+
 function buildTripView(trip = {}, runtime = null) {
   const serviceTypeMeta = getServiceTypeMeta(trip.serviceType)
   const statusMeta = getOrderStatusMeta(trip.orderStatus)
   const internationalMeta = parseInternationalMeta(trip)
+  const carpoolMeta = enrichCarpoolMeta(parseCarpoolMeta(trip))
   const fallback = createSimulation(trip)
   const cachedRuntime = getApp().getOrderRuntimeCache ? getApp().getOrderRuntimeCache(trip.id) : null
   const activeRuntime = mergeRuntimeForDisplay(runtime, cachedRuntime)
@@ -236,6 +267,7 @@ function buildTripView(trip = {}, runtime = null) {
     serviceTypeClassName: serviceTypeMeta.className,
     fareText: formatPrice(trip.actualAmount || trip.payableAmount || trip.estimatedAmount, trip.currencyCode),
     passengerText: internationalMeta ? internationalMeta.contactText : `乘客 ${trip.userId || '--'}`,
+    carpoolMeta,
     internationalMeta,
     statusText: statusMeta.label,
     statusTagType: statusMeta.tagType,
@@ -262,6 +294,9 @@ Page({
     loadError: '',
     updatingStatus: false,
     actionText: '状态已完结',
+    tollAmountInput: '',
+    savingCarpoolToll: false,
+    payingCarpoolPenalty: false,
     noticePopup: {
       visible: false
     }
@@ -360,7 +395,9 @@ Page({
 
       this.setData({
         trip: tripView,
-        actionText: nextActionText(trip.orderStatus),
+        actionText: trip.serviceType === SERVICE_TYPE.CARPOOL && trip.orderStatus === ORDER_STATUS.PICKING_UP
+          ? '等待乘客确认上车'
+          : nextActionText(trip.orderStatus),
         loadError: ''
       })
 
@@ -415,8 +452,29 @@ Page({
     try {
       const previousStatus = trip.orderStatus
       if (trip.orderStatus === ORDER_STATUS.ACCEPTED) {
+        if (trip.serviceType === SERVICE_TYPE.CARPOOL) {
+          const now = Date.now()
+          const start = trip.carpoolDepartureAt ? new Date(trip.carpoolDepartureAt).getTime() : NaN
+          const latest = getCarpoolLatestStartAt(trip)
+          if (Number.isFinite(start) && now < start) {
+            wx.showToast({ title: '尚未到约定出发时间，暂不能开始接驾', icon: 'none' })
+            return
+          }
+          if (Number.isFinite(latest) && now >= latest) {
+            wx.showToast({ title: '已超过可开始接驾时间，订单将自动取消', icon: 'none' })
+            return
+          }
+        }
+        if (trip.serviceType === SERVICE_TYPE.CARPOOL && trip.carpoolTollStatus === 'PENDING') {
+          wx.showToast({ title: '等待乘客确认高速费后再开始', icon: 'none' })
+          return
+        }
         await startOrder(trip.id)
       } else if (trip.orderStatus === ORDER_STATUS.PICKING_UP) {
+        if (trip.serviceType === SERVICE_TYPE.CARPOOL) {
+          wx.showToast({ title: '请等待乘客在乘客端确认上车', icon: 'none' })
+          return
+        }
         await pickupOrder(trip.id)
       } else if (trip.orderStatus === ORDER_STATUS.IN_TRIP) {
         const runtime = this.currentTripRuntime || {}
@@ -442,6 +500,47 @@ Page({
       })
     } finally {
       this.setData({ updatingStatus: false })
+    }
+  },
+
+  onCarpoolTollInput(e) {
+    this.setData({ tollAmountInput: e.detail.value })
+  },
+
+  async submitCarpoolToll() {
+    const trip = this.data.trip
+    const amount = Number(this.data.tollAmountInput)
+    if (!trip || trip.serviceType !== SERVICE_TYPE.CARPOOL || trip.orderStatus !== ORDER_STATUS.ACCEPTED) return
+    if (!Number.isFinite(amount) || amount <= 0) {
+      wx.showToast({ title: '请输入大于0的高速费金额', icon: 'none' })
+      return
+    }
+    if (this.data.savingCarpoolToll) return
+    this.setData({ savingCarpoolToll: true })
+    try {
+      await setCarpoolToll(trip.id, Number(amount.toFixed(2)))
+      this.setData({ tollAmountInput: '' })
+      wx.showToast({ title: '已提交，等待乘客确认', icon: 'none', duration: 2500 })
+      await this.loadTrip(trip.id)
+    } catch (error) {
+      wx.showToast({ title: (error && error.message) || '高速费提交失败', icon: 'none' })
+    } finally {
+      this.setData({ savingCarpoolToll: false })
+    }
+  },
+
+  async payCarpoolPenalty() {
+    const trip = this.data.trip
+    if (!trip || trip.driverPenaltyStatus !== 'DUE' || this.data.payingCarpoolPenalty) return
+    this.setData({ payingCarpoolPenalty: true })
+    try {
+      await payCarpoolPenalty(trip.id)
+      wx.showToast({ title: '违约金已缴纳', icon: 'success' })
+      await this.loadTrip(trip.id)
+    } catch (error) {
+      wx.showToast({ title: (error && error.message) || '缴纳失败，请先确认钱包余额', icon: 'none' })
+    } finally {
+      this.setData({ payingCarpoolPenalty: false })
     }
   },
 

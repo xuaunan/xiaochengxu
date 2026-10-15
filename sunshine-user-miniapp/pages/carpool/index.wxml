@@ -1,5 +1,9 @@
 <view class="page-shell safe-bottom">
-  <view class="page-content carpool-page page-enter">
+  <view wx:if="{{checkingOngoing}}" class="carpool-loading">
+    <view class="carpool-loading__spinner"></view>
+    <view class="carpool-loading__text">正在查询您的顺风车行程…</view>
+  </view>
+  <view wx:else class="page-content carpool-page page-enter">
     <view class="carpool-hero">
       <image class="hero-bg" src="/images/hero/trip-carpool-banner.png" mode="aspectFill"></image>
       <view class="hero-header">
@@ -29,6 +33,7 @@
       </view>
     </view>
 
+    <block wx:if="{{!ongoingOrder}}">
     <view class="carpool-panel">
       <view class="module-heading">
         <view class="section-title">行程发布</view>
@@ -173,6 +178,43 @@
     <button class="primary-button confirm-order-button" hover-class="button-hover" bindtap="confirmOrder" disabled="{{navigating}}">
       确认订单
     </button>
+    </block>
+
+    <block wx:else>
+    <view class="carpool-panel ongoing-panel">
+      <view class="module-heading">
+        <view class="section-title">当前行程</view>
+        <view class="section-subtitle">您有正在进行的顺风车行程</view>
+      </view>
+
+      <view class="ongoing-card">
+        <view class="ongoing-card__head">
+          <view class="ongoing-status">{{ongoingOrder.statusText}}</view>
+          <view class="ongoing-price">{{ongoingOrder.amountText}}</view>
+        </view>
+
+        <view class="ongoing-route">
+          <view class="ongoing-route__row">
+            <view class="address-dot address-dot--start"></view>
+            <view class="ongoing-route__name">{{ongoingOrder.startName}}</view>
+          </view>
+          <view class="ongoing-route__divider"></view>
+          <view class="ongoing-route__row">
+            <view class="address-dot address-dot--end"></view>
+            <view class="ongoing-route__name">{{ongoingOrder.endName}}</view>
+          </view>
+        </view>
+
+        <view class="ongoing-order-no" wx:if="{{ongoingOrder.orderNo}}">订单号 {{ongoingOrder.orderNo}}</view>
+
+        <button class="primary-button ongoing-detail-button" hover-class="button-hover" bindtap="openOngoingDetail">
+          查看行程详情
+        </button>
+      </view>
+    </view>
+
+    <view class="ongoing-tip">行程结束后才能发布新的顺风车行程</view>
+    </block>
   </view>
 
   <view wx:if="{{noteModalVisible}}">

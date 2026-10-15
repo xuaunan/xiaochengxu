@@ -78,6 +78,7 @@
           <view class="order-status order-status--{{item.statusTag}}">{{item.statusText}}</view>
         </view>
         <view class="order-route">{{item.startName}} → {{item.endName}}</view>
+        <view class="order-carpool-info" wx:if="{{item.serviceTypeKey === 'carpool' && item.orderInfoText}}">{{item.orderInfoText}}</view>
         <view class="order-card__bottom">
           <view class="order-meta">
             <view class="order-meta__item">

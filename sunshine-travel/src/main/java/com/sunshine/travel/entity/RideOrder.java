@@ -47,6 +47,14 @@ public class RideOrder extends BaseEntity {
     private String refundReason;
     private LocalDateTime refundedAt;
     private LocalDateTime acceptedAt;
+    private LocalDateTime carpoolDepartureAt;
+    private LocalDateTime carpoolDepartureEndAt;
+    private Integer carpoolPassengerCount;
+    private BigDecimal carpoolTollAmount;
+    private String carpoolTollStatus;
+    private LocalDateTime carpoolTollConfirmedAt;
+    private BigDecimal driverPenaltyAmount;
+    private String driverPenaltyStatus;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
     private LocalDateTime paidAt;

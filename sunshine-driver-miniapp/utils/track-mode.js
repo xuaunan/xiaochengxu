@@ -37,6 +37,10 @@ function getCurrentTrackMode() {
   const settings = app && app.globalData && app.globalData.driverStore
     ? app.globalData.driverStore.settings || {}
     : {}
+  // 定位模式=真实定位时，行程轨迹强制走真实 GPS（乘客端同步司机真实位置）
+  if (settings.locationMode === TRACK_MODE.REAL) {
+    return TRACK_MODE.REAL
+  }
   return normalizeTrackMode(settings.trackMode)
 }
 

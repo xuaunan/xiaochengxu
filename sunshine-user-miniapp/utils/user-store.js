@@ -17,7 +17,8 @@ const PAYMENT_SYNC_GUARD_MS = 15000
 const CARPOOL_META_TAG = 'CARPOOL_META'
 const INTERNATIONAL_META_TAG = 'INTERNATIONAL_META'
 const INVOICE_META_TAG = 'INVOICE_META'
-const ORDER_META_TAGS = [CARPOOL_META_TAG, INTERNATIONAL_META_TAG, INVOICE_META_TAG]
+const WEB_EXCLUSIVE_META_TAG = 'WEB_EXCLUSIVE_META'
+const ORDER_META_TAGS = [CARPOOL_META_TAG, INTERNATIONAL_META_TAG, INVOICE_META_TAG, WEB_EXCLUSIVE_META_TAG]
 
 function toNumber(value, fallback = 0) {
   const next = Number(value)
@@ -85,7 +86,7 @@ function stripSystemDispatchRemark(text = '') {
   return `${text || ''}`
     .split('|')
     .map((item) => item.trim())
-    .filter((item) => item && !/^(SMART|Manual)\s+dispatch$/i.test(item))
+    .filter((item) => item && !/^(SMART dispatch|Manual dispatch|智能派单|手动派单)$/i.test(item))
     .join(' | ')
 }
 
@@ -122,7 +123,7 @@ function getCarpoolMetaFromOrder(order = {}) {
   if (order.serviceType !== SERVICE_TYPE.CARPOOL) return null
 
   const rawMeta = parseEmbeddedMeta(order.remark)
-  const passengerCount = Math.max(1, toNumber(order.passengerCount || (rawMeta && rawMeta.passengerCount), 1))
+  const passengerCount = Math.max(1, toNumber(order.carpoolPassengerCount || order.passengerCount || (rawMeta && rawMeta.passengerCount), 1))
   const metaOriginalAmount = toNumber(rawMeta && rawMeta.originalAmount, 0)
   const metaDiscountAmount = toNumber(rawMeta && rawMeta.discountAmount, 0)
   const metaPayableAmount = toNumber(rawMeta && rawMeta.payableAmount, 0)
@@ -149,7 +150,13 @@ function getCarpoolMetaFromOrder(order = {}) {
     hasLuggage: rawMeta ? rawMeta.hasLuggage : '',
     luggageText: getCarpoolLuggageLabel(rawMeta && rawMeta.hasLuggage),
     tollMode: rawMeta ? rawMeta.tollMode : '',
-    tollModeText: getCarpoolTollLabel(rawMeta && rawMeta.tollMode),
+    tollModeText: order.carpoolTollStatus === 'PENDING'
+      ? `待确认 ${formatPrice(order.carpoolTollAmount, order.currencyCode)}`
+      : order.carpoolTollStatus === 'CONFIRMED'
+        ? `已确认 ${formatPrice(order.carpoolTollAmount, order.currencyCode)}`
+        : order.carpoolTollStatus === 'REJECTED'
+          ? '乘客拒绝'
+          : '无高速费',
     originalAmount,
     discountAmount,
     payableAmount,
@@ -1195,13 +1202,19 @@ function buildComplaintRecord(order, content) {
 function parseReviewFromEvaluation(order) {
   const raw = `${order.evaluationStatus || ''}`
   if (!raw.startsWith('DONE:')) return null
-  const [, scoreText, ...contentParts] = raw.split(':')
+  // 新格式: DONE:分数:评价时间戳(毫秒):内容；旧格式: DONE:分数:内容（回退用订单时间）
+  const parts = raw.split(':')
+  const hasEvaluationAt = parts.length >= 4 && /^\d{13}$/.test(parts[2])
+  const content = (hasEvaluationAt ? parts.slice(3) : parts.slice(2)).join(':') || '乘客未填写文字评价'
+  const createdAt = hasEvaluationAt
+    ? formatDateTime(Number(parts[2]))
+    : formatDateTime(order.updatedAt || order.finishedAt || order.createdAt || new Date())
   return {
     id: `review-${order.id}`,
-    score: toNumber(scoreText, 5),
+    score: toNumber(parts[1], 5),
     orderNo: order.orderNo,
-    content: contentParts.join(':') || '乘客未填写文字评价',
-    createdAt: formatDateTime(order.updatedAt || order.finishedAt || order.createdAt || new Date()),
+    content,
+    createdAt,
     serviceTypeText: getServiceLabel(order.serviceType)
   }
 }

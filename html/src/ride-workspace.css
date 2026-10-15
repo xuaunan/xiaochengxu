@@ -1,0 +1,1275 @@
+/* Desktop ride surfaces only. Portal and other workspaces keep their design. */
+@media (min-width: 1100px) {
+  /* Keep the desktop workbench frame and navigation consistent across every tab. */
+  .dashboard-shell.dashboard-shell--workspace {
+    --workspace-line: #e4e8ec;
+    --workspace-muted: #73808d;
+    width: min(1760px, 100%);
+    max-width: 1760px;
+    grid-template-columns: 206px minmax(0, 1fr);
+    gap: 24px;
+    padding: 20px 28px;
+    align-items: start;
+    letter-spacing: 0;
+  }
+  .dashboard-shell--workspace > .dashboard-main { min-width: 0; width: 100%; margin-left: 0; }
+  .dashboard-shell--workspace .dashboard-view-stage { width: 100%; animation: none; transform: none; }
+  .dashboard-shell--workspace .side-nav {
+    position: sticky;
+    top: 20px;
+    left: auto;
+    width: 100%;
+    height: calc(100vh - 40px);
+    min-height: 680px;
+    padding: 20px 14px;
+    border-radius: 16px;
+    background: #ffffffed;
+    box-shadow: 0 4px 24px #28333e06;
+  }
+  .dashboard-shell--workspace .brand-mark { height: 94px; min-height: 94px; margin-bottom: 18px; }
+  .dashboard-shell--workspace .nav-tabs { gap: 6px; }
+  .dashboard-shell--workspace .nav-tabs > button {
+    min-height: 42px;
+    padding: 10px 13px;
+    border-radius: 8px;
+    color: #53616e;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: none;
+  }
+  .dashboard-shell--workspace .nav-tabs > button:hover {
+    color: #26323d;
+    background: #f4f7f8;
+    border-color: #e4e8ec;
+  }
+  .dashboard-shell--workspace .nav-tabs > button.active {
+    color: #a84c00;
+    background: linear-gradient(135deg, #fff4ea 0%, #ffe5d1 100%);
+    border-color: #ffbf8d;
+    box-shadow: 0 8px 18px #ff7a001f;
+  }
+  .dashboard-shell--workspace .nav-tabs > button.active .nav-tab-icon { color: #b95a09; }
+  .dashboard-shell--workspace .dashboard-header {
+    min-height: 76px;
+    padding: 16px 22px;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  .dashboard-shell--workspace .dashboard-header h1 { font-size: 22px; font-weight: 600; }
+  .dashboard-shell--workspace .dashboard-header .section-kicker { color: #73808d; font-weight: 500; }
+  /* 顶部标题栏吸顶：滚动时固定在工作台顶部，不随页面滚动 */
+  .dashboard-shell--workspace .dashboard-header,
+  .dashboard-shell--ride-workspace .dashboard-header {
+    position: sticky;
+    top: 20px;
+    z-index: 40;
+    background: linear-gradient(135deg, rgba(255, 255, 255, .97), rgba(255, 250, 245, .95));
+    backdrop-filter: blur(14px) saturate(1.16);
+  }
+
+  .dashboard-shell.dashboard-shell--ride-workspace {
+    --workspace-line: #e4e8ec;
+    --workspace-muted: #73808d;
+    width: min(1760px, 100%);
+    max-width: 1760px;
+    grid-template-columns: 206px minmax(0, 1fr);
+    gap: 24px;
+    padding: 20px 28px;
+    align-items: start;
+    letter-spacing: 0;
+  }
+  .dashboard-shell.dashboard-shell--ride-workspace > .dashboard-main {
+    min-width: 0;
+    width: 100%;
+    margin-left: 0;
+  }
+  .dashboard-shell--ride-workspace .dashboard-view-stage { width: 100%; }
+  .dashboard-shell--ride-workspace .side-nav {
+    position: sticky;
+    top: 20px;
+    left: auto;
+    width: 100%;
+    height: calc(100vh - 40px);
+    min-height: 680px;
+    border-radius: 16px;
+    padding: 20px 14px;
+    box-shadow: 0 4px 24px #28333e06;
+    background: #ffffffed;
+  }
+  .dashboard-shell--ride-workspace .brand-mark { height: 94px; min-height: 94px; margin-bottom: 18px; }
+  .dashboard-shell--ride-workspace .nav-tabs { gap: 6px; }
+  .dashboard-shell--ride-workspace .nav-tabs > button {
+    min-height: 42px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 13px;
+    box-shadow: none;
+  }
+  .dashboard-shell--ride-workspace .dashboard-header {
+    min-height: 76px;
+    padding: 16px 22px;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  .dashboard-shell--ride-workspace .dashboard-header h1 { font-size: 22px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .dashboard-header .section-kicker { color: #73808d; font-weight: 500; }
+  .dashboard-shell--ride-workspace .dashboard-view-stage { animation: none; transform: none; }
+  .dashboard-shell--ride-workspace :is(.booking-card, .active-ride-card, .driver-queue-card) :is(p, small, label, button) { letter-spacing: 0; }
+
+  /* The form never covers the map; both keep useful desktop dimensions. */
+  .dashboard-shell--ride-workspace .dashboard-grid.ride-workbench.real-ride,
+  .dashboard-shell--ride-workspace .dashboard-grid.ride-workbench.real-ride.has-active-ride {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 370px;
+    grid-template-rows: auto;
+    width: 100%;
+    min-height: 0;
+    gap: 18px;
+    align-items: stretch;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride > .city-map {
+    position: sticky;
+    top: 20px;
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: max(620px, calc(100vh - 164px));
+    min-height: 620px;
+    max-height: 920px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #d9e1e5;
+    border-radius: 12px;
+    box-shadow: none;
+    overflow: hidden;
+  }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride > :is(.booking-card, .active-ride-card) {
+    position: relative;
+    inset: auto;
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    padding: 22px;
+    margin: 0;
+    border: 1px solid var(--workspace-line);
+    border-radius: 12px;
+    box-shadow: none;
+    background: #fff;
+    overflow: visible;
+    transform: none;
+    backdrop-filter: none;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride > :is(.booking-card, .active-ride-card)::before,
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride > :is(.booking-card, .active-ride-card)::after { display: none; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .city-map.map-only :is(.miniapp-sync-shell, .miniapp-sync-map) {
+    width: 100%; height: 100%; min-height: 100%; margin: 0; padding: 0; border: 0; border-radius: 0;
+  }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .map-topline {
+    left: 16px; right: auto; top: 16px; max-width: calc(100% - 32px);
+    padding: 9px 12px; min-height: 38px; border-radius: 8px;
+    background: #fffffff0; box-shadow: 0 2px 8px #24303c0d;
+  }
+  .dashboard-shell--ride-workspace .ride-workbench .map-topline small { font-weight: 400; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .map-bottomline {
+    left: 16px; right: 68px; bottom: 16px; min-height: 38px;
+    border-radius: 8px; background: #fffffff0; padding: 8px 12px; box-shadow: 0 2px 8px #24303c0d;
+  }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .map-follow-vehicle { right: 16px; bottom: 16px; width: 38px; height: 38px; }
+  .dashboard-shell--ride-workspace .ride-workbench .miniapp-sync-brand { display: none; }
+  .dashboard-shell--ride-workspace .ride-workbench :is(.card-head, .active-ride-head) { margin: 0; align-items: flex-start; }
+  .dashboard-shell--ride-workspace .ride-workbench :is(.card-head h2, .active-ride-head h2) { font-size: 21px; font-weight: 600; line-height: 1.5; margin: 3px 0 0; }
+  .dashboard-shell--ride-workspace .ride-workbench .section-kicker { font-size: 11px; font-weight: 500; color: var(--workspace-muted); }
+  .dashboard-shell--ride-workspace .ride-workbench .price-pill { background: #f2f5f6; color: #24303c; border-radius: 8px; padding: 8px 10px; font-weight: 600; font-size: 15px; }
+  .dashboard-shell--ride-workspace .booking-route-stack { gap: 12px; margin: 0; }
+  .dashboard-shell--ride-workspace .address-point-field { min-height: 77px; padding: 12px; border-radius: 8px; background: #f7f9fa; box-shadow: none; }
+  .dashboard-shell--ride-workspace .address-point-field strong { font-size: 14px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .address-point-field small { font-size: 11px; font-weight: 400; }
+  .dashboard-shell--ride-workspace .address-swap-button { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #fff; color: #53616e; box-shadow: 0 2px 8px #24303c10; }
+  .dashboard-shell--ride-workspace .booking-estimate-head { display: none; }
+  .dashboard-shell--ride-workspace .fare-grid { margin: 0; gap: 0; padding: 0 0 16px; border-bottom: 1px solid var(--workspace-line); }
+  .dashboard-shell--ride-workspace .fare-grid .mini-stat { min-height: 42px; padding: 0 8px; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .dashboard-shell--ride-workspace .fare-grid .mini-stat:first-child { padding-left: 0; }
+  .dashboard-shell--ride-workspace .fare-grid .mini-stat + .mini-stat { border-left: 1px solid var(--workspace-line); }
+  .dashboard-shell--ride-workspace .fare-grid .mini-stat strong { font-size: 16px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .fare-grid .mini-stat span { color: var(--workspace-muted); font-weight: 400; }
+  .dashboard-shell--ride-workspace .car-card-strip { gap: 10px; margin: 0; }
+  .dashboard-shell--ride-workspace .booking-car-card { min-height: 76px; padding: 12px; border-radius: 8px; background: #fff; box-shadow: none; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; }
+  .dashboard-shell--ride-workspace .booking-car-card.is-selected { border-color: #f69b4d; background: #fff8f1; box-shadow: 0 0 0 1px #f69b4d; }
+  .dashboard-shell--ride-workspace .booking-car-thumb { width: 36px; height: 40px; background: none; border: 0; box-shadow: none; }
+  .dashboard-shell--ride-workspace .booking-car-copy strong { font-size: 14px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .booking-car-copy small { font-size: 11px; font-weight: 400; line-height: 1.6; }
+  .dashboard-shell--ride-workspace .booking-car-price { font-size: 13px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .booking-fee-breakdown { display: grid; margin: 0; padding: 12px 0; border-block: 1px solid var(--workspace-line); background: none; gap: 8px; }
+  .dashboard-shell--ride-workspace .booking-fee-breakdown > span { padding: 0; border: 0; background: none; font-size: 12px; font-weight: 500; }
+  .dashboard-shell--ride-workspace .booking-fee-breakdown small { color: var(--workspace-muted); font-weight: 400; }
+  .dashboard-shell--ride-workspace .ride-workbench .booking-actions { position: sticky; inset: auto; bottom: -6px; z-index: 3; margin: auto 0 0; padding: 10px 0 2px; background: #fff; box-shadow: none; border: 0; backdrop-filter: none; gap: 8px; }
+  .dashboard-shell--ride-workspace .ride-workbench :is(.solid-button, .ghost-button) { min-height: 40px; border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: none; transform: none !important; }
+  .dashboard-shell--ride-workspace .address-search-panel { margin: 0; padding: 12px; border-radius: 8px; background: #f8fafb; box-shadow: none; }
+  .dashboard-shell--ride-workspace .address-search-head { flex-wrap: wrap; }
+  .dashboard-shell--ride-workspace .address-search-head small { display: none; }
+  .dashboard-shell--ride-workspace .address-candidate-list { max-height: 280px; overflow: auto; }
+  .dashboard-shell--ride-workspace .address-candidate-main { min-width: 0; }
+  .dashboard-shell--ride-workspace .address-candidate-main em { display: none; }
+  .dashboard-shell--ride-workspace .address-history-tools { flex-wrap: wrap; }
+  .dashboard-shell--ride-workspace .active-ride-head p { margin: 8px 0 0; font-size: 12px; font-weight: 400; line-height: 1.75; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-route-line { grid-template-columns: 1fr; gap: 16px; margin: 0; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-route-line > div { padding: 0; min-height: 40px; background: none; border-radius: 0; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-route-line strong { font-size: 14px; font-weight: 500; line-height: 1.65; white-space: normal; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-route-line small { font-weight: 400; }
+  .dashboard-shell--ride-workspace .active-ride-metrics { margin: 0; padding: 16px 0; border-block: 1px solid var(--workspace-line); }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-ride-metrics .mini-stat { min-height: 48px; padding: 0; border: 0; background: none; box-shadow: none; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-ride-metrics .mini-stat span { font-size: 11px; font-weight: 400; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-ride-metrics .mini-stat strong { font-size: 16px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .ride-progress-panel { background: none; border: 0; padding: 0; margin: 0; }
+  .dashboard-shell--ride-workspace .ride-progress-panel p { font-weight: 400; font-size: 12px; line-height: 1.7; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-driver-card { margin: 0; padding: 14px; border-radius: 8px; background: #f5f8fa; border: 0; }
+  .dashboard-shell--ride-workspace .active-driver-card span { font-size: 12px; line-height: 1.65; }
+  .dashboard-shell--ride-workspace .active-driver-card .driver-contact-link { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: #167969; background: #fff; flex-shrink: 0; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-safety-actions { margin: 0; gap: 4px; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-safety-actions button { padding: 10px 2px; font-size: 11px; font-weight: 500; border: 0; background: none; border-radius: 6px; color: #465664; white-space: nowrap; }
+  .dashboard-shell--ride-workspace .active-safety-actions button:hover { background: #f2f5f7; }
+  .dashboard-shell--ride-workspace .active-timeline { margin: 0; padding-top: 14px; border-top: 1px solid var(--workspace-line); }
+  .dashboard-shell--ride-workspace .active-timeline span { font-size: 11px; }
+  .dashboard-shell--ride-workspace .ride-workbench.real-ride .active-ride-actions { margin: auto 0 0; gap: 8px; display: flex; flex-wrap: wrap; justify-content: flex-start; }
+  .dashboard-shell--ride-workspace .dispatch-status-banner { position: relative; margin: 0; padding: 16px; border-radius: 12px; background: linear-gradient(120deg, #fff5ea 0%, #fffdfa 62%, #f2fbf8 100%); border: 1px solid rgba(255, 158, 70, .22); overflow: hidden; }
+  .dashboard-shell--ride-workspace .dispatch-status-banner::after { content: ''; position: absolute; top: -46px; right: -34px; width: 132px; height: 132px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 158, 70, .13) 0%, rgba(255, 158, 70, 0) 68%); pointer-events: none; }
+  .dashboard-shell--ride-workspace .dispatch-status-banner > div:last-child { position: relative; z-index: 1; }
+  .dashboard-shell--ride-workspace .dispatch-status-banner > div:last-child strong { display: flex; align-items: center; font-size: 15px; font-weight: 600; line-height: 1.6; color: #33302b; }
+  .dashboard-shell--ride-workspace .dispatch-status-banner small { font-weight: 400; color: #8a8f98; }
+  .dashboard-shell--ride-workspace .dispatch-count-ring { width: 50px; height: 50px; flex: 0 0 50px; }
+  .dashboard-shell--ride-workspace .dispatch-count-ring strong { color: #d96a08; }
+  .dashboard-shell--ride-workspace .dispatch-dots { display: inline-flex; align-items: flex-end; gap: 3px; margin-left: 6px; height: 12px; }
+  .dashboard-shell--ride-workspace .dispatch-dots i { width: 4px; height: 4px; border-radius: 50%; background: #ff9e46; animation: dispatchDotBounce 1.2s ease-in-out infinite; }
+  .dashboard-shell--ride-workspace .dispatch-dots i:nth-child(2) { animation-delay: .15s; }
+  .dashboard-shell--ride-workspace .dispatch-dots i:nth-child(3) { animation-delay: .3s; }
+
+  /* Driver operations: one status bar, one current task, one dispatch queue. */
+  .dashboard-shell--ride-workspace .driver-workspace { display: grid; gap: 18px; }
+  .dashboard-shell--ride-workspace .driver-workspace-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 24px; border: 1px solid var(--workspace-line); border-radius: 14px; background: linear-gradient(120deg, #fff 55%, #fff7ef 100%); box-shadow: 0 10px 26px rgba(31, 48, 61, .05); }
+  .dashboard-shell--ride-workspace .driver-workspace-status { min-width: 0; }
+  .dashboard-shell--ride-workspace .driver-workspace-status h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 7px; font-size: 20px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .driver-workspace-status p { font-size: 12px; color: #73808d; margin: 0; font-weight: 400; }
+  .driver-status-dot { width: 9px; height: 9px; border-radius: 50%; background: #97a1ab; }
+  .driver-status-dot.is-online { background: #16a085; box-shadow: 0 0 0 4px #16a08515; }
+  .dashboard-shell--ride-workspace .driver-workspace-top .driver-switch { margin: 0; padding: 4px; border-radius: 8px; width: 228px; flex-shrink: 0; background: #f2f5f7; }
+  .dashboard-shell--ride-workspace .driver-switch button { font-size: 13px; min-height: 36px; padding: 8px 12px; border-radius: 6px; font-weight: 500; box-shadow: none; }
+  .dashboard-shell--ride-workspace .driver-workspace-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 0; }
+  .dashboard-shell--ride-workspace .driver-workspace-stats .metric { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 18px; background: #fff; border: 1px solid var(--workspace-line); box-shadow: 0 8px 20px rgba(31, 48, 61, .04); border-radius: 12px; }
+  .dashboard-shell--ride-workspace .driver-workspace-stats .metric strong { font-size: 22px; font-weight: 700; letter-spacing: -.01em; order: 2; }
+  .dashboard-shell--ride-workspace .driver-workspace-stats .metric span { font-size: 12px; font-weight: 400; color: #73808d; order: 1; }
+  .dashboard-shell--ride-workspace .driver-dispatch-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: stretch; }
+  .dashboard-shell--ride-workspace .driver-dispatch-map { min-width: 0; position: relative; }
+  .dashboard-shell--ride-workspace .driver-dispatch-map > .city-map {
+    height: clamp(520px, calc(100vh - 290px), 650px);
+    min-height: 520px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+  .dashboard-shell--ride-workspace .driver-dispatch-map .miniapp-sync-shell,
+  .dashboard-shell--ride-workspace .driver-dispatch-map .miniapp-sync-map { height: 100%; min-height: 100%; margin: 0; border: 0; border-radius: 12px; }
+  .dashboard-shell--ride-workspace .driver-idle-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 520px; height: 100%; padding: 32px; text-align: center; border: 1px solid var(--workspace-line); background: #f8fafb; border-radius: 12px; }
+  .dashboard-shell--ride-workspace .driver-idle-state img { width: 130px; height: 130px; object-fit: contain; margin-bottom: 18px; }
+  .dashboard-shell--ride-workspace .driver-idle-state h3 { margin: 0 0 10px; font-size: 22px; font-weight: 500; }
+  .dashboard-shell--ride-workspace .driver-idle-state p { font-size: 13px; font-weight: 400; color: #73808d; max-width: 320px; line-height: 1.9; }
+  .dashboard-shell--ride-workspace .driver-idle-state .ghost-button { margin-top: 18px; border-radius: 8px; font-weight: 500; }
+  .dashboard-shell--ride-workspace .driver-queue-card { min-width: 0; display: flex; flex-direction: column; padding: 0; border: 1px solid var(--workspace-line); border-radius: 14px; background: #fff; box-shadow: 0 10px 26px rgba(31, 48, 61, .05); overflow: hidden; }
+  .dashboard-shell--ride-workspace .driver-queue-card h2 { font-size: 17px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .driver-queue-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 14px; }
+  .dashboard-shell--ride-workspace .driver-queue-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .dashboard-shell--ride-workspace .driver-queue-title h2 { margin: 0; }
+  .dashboard-shell--ride-workspace .driver-queue-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #f2f5f7; color: #73808d; font-size: 12px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .driver-queue-count.has-orders { background: #fff1e2; color: #d96a08; }
+  .dashboard-shell--ride-workspace .driver-queue-refresh { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--workspace-line); border-radius: 9px; background: #fff; color: #53616e; cursor: pointer; transition: all .18s ease; }
+  .dashboard-shell--ride-workspace .driver-queue-refresh:hover { border-color: #f0b27e; color: #d96a08; background: #fff8f1; }
+  .dashboard-shell--ride-workspace .driver-queue-refresh:active svg { transform: rotate(90deg); }
+  .dashboard-shell--ride-workspace .driver-queue-note { display: flex; align-items: center; gap: 8px; margin: 0 20px 14px; padding: 9px 12px; border: 0; border-radius: 8px; background: #f7f9fa; font-size: 12px; line-height: 1.55; }
+  .dashboard-shell--ride-workspace .driver-queue-note small { font-weight: 400; color: #53616e; }
+  .dashboard-shell--ride-workspace .driver-queue-note.is-live { background: #eef8f4; }
+  .dashboard-shell--ride-workspace .driver-queue-note.is-live small { color: #16725f; }
+  .driver-queue-pulse { position: relative; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #16a085; }
+  .driver-queue-pulse::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid #16a08566; animation: driver-queue-ping 1.6s ease-out infinite; }
+  @keyframes driver-queue-ping { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+  .dashboard-shell--ride-workspace .driver-queue-list { flex: 1; display: grid; gap: 12px; align-content: start; padding: 0 16px 16px; overflow-y: auto; scrollbar-width: thin; }
+  .dashboard-shell--ride-workspace .driver-order-card { display: grid; gap: 12px; padding: 16px; border: 1px solid #e9edf0; border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+  .dashboard-shell--ride-workspace .driver-order-card:hover { border-color: #f0b27e; box-shadow: 0 8px 20px rgba(217, 106, 8, .08); }
+  .dashboard-shell--ride-workspace .driver-order-card.is-selected { border-color: #f69b4d; background: linear-gradient(180deg, #fffaF4 0%, #fff 55%); box-shadow: 0 0 0 1px #f69b4d, 0 10px 22px rgba(217, 106, 8, .1); }
+  .dashboard-shell--ride-workspace .driver-order-card:focus-visible { outline: 2px solid #f69b4d; outline-offset: 2px; }
+  .dashboard-shell--ride-workspace .driver-order-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .dashboard-shell--ride-workspace .driver-order-topline .order-type-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #a85b1e; }
+  .dashboard-shell--ride-workspace .driver-order-topline .order-badges { display: flex; gap: 6px; }
+  .dashboard-shell--ride-workspace .driver-order-route { position: relative; display: grid; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #f8fafb; }
+  .dashboard-shell--ride-workspace .driver-order-route::before { content: ''; position: absolute; left: 19.5px; top: 26px; bottom: 26px; width: 1px; border-left: 1px dashed #cfd8dd; }
+  .dashboard-shell--ride-workspace .driver-order-point { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .dashboard-shell--ride-workspace .driver-order-dot { position: relative; z-index: 1; flex: 0 0 auto; width: 12px; height: 12px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px #d5dde2; }
+  .dashboard-shell--ride-workspace .driver-order-dot.is-start { background: #16a085; }
+  .dashboard-shell--ride-workspace .driver-order-dot.is-end { background: #f87810; }
+  .dashboard-shell--ride-workspace .driver-order-point-copy { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .dashboard-shell--ride-workspace .driver-order-point-copy small { flex: 0 0 auto; font-size: 11px; color: #93a0aa; }
+  .dashboard-shell--ride-workspace .driver-order-point-copy strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: #24303c; }
+  .dashboard-shell--ride-workspace .driver-order-meta { display: flex; align-items: center; gap: 8px; }
+  .dashboard-shell--ride-workspace .driver-order-price { margin-right: auto; font-size: 21px; font-weight: 700; letter-spacing: -.01em; color: #e2630a; }
+  .dashboard-shell--ride-workspace .driver-order-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: #f2f5f7; color: #53616e; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .dashboard-shell--ride-workspace .driver-order-subline { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: #93a0aa; }
+  .dashboard-shell--ride-workspace .driver-order-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .dashboard-shell--ride-workspace .driver-order-actions .solid-button { justify-content: center; min-height: 40px; border-radius: 9px; font-size: 13.5px; font-weight: 600; box-shadow: 0 6px 14px rgba(248, 120, 16, .22); }
+  .dashboard-shell--ride-workspace .driver-order-actions .ghost-button { min-height: 40px; padding-inline: 14px; border-radius: 9px; font-size: 13px; font-weight: 500; }
+  .dashboard-shell--ride-workspace .driver-order-card .driver-reject-panel { display: grid; gap: 10px; margin-top: 2px; padding: 12px; border-radius: 10px; background: #faf6f3; border: 1px solid #f0e2d8; }
+  .dashboard-shell--ride-workspace .driver-queue-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 340px; height: 100%; padding: 32px 24px; text-align: center; }
+  .dashboard-shell--ride-workspace .driver-queue-empty-icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 6px; border-radius: 18px; background: #f2f5f7; color: #93a0aa; }
+  .dashboard-shell--ride-workspace .driver-queue-empty-icon.is-live { background: #fff1e2; color: #f87810; animation: driver-empty-breathe 2.4s ease-in-out infinite; }
+  @keyframes driver-empty-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(248, 120, 16, .18); } 50% { box-shadow: 0 0 0 10px rgba(248, 120, 16, 0); } }
+  .dashboard-shell--ride-workspace .driver-queue-empty strong { font-size: 15px; font-weight: 600; color: #24303c; }
+  .dashboard-shell--ride-workspace .driver-queue-empty span { max-width: 240px; font-size: 12px; line-height: 1.8; color: #73808d; }
+  .dashboard-shell--ride-workspace .driver-queue-empty .solid-button { margin-top: 10px; min-height: 38px; padding-inline: 18px; border-radius: 9px; font-size: 13px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .driver-dispatch-map > .city-map .map-topline {
+    z-index: 8;
+    left: 16px;
+    right: auto;
+    top: 14px;
+    max-width: calc(100% - 32px);
+    min-height: 38px;
+    padding: 9px 12px;
+    border: 1px solid #ffffffc7;
+    border-radius: 8px;
+    background: #fffffff0;
+    box-shadow: 0 2px 8px #24303c0d;
+  }
+  .dashboard-shell--ride-workspace .driver-dispatch-map > .city-map .map-topline strong { font-size: 14px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .driver-dispatch-map > .city-map .map-topline small { font-size: 10px; color: #73808d; }
+  .dashboard-shell--ride-workspace .driver-dispatch-map > .city-map .miniapp-sync-map { border-radius: 12px; }
+  .dashboard-shell--ride-workspace .driver-dispatch-map .miniapp-sync-brand { display: none; }
+  .dashboard-shell--ride-workspace .driver-active-trip-panel { grid-template-columns: minmax(0, 1fr) 354px; gap: 18px; border: 0; padding: 0; margin: 0; }
+  .dashboard-shell--ride-workspace .driver-active-trip-map { min-height: 580px; border-radius: 12px; }
+  .dashboard-shell--ride-workspace .driver-active-trip-map .miniapp-sync-shell,
+  .dashboard-shell--ride-workspace .driver-active-trip-map .miniapp-sync-map,
+  .dashboard-shell--ride-workspace .driver-active-trip-map .real-map-fallback { height: 100%; min-height: 580px; }
+  .dashboard-shell--ride-workspace .driver-active-trip-content { align-content: start; gap: 24px; padding: 24px; border: 1px solid var(--workspace-line); border-radius: 12px; background: #fff; }
+  .dashboard-shell--ride-workspace .driver-active-trip-head { flex-wrap: wrap; }
+  .dashboard-shell--ride-workspace .driver-active-trip-head strong { font-size: 22px; font-weight: 600; margin-block: 8px; }
+  .dashboard-shell--ride-workspace .driver-active-trip-head small { font-weight: 400; line-height: 1.8; }
+  .dashboard-shell--ride-workspace .driver-active-trip-metrics { grid-template-columns: 1fr; gap: 0; }
+  .dashboard-shell--ride-workspace .driver-active-trip-metrics .mini-stat { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 14px 0; border: 0; border-bottom: 1px solid var(--workspace-line); border-radius: 0; background: none; }
+  .dashboard-shell--ride-workspace .driver-active-trip-metrics .mini-stat strong { font-size: 18px; font-weight: 600; }
+  .dashboard-shell--ride-workspace .driver-active-trip-status { font-weight: 400; line-height: 1.7; }
+  .dashboard-shell--ride-workspace .driver-trip-primary-actions { display: grid; gap: 10px; }
+  .dashboard-shell--ride-workspace .driver-trip-primary-actions > button { min-height: 42px; border-radius: 8px; justify-content: center; font-weight: 500; }
+  .dashboard-shell--ride-workspace .driver-trip-primary-actions p { font-size: 12px; color: #73808d; line-height: 1.75; margin: 0; }
+  .dashboard-shell--ride-workspace .driver-demo-badge { border-radius: 6px; box-shadow: none; font-weight: 500; }
+  .dashboard-shell--ride-workspace .driver-active-trip-map .miniapp-sync-brand { display: none; }
+}
+
+.workspace-form-error { margin: 0; color: #ba3030; font-size: 12px; line-height: 1.7; }
+.workspace-confirm-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: #18232e55; }
+.workspace-confirm-card { width: min(420px, 100%); padding: 28px; border-radius: 12px; background: #fff; box-shadow: 0 24px 70px #15202b30; }
+.workspace-confirm-card h3 { margin: 0 0 12px; font-size: 20px; font-weight: 600; }
+.workspace-confirm-card p { margin: 0 0 24px; font-size: 14px; color: #697783; line-height: 1.8; }
+.workspace-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.workspace-confirm-actions button { border-radius: 8px; font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell--ride-workspace *, .workspace-confirm-modal * { animation: none !important; transition: none !important; }
+}
+
+/* Secondary workbench pages share the same desktop rhythm as ride/listen.
+   Keep these rules scoped to the authenticated web workbench so the portal is untouched. */
+.dashboard-shell--workspace {
+  --workspace-surface: rgba(255, 255, 255, .94);
+  --workspace-surface-soft: #f7f9fa;
+  --workspace-line: #e4e9ec;
+  --workspace-ink: #24303c;
+  --workspace-muted: #73808d;
+}
+
+.dashboard-shell--workspace .dashboard-view-stage {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+}
+
+.dashboard-shell--workspace .dashboard-view-stage > .dashboard-grid,
+.dashboard-shell--workspace .dashboard-view-stage > .settings-page {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card {
+  min-width: 0;
+  grid-column: span 6;
+  padding: 22px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 12px;
+  background: var(--workspace-surface);
+  box-shadow: 0 10px 28px rgba(38, 52, 63, .045);
+}
+
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card.wide {
+  grid-column: 1 / -1;
+}
+
+/* 顺风车页：整体上移，收窄与顶栏的间距（原 .dashboard-grid margin-top:22px 偏大） */
+.dashboard-shell--workspace .dashboard-view-stage > .dashboard-grid.carpool-board {
+  margin-top: 8px;
+}
+
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card > .card-head,
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card > .settings-card-head {
+  margin-bottom: 18px;
+}
+
+.dashboard-shell--workspace .work-card .card-head h2,
+.dashboard-shell--workspace .work-card .settings-card-head h2 {
+  margin: 3px 0 0;
+  color: var(--workspace-ink);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.dashboard-shell--workspace .work-card .card-head small,
+.dashboard-shell--workspace .work-card .settings-card-head p,
+.dashboard-shell--workspace .work-card .settings-card-head small {
+  color: var(--workspace-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.dashboard-shell--workspace .section-kicker {
+  color: #a85b1e;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.dashboard-shell--workspace .work-card :is(.solid-button, .ghost-button, .compact-action) {
+  min-height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.dashboard-shell--workspace .work-card :is(input, select, textarea) {
+  min-height: 40px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: #fbfcfc;
+  color: var(--workspace-ink);
+  font-size: 13px;
+}
+
+.dashboard-shell--workspace .work-card :is(input, select, textarea):focus {
+  border-color: #f39a54;
+  box-shadow: 0 0 0 3px rgba(243, 154, 84, .14);
+  outline: 0;
+}
+
+.dashboard-shell--workspace .summary-pill {
+  min-width: 0;
+  min-height: 62px;
+  padding: 11px 12px;
+  border: 1px solid #edf0f2;
+  border-radius: 9px;
+  background: #fbfcfc;
+  box-shadow: none;
+}
+
+.dashboard-shell--workspace .summary-pill strong { font-size: 15px; font-weight: 600; }
+.dashboard-shell--workspace .summary-pill small { font-size: 11px; font-weight: 400; color: var(--workspace-muted); }
+.dashboard-shell--workspace .summary-pill-icon { width: 28px; height: 28px; border-radius: 8px; }
+
+.dashboard-shell--workspace .thin-row,
+.dashboard-shell--workspace .settings-profile-list-item,
+.dashboard-shell--workspace .profile-view-row {
+  min-height: 42px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf0f2;
+  font-size: 13px;
+}
+
+.dashboard-shell--workspace .thin-row span,
+.dashboard-shell--workspace .settings-profile-list-item span,
+.dashboard-shell--workspace .profile-view-row span { color: var(--workspace-muted); font-weight: 400; }
+.dashboard-shell--workspace .thin-row strong,
+.dashboard-shell--workspace .settings-profile-list-item strong,
+.dashboard-shell--workspace .profile-view-row strong { color: var(--workspace-ink); font-weight: 600; }
+
+/* Passenger wallet follows the mini-program layout: single column, full-width cards. */
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid).passenger-wallet-board { grid-template-columns: minmax(0, 1fr); }
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid).passenger-wallet-board > .wallet-hero-card,
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid).passenger-wallet-board > .wallet-ledger-card,
+.dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid).passenger-wallet-board > .wallet-account-card { grid-column: 1 / -1; }
+.dashboard-shell--workspace .invoice-board > .invoice-picker-card { grid-column: span 5; }
+.dashboard-shell--workspace .invoice-board > .invoice-detail-card { grid-column: span 7; }
+.dashboard-shell--workspace .help-center-grid > .help-center-card { grid-column: 1 / -1; }
+
+.dashboard-shell--workspace .wallet-asset-hero,
+.dashboard-shell--workspace .driver-wallet-hero {
+  padding: 18px;
+  border: 1px solid #f2d7bd;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fffaf5 0%, #fff 72%);
+  box-shadow: none;
+}
+
+.dashboard-shell--workspace .wallet-asset-amount strong,
+.dashboard-shell--workspace .driver-income-grid strong { font-size: 32px; font-weight: 600; letter-spacing: 0; }
+.dashboard-shell--workspace .wallet-asset-summary { gap: 0; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1ded0; }
+.dashboard-shell--workspace .wallet-asset-summary span { padding: 0 12px; font-size: 14px; }
+.dashboard-shell--workspace .wallet-asset-summary span:first-child { padding-left: 0; }
+.dashboard-shell--workspace .wallet-asset-summary span + span { border-left: 1px solid #f1ded0; }
+.dashboard-shell--workspace .wallet-auth-strip,
+.dashboard-shell--workspace .invoice-summary-grid,
+.dashboard-shell--workspace .cert-summary-grid { gap: 10px; margin-block: 16px; }
+
+.dashboard-shell--workspace .wallet-profile-summary,
+.dashboard-shell--workspace .invoice-order-list,
+.dashboard-shell--workspace .wallet-record-list,
+.dashboard-shell--workspace .profile-view-list { gap: 0; }
+
+.dashboard-shell--workspace .wallet-record-row,
+.dashboard-shell--workspace .invoice-order-list > button,
+.dashboard-shell--workspace .message-card {
+  min-width: 0;
+  border: 1px solid #edf0f2;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.dashboard-shell--workspace .wallet-record-row { min-height: 64px; padding: 11px 12px; }
+.dashboard-shell--workspace .wallet-record-row + .wallet-record-row { margin-top: 8px; }
+.dashboard-shell--workspace .wallet-record-row:hover,
+.dashboard-shell--workspace .invoice-order-list > button:hover { border-color: #f0b27e; background: #fffaf5; }
+
+.dashboard-shell--workspace .driver-withdraw-card { grid-column: span 5 !important; }
+.dashboard-shell--workspace .driver-withdraw-card + .work-card { grid-column: span 7; }
+.dashboard-shell--workspace .driver-withdraw-card .driver-income-grid { gap: 0; margin-top: 18px; }
+.dashboard-shell--workspace .driver-income-grid > div { padding: 0 14px; }
+.dashboard-shell--workspace .driver-income-grid > div:first-child { padding-left: 0; }
+.dashboard-shell--workspace .driver-income-grid > div + div { border-left: 1px solid #f1ded0; }
+.dashboard-shell--workspace .withdraw-quick-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.dashboard-shell--workspace .withdraw-quick-row button { min-height: 32px; padding: 6px 12px; border: 1px solid #e8edef; border-radius: 7px; background: #f8fafb; color: #53616e; font-size: 12px; }
+.dashboard-shell--workspace .withdraw-quick-row button.active { border-color: #f39a54; background: #fff1e5; color: #a85b1e; }
+
+.dashboard-shell--workspace .driver-settings-board > .driver-settings-card { grid-column: span 8; }
+.dashboard-shell--workspace .driver-settings-board > .work-card:not(.driver-settings-card) { grid-column: span 4; }
+.dashboard-shell--workspace .driver-settings-hero { margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e7ecee; border-radius: 9px; background: #f8fafb; }
+.dashboard-shell--workspace .driver-settings-hero strong { font-size: 19px; font-weight: 600; }
+.dashboard-shell--workspace .settings-row-list { gap: 8px; }
+.dashboard-shell--workspace .settings-row,
+.dashboard-shell--workspace .settings-choice-panel,
+.dashboard-shell--workspace .settings-info-panel { border: 1px solid #e7ecee; border-radius: 9px; background: #fff; box-shadow: none; }
+.dashboard-shell--workspace .settings-row { min-height: 62px; padding: 12px 14px; }
+.dashboard-shell--workspace .settings-choice-panel { margin-top: 10px; padding: 14px; }
+.dashboard-shell--workspace .choice-chip-row button,
+.dashboard-shell--workspace .voice-chip-grid button { min-height: 34px; border-radius: 7px; font-size: 12px; font-weight: 500; }
+
+.dashboard-shell--workspace .driver-cert-card { display: grid; grid-template-columns: minmax(0, 1fr); }
+.dashboard-shell--workspace .driver-document-grid { gap: 12px; }
+.dashboard-shell--workspace .driver-document-card { padding: 14px; border: 1px solid #e7ecee; border-radius: 9px; background: #fbfcfc; }
+.dashboard-shell--workspace .driver-document-preview { min-height: 160px; border-radius: 8px; }
+
+.dashboard-shell--workspace .message-board-card { grid-column: 1 / -1 !important; }
+.dashboard-shell--workspace .message-summary-strip { gap: 10px; margin: 0 0 16px; }
+.dashboard-shell--workspace .message-list { gap: 8px; }
+.dashboard-shell--workspace .message-card { padding: 14px; }
+.dashboard-shell--workspace .message-card.is-unread { border-color: #f0bf91; background: #fffaf5; }
+.dashboard-shell--workspace .message-body strong { font-size: 14px; font-weight: 600; }
+.dashboard-shell--workspace .message-body p { margin: 5px 0; color: #53616e; font-size: 12px; line-height: 1.7; }
+
+.dashboard-shell--workspace .help-faq-list { gap: 8px; }
+.dashboard-shell--workspace .help-faq-row { padding: 13px 14px; border: 1px solid #e7ecee; border-radius: 9px; background: #fbfcfc; }
+.dashboard-shell--workspace .help-faq-row strong { font-size: 13px; font-weight: 600; }
+.dashboard-shell--workspace .help-faq-row small { font-size: 12px; line-height: 1.7; color: var(--workspace-muted); }
+.dashboard-shell--workspace .coverage-grid { gap: 8px; }
+.dashboard-shell--workspace .coverage-grid span { min-height: 34px; padding: 8px 10px; border: 1px solid #e7ecee; border-radius: 7px; font-size: 12px; }
+
+.dashboard-shell--workspace .settings-page { display: grid; gap: 18px; }
+.dashboard-shell--workspace .settings-page > * { min-width: 0; }
+
+@media (min-width: 1100px) {
+  .dashboard-shell--workspace .dashboard-view-stage { padding-inline: 8px; }
+}
+
+@media (max-width: 980px) {
+  .dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) { grid-template-columns: 1fr; }
+  .dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card,
+  .dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card.wide,
+  .dashboard-shell--workspace .driver-withdraw-card,
+  .dashboard-shell--workspace .driver-withdraw-card + .work-card,
+  .dashboard-shell--workspace .driver-settings-board > .driver-settings-card,
+  .dashboard-shell--workspace .driver-settings-board > .work-card:not(.driver-settings-card),
+  .dashboard-shell--workspace .passenger-wallet-board > .wallet-hero-card,
+  .dashboard-shell--workspace .passenger-wallet-board > .wallet-ledger-card,
+  .dashboard-shell--workspace .passenger-wallet-board > .wallet-account-card,
+  .dashboard-shell--workspace .invoice-board > .invoice-picker-card,
+  .dashboard-shell--workspace .invoice-board > .invoice-detail-card,
+  .dashboard-shell--workspace .help-center-grid > .help-center-card { grid-column: 1 / -1 !important; }
+}
+
+@media (max-width: 640px) {
+  .dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card { padding: 16px; }
+  .dashboard-shell--workspace .wallet-asset-summary { grid-template-columns: 1fr 1fr; }
+  .dashboard-shell--workspace .wallet-asset-summary span { padding: 0 8px; }
+  .dashboard-shell--workspace .driver-income-grid { grid-template-columns: 1fr; gap: 10px; }
+  .dashboard-shell--workspace .driver-income-grid > div { padding: 0; }
+  .dashboard-shell--workspace .driver-income-grid > div + div { padding-top: 10px; border-top: 1px solid #f1ded0; border-left: 0; }
+}
+
+/* Final desktop pass for the authenticated web workbench. These rules stay
+   inside the workspace shell so portal motion and portal composition remain untouched. */
+@media (min-width: 1100px) {
+  .dashboard-shell--workspace {
+    --workspace-surface: rgba(255, 255, 255, .96);
+    --workspace-surface-soft: #f7f9fa;
+    --workspace-line: #e1e7ea;
+    --workspace-ink: #24313c;
+    --workspace-muted: #71808c;
+    grid-template-columns: 214px minmax(0, 1fr);
+    gap: 26px;
+    padding: 24px 32px;
+  }
+
+  .dashboard-shell--workspace .side-nav {
+    min-height: calc(100vh - 48px);
+    padding: 20px 14px;
+    border: 1px solid rgba(218, 226, 230, .9);
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 12px 30px rgba(31, 48, 61, .06);
+  }
+
+  /* Keep the existing logo animation; only give its animated SVG enough room. */
+  .dashboard-shell--workspace .brand-mark {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .dashboard-shell--workspace .dashboard-brand-logo,
+  .dashboard-shell--workspace .side-nav .sunshine-motion-logo {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .dashboard-shell--workspace .dashboard-main { min-width: 0; }
+
+  .dashboard-shell--workspace .dashboard-header {
+    border: 1px solid rgba(218, 226, 230, .9);
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 8px 22px rgba(31, 48, 61, .045);
+  }
+
+  .dashboard-shell--workspace .dashboard-view-stage {
+    width: min(100%, 1420px);
+    padding: 4px 6px 24px;
+  }
+
+  .dashboard-shell--workspace .dashboard-view-stage > .dashboard-grid,
+  .dashboard-shell--workspace .dashboard-view-stage > .settings-page {
+    width: min(100%, 1360px);
+    gap: 20px;
+  }
+
+  .dashboard-shell--workspace .dashboard-grid:not(.ride-workbench):not(.support-chat-grid) > .work-card {
+    padding: 24px;
+    border-color: var(--workspace-line);
+    border-radius: 12px;
+    background: var(--workspace-surface);
+    box-shadow: 0 12px 30px rgba(31, 48, 61, .05);
+  }
+
+  .dashboard-shell--workspace .work-card .card-head,
+  .dashboard-shell--workspace .work-card .settings-card-head {
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .dashboard-shell--workspace .work-card .card-head h2,
+  .dashboard-shell--workspace .work-card .settings-card-head h2 {
+    font-size: 20px;
+    line-height: 1.4;
+  }
+
+  .dashboard-shell--workspace .work-card :is(.solid-button, .ghost-button, .compact-action) {
+    min-height: 40px;
+    padding-inline: 14px;
+  }
+
+  /* Passenger secondary pages */
+  .dashboard-shell--workspace .miniapp-coupon-board {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .coupon-hero-panel {
+    min-height: 96px;
+    padding: 16px 26px;
+    border: 1px solid #f0d3b8;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(31, 48, 61, .05);
+  }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .coupon-hero-panel h2 {
+    font-size: 24px;
+    font-weight: 650;
+  }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-tabs {
+    width: fit-content;
+    max-width: 100%;
+    padding: 4px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 9px;
+    background: #f4f7f8;
+  }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .coupon-section {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(31, 48, 61, .04);
+  }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .member-coupon-banner {
+    grid-column: 1 / -1;
+    min-height: 64px;
+    border-radius: 10px;
+  }
+
+  .dashboard-shell--workspace .carpool-board { display: block; }
+
+  .dashboard-shell--workspace .carpool-main-card {
+    width: 100%;
+    padding: 24px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 12px;
+    background: var(--workspace-surface);
+    box-shadow: 0 12px 30px rgba(31, 48, 61, .05);
+  }
+
+  .dashboard-shell--workspace .carpool-summary-strip,
+  .dashboard-shell--workspace .carpool-selection-panel,
+  .dashboard-shell--workspace .carpool-trip-list,
+  .dashboard-shell--workspace .carpool-mine-panel {
+    max-width: 1180px;
+    margin-inline: auto;
+  }
+
+  .dashboard-shell--workspace .carpool-selection-panel {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 10px;
+    background: #fbfcfc;
+  }
+
+  .dashboard-shell--workspace .carpool-choice-grid,
+  .dashboard-shell--workspace .carpool-preference-grid { gap: 14px; }
+
+  .dashboard-shell--workspace .carpool-trip-list,
+  .dashboard-shell--workspace .carpool-mine-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .dashboard-shell--workspace .carpool-trip-card,
+  .dashboard-shell--workspace .carpool-record-card {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .dashboard-shell--workspace .international-workbench {
+    display: grid;
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 1.32fr) minmax(330px, .92fr);
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .dashboard-shell--workspace .international-workbench > * {
+    min-width: 0;
+    margin: 0;
+  }
+
+  .dashboard-shell--workspace .international-map-card,
+  .dashboard-shell--workspace .international-desk-card,
+  .dashboard-shell--workspace .international-booking-card {
+    min-height: 620px;
+    padding: 20px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 12px;
+    background: var(--workspace-surface);
+    box-shadow: 0 12px 30px rgba(31, 48, 61, .05);
+  }
+
+  .dashboard-shell--workspace .international-map-card .city-map {
+    min-height: 390px;
+    height: calc(100% - 130px);
+    border-radius: 10px;
+  }
+
+  /* Support and messages use a denser reading surface, not a loose card stack. */
+  .dashboard-shell--workspace .support-chat-grid {
+    width: 100%;
+    margin-top: 0;
+    gap: 20px;
+  }
+
+  .dashboard-shell--workspace .support-chat-card,
+  .dashboard-shell--workspace .support-profile-card,
+  .dashboard-shell--workspace .message-board-card {
+    border: 1px solid var(--workspace-line);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(31, 48, 61, .05);
+  }
+
+  .dashboard-shell--workspace .support-chat-card {
+    height: clamp(660px, calc(100vh - 190px), 820px);
+  }
+
+  .dashboard-shell--workspace .support-profile-card {
+    max-height: clamp(660px, calc(100vh - 190px), 820px);
+    top: 24px;
+  }
+
+  .dashboard-shell--workspace .message-board-card { padding: 24px; }
+
+  .dashboard-shell--workspace .message-head-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Driver pages follow the same centered desktop rhythm. */
+  .dashboard-shell--workspace .driver-certification-board,
+  .dashboard-shell--workspace .driver-settings-board,
+  .dashboard-shell--workspace .settings-page {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+  }
+
+  .dashboard-shell--workspace .driver-cert-card,
+  .dashboard-shell--workspace .driver-settings-card,
+  .dashboard-shell--workspace .settings-account-panel { border-radius: 12px; }
+
+  .dashboard-shell--workspace .driver-document-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-shell--workspace .driver-document-preview { min-height: 190px; }
+}
+
+@media (max-width: 1099px) {
+  .dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-content,
+  .dashboard-shell--workspace .carpool-trip-list,
+  .dashboard-shell--workspace .carpool-mine-panel,
+  .dashboard-shell--workspace .international-workbench { grid-template-columns: 1fr; }
+
+  .dashboard-shell--workspace .miniapp-coupon-board .member-coupon-banner { grid-column: auto; }
+}
+
+.dashboard-shell--workspace .workspace-capability-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dashboard-shell--workspace .workspace-capability-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #8b96a5;
+}
+
+.dashboard-shell--workspace .review-history-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.dashboard-shell--workspace .review-history-row p {
+  margin: 1px 0 0;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dashboard-shell--workspace .review-history-row em {
+  color: #b45309;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.dashboard-shell--workspace .review-history-tags {
+  color: #8a5a20;
+  font-size: 11px;
+}
+
+/* Driver dispatch queue: base look for narrow screens (desktop refines it above). */
+.driver-queue-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid #e4e8ec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(31, 48, 61, .05);
+  overflow: hidden;
+}
+.driver-queue-card h2 { font-size: 17px; font-weight: 600; }
+.driver-queue-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 14px; }
+.driver-queue-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.driver-queue-title h2 { margin: 0; }
+.driver-queue-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #f2f5f7; color: #73808d; font-size: 12px; font-weight: 600; }
+.driver-queue-count.has-orders { background: #fff1e2; color: #d96a08; }
+.driver-queue-refresh { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid #e4e8ec; border-radius: 9px; background: #fff; color: #53616e; cursor: pointer; transition: all .18s ease; }
+.driver-queue-refresh:hover { border-color: #f0b27e; color: #d96a08; background: #fff8f1; }
+.driver-queue-note { display: flex; align-items: center; gap: 8px; min-height: 0; margin: 0 20px 14px; padding: 9px 12px; border: 0; border-radius: 8px; background: #f7f9fa; font-size: 12px; line-height: 1.55; overflow: visible; }
+.driver-queue-note small { display: inline; font-weight: 400; color: #53616e; }
+.driver-queue-note.is-live { background: #eef8f4; }
+.driver-queue-note.is-live small { color: #16725f; }
+.driver-queue-list { flex: 1; display: grid; gap: 12px; align-content: start; padding: 0 16px 16px; overflow-y: auto; scrollbar-width: thin; }
+.driver-order-card { display: grid; gap: 12px; padding: 16px; border: 1px solid #e9edf0; border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease; }
+.driver-order-card:hover { border-color: #f0b27e; box-shadow: 0 8px 20px rgba(217, 106, 8, .08); }
+.driver-order-card.is-selected { border-color: #f69b4d; background: linear-gradient(180deg, #fffaf4 0%, #fff 55%); box-shadow: 0 0 0 1px #f69b4d, 0 10px 22px rgba(217, 106, 8, .1); }
+.driver-order-card:focus-visible { outline: 2px solid #f69b4d; outline-offset: 2px; }
+.driver-order-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.driver-order-topline .order-type-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #a85b1e; }
+.driver-order-topline .order-badges { display: flex; gap: 6px; }
+.driver-order-route { position: relative; display: grid; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #f8fafb; }
+.driver-order-route::before { content: ''; position: absolute; left: 19.5px; top: 26px; bottom: 26px; width: 1px; border-left: 1px dashed #cfd8dd; }
+.driver-order-point { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.driver-order-dot { position: relative; z-index: 1; flex: 0 0 auto; width: 12px; height: 12px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px #d5dde2; }
+.driver-order-dot.is-start { background: #16a085; }
+.driver-order-dot.is-end { background: #f87810; }
+.driver-order-point-copy { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.driver-order-point-copy small { flex: 0 0 auto; font-size: 11px; color: #93a0aa; }
+.driver-order-point-copy strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: #24303c; }
+.driver-order-meta { display: flex; align-items: center; gap: 8px; }
+.driver-order-price { margin-right: auto; font-size: 21px; font-weight: 700; letter-spacing: -.01em; color: #e2630a; }
+.driver-order-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: #f2f5f7; color: #53616e; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.driver-order-subline { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: #93a0aa; }
+.driver-order-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.driver-order-actions .solid-button { justify-content: center; min-height: 40px; border-radius: 9px; font-size: 13.5px; font-weight: 600; }
+.driver-order-actions .ghost-button { min-height: 40px; padding-inline: 14px; border-radius: 9px; font-size: 13px; font-weight: 500; }
+.driver-order-card .driver-reject-panel { display: grid; gap: 10px; margin-top: 2px; padding: 12px; border-radius: 10px; background: #faf6f3; border: 1px solid #f0e2d8; }
+.driver-queue-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 300px; height: 100%; padding: 32px 24px; text-align: center; }
+.driver-queue-empty-icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 6px; border-radius: 18px; background: #f2f5f7; color: #93a0aa; }
+.driver-queue-empty-icon.is-live { background: #fff1e2; color: #f87810; animation: driver-empty-breathe 2.4s ease-in-out infinite; }
+.driver-queue-empty strong { font-size: 15px; font-weight: 600; color: #24303c; }
+.driver-queue-empty span { max-width: 240px; font-size: 12px; line-height: 1.8; color: #73808d; }
+.driver-queue-empty .solid-button { margin-top: 10px; min-height: 38px; padding-inline: 18px; border-radius: 9px; font-size: 13px; font-weight: 600; }
+@keyframes driver-empty-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(248, 120, 16, .18); } 50% { box-shadow: 0 0 0 10px rgba(248, 120, 16, 0); } }
+
+/* Driver wallet (收益) page: hero + form/records split. Scoped to .driver-wallet-board only. */
+.dashboard-main:has(.driver-wallet-board) { gap: 10px; }
+.driver-wallet-board { align-items: stretch; }
+.driver-wallet-hero-v2 {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 22px;
+  border: 1px solid #e6eaed;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(31, 48, 61, .045);
+}
+.driver-wallet-hero-main { display: grid; gap: 3px; min-width: 0; }
+.driver-wallet-hero-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: #73808d; }
+.driver-wallet-hero-icon { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: #fff3e6; color: #d96a08; }
+.driver-wallet-hero-amount { font-size: 29px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; color: #1f2a36; }
+.driver-wallet-hero-note { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; font-size: 11.5px; color: #8b96a5; }
+.driver-wallet-hero-note svg { color: #a7b2bc; }
+.driver-wallet-hero-sep { width: 3px; height: 3px; margin: 0 4px; border-radius: 50%; background: #cdd5da; }
+.driver-wallet-hero-side { display: flex; align-items: center; flex-shrink: 0; }
+.driver-wallet-hero-stat { display: grid; gap: 3px; min-width: 104px; padding: 2px 18px; }
+.driver-wallet-hero-stat + .driver-wallet-hero-stat { border-left: 1px solid #edf0f2; }
+.driver-wallet-hero-stat span { font-size: 11.5px; font-weight: 400; color: #8b96a5; }
+.driver-wallet-hero-stat strong { font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: #1f2a36; }
+.driver-wallet-withdraw-btn { margin-left: 18px; min-height: 40px; padding-inline: 18px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: none; white-space: nowrap; }
+
+.driver-withdraw-card { display: flex; flex-direction: column; gap: 14px; }
+.driver-withdraw-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(21, 30, 39, .55);
+  backdrop-filter: blur(3px);
+}
+.driver-withdraw-modal .driver-withdraw-card {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  padding: 22px 24px 24px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(15, 23, 32, .32);
+}
+.driver-withdraw-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.driver-withdraw-modal-head h2 { margin: 3px 0 0; font-size: 20px; font-weight: 600; color: #24303c; }
+.driver-withdraw-modal-head > button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #f2f5f7; color: #53616e; cursor: pointer; transition: background .16s ease; }
+.driver-withdraw-modal-head > button:hover { background: #e8edf0; color: #24303c; }
+.driver-withdraw-card .card-head { margin-bottom: 2px; }
+.driver-withdraw-card .card-head svg { color: #d96a08; }
+.driver-withdraw-amount-field { display: grid; gap: 10px; }
+.driver-withdraw-amount-field > span { font-size: 12px; font-weight: 500; color: #53616e; }
+.driver-withdraw-amount-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  min-height: 58px;
+  border: 1px solid #e4e8ec;
+  border-radius: 12px;
+  background: #fbfcfc;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.driver-withdraw-amount-box:focus-within { border-color: #f39a54; box-shadow: 0 0 0 3px rgba(243, 154, 84, .15); background: #fff; }
+.driver-withdraw-amount-box.has-error { border-color: #d65454; }
+.driver-withdraw-amount-box em { font-style: normal; font-size: 20px; font-weight: 700; color: #1f2a36; }
+.driver-withdraw-amount-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-size: 24px;
+  font-weight: 700;
+  color: #24303c;
+  outline: none;
+}
+.driver-withdraw-amount-box input::placeholder { color: #b6c0c8; font-size: 15px; font-weight: 400; }
+.driver-withdraw-card .withdraw-quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.driver-withdraw-card .withdraw-quick-row button { min-height: 32px; padding: 6px 14px; border: 1px solid #e8edef; border-radius: 999px; background: #f8fafb; color: #53616e; font-size: 12px; font-weight: 500; cursor: pointer; transition: all .16s ease; }
+.driver-withdraw-card .withdraw-quick-row button:hover { border-color: #f0b27e; color: #a85b1e; }
+.driver-withdraw-card .withdraw-quick-row button.active { border-color: #f39a54; background: #fff1e5; color: #a85b1e; font-weight: 600; }
+.driver-withdraw-card .plain-field { display: grid; gap: 6px; }
+.driver-withdraw-card .plain-field span { font-size: 12px; font-weight: 500; color: #53616e; }
+.driver-withdraw-card .plain-field input { min-height: 44px; padding: 0 14px; border: 1px solid #e4e8ec; border-radius: 10px; background: #fbfcfc; font-size: 13.5px; color: #24303c; transition: border-color .18s ease, box-shadow .18s ease; }
+.driver-withdraw-card .plain-field input:focus { border-color: #f39a54; box-shadow: 0 0 0 3px rgba(243, 154, 84, .15); outline: 0; background: #fff; }
+.driver-withdraw-card .form-error-line { margin: 0; font-size: 12px; color: #ba3030; }
+.driver-withdraw-card .solid-button.fill { min-height: 46px; border-radius: 11px; font-size: 14px; font-weight: 600; box-shadow: none; }
+.driver-withdraw-card .withdraw-safe-note { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 11.5px; line-height: 1.7; color: #8b96a5; }
+.driver-withdraw-card .withdraw-safe-note svg { flex: 0 0 auto; margin-top: 2px; color: #16a085; }
+
+.withdraw-record-card .card-head svg { color: #d96a08; }
+.withdraw-record-card .record-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.withdraw-record-card .record-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #edf0f2;
+  border-radius: 11px;
+  background: #fff;
+  transition: border-color .16s ease, background .16s ease;
+}
+.withdraw-record-card .record-row:hover { border-color: #f0b27e; background: #fffaf5; }
+.withdraw-record-card .record-row > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.withdraw-record-card .record-row > div:first-child strong { font-size: 17px; font-weight: 700; color: #24303c; }
+.withdraw-record-card .record-row > div:first-child span { font-size: 12px; color: #73808d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.withdraw-record-card .record-row > div:first-child small { font-size: 11.5px; color: #ba6a30; }
+.withdraw-record-card .record-row > div:last-child { display: grid; gap: 6px; justify-items: end; flex-shrink: 0; }
+.withdraw-record-card .record-row > div:last-child small { font-size: 11px; color: #93a0aa; }
+.withdraw-record-card .empty-state { min-height: 200px; justify-content: center; }
+
+.driver-income-bills-card .driver-income-month-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.driver-income-bills-card .summary-pill { display: flex; align-items: center; gap: 10px; }
+.driver-income-bills-card .driver-income-bill-list { display: grid; border: 1px solid #edf0f2; border-radius: 11px; overflow: hidden; }
+.driver-income-bills-card .driver-income-bill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 16px;
+  background: #fff;
+}
+.driver-income-bills-card .driver-income-bill-row + .driver-income-bill-row { border-top: 1px solid #f1f4f6; }
+.driver-income-bills-card .driver-income-bill-row:hover { background: #fffaf5; }
+.driver-income-bills-card .driver-income-bill-row > div { display: grid; gap: 3px; min-width: 0; }
+.driver-income-bills-card .driver-income-bill-row strong { font-size: 13.5px; font-weight: 600; color: #24303c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.driver-income-bills-card .driver-income-bill-row small { font-size: 11.5px; color: #93a0aa; }
+.driver-income-bills-card .driver-income-bill-row > span { flex-shrink: 0; font-size: 14.5px; font-weight: 700; color: #1f2a36; }
+
+@media (max-width: 900px) {
+  .driver-wallet-hero-v2 { flex-direction: column; align-items: stretch; gap: 14px; padding: 18px; }
+  .driver-wallet-hero-amount { font-size: 26px; }
+  .driver-wallet-hero-side { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .driver-wallet-hero-stat { min-width: 0; }
+  .driver-wallet-withdraw-btn { grid-column: 1 / -1; margin-left: 0; justify-content: center; }
+  .withdraw-record-card .record-list { grid-template-columns: 1fr; }
+}
+
+/* Driver certification (司机资质) page. Scoped to .driver-certification-board only. */
+.driver-certification-board .driver-cert-card { display: flex; flex-direction: column; gap: 16px; }
+.driver-certification-board .cert-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.driver-certification-board .cert-summary-grid .summary-pill { display: flex; align-items: center; gap: 10px; }
+.driver-certification-board .driver-cert-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #f5e3cd;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff8f0, #fffdf9);
+}
+.driver-certification-board .driver-cert-notice.is-readonly { border-color: #e3ede9; background: linear-gradient(135deg, #f2faf7, #fbfdfc); }
+.driver-certification-board .driver-cert-notice.is-readonly svg { color: #16a085; }
+.driver-certification-board .driver-cert-notice small { font-weight: 400; color: #73808d; line-height: 1.6; }
+.driver-cert-body { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 26px; align-items: start; }
+.driver-cert-info { display: grid; gap: 12px; min-width: 0; }
+.driver-cert-docs { display: grid; gap: 12px; min-width: 0; padding-left: 26px; border-left: 1px solid #edf0f2; }
+.driver-cert-section-head { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: #24303c; }
+.driver-cert-section-head svg { color: #d96a08; }
+.driver-cert-section-head small { margin-left: auto; font-size: 11px; font-weight: 400; color: #93a0aa; }
+.driver-certification-board .driver-cert-readonly-list { grid-template-columns: 1fr; gap: 0; border: 1px solid #edf0f2; border-radius: 11px; overflow: hidden; }
+.driver-certification-board .driver-cert-readonly-list .profile-view-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+}
+.driver-certification-board .driver-cert-readonly-list .profile-view-row + .profile-view-row { border-top: 1px solid #f1f4f6; }
+.driver-certification-board .driver-cert-readonly-list .profile-view-row span { flex-shrink: 0; font-size: 12.5px; color: #73808d; }
+.driver-certification-board .driver-cert-readonly-list .profile-view-row strong { min-width: 0; font-size: 13.5px; font-weight: 600; color: #24303c; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.driver-certification-board .driver-cert-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.driver-certification-board .driver-cert-form-grid .plain-field { display: grid; gap: 6px; }
+.driver-certification-board .driver-cert-form-grid .plain-field span { font-size: 12px; font-weight: 500; color: #53616e; }
+.driver-certification-board .driver-cert-form-grid .plain-field input { min-height: 42px; padding: 0 12px; border: 1px solid #e4e8ec; border-radius: 9px; background: #fbfcfc; font-size: 13px; color: #24303c; transition: border-color .18s ease, box-shadow .18s ease; }
+.driver-certification-board .driver-cert-form-grid .plain-field input:focus { border-color: #f39a54; box-shadow: 0 0 0 3px rgba(243, 154, 84, .14); outline: 0; background: #fff; }
+.driver-certification-board .driver-cert-actions { gap: 10px; }
+.driver-certification-board .driver-cert-actions .solid-button { min-height: 42px; border-radius: 9px; font-weight: 600; box-shadow: none; }
+.driver-certification-board .driver-cert-actions .ghost-button { min-height: 42px; border-radius: 9px; }
+.driver-certification-board .driver-document-grid { gap: 14px; }
+.driver-certification-board .driver-document-card { gap: 10px; padding: 14px; border: 1px solid #edf0f2; border-radius: 12px; background: #fff; }
+.driver-certification-board .driver-document-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.driver-certification-board .driver-document-head strong { display: block; font-size: 13.5px; font-weight: 600; color: #24303c; }
+.driver-certification-board .driver-document-head small { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 400; color: #93a0aa; }
+.driver-certification-board .driver-document-preview { position: relative; min-height: 0; aspect-ratio: 16 / 9.5; border-radius: 9px; overflow: hidden; border: 1px solid #edf0f2; background: #f7f9fa; }
+.driver-certification-board .driver-document-preview img { width: 100%; height: 100%; object-fit: cover; }
+.driver-certification-board .driver-document-preview span {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(31, 41, 55, .62);
+  color: #fff;
+  font-size: 11px;
+  backdrop-filter: blur(2px);
+}
+.driver-certification-board .driver-document-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.driver-certification-board .driver-document-actions .ghost-button { min-height: 34px; padding: 6px 13px; border-radius: 8px; font-size: 12px; }
+
+@media (max-width: 960px) {
+  .driver-cert-body { grid-template-columns: 1fr; gap: 20px; }
+  .driver-cert-docs { padding-left: 0; border-left: 0; }
+}
+
+/* In-app document lightbox (replaces the fragile window.open preview). */
+.driver-doc-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: rgba(21, 30, 39, .62);
+  backdrop-filter: blur(3px);
+}
+.driver-doc-lightbox-card {
+  display: grid;
+  gap: 12px;
+  width: min(880px, 100%);
+  max-height: calc(100vh - 64px);
+  padding: 16px 18px 18px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(15, 23, 32, .35);
+}
+.driver-doc-lightbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.driver-doc-lightbox-head strong { font-size: 15px; font-weight: 600; color: #24303c; }
+.driver-doc-lightbox-head button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #f2f5f7; color: #53616e; cursor: pointer; transition: background .16s ease; }
+.driver-doc-lightbox-head button:hover { background: #e8edf0; color: #24303c; }
+.driver-doc-lightbox-card img { width: 100%; max-height: calc(100vh - 180px); object-fit: contain; border-radius: 9px; background: #f7f9fa; }
+
+/* ===== 优惠券页布局优化：占满宽度、两列等高、窄屏叠放（不改内部样式与图标） ===== */
+.dashboard-shell--workspace .dashboard-view-stage > .miniapp-coupon-board {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+
+.dashboard-shell--workspace .miniapp-coupon-board {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-shell--workspace .miniapp-coupon-board .coupon-hero-panel,
+.dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-tabs,
+.dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-content,
+.dashboard-shell--workspace .miniapp-coupon-board .member-coupon-banner {
+  grid-column: 1 / -1;
+}
+
+.dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.dashboard-shell--workspace .miniapp-coupon-board .coupon-section {
+  align-content: start;
+  height: 100%;
+}
+
+@media (max-width: 980px) {
+  .dashboard-shell--workspace .miniapp-coupon-board .miniapp-coupon-content { grid-template-columns: minmax(0, 1fr); }
+}

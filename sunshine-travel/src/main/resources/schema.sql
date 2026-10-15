@@ -205,6 +205,14 @@ CREATE TABLE IF NOT EXISTS t_ride_order (
     refund_reason VARCHAR(255) DEFAULT NULL COMMENT '退款原因',
     refunded_at DATETIME DEFAULT NULL COMMENT '退款时间',
     accepted_at DATETIME DEFAULT NULL COMMENT '接单时间',
+    carpool_departure_at DATETIME DEFAULT NULL COMMENT '顺风车约定出发时间',
+    carpool_departure_end_at DATETIME DEFAULT NULL COMMENT '顺风车约定出发时间段结束时间',
+    carpool_passenger_count INT NOT NULL DEFAULT 1 COMMENT '顺风车乘车人数',
+    carpool_toll_amount DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '顺风车高速费',
+    carpool_toll_status VARCHAR(20) NOT NULL DEFAULT 'NONE' COMMENT '顺风车高速费确认状态',
+    carpool_toll_confirmed_at DATETIME DEFAULT NULL COMMENT '高速费确认时间',
+    driver_penalty_amount DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '车主未按时开始违约金',
+    driver_penalty_status VARCHAR(20) NOT NULL DEFAULT 'NONE' COMMENT '车主违约金状态',
     started_at DATETIME DEFAULT NULL COMMENT '上车时间',
     finished_at DATETIME DEFAULT NULL COMMENT '完单时间',
     paid_at DATETIME DEFAULT NULL COMMENT '支付时间',
@@ -284,6 +292,7 @@ CREATE TABLE IF NOT EXISTS t_carpool_trip (
 CREATE TABLE IF NOT EXISTS t_carpool_application (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     trip_id BIGINT NOT NULL COMMENT '行程ID',
+    request_id BIGINT DEFAULT NULL COMMENT '乘客需求ID',
     passenger_user_id BIGINT NOT NULL COMMENT '乘客ID',
     companion_count INT NOT NULL COMMENT '同行人数',
     shared_amount DECIMAL(10,2) NOT NULL COMMENT '总分摊金额',
@@ -296,8 +305,29 @@ CREATE TABLE IF NOT EXISTS t_carpool_application (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     KEY idx_carpool_application_trip (trip_id),
     KEY idx_carpool_application_passenger (passenger_user_id),
+    KEY idx_carpool_application_request (request_id),
     CONSTRAINT fk_carpool_application_trip FOREIGN KEY (trip_id) REFERENCES t_carpool_trip(id)
 ) COMMENT='顺风车申请表';
+
+CREATE TABLE IF NOT EXISTS t_carpool_ride_request (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    passenger_user_id BIGINT NOT NULL COMMENT '乘客用户ID',
+    request_no VARCHAR(64) NOT NULL COMMENT '需求号',
+    start_name VARCHAR(255) NOT NULL COMMENT '起点',
+    end_name VARCHAR(255) NOT NULL COMMENT '终点',
+    depart_time DATETIME NOT NULL COMMENT '期望出发时间',
+    passenger_count INT NOT NULL COMMENT '乘车人数',
+    accept_carpool TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否接受多人拼车',
+    shared_amount DECIMAL(10,2) NOT NULL COMMENT '预估分摊金额',
+    baggage_rule VARCHAR(255) DEFAULT NULL COMMENT '行李规则',
+    request_remark VARCHAR(255) DEFAULT NULL COMMENT '需求备注',
+    status VARCHAR(20) NOT NULL COMMENT '需求状态',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_carpool_request_no (request_no),
+    KEY idx_carpool_request_passenger (passenger_user_id),
+    KEY idx_carpool_request_depart_status (depart_time, status)
+) COMMENT='顺风车乘客需求表';
 
 CREATE TABLE IF NOT EXISTS t_withdraw_application (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',

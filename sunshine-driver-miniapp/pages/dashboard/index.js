@@ -5,6 +5,7 @@ const { broadcastDriver, notifyDriver } = require('../../utils/notify')
 const { buildTrackReport } = require('../../utils/track-reporter')
 const { createSimulation } = require('../../utils/trip-simulator')
 const { requestRoute } = require('../../utils/route-planner')
+const { filterWaitingOrdersByLocationMode, isOrderReceivable, normalizeLocationMode } = require('../../utils/location-mode')
 
 const DASHBOARD_POLL_INTERVAL = 3000
 
@@ -25,6 +26,7 @@ function buildActiveTripCard(order) {
   const mappedOrder = mapTripOrder(order)
   return {
     id: order.id,
+    serviceType: order.serviceType,
     title: `${order.startName} → ${order.endName}`,
     fareText: mappedOrder.fareText,
     statusText: order.orderStatus === ORDER_STATUS.IN_TRIP
@@ -172,6 +174,7 @@ Page({
   async loadHomeNotices() {
     const response = await fetchHome({ skipToast: true })
     const homeData = response.data || {}
+    getApp().updateTencentMapKey((homeData.systemConfigs || {}).tencentMapKey)
     this.setData({
       noticeText: buildNoticeTickerText(homeData.notices || [])
     })
@@ -218,6 +221,14 @@ Page({
 
     const location = await this.safeGetLocation()
 
+    // 真实定位模式：刷新真实坐标状态（获取失败则标记未就绪，快车/国际出行订单暂停接收）
+    const locationSettings = store.settings = store.settings || {}
+    if (locationSettings.locationMode === 'REAL') {
+      locationSettings.realLatitude = location ? location.latitude : locationSettings.realLatitude
+      locationSettings.realLongitude = location ? location.longitude : locationSettings.realLongitude
+      locationSettings.realLocationReady = Boolean(location)
+    }
+
     if (permission.canReceiveOrders &&
       !busy &&
       serviceStatus === DRIVER_SERVICE_STATUS.OFFLINE &&
@@ -235,6 +246,12 @@ Page({
       try {
         const waitingResponse = await fetchWaitingOrders({ skipToast: Boolean(silent) })
         availableOrders = (waitingResponse.data || []).map((item) => mapWaitingOrder(item, location))
+        // 真实定位模式：只保留上车点5公里内的快车/国际出行订单（顺风车始终显示）
+        availableOrders = filterWaitingOrdersByLocationMode(
+          availableOrders,
+          (store.settings || {}).locationMode,
+          (store.settings || {}).locationMode === 'REAL' ? location : null
+        )
       } catch (error) {
         availableOrders = []
       }
@@ -366,10 +383,22 @@ Page({
     }
   },
 
+  // 真实定位模式下接单资格校验：顺风车不受影响；快车/国际出行需真实定位就绪且在5公里内
+  canAcceptOrderByLocationMode(order) {
+    const settings = ((getApp().globalData.driverStore || {}).settings || {})
+    if (normalizeLocationMode(settings.locationMode) !== 'REAL') return true
+    if (!order || order.serviceType === SERVICE_TYPE.CARPOOL) return true
+    if (!settings.realLocationReady) return false
+    return isOrderReceivable(order, { latitude: settings.realLatitude, longitude: settings.realLongitude })
+  },
+
   async tryAutoAccept(availableOrders, serviceStatus, busy) {
     const store = getApp().globalData.driverStore
     const settings = store.settings || {}
     if (!settings.autoAccept || busy || serviceStatus !== DRIVER_SERVICE_STATUS.ONLINE || this.autoAccepting) {
+      return null
+    }
+    if (normalizeLocationMode(settings.locationMode) === 'REAL' && !settings.realLocationReady) {
       return null
     }
 
@@ -383,16 +412,19 @@ Page({
     this.autoAccepting = true
     try {
       await acceptOrder(order.id)
-      await startOrder(order.id)
-      notifyDriver(this, '已自动接单，开始接驾', `${order.startName} 到 ${order.endName} 已接取，正在前往上车点。`, {
+      const isCarpool = order.serviceType === SERVICE_TYPE.CARPOOL
+      if (!isCarpool) {
+        await startOrder(order.id)
+      }
+      notifyDriver(this, isCarpool ? '已自动接单，等待开始接驾' : '已自动接单，开始接驾', `${order.startName} 到 ${order.endName} ${isCarpool ? '已接取，请确认后开始接驾。' : '已接取，正在前往上车点。'}`, {
         id: `auto-accept-${order.id}`,
         type: 'auto'
       })
-      broadcastDriver(this, `已自动接单，正在前往${order.startName}接乘客`, `auto-accept-${order.id}`)
+      broadcastDriver(this, isCarpool ? `已自动接单，请确认后前往${order.startName}接乘客` : `已自动接单，正在前往${order.startName}接乘客`, `auto-accept-${order.id}`)
       this.reportAcceptedTrack(order).catch(() => {})
       await this.loadDashboard(true)
       wx.navigateTo({
-        url: `/pages/trip-progress/index?id=${order.id}`
+        url: isCarpool ? `/pages/trip-detail/index?id=${order.id}` : `/pages/trip-progress/index?id=${order.id}`
       })
       return order
     } finally {
@@ -402,19 +434,22 @@ Page({
 
   handleWaitingOrderEvents(availableOrders = []) {
     const settings = ((getApp().globalData.driverStore || {}).settings || {})
+    if (settings.manualResting || settings.listenMode === false) return
     availableOrders.forEach((order) => {
       if (!isNewAfterListening(order, settings)) {
         return
       }
 
       if (order.isNew) {
-        notifyDriver(this, '新订单通知', `${order.serviceTypeLabel}：${order.startName} 到 ${order.endName}`, {
-          id: `new-order-${order.id}`,
-          type: 'order'
-        })
+        if (order.serviceType !== SERVICE_TYPE.CARPOOL) {
+          notifyDriver(this, '新订单通知', `${order.serviceTypeLabel}：${order.startName} 到 ${order.endName}`, {
+            id: `new-order-${order.id}`,
+            type: 'order'
+          })
+        }
       }
 
-      if (order.serviceType === SERVICE_TYPE.CARPOOL) {
+      if (order.serviceType === SERVICE_TYPE.CARPOOL && order.isNew) {
         notifyDriver(this, '顺风车订单', `${order.startName} 到 ${order.endName}，可手动接取。`, {
           id: `carpool-notice-${order.id}`,
           type: 'carpool'
@@ -438,7 +473,6 @@ Page({
           id: `cancel-notice-${order.id}`,
           type: 'cancel'
         })
-        broadcastDriver(this, `乘客已取消订单，${order.startName}到${order.endName}`, `passenger-cancel-${order.id}`)
       })
   },
 
@@ -568,22 +602,36 @@ Page({
   async acceptOrder(e) {
     const orderId = e.currentTarget.dataset.id
     const order = (this.data.availableOrders || []).find((item) => `${item.id}` === `${orderId}`)
+    if (!this.canAcceptOrderByLocationMode(order)) {
+      wx.showToast({
+        title: '真实定位未就绪或超出5公里，无法接单',
+        icon: 'none'
+      })
+      return
+    }
     await acceptOrder(orderId)
-    await startOrder(orderId)
+    const isCarpool = order && order.serviceType === SERVICE_TYPE.CARPOOL
+    if (!isCarpool) {
+      await startOrder(orderId)
+    }
     if (order) {
-      notifyDriver(this, '已接单，开始接驾', `${order.startName} 到 ${order.endName} 已接取，正在前往上车点。`, {
+      notifyDriver(this, isCarpool ? '已接单，等待开始接驾' : '已接单，开始接驾', `${order.startName} 到 ${order.endName} ${isCarpool ? '已接取，请确认后开始接驾。' : '已接取，正在前往上车点。'}`, {
         id: `manual-accept-${order.id}`,
         type: 'order'
       })
-      broadcastDriver(this, `接单成功，正在前往${order.startName}接乘客`, `manual-accept-${order.id}`, {
-        audioKey: 'auto-accept'
-      })
+      if (!isCarpool) {
+        broadcastDriver(this, `接单成功，正在前往${order.startName}接乘客`, `manual-accept-${order.id}`, {
+          audioKey: 'auto-accept'
+        })
+      }
     }
-    this.reportAcceptedTrack(order || { id: orderId }).catch(() => {})
-    wx.showToast({ title: '已接单，开始接驾', icon: 'success' })
+    if (!isCarpool) {
+      this.reportAcceptedTrack(order || { id: orderId }).catch(() => {})
+    }
+    wx.showToast({ title: isCarpool ? '已接单，请确认后开始接驾' : '已接单，开始接驾', icon: 'none', duration: 2500 })
     await this.loadDashboard()
     wx.navigateTo({
-      url: `/pages/trip-progress/index?id=${orderId}`
+      url: isCarpool ? `/pages/trip-detail/index?id=${orderId}` : `/pages/trip-progress/index?id=${orderId}`
     })
   },
 
@@ -686,7 +734,9 @@ Page({
       return
     }
     wx.navigateTo({
-      url: `/pages/trip-progress/index?id=${activeTripCard.id}`
+      url: activeTripCard.serviceType === SERVICE_TYPE.CARPOOL
+        ? `/pages/trip-detail/index?id=${activeTripCard.id}`
+        : `/pages/trip-progress/index?id=${activeTripCard.id}`
     })
   }
 })

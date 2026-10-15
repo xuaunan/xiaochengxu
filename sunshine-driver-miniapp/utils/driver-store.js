@@ -54,6 +54,10 @@ function createDefaultDriverStore() {
       voiceBroadcast: true,
       voiceStyle: 'default',
       trackMode: 'DEMO',
+      locationMode: 'DEMO',
+      realLocationReady: false,
+      realLatitude: null,
+      realLongitude: null,
       manualResting: false,
       listeningSince: 0,
       listeningBaselineReady: false,
@@ -163,12 +167,16 @@ function parseCarpoolMeta(order = {}) {
   const meta = parseTaggedMeta(order.remark, 'CARPOOL_META')
   if (!meta) return null
 
-  const passengerCount = Math.max(1, toNumber(meta.passengerCount, 1))
+  const passengerCount = Math.max(1, toNumber(order.carpoolPassengerCount || order.carpool_passenger_count || meta.passengerCount, 1))
   const luggageText = meta.hasLuggage === true || meta.hasLuggage === 'HAS_LUGGAGE' ? '有行李' : '无行李'
   const tollText = meta.tollMode === 'PASSENGER_PAYS' ? '乘客出高速费' : '高速费协商'
 
   return {
-    summaryText: [[meta.departDate, meta.timeRange].filter(Boolean).join(' '), `${passengerCount}人`, luggageText, tollText].filter(Boolean).join(' · ')
+    summaryText: [[meta.departDate, meta.timeRange].filter(Boolean).join(' '), `${passengerCount}人`, luggageText, tollText].filter(Boolean).join(' · '),
+    departureAt: order.carpoolDepartureAt || order.carpool_departure_at || '',
+    departureEndAt: order.carpoolDepartureEndAt || order.carpool_departure_end_at || '',
+    tollAmount: Number(order.carpoolTollAmount || order.carpool_toll_amount || 0),
+    tollStatus: order.carpoolTollStatus || order.carpool_toll_status || 'NONE'
   }
 }
 
@@ -413,6 +421,7 @@ module.exports = {
   mapTripOrder,
   mapWaitingOrder,
   nextActionText,
+  parseCarpoolMeta,
   parseInternationalMeta,
   toNumber,
   getDriverIncomeAmount

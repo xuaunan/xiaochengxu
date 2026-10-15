@@ -154,6 +154,21 @@ App({
   onLaunch() {
     this.globalData.poiLibrary = POI_LIBRARY
     this.bootstrapState()
+    // 后台「全局参数 → 地图服务」下发的腾讯地图Key：优先用缓存，缺失时保留默认 Key
+    const cachedMapKey = wx.getStorageSync('sunshine-tencent-map-key')
+    if (cachedMapKey) {
+      this.globalData.mapConfig.tencentKey = cachedMapKey
+    }
+  },
+
+  // /app/home 返回 systemConfigs.tencentMapKey 时更新本端地图Key并持久化
+  updateTencentMapKey(value) {
+    const key = `${value || ''}`.trim()
+    if (!key || key === this.globalData.mapConfig.tencentKey) return
+    this.globalData.mapConfig.tencentKey = key
+    try {
+      wx.setStorageSync('sunshine-tencent-map-key', key)
+    } catch (error) {}
   },
 
   bootstrapState() {

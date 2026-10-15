@@ -29,5 +29,21 @@ rollback-snapshots/
 .codex-output/
 参考图/
 
+# 本地调试与临时产物（不入库）
+logs/
+.workbuddy/
+.playwright-cli/
+debug-page.cjs
+图片/
+zhengshu/
+html/*.png
+html/*.cjs
+html/*.mjs
+html/coupons-*.json
+html/dist-*/
+html/dist.old-build*/
+html/logs/
+html/output/
+
 .DS_Store
 Thumbs.db

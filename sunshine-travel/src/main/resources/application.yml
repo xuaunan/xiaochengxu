@@ -29,7 +29,8 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 不要开启 StdOutImpl：每条 SQL 同步打印完整结果集，列表页会被日志 I/O 拖慢
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
 jwt:
   secret: change-me-jwt-secret-for-your-own-setup

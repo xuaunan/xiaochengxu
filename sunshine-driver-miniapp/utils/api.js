@@ -173,6 +173,21 @@ function startOrder(orderId) {
   })
 }
 
+function setCarpoolToll(orderId, tollAmount) {
+  return request({
+    url: `/orders/${orderId}/carpool-toll`,
+    method: 'POST',
+    data: { tollAmount }
+  })
+}
+
+function payCarpoolPenalty(orderId) {
+  return request({
+    url: `/orders/${orderId}/carpool-penalty/pay`,
+    method: 'POST'
+  })
+}
+
 function pickupOrder(orderId) {
   return request({
     url: `/orders/${orderId}/pickup`,
@@ -248,6 +263,8 @@ module.exports = {
   rejectOrder,
   sendSupportMessage,
   startOrder,
+  setCarpoolToll,
+  payCarpoolPenalty,
   submitCertification,
   uploadDriverDocument,
   updateDriverProfile,

@@ -53,13 +53,26 @@
               <component :is="typeMeta(item).icon" />
             </el-icon>
           </div>
-          <div class="message-copy">
+          <div
+            class="message-copy"
+            :class="{ clickable: isAuditItem(item) }"
+            @click="isAuditItem(item) && openAuditDetail(item)"
+          >
             <div class="message-title-row">
               <strong>{{ item.title }}</strong>
               <el-tag :type="typeMeta(item).tagType" size="small" effect="plain">{{ typeMeta(item).label }}</el-tag>
+              <el-tag
+                v-for="scope in auditScopesOf(item)"
+                :key="scope"
+                size="small"
+                type="warning"
+                effect="light"
+              >
+                {{ scope === 'DRIVER' ? '司机资质' : '车辆资料' }}
+              </el-tag>
             </div>
             <p>{{ item.content }}</p>
-            <span>{{ formatDateTime(item.createdAt) }}</span>
+            <span>{{ formatDateTime(item.createdAt) }}{{ isAuditItem(item) ? ' · 点击查看详情' : '' }}</span>
           </div>
           <div class="message-actions">
             <template v-if="item.type === 'COMPLAINT'">
@@ -157,6 +170,73 @@
         <el-button :loading="invoiceSubmitting" type="primary" @click="submitInvoice">确认处理</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="auditDetailVisible" :title="auditDetailTitle" width="700px">
+      <div v-loading="detailLoading" class="audit-detail">
+        <template v-if="auditDetail">
+          <div class="detail-block">
+            <div class="detail-block-head">
+              <strong>司机资质</strong>
+              <el-tag size="small" :type="auditDetail.profile?.auditStatus === 1 ? 'warning' : 'success'">
+                {{ auditStatusText(auditDetail.profile?.auditStatus) }}
+              </el-tag>
+            </div>
+            <div class="detail-grid">
+              <div><label>姓名</label><span>{{ auditDetail.user?.realName || auditDetail.user?.nickname || '-' }}</span></div>
+              <div><label>手机号</label><span>{{ auditDetail.user?.phone || '-' }}</span></div>
+              <div><label>驾驶证号</label><span>{{ auditDetail.profile?.licenseNo || '-' }}</span></div>
+            </div>
+            <div v-if="auditDetail.vehicle?.driverLicenseImageUrl" class="detail-photo">
+              <el-image
+                :src="resolveImageUrl(auditDetail.vehicle.driverLicenseImageUrl)"
+                :preview-src-list="[resolveImageUrl(auditDetail.vehicle.driverLicenseImageUrl)]"
+                fit="cover"
+                class="detail-img"
+                preview-teleported
+              />
+              <span class="detail-photo-label">驾驶证照片</span>
+            </div>
+            <div v-if="detailItemCanAudit('DRIVER')" class="detail-actions">
+              <el-button size="small" type="success" plain @click="auditFromDetail('DRIVER', 2)">通过司机资质</el-button>
+              <el-button size="small" type="danger" plain @click="auditFromDetail('DRIVER', 3)">驳回司机资质</el-button>
+            </div>
+          </div>
+
+          <div v-if="auditDetail.vehicle" class="detail-block">
+            <div class="detail-block-head">
+              <strong>车辆资料</strong>
+              <el-tag size="small" :type="auditDetail.vehicle.auditStatus === 1 ? 'warning' : 'success'">
+                {{ auditStatusText(auditDetail.vehicle.auditStatus) }}
+              </el-tag>
+            </div>
+            <div class="detail-grid">
+              <div><label>车牌号</label><span>{{ auditDetail.vehicle.plateNo || '-' }}</span></div>
+              <div><label>品牌车型</label><span>{{ (auditDetail.vehicle.brand || '-') + ' ' + (auditDetail.vehicle.modelName || '') }}</span></div>
+              <div><label>颜色 / 座位</label><span>{{ (auditDetail.vehicle.color || '-') + ' / ' + (auditDetail.vehicle.seatCount || '-') + ' 座' }}</span></div>
+              <div><label>保险到期</label><span>{{ auditDetail.vehicle.insuranceExpireDate || '-' }}</span></div>
+              <div><label>年检到期</label><span>{{ auditDetail.vehicle.annualInspectExpireDate || '-' }}</span></div>
+            </div>
+            <div v-if="auditDetail.vehicle.vehicleLicenseImageUrl" class="detail-photo">
+              <el-image
+                :src="resolveImageUrl(auditDetail.vehicle.vehicleLicenseImageUrl)"
+                :preview-src-list="[resolveImageUrl(auditDetail.vehicle.vehicleLicenseImageUrl)]"
+                fit="cover"
+                class="detail-img"
+                preview-teleported
+              />
+              <span class="detail-photo-label">行驶证照片</span>
+            </div>
+            <div v-if="detailItemCanAudit('VEHICLE')" class="detail-actions">
+              <el-button size="small" type="success" plain @click="auditFromDetail('VEHICLE', 2)">通过车辆资料</el-button>
+              <el-button size="small" type="danger" plain @click="auditFromDetail('VEHICLE', 3)">驳回车辆资料</el-button>
+            </div>
+          </div>
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="auditDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -172,7 +252,7 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import http from '../api/http'
+import http, { baseURL } from '../api/http'
 import { formatDateTime } from '../utils/admin'
 
 const router = useRouter()
@@ -182,6 +262,10 @@ const levelFilter = ref('ALL')
 const actionLoadingId = ref('')
 const invoiceVisible = ref(false)
 const invoiceSubmitting = ref(false)
+const auditDetailVisible = ref(false)
+const detailLoading = ref(false)
+const auditDetail = ref(null)
+const detailItem = ref(null)
 const invoiceForm = ref({
   orderId: null,
   orderNo: '',
@@ -268,6 +352,73 @@ function typeMeta(item = {}) {
 
 function isActionLoading(item, action) {
   return actionLoadingId.value === `${item.id}:${action}`
+}
+
+function isAuditItem(item) {
+  return item?.type === 'DRIVER_AUDIT' || item?.type === 'VEHICLE_AUDIT'
+}
+
+function auditScopesOf(item) {
+  if (Array.isArray(item?.auditScopes) && item.auditScopes.length) return item.auditScopes
+  if (!isAuditItem(item)) return []
+  return [item.type === 'VEHICLE_AUDIT' ? 'VEHICLE' : 'DRIVER']
+}
+
+function auditStatusText(status) {
+  return { 0: '未认证', 1: '待审核', 2: '已通过', 3: '已驳回' }[status] || '未知'
+}
+
+function resolveImageUrl(url) {
+  if (!url) return ''
+  if (/^https?:\/\//.test(url)) return url
+  return baseURL + url
+}
+
+const auditDetailTitle = computed(() => {
+  if (!detailItem.value) return '审核详情'
+  const scopes = auditScopesOf(detailItem.value)
+  if (scopes.includes('DRIVER') && scopes.includes('VEHICLE')) return '司机资质审核详情'
+  if (scopes.includes('VEHICLE')) return '车辆资料审核详情'
+  return '司机资料审核详情'
+})
+
+function detailItemCanAudit(scope) {
+  return auditScopesOf(detailItem.value).includes(scope)
+}
+
+async function openAuditDetail(item) {
+  const driverId = resolveTargetId(item, 'driverId', 'driver-audit-')
+  if (!driverId) {
+    ElMessage.warning('当前审核消息缺少司机ID，无法查看详情')
+    return
+  }
+  detailItem.value = item
+  auditDetailVisible.value = true
+  detailLoading.value = true
+  try {
+    const result = await http.get(`/admin/drivers/${driverId}`)
+    auditDetail.value = result || null
+  } catch (error) {
+    ElMessage.error(error.message || '审核详情加载失败')
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+async function auditFromDetail(scope, authStatus) {
+  const item = detailItem.value
+  if (!item) return
+  await auditDriver(item, authStatus, scope)
+  // 审核后刷新详情；若两项都已处理完则关闭弹窗
+  const remaining = auditScopesOf(item).filter((s) => s !== scope)
+  if (!remaining.length) {
+    auditDetailVisible.value = false
+    return
+  }
+  detailItem.value = { ...item, auditScopes: remaining }
+  if (auditDetailVisible.value) {
+    await openAuditDetail(detailItem.value)
+  }
 }
 
 function parseTargetId(item, prefix) {
@@ -398,22 +549,26 @@ async function auditWithdraw(item, action) {
   })
 }
 
-async function auditDriver(item, authStatus) {
+async function auditDriver(item, authStatus, scopeOverride) {
   const driverId = resolveTargetId(item, 'driverId', 'driver-audit-')
   if (!driverId) {
     ElMessage.warning('当前审核消息缺少司机ID，无法直接审核')
     return
   }
 
-  const targetName = item.type === 'VEHICLE_AUDIT' ? '车辆资料' : '司机资料'
+  const scopes = scopeOverride ? [scopeOverride] : auditScopesOf(item)
+  const scope = scopes.length > 1 ? 'ALL' : scopes[0]
+  const scopeNames = { DRIVER: '司机资质', VEHICLE: '车辆资料' }
+  const targetName = scopes.map((s) => scopeNames[s] || s).join(' 与 ') || '司机资料'
   let remark = `${targetName}审核通过`
   if (authStatus === 2) {
-    await ElMessageBox.confirm(`确认通过该${targetName}吗？`, `${targetName}审核`, {
-      type: 'warning'
-    })
-    if (item.type === 'VEHICLE_AUDIT') {
-      remark = '车辆资料审核通过，司机可正常接单'
-    }
+    await ElMessageBox.confirm(
+      scopes.length > 1
+        ? `将同时通过${targetName}，确认吗？如需分开审核，请点击消息内容查看详情后单独处理。`
+        : `确认通过该${targetName}吗？`,
+      `${targetName}审核`,
+      { type: 'warning' }
+    )
   } else {
     const result = await ElMessageBox.prompt(`请输入${targetName}驳回原因。`, `驳回${targetName}`, {
       confirmButtonText: '提交驳回',
@@ -428,7 +583,8 @@ async function auditDriver(item, authStatus) {
   await withActionLoading(item, authStatus === 2 ? 'audit-pass' : 'audit-reject', async () => {
     await http.post(`/admin/drivers/${driverId}/audit`, {
       authStatus,
-      remark
+      remark,
+      scope
     })
     ElMessage.success(authStatus === 2 ? `${targetName}已通过` : `${targetName}已驳回`)
     await loadMessages()
@@ -600,6 +756,84 @@ onMounted(loadMessages)
 
 .message-copy {
   min-width: 0;
+}
+
+.message-copy.clickable {
+  cursor: pointer;
+}
+
+.audit-detail {
+  display: grid;
+  gap: 18px;
+  min-height: 120px;
+}
+
+.detail-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #fffdf9 0%, #ffffff 60%);
+}
+
+.detail-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.detail-block-head strong {
+  font-size: 15px;
+  color: #172033;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px 18px;
+}
+
+.detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-grid label {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.detail-grid span {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.detail-photo {
+  margin-top: 10px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.detail-img {
+  width: 220px;
+  height: 140px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.detail-photo-label {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.detail-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
 }
 
 .message-title-row {

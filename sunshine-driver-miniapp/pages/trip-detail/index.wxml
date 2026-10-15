@@ -21,10 +21,22 @@
   </view>
 
   <view class="page-content trip-detail-page has-floating-action">
-    <view class="trip-hero page-enter">
+    <view class="trip-hero page-enter {{trip.serviceType === 'CARPOOL' ? 'trip-hero--carpool' : ''}}">
       <view class="trip-hero__head">
         <view class="trip-hero__copy">
-          <view class="trip-route">{{trip.startName}} -> {{trip.endName}}</view>
+          <view class="carpool-kicker" wx:if="{{trip.serviceType === 'CARPOOL'}}">顺风车 · 车主行程</view>
+          <view class="carpool-route" wx:if="{{trip.serviceType === 'CARPOOL'}}">
+            <view class="carpool-route__stop">
+              <view class="carpool-route__dot carpool-route__dot--start"></view>
+              <view class="carpool-route__name">{{trip.startName}}</view>
+            </view>
+            <view class="carpool-route__gap"><view class="carpool-route__line"></view></view>
+            <view class="carpool-route__stop">
+              <view class="carpool-route__dot carpool-route__dot--end"></view>
+              <view class="carpool-route__name">{{trip.endName}}</view>
+            </view>
+          </view>
+          <view class="trip-route" wx:else>{{trip.startName}} -> {{trip.endName}}</view>
           <view class="trip-order-no">订单号 {{trip.orderNo}} ｜ {{trip.passengerText}}</view>
           <view class="trip-detail-tags">
             <view class="status-tag {{trip.serviceTypeClassName}}">{{trip.serviceTypeLabel}}</view>
@@ -34,21 +46,21 @@
         <view class="status-tag {{trip.statusTagType}} trip-status">{{trip.statusText}}</view>
       </view>
 
-      <view class="trip-city">
+      <view wx:if="{{trip.serviceType !== 'CARPOOL'}}" class="trip-city">
         <view class="trip-building trip-building--1"></view>
         <view class="trip-building trip-building--2"></view>
         <view class="trip-building trip-building--3"></view>
         <view class="trip-building trip-building--4"></view>
       </view>
-      <view class="trip-road"></view>
-      <view class="trip-taxi">
+      <view wx:if="{{trip.serviceType !== 'CARPOOL'}}" class="trip-road"></view>
+      <view wx:if="{{trip.serviceType !== 'CARPOOL'}}" class="trip-taxi">
         <view class="trip-taxi__body"></view>
         <view class="trip-taxi__top"></view>
         <view class="trip-taxi__wheel trip-taxi__wheel--left"></view>
         <view class="trip-taxi__wheel trip-taxi__wheel--right"></view>
       </view>
 
-      <view class="trip-metrics">
+      <view class="trip-metrics" wx:if="{{trip.serviceType !== 'CARPOOL'}}">
         <view class="trip-metric-card">
           <view class="trip-metric-icon trip-metric-icon--route"></view>
           <view>
@@ -104,6 +116,68 @@
       <view class="intl-trip-note intl-trip-note--service">{{trip.internationalMeta.serviceItemsText}}</view>
     </view>
 
+    <view class="trip-panel carpool-panel" wx:if="{{trip.carpoolMeta}}">
+      <view class="panel-title-row">
+        <view class="panel-title-icon panel-title-icon--flow"></view>
+        <view class="panel-title">顺风车预约信息</view>
+      </view>
+
+      <view class="carpool-panel__time">
+        <view class="carpool-panel__time-label">出发时段</view>
+        <view class="carpool-panel__time-value">{{trip.carpoolMeta.timeText}}</view>
+      </view>
+
+      <view class="carpool-panel__facts">
+        <view class="carpool-panel__fact">
+          <view class="carpool-panel__fact-label">同行人数</view>
+          <view class="carpool-panel__fact-value">{{trip.carpoolMeta.passengerCountText}}</view>
+        </view>
+        <view class="carpool-panel__fact">
+          <view class="carpool-panel__fact-label">行李</view>
+          <view class="carpool-panel__fact-value">{{trip.carpoolMeta.luggageText}}</view>
+        </view>
+        <view class="carpool-panel__fact">
+          <view class="carpool-panel__fact-label">高速费</view>
+          <view class="carpool-panel__fact-value">{{trip.carpoolMeta.tollModeText}}</view>
+        </view>
+      </view>
+
+      <view class="carpool-panel__note">请按预约时间到达上车点，接驾前确认乘客人数与行李。</view>
+
+      <view wx:if="{{trip.driverPenaltyStatus === 'DUE'}}" class="carpool-penalty-notice">
+        <view>未缴违约金 ¥{{trip.driverPenaltyAmount}}，缴清后恢复接单</view>
+        <button class="primary-button" bindtap="payCarpoolPenalty" loading="{{payingCarpoolPenalty}}" disabled="{{payingCarpoolPenalty}}">立即缴纳</button>
+      </view>
+
+      <view wx:if="{{trip.orderStatus === 'ACCEPTED' && trip.carpoolTollStatus !== 'CONFIRMED'}}" class="carpool-toll">
+        <block wx:if="{{trip.carpoolTollStatus === 'PENDING'}}">
+          <view class="carpool-toll-done carpool-toll-done--pending">
+            <view class="carpool-toll-done__icon">…</view>
+            <view class="carpool-toll-done__copy">
+              <view class="carpool-toll-done__title">已申报高速费 ¥{{trip.carpoolTollAmount}}</view>
+              <view class="carpool-toll-done__desc">等待乘客确认后才能开始接驾</view>
+            </view>
+          </view>
+        </block>
+        <block wx:else>
+          <view class="carpool-toll__head">
+            <view class="carpool-toll__title">高速费（可选）</view>
+            <view class="carpool-toll__schedule">约定出发 {{trip.carpoolMeta.departureText}}</view>
+          </view>
+          <view class="carpool-toll__hint">填报后需乘客确认；不填则按无高速费继续。</view>
+          <view class="carpool-toll__row">
+            <input type="digit" value="{{tollAmountInput}}" bindinput="onCarpoolTollInput" placeholder="金额（元）" placeholder-class="carpool-toll__placeholder" disabled="{{savingCarpoolToll}}" />
+            <button class="carpool-toll__submit" bindtap="submitCarpoolToll" loading="{{savingCarpoolToll}}" disabled="{{savingCarpoolToll}}">提交</button>
+          </view>
+        </block>
+      </view>
+
+      <view wx:if="{{trip.orderStatus === 'ACCEPTED' && trip.carpoolTollStatus === 'CONFIRMED'}}" class="carpool-toll-done">
+        <view class="carpool-toll-done__check">✓</view>
+        <view>高速费已确认 ¥{{trip.carpoolTollAmount}}</view>
+      </view>
+    </view>
+
     <view class="trip-panel flow-panel" wx:if="{{trip.showServiceFlow}}">
       <view class="panel-title-row">
         <view class="panel-title-icon panel-title-icon--flow"></view>
@@ -118,7 +192,7 @@
       </view>
     </view>
 
-    <view class="trip-panel drive-panel drive-panel--{{trip.driveStatus.state}}">
+    <view class="trip-panel drive-panel drive-panel--{{trip.driveStatus.state}}{{trip.serviceType === 'CARPOOL' ? ' drive-panel--carpool' : ''}}">
       <view class="drive-head">
         <view class="panel-title-row">
           <view class="panel-title-icon panel-title-icon--car"></view>
@@ -150,9 +224,23 @@
         </view>
       </block>
 
+      <block wx:elif="{{trip.driveStatus.visualType === 'accepted'}}">
+        <view class="status-stage status-stage--accepted">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.subtitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.description}}</view>
+          </view>
+          <view class="accepted-board">
+            <view class="accepted-board__person">已接单</view>
+            <view class="accepted-board__line"></view>
+            <view class="accepted-board__status">等待出发</view>
+          </view>
+        </view>
+      </block>
+
       <block wx:elif="{{trip.driveStatus.visualType === 'approach'}}">
         <view class="status-stage status-stage--approach">
-          <view class="pickup-task">
+          <view wx:if="{{trip.serviceType !== 'CARPOOL'}}" class="pickup-task">
             <view class="pickup-task__icon">
               <image src="/images/map-start.png" mode="aspectFit"></image>
             </view>
@@ -166,6 +254,7 @@
               <text>{{trip.driveStatus.state === 'accepted' ? '准备中' : '接驾中'}}</text>
             </view>
           </view>
+          <view wx:if="{{trip.serviceType === 'CARPOOL'}}" class="carpool-approach-note">已开始接驾，按约定前往上车点</view>
           <view class="pickup-task__footer">
             <view class="pickup-task__footer-label">{{trip.driveStatus.subtitle}}</view>
             <view class="pickup-task__footer-desc">{{trip.driveStatus.description}}</view>
@@ -192,6 +281,16 @@
         </view>
       </block>
 
+      <block wx:elif="{{trip.driveStatus.visualType === 'carpool-trip'}}">
+        <view class="status-stage status-stage--trip">
+          <view class="status-stage__copy">
+            <view class="drive-subtitle">{{trip.driveStatus.subtitle}}</view>
+            <view class="drive-description">{{trip.driveStatus.description}}</view>
+          </view>
+          <view class="carpool-drive-note">按约定路线同行，抵达后由车主结束行程</view>
+        </view>
+      </block>
+
       <block wx:elif="{{trip.driveStatus.visualType === 'finished'}}">
         <view class="status-stage status-stage--finished">
           <view class="result-mark result-mark--done">✓</view>
@@ -212,7 +311,7 @@
         </view>
       </block>
 
-      <view class="drive-facts">
+      <view class="drive-facts" wx:if="{{trip.serviceType !== 'CARPOOL'}}">
         <view class="drive-fact drive-fact--{{item.tone || 'normal'}}" wx:for="{{trip.driveStatus.facts}}" wx:key="label">
           <view class="drive-fact__label">{{item.label}}</view>
           <view class="drive-fact__value">{{item.value}}</view>
@@ -223,7 +322,7 @@
   </view>
 
   <view class="floating-bar trip-floating-bar">
-    <button class="primary-button trip-action-button" hover-class="button-hover" bindtap="updateStatus" loading="{{updatingStatus}}" disabled="{{updatingStatus || trip.orderStatus === 'FINISHED' || trip.orderStatus === 'CANCELLED'}}">
+    <button class="primary-button trip-action-button" hover-class="button-hover" bindtap="updateStatus" loading="{{updatingStatus}}" disabled="{{updatingStatus || trip.orderStatus === 'FINISHED' || trip.orderStatus === 'CANCELLED' || (trip.serviceType === 'CARPOOL' && trip.orderStatus === 'ACCEPTED' && trip.carpoolTollStatus === 'PENDING')}}">
       {{updatingStatus ? '处理中...' : actionText}}
     </button>
   </view>

@@ -6,7 +6,7 @@
       </view>
       <view class="settings-hero__copy">
         <view class="settings-title">接单设置</view>
-        <view class="settings-desc">听单、自动接单、轨迹模式与播报偏好</view>
+        <view class="settings-desc">听单、自动接单、定位与播报偏好</view>
       </view>
       <view class="settings-hero__badge">{{settings.listenMode ? '听单中' : '休息中'}}</view>
       <view class="settings-city">
@@ -53,16 +53,16 @@
     </view>
 
     <view class="settings-section">
-      <view class="settings-section-title">轨迹模式</view>
+      <view class="settings-section-title">定位模式</view>
       <view class="settings-panel">
-        <view class="panel-desc">{{currentTrackModeDesc}}</view>
+        <view class="panel-desc">真实定位：只接5公里内的快车/国际单，乘客端同步真实位置；演示定位：收全部订单。行程中无法切换。</view>
         <view class="track-mode-list">
           <view
-            wx:for="{{trackModeOptions}}"
+            wx:for="{{locationModeOptions}}"
             wx:key="value"
-            class="track-mode-chip {{settings.trackMode === item.value ? 'track-mode-chip--active' : ''}}"
+            class="track-mode-chip {{settings.locationMode === item.value ? 'track-mode-chip--active' : ''}}"
             data-value="{{item.value}}"
-            bindtap="selectTrackMode"
+            bindtap="selectLocationMode"
           >
             <view class="track-mode-radio"></view>
             <view class="track-mode-copy">
@@ -71,7 +71,7 @@
             </view>
           </view>
         </view>
-        <view class="settings-current">当前选择：{{currentTrackModeLabel}}轨迹</view>
+        <view class="settings-current">当前选择：{{currentLocationModeLabel}}<block wx:if="{{settings.locationMode === 'REAL'}}">{{settings.realLocationReady ? ' · 已获取' : ' · 定位未获取，快车/国际单暂停'}}</block></view>
       </view>
     </view>
 

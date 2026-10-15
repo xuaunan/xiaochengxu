@@ -61,6 +61,38 @@ export function normalizeRideRuntime(source = null) {
   }
 }
 
+// Keep the mini-program's display contract: a server/demo trace wins, while
+// the local route projection only fills fields the trace does not provide.
+export function mergeRideRuntimeForDisplay(serverRuntime = null, fallbackRuntime = null) {
+  const server = normalizeRideRuntime(serverRuntime)
+  const fallback = normalizeRideRuntime(fallbackRuntime)
+  if (!server && !fallback) return null
+  if (!fallback) return server
+  if (!server) return fallback
+
+  const serverPoint = server.driverLocation || normalizePoint(server.currentPoint)
+  const fallbackPoint = fallback.driverLocation || normalizePoint(fallback.currentPoint)
+  const serverProgress = finiteNumber(server.progress) ?? (
+    finiteNumber(server.percent) === null ? null : Number(server.percent) / 100
+  )
+  const fallbackProgress = finiteNumber(fallback.progress) ?? (
+    finiteNumber(fallback.percent) === null ? null : Number(fallback.percent) / 100
+  )
+  const serverRoute = server.route.length ? server.route : fallback.route
+  return normalizeRideRuntime({
+    ...fallback,
+    ...server,
+    currentPoint: serverPoint || fallbackPoint,
+    driverLocation: serverPoint || fallbackPoint,
+    heading: server.heading ?? fallback.heading,
+    progress: serverProgress ?? fallbackProgress,
+    percent: serverProgress === null ? fallback.percent : Math.round(serverProgress * 100),
+    route: serverRoute,
+    routePoints: serverRoute,
+    traceMode: server.traceMode || fallback.traceMode
+  })
+}
+
 export function getRideProgressPercent(order = {}, runtime = null) {
   const status = String(order.orderStatus || '')
   if (status === 'CANCELLED') return 0
@@ -74,8 +106,8 @@ export function getRideStage(order = {}, runtime = null) {
   const normalized = normalizeRideRuntime(runtime)
   const backendText = String(normalized?.displayText || normalized?.phaseText || normalized?.stateText || '').trim()
   const stages = {
-    CREATED: ['订单已提交', '正在把行程同步到调度系统'],
-    DISPATCHING: ['正在寻找司机', '附近司机接单后将立即显示车辆与接驾信息'],
+    CREATED: ['订单已提交', '正在为你寻找附近司机'],
+    DISPATCHING: ['等待司机接单', '订单已推送给附近司机，接单后将立即为你安排车辆'],
     ACCEPTED: ['司机已接单', '正在自动进入接驾流程'],
     PICKING_UP: ['司机正在接驾', '车辆正沿规划路线前往上车点'],
     IN_TRIP: ['行程进行中', '车辆正沿规划路线驶向目的地'],
@@ -85,7 +117,8 @@ export function getRideStage(order = {}, runtime = null) {
   const [title, description] = stages[status] || ['行程状态同步中', '正在读取最新订单状态']
   return {
     title,
-    description: backendText || description,
+    // 等待阶段使用本地文案：后端兜底文案“等待派单”太生硬，且不是真实进度
+    description: ['CREATED', 'DISPATCHING'].includes(status) ? description : (backendText || description),
     status,
     terminal: TERMINAL_STATUSES.has(status),
     live: Boolean(normalized?.live)

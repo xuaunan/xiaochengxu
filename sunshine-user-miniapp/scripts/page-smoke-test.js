@@ -578,15 +578,11 @@ function buildRequestData(dataset, url, method, data) {
     }
   }
 
-  if (pureUrl.startsWith('/carpool/search')) {
-    return dataset.carpoolSearchList
-  }
-
   if (pureUrl === '/carpool/mine') {
     return dataset.myCarpool
   }
 
-  if (pureUrl === '/carpool/publish' || pureUrl === '/carpool/apply') {
+  if (pureUrl === '/carpool/publish' || pureUrl === '/carpool/request') {
     return {
       success: true
     }
@@ -824,13 +820,6 @@ function getPageOptions(pagePath) {
     'pages/ride-review/index': { id: 'ord-paid' },
     'pages/order-detail/index': { id: 'ord-unpaid' },
     'pages/payment-confirm/index': { id: 'ord-unpaid' },
-    'pages/carpool-publish/index': {
-      startName: encodeURIComponent('上海虹桥机场 T2'),
-      endName: encodeURIComponent('上海迪士尼度假区'),
-      departTime: encodeURIComponent('2026-04-20 07:40:00')
-    },
-    'pages/carpool-detail/index': { id: 'cp-001' },
-    'pages/carpool-apply/index': { id: 'cp-001' },
     'pages/international-order/index': { id: 'int001' },
     'pages/complaint/index': { id: 'ord-paid' }
   }
@@ -944,6 +933,31 @@ function assertPassengerTripLayouts() {
   assertSplitMapLayout('trip-progress', 'trip-map-stage', 'trip-card')
 }
 
+function assertCarpoolTripDetailsHideMapArt() {
+  const passengerWxml = fs.readFileSync(path.join(projectRoot, 'pages/order-detail/index.wxml'), 'utf8')
+  const driverWxml = fs.readFileSync(path.join(projectRoot, '..', 'sunshine-driver-miniapp/pages/trip-detail/index.wxml'), 'utf8')
+  const passengerMapArt = [
+    '<view wx:if="{{!detail.isCarpool}}" class="detail-city">',
+    '<view wx:if="{{!detail.isCarpool}}" class="detail-road"></view>',
+    '<view wx:if="{{!detail.isCarpool}}" class="detail-taxi">',
+    '<view wx:if="{{!detail.isCarpool}}" class="arrival-board">'
+  ]
+  const driverMapArt = [
+    '<view wx:if="{{trip.serviceType !== \'CARPOOL\'}}" class="trip-city">',
+    '<view wx:if="{{trip.serviceType !== \'CARPOOL\'}}" class="trip-road"></view>',
+    '<view wx:if="{{trip.serviceType !== \'CARPOOL\'}}" class="trip-taxi">'
+  ]
+  if (passengerMapArt.some((fragment) => !passengerWxml.includes(fragment))) {
+    throw new Error('Passenger carpool detail must not render map/route illustration')
+  }
+  if (driverMapArt.some((fragment) => !driverWxml.includes(fragment))) {
+    throw new Error('Driver carpool trip detail must not render map/route illustration')
+  }
+  if (!passengerWxml.includes('class="carpool-drive-note"') || !driverWxml.includes('class="carpool-approach-note"')) {
+    throw new Error('Carpool map-free trip status copy is missing')
+  }
+}
+
 async function main() {
   const dataset = getDataset()
   const initialStore = createInitialStore(dataset)
@@ -1011,6 +1025,17 @@ async function main() {
       error
     })
     console.log(`FAIL passenger trip split-map layouts: ${error.message}`)
+  }
+
+  try {
+    assertCarpoolTripDetailsHideMapArt()
+    console.log('PASS carpool trip details are map-free')
+  } catch (error) {
+    failures.push({
+      pagePath: 'carpool trip details are map-free',
+      error
+    })
+    console.log(`FAIL carpool trip details are map-free: ${error.message}`)
   }
 
   if (failures.length) {

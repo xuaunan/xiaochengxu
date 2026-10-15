@@ -74,11 +74,12 @@ function estimateFare(params) {
   })
 }
 
-function createOrder(data) {
+function createOrder(data, options = {}) {
   return request({
     url: '/orders',
     method: 'POST',
-    data
+    data,
+    skipToast: Boolean(options.skipToast)
   })
 }
 
@@ -114,6 +115,14 @@ function pickupOrder(orderId) {
   return request({
     url: `/orders/${orderId}/pickup`,
     method: 'POST'
+  })
+}
+
+function respondCarpoolToll(orderId, confirm) {
+  return request({
+    url: `/orders/${orderId}/carpool-toll/response`,
+    method: 'POST',
+    data: { confirm }
   })
 }
 
@@ -265,12 +274,6 @@ function receiveCoupon(couponId) {
   })
 }
 
-function searchCarpool(keyword) {
-  return request({
-    url: `/carpool/search${queryString({ keyword })}`
-  })
-}
-
 function fetchCarpoolDetail(tripId) {
   return request({
     url: `/carpool/${tripId}`
@@ -285,11 +288,39 @@ function publishCarpool(data) {
   })
 }
 
-function applyCarpool(data) {
+function publishCarpoolRequest(data) {
   return request({
-    url: '/carpool/apply',
+    url: '/carpool/request',
     method: 'POST',
     data
+  })
+}
+
+function fetchCarpoolMatches(tripId) {
+  return request({
+    url: `/carpool/${tripId}/matches`
+  })
+}
+
+function acceptCarpoolRequest(requestId, tripId) {
+  return request({
+    url: `/carpool/request/${requestId}/accept?tripId=${tripId}`,
+    method: 'POST'
+  })
+}
+
+function cancelCarpoolRequest(requestId, reason = '乘客取消出行需求') {
+  return request({
+    url: `/carpool/request/${requestId}/cancel`,
+    method: 'POST',
+    data: { reason }
+  })
+}
+
+function finishCarpoolTrip(tripId) {
+  return request({
+    url: `/carpool/${tripId}/finish`,
+    method: 'POST'
   })
 }
 
@@ -317,6 +348,14 @@ function cancelCarpoolApplication(data) {
   })
 }
 
+function cancelCarpoolTrip(tripId, reason = '车主取消行程') {
+  return request({
+    url: `/carpool/${tripId}/cancel`,
+    method: 'POST',
+    data: { reason }
+  })
+}
+
 function fetchMyCarpool() {
   return request({
     url: '/carpool/mine'
@@ -327,12 +366,14 @@ module.exports = {
   activateMembership,
   applyInvoice,
   downloadInvoiceImage,
-  applyCarpool,
   cancelOrder,
   cancelCarpoolApplication,
+  cancelCarpoolTrip,
+  cancelCarpoolRequest,
   createOrder,
   estimateFare,
   fetchCarpoolDetail,
+  fetchCarpoolMatches,
   fetchCouponCenter,
   fetchHome,
   fetchMembership,
@@ -350,13 +391,16 @@ module.exports = {
   markMessageRead,
   mockPay,
   ownerConfirmCarpool,
+  acceptCarpoolRequest,
   pickupOrder,
+  respondCarpoolToll,
   passengerConfirmCarpool,
+  finishCarpoolTrip,
   publishCarpool,
+  publishCarpoolRequest,
   receiveCoupon,
   register,
   reportTrack,
-  searchCarpool,
   sendSupportMessage,
   submitComplaint,
   submitEvaluation,

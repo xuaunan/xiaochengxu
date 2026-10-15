@@ -378,7 +378,7 @@ export const api = {
   updateProfile: (token, data) => request('/auth/profile', { method: 'PUT', token, data }),
   uploadAvatar: (token, file) => uploadAvatarImage(token, file),
   submitRealName: (token, data) => request('/auth/real-name', { method: 'POST', token, data }),
-  home: () => request('/app/home', { skipAuth: true }),
+  home: () => request('/app/home', { skipAuth: true }).then(applyTencentMapKeyFromHome),
   estimate: (params) => request(`/app/estimate${toQuery(params)}`, { skipAuth: true }),
   createOrder: (token, data) => tripRequest('/orders', { method: 'POST', token, data }),
   orders: (token) => tripRequest('/orders/mine', { token }),
@@ -392,12 +392,10 @@ export const api = {
     data: {
       orderId: Number(id),
       payChannel,
-      payableAmount: amount || null,
-      userCouponId: options.userCouponId || null,
+      payableAmount: amount ?? null,
+      userCouponId: /^\d+$/.test(String(options.userCouponId || '')) ? Number(options.userCouponId) : null,
       couponDiscount: options.couponDiscount || 0,
-      originalAmount: options.originalAmount || null,
-      couponName: options.couponName || '',
-      couponRuleDesc: options.couponRuleDesc || ''
+      originalAmount: options.originalAmount || null
     }
   }),
   evaluate: (token, data) => tripRequest('/orders/evaluation', { method: 'POST', token, data: normalizeEvaluationRequest(data) }),
@@ -431,6 +429,8 @@ export const api = {
   carpoolOwnerConfirm: (token, data) => tripRequest('/carpool/owner-confirm', { method: 'POST', token, data }),
   carpoolPassengerConfirm: (token, data) => tripRequest('/carpool/passenger-confirm', { method: 'POST', token, data }),
   carpoolCancel: (token, data) => tripRequest('/carpool/cancel', { method: 'POST', token, data }),
+  setCarpoolToll: (token, orderId, tollAmount) => tripRequest(`/orders/${orderId}/carpool-toll`, { method: 'POST', token, data: { tollAmount: Number(tollAmount) } }),
+  respondCarpoolToll: (token, orderId, confirm) => tripRequest(`/orders/${orderId}/carpool-toll/response`, { method: 'POST', token, data: { confirm: Boolean(confirm) } }),
   driverDashboard: (token) => tripRequest('/driver/dashboard', { token }),
   driverUpdateProfile: (token, data) => request('/driver/profile', { method: 'PUT', token, data }),
   driverStatus: (token, data) => tripRequest('/driver/service-status', { method: 'POST', token, data }),
@@ -444,6 +444,49 @@ export const api = {
   driverWithdraw: (token, data) => request('/driver/withdraw', { method: 'POST', token, data }),
   driverUploadDocument: (token, file, documentType) => uploadDriverDocument(token, file, documentType),
   driverCertify: (token, data) => request('/driver/certification', { method: 'POST', token, data })
+}
+
+// Workspaces share backend records with the mini-program. Keep the portal's
+// existing offline preview behavior separate from account/order operations.
+// 后台「全局参数 → 地图服务」保存的腾讯地图Key随 /app/home 下发，这里写入 localStorage
+// （App.jsx getTencentMapKey 已优先读取该键），实现后台换 Key 各端自动生效；拉取失败时保留旧值
+export function applyTencentMapKeyFromHome(payload) {
+  const key = payload?.systemConfigs?.tencentMapKey
+  if (typeof key === 'string' && key.trim()) {
+    try {
+      window.localStorage.setItem('sunshine-tencent-map-key', key.trim())
+    } catch (error) {}
+  }
+  return payload
+}
+
+export const workspaceApi = {
+  ...api,
+  // Workspaces use the same role-scoped bootstrap as the mini-program.
+  // The portal keeps its public preview request separate from this snapshot.
+  home: (role = 'USER', token = '') => tripRequest(`/app/home${toQuery({ role })}`, {
+    token,
+    skipAuth: !token
+  }).then(applyTencentMapKeyFromHome),
+  estimate: (params) => tripRequest(`/app/estimate${toQuery(params)}`, { skipAuth: true }),
+  couponCenter: () => tripRequest('/coupons/center', { skipAuth: true }),
+  profile: (token) => tripRequest('/auth/profile', { token }),
+  updateProfile: (token, data) => tripRequest('/auth/profile', { method: 'PUT', token, data }),
+  submitRealName: (token, data) => tripRequest('/auth/real-name', { method: 'POST', token, data }),
+  myCoupons: (token) => tripRequest('/coupons/mine', { token }),
+  receiveCoupon: (token, id) => tripRequest(`/coupons/${id}/receive`, { method: 'POST', token }),
+  membership: (token) => tripRequest('/membership', { token }),
+  activateMembership: (token) => tripRequest('/membership/activate', { method: 'POST', token }),
+  syncMembershipCoupons: (token) => tripRequest('/membership/weekly-coupons', { method: 'POST', token }),
+  messages: (token) => tripRequest('/messages', { token }),
+  markMessageRead: (token, id) => tripRequest(`/messages/${id}/read`, { method: 'POST', token }),
+  driverUpdateProfile: (token, data) => tripRequest('/driver/profile', { method: 'PUT', token, data }),
+  driverWithdraws: (token) => tripRequest('/driver/withdraws', { token }),
+  driverWithdraw: (token, data) => tripRequest('/driver/withdraw', { method: 'POST', token, data }),
+  driverCertify: (token, data) => tripRequest('/driver/certification', { method: 'POST', token, data }),
+  supportConversation: (token) => tripRequest('/support/conversation', { token, headers: WEB_SUPPORT_HEADERS }),
+  supportMessages: (token) => tripRequest('/support/messages', { token, headers: WEB_SUPPORT_HEADERS }),
+  sendSupportMessage: (token, content) => tripRequest('/support/messages', { method: 'POST', token, headers: WEB_SUPPORT_HEADERS, data: { content }, timeout: 25000 })
 }
 
 function toQuery(params = {}) {
@@ -529,7 +572,6 @@ function demoRequest(path, options) {
     target.phone = body.phone || target.phone
     target.password = body.password || target.password || '123456'
     target.nickname = body.nickname || target.nickname
-    target.defaultLanguage = body.defaultLanguage || target.defaultLanguage || 'zh-CN'
     target.roleCode = role
     target.authStatus = target.authStatus ?? 0
     target.enabled = 1
@@ -675,7 +717,13 @@ function demoRequest(path, options) {
       distanceKm: Number(body.estimatedDistanceKm || 4),
       durationMin: Number(body.estimatedDurationMin || 18)
     }
-    const fare = estimateLocalFare(body.carTypeId, body.serviceType, route.distanceKm, route.durationMin)
+    const isCarpoolOrder = body.serviceType === SERVICE_TYPE.CARPOOL
+    const carpoolPassengerCount = isCarpoolOrder ? Math.max(1, Number(body.carpoolPassengerCount || 1)) : 1
+    let fare = estimateLocalFare(body.carTypeId, body.serviceType, route.distanceKm, route.durationMin)
+    if (isCarpoolOrder && carpoolPassengerCount > 1) {
+      // 对齐后端：顺风车按同行人数分摊金额
+      fare = { ...fare, amount: Number((Number(fare.amount || 0) / carpoolPassengerCount).toFixed(2)) }
+    }
     const isWebTaxiOrder = String(body.sourceChannel || '').toUpperCase() === 'WEB' && body.serviceType === SERVICE_TYPE.TAXI
     const webExclusiveDiscountAmount = isWebTaxiOrder
       ? Math.min(Math.max(0, Number(body.webExclusiveDiscountAmount || 0)), Math.max(0, Number(fare.amount || 0) - 0.01))
@@ -728,6 +776,12 @@ function demoRequest(path, options) {
         ? (body.couponRuleDesc || selectedCoupon.ruleDesc || '')
         : webExclusiveDiscountAmount > 0 ? '网页版打车专属，小程序不可使用' : '',
       remark: body.remark || '',
+      carpoolPassengerCount: isCarpoolOrder ? carpoolPassengerCount : null,
+      carpoolDepartureAt: isCarpoolOrder ? (body.carpoolDepartureAt || null) : null,
+      carpoolDepartureEndAt: isCarpoolOrder ? (body.carpoolDepartureEndAt || null) : null,
+      carpoolTollAmount: isCarpoolOrder ? 0 : null,
+      carpoolTollStatus: isCarpoolOrder ? 'NONE' : null,
+      carpoolTollConfirmedAt: null,
       createdAt: nowText(),
       updatedAt: nowText(),
       evaluationStatus: 'PENDING',
@@ -844,6 +898,52 @@ function demoRequest(path, options) {
       : order
   }
 
+  const carpoolTollMatch = url.pathname.match(/^\/orders\/(\d+)\/carpool-toll$/)
+  if (carpoolTollMatch && method === 'POST') {
+    requireRole(actor, ROLE.DRIVER)
+    const order = requireOrder(db, carpoolTollMatch[1])
+    if (order.serviceType !== SERVICE_TYPE.CARPOOL || order.orderStatus !== ORDER_STATUS.ACCEPTED) {
+      throw new ApiError('只有已接单且尚未开始接驾的顺风车订单可以填写高速费', { code: 4005 })
+    }
+    const tollAmount = Number(Number(body.tollAmount || 0).toFixed(2))
+    order.carpoolTollAmount = tollAmount
+    order.carpoolTollStatus = tollAmount > 0 ? 'PENDING' : 'NONE'
+    order.carpoolTollConfirmedAt = tollAmount > 0 ? null : nowText()
+    order.updatedAt = nowText()
+    addTimeline(order, tollAmount > 0 ? `车主申报高速费 ¥${tollAmount.toFixed(2)}，等待乘客确认` : '车主确认无高速费', 'waiting')
+    if (tollAmount > 0) {
+      db.messages.unshift(message('USER', '请确认高速费', `车主填写高速费 ${tollAmount.toFixed(2)} 元，确认后才能开始接驾。`))
+    }
+    saveDemoDb(db)
+    return { ok: true }
+  }
+
+  const carpoolTollResponseMatch = url.pathname.match(/^\/orders\/(\d+)\/carpool-toll\/response$/)
+  if (carpoolTollResponseMatch && method === 'POST') {
+    requireRole(actor, ROLE.USER)
+    const order = requireOrder(db, carpoolTollResponseMatch[1])
+    if (order.serviceType !== SERVICE_TYPE.CARPOOL || order.orderStatus !== ORDER_STATUS.ACCEPTED || order.carpoolTollStatus !== 'PENDING') {
+      throw new ApiError('当前没有待确认的高速费', { code: 4005 })
+    }
+    if (body.confirm) {
+      order.carpoolTollStatus = 'CONFIRMED'
+      order.carpoolTollConfirmedAt = nowText()
+      addTimeline(order, '乘客已确认高速费', 'success')
+      db.messages.unshift(message('DRIVER', '乘客已确认高速费', '可以按约定时间开始接驾。'))
+    } else {
+      order.carpoolTollStatus = 'REJECTED'
+      order.orderStatus = ORDER_STATUS.CANCELLED
+      order.cancelReason = '乘客未确认车主填写的高速费'
+      order.payableAmount = 0
+      order.actualAmount = 0
+      addTimeline(order, '乘客未确认高速费，订单已取消', 'danger')
+      db.messages.unshift(message('DRIVER', '乘客未确认高速费', '该顺风车订单已取消。'))
+    }
+    order.updatedAt = nowText()
+    saveDemoDb(db)
+    return { ok: true }
+  }
+
   const detailMatch = url.pathname.match(/^\/orders\/(\d+)$/)
   if (detailMatch) {
     return requireOrder(db, detailMatch[1])
@@ -874,7 +974,6 @@ function demoRequest(path, options) {
   if (url.pathname === '/driver/profile' && method === 'PUT') {
     requireRole(actor, ROLE.DRIVER)
     db.driverUser.nickname = body.nickname || db.driverUser.nickname
-    db.driverUser.defaultLanguage = body.defaultLanguage || db.driverUser.defaultLanguage
     db.driverUser.emergencyContact = body.emergencyContact ?? body.emergency_contact ?? db.driverUser.emergencyContact
     db.driverUser.emergencyPhone = body.emergencyPhone ?? body.emergency_phone ?? db.driverUser.emergencyPhone
     db.driverProfile.cityCode = body.cityCode || db.driverProfile.cityCode
@@ -961,7 +1060,7 @@ function demoRequest(path, options) {
         conversation.unreadForUser = Number(conversation.unreadForUser || 0) + 1
       }
       if (!wasManual && !manualIntent) {
-        const aiReply = supportMessage(conversation.id, null, SUPPORT_AI_ROLE, buildDemoSupportReply(content, actor.roleCode))
+        const aiReply = supportMessage(conversation.id, null, SUPPORT_AI_ROLE, buildDemoSupportReply(db, content, actor.roleCode))
         db.supportMessages.push(aiReply)
         conversation.lastMessage = aiReply.content
         conversation.lastMessageAt = aiReply.createdAt
@@ -1096,7 +1195,6 @@ function createDemoSession(roleCode) {
     userId: user.id,
     roleCode,
     nickname: user.nickname,
-    defaultLanguage: 'zh-CN',
     authStatus: user.authStatus ?? 2
   }
 }
@@ -1522,15 +1620,76 @@ function normalizeDemoWelcomeContent(content) {
   return content === PREVIOUS_AI_WELCOME_MESSAGE ? DEFAULT_AI_WELCOME_MESSAGE : content
 }
 
-function buildDemoSupportReply(content = '', roleCode = ROLE.USER) {
+const DEMO_VEHICLE_AUDIT_TEXT = { 0: '未提交', 1: '待审核', 2: '已通过', 3: '已驳回' }
+const DEMO_WITHDRAW_STATUS_TEXT = {
+  PENDING: '审核中（等待管理员审核打款）',
+  APPROVED: '已审核通过，等待到账',
+  REJECTED: '已驳回'
+}
+
+function demoMoney(value) {
+  const amount = Number(value)
+  return Number.isFinite(amount) ? `¥${amount.toFixed(2)}` : '未记录'
+}
+
+function buildDemoSupportReply(db, content = '', roleCode = ROLE.USER) {
   const normalized = String(content || '').replace(/\s+/g, '')
   if (roleCode === ROLE.DRIVER) {
-    if (/提现|到账|收入|钱包/.test(normalized)) return 'AI客服已读取司机端资料。提现记录请在司机端【收益】-【提现记录】查看；若状态长时间未更新，可以把提现时间和金额发给我继续核对。'
-    if (/资质|审核|车辆|认证/.test(normalized)) return 'AI客服已读取司机端资料。司机资料和车辆信息在【我的车辆】与【司机资料】维护，提交后由后台审核，审核结果会同步到消息通知。'
+    if (/提现|到账|打款|收入|钱包|余额/.test(normalized)) {
+      const withdraws = (db.withdraws || []).filter((item) => item.driverId === db.driverUser.id)
+      const latest = withdraws[0]
+      const withdrawable = demoMoney(db.driverProfile?.withdrawableIncome)
+      if (!latest) {
+        return `AI客服已读取司机端资料：当前没有查到您的提现申请，可提现余额 ${withdrawable}。需要提现可在司机端【收益】-【提现管理】（网页端在司机收益页）发起，到账问题也可以继续问我。`
+      }
+      const statusText = DEMO_WITHDRAW_STATUS_TEXT[latest.status] || latest.status
+      const rejectedSuffix = latest.status === 'REJECTED' && latest.rejectReason ? `（原因：${latest.rejectReason}）` : ''
+      const tail = String(latest.bankAccount || '').replace(/\D/g, '').slice(-4)
+      return `AI客服已读取司机端资料：您最近一笔提现是 ${latest.createdAt} 申请的 ${demoMoney(latest.applyAmount)}（${latest.bankName || '银行卡'}${tail ? ` 尾号${tail}` : ''}），当前状态：${statusText}${rejectedSuffix}。可提现余额还有 ${withdrawable}；如果这笔提现长时间没有更新，可以回复“联系人工”由客服跟进。`
+    }
+    if (/资质|审核|车辆|认证|资料/.test(normalized)) {
+      const vehicle = db.vehicle || {}
+      const driverStatus = DEMO_VEHICLE_AUDIT_TEXT[db.driverProfile?.auditStatus] || '未知'
+      const vehicleStatus = DEMO_VEHICLE_AUDIT_TEXT[vehicle.auditStatus] || '未提交'
+      return `AI客服已读取司机端资料：司机资料审核状态【${driverStatus}】，车辆 ${vehicle.plateNo || '未提交'}（${vehicle.brand || ''} ${vehicle.modelName || ''}）审核状态【${vehicleStatus}】${vehicle.auditRemark ? `，备注：${vehicle.auditRemark}` : ''}。提交或更换车辆后需等待管理员审核，审核期间接单权限会临时锁定。`
+    }
+    if (/听单|接单|派单|解锁|权限/.test(normalized)) {
+      const vehicle = db.vehicle || {}
+      const vehicleStatus = DEMO_VEHICLE_AUDIT_TEXT[vehicle.auditStatus] || '未提交'
+      const unlocked = vehicle.auditStatus === 2
+      return `AI客服已读取司机端资料：您的接单权限当前【${unlocked ? '已解锁' : '未解锁'}】（车辆审核状态：${vehicleStatus}）。${unlocked ? '可在底部【听单】进入接单大厅，点【开始接单】查看待接订单。' : '车辆审核通过后即可解锁接单权限。'}`
+    }
     return 'AI客服已接入司机端会话。你可以继续描述听单、行程、提现或车辆资质问题，我会结合司机端真实资料辅助判断。'
   }
-  if (/订单|行程|司机/.test(normalized)) return 'AI客服已读取乘客端资料。订单和行程可在【行程】查看详情；若需要核对费用、司机或状态，请继续补充订单号或具体问题。'
-  if (/发票|优惠券|支付|退款|费用/.test(normalized)) return 'AI客服已读取乘客端资料。支付、优惠券、退款和发票会结合真实订单记录核对；未查询到的数据会建议转人工继续处理。'
+  const myOrders = (db.orders || []).filter((item) => item.userId === db.passengerUser.id)
+  const latestOrder = myOrders[0]
+  if (/订单|行程|司机|打车/.test(normalized)) {
+    if (!latestOrder) {
+      return 'AI客服已读取乘客端资料：当前没有查到您的订单记录。可以在网页首页发起叫车，下单后我会结合订单数据为您跟进。'
+    }
+    return `AI客服已读取乘客端资料：您最近一笔订单 ${latestOrder.orderNo}（${latestOrder.startName} → ${latestOrder.endName}）当前状态【${statusLabel[latestOrder.orderStatus] || latestOrder.orderStatus}】，支付状态【${statusLabel[latestOrder.payStatus] || latestOrder.payStatus}】，金额 ${demoMoney(latestOrder.payableAmount)}。需要核对费用、司机或取消订单，可以继续告诉我具体是哪一单。`
+  }
+  if (/支付|付款|退款|费用|价格/.test(normalized)) {
+    if (!latestOrder) {
+      return 'AI客服已读取乘客端资料：未查询到支付记录。支付、退款都会在订单详情中展示，可以先下单体验或描述具体问题。'
+    }
+    return `AI客服已读取乘客端资料：您最近一笔订单 ${latestOrder.orderNo} 支付状态【${statusLabel[latestOrder.payStatus] || latestOrder.payStatus}】，实付 ${demoMoney(latestOrder.actualAmount ?? latestOrder.payableAmount)}。如需退款，可在订单详情提交售后并由客服人工核对。`
+  }
+  if (/优惠券|优惠|领券/.test(normalized)) {
+    const mine = (db.userCoupons || []).filter((item) => item.userId == null || item.userId === db.passengerUser.id)
+    if (!mine.length) {
+      return 'AI客服已读取乘客端资料：当前没有查到您名下的优惠券，可在网页【优惠券】区域领取，下单估价会自动匹配可用券。'
+    }
+    const latest = mine[0]
+    return `AI客服已读取乘客端资料：您名下有 ${mine.length} 张优惠券，最近一张【${latest.couponName || '优惠券'}】状态【${statusLabel[latest.couponStatus] || latest.couponStatus || '可用'}】，有效期至 ${latest.validEndTime || '以券面为准'}。下单时会自动匹配可用券。`
+  }
+  if (/发票/.test(normalized)) {
+    const invoiceStatus = latestOrder ? `（您最近一笔订单 ${latestOrder.orderNo} 发票状态：${statusLabel[latestOrder.invoiceStatus] || '未申请'}）` : ''
+    return `AI客服已读取乘客端资料：已完成且已支付的订单可在订单详情申请电子发票${invoiceStatus}。`
+  }
+  if (/钱包|余额/.test(normalized)) {
+    return `AI客服已读取乘客端资料：您的钱包余额 ${demoMoney(db.passengerUser.walletBalance)}，支付订单时可选余额支付。`
+  }
   return 'AI客服已接入乘客端会话。请继续描述订单、支付、发票、优惠券或投诉建议问题，我会结合当前账号真实数据回答。'
 }
 
@@ -1551,6 +1710,9 @@ function mutateOrderByAction(db, actor, order, action, body) {
   }
   if (action === 'start') {
     requireRole(actor, ROLE.DRIVER)
+    if (order.serviceType === SERVICE_TYPE.CARPOOL && order.carpoolTollStatus === 'PENDING') {
+      throw new ApiError('请等待乘客确认高速费后再开始接驾', { code: 4005 })
+    }
     order.orderStatus = ORDER_STATUS.PICKING_UP
     addTimeline(order, '司机开始接驾', 'active')
     return
@@ -1657,7 +1819,7 @@ function demoInvoiceImageUrl(path) {
     <line x1="64" y1="170" x2="896" y2="170" stroke="#f1d7bd"/>
     <text x="64" y="226" font-family="Microsoft YaHei, Arial" font-size="24" fill="#1f2937">购买方：阳光乘客</text>
     <text x="64" y="278" font-family="Microsoft YaHei, Arial" font-size="22" fill="#1f2937">项目：出行服务费</text>
-    <text x="64" y="330" font-family="Microsoft YaHei, Arial" font-size="22" fill="#1f2937">状态：网页端演示发票</text>
+    <text x="64" y="330" font-family="Microsoft YaHei, Arial" font-size="22" fill="#1f2937">状态：电子发票预览</text>
     <text x="64" y="430" font-family="Microsoft YaHei, Arial" font-size="18" fill="#64748b">连接后端后会拉取真实发票 PNG。</text>
   </svg>`
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
@@ -1819,7 +1981,7 @@ function seedDemoDb() {
         actualAmount: 35.8,
         currencyCode: 'CNY',
         dispatchMode: 'SMART',
-        remark: '已完成示例订单',
+        remark: '已完成订单',
         createdAt: '2026-05-14 09:16:00',
         paidAt: '2026-05-14 09:48:00',
         updatedAt: '2026-05-14 09:48:00',

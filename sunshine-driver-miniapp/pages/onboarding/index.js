@@ -571,7 +571,7 @@ Page({
         vehiclePreview
       })
       wx.hideLoading()
-      wx.showToast({ title: '已提交，等待管理员审核', icon: 'success' })
+      wx.showToast({ title: '已提交，等待管理员审核', icon: 'none', duration: 2500 })
     } catch (error) {
       wx.hideLoading()
       wx.showToast({

@@ -14,15 +14,29 @@
         </div>
 
         <div class="config-groups">
-          <div v-for="group in groupedConfigs" :key="group.name" class="config-group">
+          <div
+            v-for="group in groupedConfigs"
+            :key="group.name"
+            class="config-group"
+            :class="{ 'config-group--wide': group.items.length > 1 }"
+          >
             <div class="config-group-head">
               <h4>{{ group.name }}</h4>
               <span>{{ group.items.length }} 项</span>
             </div>
             <el-form label-width="138px">
               <el-form-item v-for="item in group.items" :key="item.configKey" :label="item.configName">
-                <el-input v-model="item.configValue" :placeholder="configPlaceholder(item.configKey)" />
-                <div class="config-remark">{{ item.remark || configHint(item.configKey) }}</div>
+                <el-input
+                  v-if="item.configKey === 'tencentMapKey'"
+                  v-model="item.configValue"
+                  placeholder="留空则保持当前Key"
+                >
+                  <template #append>
+                    <el-button :loading="mapKeyTesting" @click="testTencentMapKey(item)">测试可用性</el-button>
+                  </template>
+                </el-input>
+                <el-input v-else v-model="item.configValue" :placeholder="configPlaceholder(item.configKey)" />
+                <div class="config-remark" :class="mapKeyRemarkClass(item.configKey)">{{ mapKeyRemark(item.configKey, item) }}</div>
               </el-form-item>
             </el-form>
           </div>
@@ -40,29 +54,9 @@
           </div>
         </div>
         <div class="summary-list runtime-summary-list">
-          <div class="summary-item">
-            <span>业务接口地址</span>
-            <strong>http://127.0.0.1:8080</strong>
-          </div>
-          <div class="summary-item">
-            <span>管理后台地址</span>
-            <strong>http://127.0.0.1:5173</strong>
-          </div>
-          <div class="summary-item">
-            <span>管理员账号</span>
-            <strong>13700000001 / 123456</strong>
-          </div>
-          <div class="summary-item">
-            <span>乘客测试账号</span>
-            <strong>13800000001 / 123456</strong>
-          </div>
-          <div class="summary-item">
-            <span>司机测试账号</span>
-            <strong>13900000001 / 123456</strong>
-          </div>
-          <div class="summary-item">
-            <span>联动状态</span>
-            <strong>多端业务数据一致</strong>
+          <div v-for="item in runtimeInfo" :key="item.label" class="summary-item">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
           </div>
         </div>
       </article>
@@ -141,65 +135,34 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <span class="panel-kicker">版本中心</span>
-            <h3 class="panel-title">版本管理</h3>
-            <p class="panel-subtitle">统一管理后台、乘客端和司机端版本信息，支持发布和停用。</p>
+            <span class="panel-kicker">账号安全</span>
+            <h3 class="panel-title">管理员账号设置</h3>
+            <p class="panel-subtitle">
+              后台仅保留一个超级管理员账号，可修改登录账号与密码；保存需要二次确认，修改成功后必须重新登录。
+            </p>
           </div>
-          <div class="toolbar-actions">
-            <el-select v-model="versionQuery.clientType" clearable placeholder="客户端类型" style="width: 180px">
-              <el-option label="管理后台" value="ADMIN" />
-              <el-option label="乘客端小程序" value="USER_MINIAPP" />
-              <el-option label="司机端小程序" value="DRIVER_MINIAPP" />
-            </el-select>
-            <el-button @click="loadVersions(true)">查询</el-button>
-            <el-button type="primary" @click="openVersionCreate">新增版本</el-button>
-          </div>
+          <el-tag type="warning" effect="light">唯一管理员</el-tag>
         </div>
 
-        <el-table v-loading="versionLoading" :data="versionList" stripe>
-          <el-table-column prop="versionNo" label="版本号" width="110" />
-          <el-table-column label="客户端" width="150">
-            <template #default="{ row }">
-              {{ textOf(clientTypeMap, row.clientType) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="强制更新" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.forceUpdate === 1 ? 'danger' : 'info'" effect="light">
-                {{ row.forceUpdate === 1 ? '是' : '否' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 1 ? 'success' : 'info'" effect="light">
-                {{ row.status === 1 ? '启用' : '停用' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="releaseNote" label="更新说明" min-width="220" show-overflow-tooltip />
-          <el-table-column label="操作" width="180">
-            <template #default="{ row }">
-              <div class="table-actions">
-                <el-button link type="primary" @click="openVersionEdit(row)">编辑</el-button>
-                <el-button link :type="row.status === 1 ? 'warning' : 'success'" @click="toggleVersion(row)">
-                  {{ row.status === 1 ? '停用' : '启用' }}
-                </el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <div class="pagination-wrap">
-          <el-pagination
-            background
-            layout="total, prev, pager, next"
-            :current-page="versionQuery.current"
-            :page-size="versionQuery.size"
-            :total="versionTotal"
-            @current-change="handleVersionPageChange"
-          />
-        </div>
+        <el-form ref="accountFormRef" :model="accountForm" :rules="accountRules" class="account-form" label-width="104px">
+          <el-form-item label="登录账号" prop="username">
+            <el-input v-model="accountForm.username" maxlength="20" placeholder="请输入登录账号" show-word-limit />
+            <div class="config-remark">3-20 位字母、数字或下划线，修改后需用新账号登录。</div>
+          </el-form-item>
+          <el-form-item label="当前密码" prop="currentPassword">
+            <el-input v-model="accountForm.currentPassword" autocomplete="off" placeholder="请输入当前登录密码" show-password type="password" />
+          </el-form-item>
+          <el-form-item label="新密码" prop="newPassword">
+            <el-input v-model="accountForm.newPassword" autocomplete="off" maxlength="20" placeholder="6-20 位，建议字母 + 数字组合" show-password type="password" />
+          </el-form-item>
+          <el-form-item label="确认新密码" prop="confirmPassword">
+            <el-input v-model="accountForm.confirmPassword" autocomplete="off" maxlength="20" placeholder="请再次输入新密码" show-password type="password" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="accountSaving" type="primary" @click="submitAccount">保存修改</el-button>
+            <el-button @click="resetAccountForm">重置</el-button>
+          </el-form-item>
+        </el-form>
       </article>
     </div>
 
@@ -252,68 +215,43 @@
         <el-button :loading="noticeSubmitting" type="primary" @click="submitNotice">保存公告</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="versionVisible" :title="versionForm.id ? '编辑版本' : '新增版本'" width="640px" destroy-on-close>
-      <el-form ref="versionFormRef" :model="versionForm" :rules="versionRules" label-width="100px">
-        <el-form-item label="版本号" prop="versionNo">
-          <el-input v-model="versionForm.versionNo" placeholder="例如 v1.2.0" />
-        </el-form-item>
-        <el-form-item label="客户端" prop="clientType">
-          <el-select v-model="versionForm.clientType" placeholder="请选择客户端">
-            <el-option label="管理后台" value="ADMIN" />
-            <el-option label="乘客端小程序" value="USER_MINIAPP" />
-            <el-option label="司机端小程序" value="DRIVER_MINIAPP" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="更新说明" prop="releaseNote">
-          <el-input
-            v-model="versionForm.releaseNote"
-            :rows="5"
-            maxlength="500"
-            show-word-limit
-            type="textarea"
-            placeholder="请输入更新说明"
-          />
-        </el-form-item>
-        <el-form-item label="下载地址">
-          <el-input v-model="versionForm.downloadUrl" placeholder="可选，填写下载链接" />
-        </el-form-item>
-        <el-form-item label="强制更新">
-          <el-switch v-model="versionForm.forceUpdateFlag" />
-        </el-form-item>
-        <el-form-item label="启用状态">
-          <el-switch v-model="versionForm.enabledFlag" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="versionVisible = false">取消</el-button>
-        <el-button :loading="versionSubmitting" type="primary" @click="submitVersion">保存版本</el-button>
-      </template>
-    </el-dialog>
   </section>
 </template>
 
 <script setup>
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
-import http from '../api/http'
-import { clientTypeMap, formatDateTime, textOf } from '../utils/admin'
+import http, { baseURL } from '../api/http'
+import { formatDateTime } from '../utils/admin'
+import { clearAdminSession, getAdminAccount, saveAdminAccount } from '../utils/adminAuth'
+
+// 环境信息全部改为运行时读取，避免写死后和实际配置/改密结果对不上
+const runtimeInfo = ref([])
+
+function loadRuntimeInfo() {
+  const account = getAdminAccount()
+  runtimeInfo.value = [
+    { label: '业务接口地址', value: baseURL },
+    { label: '管理后台地址', value: window.location.origin },
+    { label: '管理员登录账号', value: `${account.username} / ${account.password}` },
+    { label: '乘客测试账号', value: '13800000001 / 123456' },
+    { label: '司机测试账号', value: '13900000001 / 123456' },
+    { label: '联动状态', value: '多端业务数据一致' }
+  ]
+}
 
 const configLoading = ref(false)
 const noticeLoading = ref(false)
-const versionLoading = ref(false)
 const noticeSubmitting = ref(false)
-const versionSubmitting = ref(false)
+const accountSaving = ref(false)
 
 const configList = ref([])
 const noticeList = ref([])
-const versionList = ref([])
 
 const noticeVisible = ref(false)
-const versionVisible = ref(false)
 
 const noticeFormRef = ref()
-const versionFormRef = ref()
+const accountFormRef = ref()
 
 const noticeQuery = reactive({
   current: 1,
@@ -321,14 +259,7 @@ const noticeQuery = reactive({
   keyword: ''
 })
 
-const versionQuery = reactive({
-  current: 1,
-  size: 6,
-  clientType: ''
-})
-
 const noticeTotal = ref(0)
-const versionTotal = ref(0)
 
 const createNoticeForm = () => ({
   id: null,
@@ -340,18 +271,7 @@ const createNoticeForm = () => ({
   enabledFlag: true
 })
 
-const createVersionForm = () => ({
-  id: null,
-  versionNo: '',
-  clientType: 'ADMIN',
-  releaseNote: '',
-  downloadUrl: '',
-  forceUpdateFlag: false,
-  enabledFlag: true
-})
-
 const noticeForm = reactive(createNoticeForm())
-const versionForm = reactive(createVersionForm())
 
 const noticeRules = {
   title: [{ required: true, message: '请输入公告标题', trigger: 'blur' }],
@@ -360,10 +280,97 @@ const noticeRules = {
   sortNo: [{ required: true, message: '请输入首页优先级', trigger: 'change' }]
 }
 
-const versionRules = {
-  versionNo: [{ required: true, message: '请输入版本号', trigger: 'blur' }],
-  clientType: [{ required: true, message: '请选择客户端类型', trigger: 'change' }],
-  releaseNote: [{ required: true, message: '请输入更新说明', trigger: 'blur' }]
+/* ---------------- 管理员账号设置 ---------------- */
+
+const createAccountForm = () => ({
+  username: getAdminAccount().username,
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const accountForm = reactive(createAccountForm())
+
+const accountRules = {
+  username: [
+    { required: true, message: '请输入登录账号', trigger: 'blur' },
+    { pattern: /^[A-Za-z0-9_]{3,20}$/, message: '账号需为 3-20 位字母、数字或下划线', trigger: 'blur' }
+  ],
+  currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '新密码长度需为 6-20 位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== accountForm.newPassword) {
+          callback(new Error('两次输入的新密码不一致'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+function resetAccountForm() {
+  Object.assign(accountForm, createAccountForm())
+  accountFormRef.value?.clearValidate()
+}
+
+async function submitAccount() {
+  try {
+    await accountFormRef.value.validate()
+  } catch (error) {
+    return
+  }
+
+  const account = getAdminAccount()
+  if (accountForm.currentPassword !== account.password) {
+    ElMessage.error('当前密码不正确，请重新输入')
+    return
+  }
+  const usernameChanged = accountForm.username.trim() !== account.username
+  const passwordChanged = accountForm.newPassword !== account.password
+  if (!usernameChanged && !passwordChanged) {
+    ElMessage.warning('登录账号与新密码均未发生变化，无需保存')
+    return
+  }
+  if (!usernameChanged && accountForm.newPassword === accountForm.currentPassword) {
+    ElMessage.warning('新密码不能与当前密码相同')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `即将把管理员账号更新为「<strong>${accountForm.username.trim()}</strong>」并重置登录密码。<br/>保存后当前登录状态会立即失效，需要用新账号和密码重新登录后台。`,
+      '二次确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确认修改',
+        cancelButtonText: '再想想',
+        dangerouslyUseHTMLString: true
+      }
+    )
+  } catch (error) {
+    return
+  }
+
+  accountSaving.value = true
+  try {
+    saveAdminAccount({
+      username: accountForm.username.trim(),
+      password: accountForm.newPassword
+    })
+    clearAdminSession()
+    ElMessage.success('管理员账号密码已更新，请使用新账号重新登录')
+    window.setTimeout(() => window.location.reload(), 900)
+  } finally {
+    accountSaving.value = false
+  }
 }
 
 const groupedConfigs = computed(() => {
@@ -382,6 +389,12 @@ async function loadConfigs() {
   configLoading.value = true
   try {
     configList.value = await http.get('/admin/system/configs')
+    // 对齐 AI 客服设置：打码值单独存放展示，输入框保持空白（留空保存 = 保持当前 Key）
+    const mapKeyItem = configList.value.find((item) => item.configKey === 'tencentMapKey')
+    mapKeyMasked.value = mapKeyItem ? `${mapKeyItem.configValue ?? ''}`.trim() : ''
+    if (mapKeyItem) {
+      mapKeyItem.configValue = ''
+    }
   } finally {
     configLoading.value = false
   }
@@ -401,29 +414,18 @@ async function loadNotices(resetPage = false) {
   }
 }
 
-async function loadVersions(resetPage = false) {
-  if (resetPage) {
-    versionQuery.current = 1
-  }
-  versionLoading.value = true
-  try {
-    const res = await http.get('/admin/system/versions', { params: versionQuery })
-    versionList.value = res?.records || []
-    versionTotal.value = res?.total || 0
-  } finally {
-    versionLoading.value = false
-  }
-}
-
 async function saveConfigs() {
   try {
     validateConfigs()
     configLoading.value = true
     await http.post('/admin/system/configs', {
-      items: configList.value.map((item) => ({
-        configKey: item.configKey,
-        configValue: `${item.configValue ?? ''}`.trim()
-      }))
+      // 密码式配置：腾讯地图Key留空 = 保持当前Key，直接不出现在保存请求里（后端DTO有@NotBlank）
+      items: configList.value
+        .filter((item) => !(item.configKey === 'tencentMapKey' && !`${item.configValue ?? ''}`.trim()))
+        .map((item) => ({
+          configKey: item.configKey,
+          configValue: `${item.configValue ?? ''}`.trim()
+        }))
     })
     ElMessage.success('系统配置已保存')
     await loadConfigs()
@@ -453,7 +455,11 @@ function openNoticeEdit(row) {
 }
 
 async function submitNotice() {
-  await noticeFormRef.value.validate()
+  try {
+    await noticeFormRef.value.validate()
+  } catch (error) {
+    return
+  }
   noticeSubmitting.value = true
   try {
     const payload = {
@@ -494,76 +500,9 @@ async function toggleNotice(row) {
   await loadNotices()
 }
 
-function openVersionCreate() {
-  Object.assign(versionForm, createVersionForm())
-  versionVisible.value = true
-}
-
-function openVersionEdit(row) {
-  Object.assign(versionForm, {
-    id: row.id,
-    versionNo: row.versionNo,
-    clientType: row.clientType,
-    releaseNote: row.releaseNote,
-    downloadUrl: row.downloadUrl,
-    forceUpdateFlag: row.forceUpdate === 1,
-    enabledFlag: row.status === 1
-  })
-  versionVisible.value = true
-}
-
-async function submitVersion() {
-  await versionFormRef.value.validate()
-  versionSubmitting.value = true
-  try {
-    const payload = {
-      versionNo: versionForm.versionNo.trim(),
-      clientType: versionForm.clientType,
-      releaseNote: versionForm.releaseNote.trim(),
-      downloadUrl: versionForm.downloadUrl?.trim() || '',
-      forceUpdate: versionForm.forceUpdateFlag ? 1 : 0,
-      status: versionForm.enabledFlag ? 1 : 0
-    }
-    if (versionForm.id) {
-      await http.put(`/admin/system/versions/${versionForm.id}`, payload)
-      ElMessage.success('版本信息已更新')
-    } else {
-      await http.post('/admin/system/versions', payload)
-      ElMessage.success('版本信息已创建')
-    }
-    versionVisible.value = false
-    await loadVersions()
-  } finally {
-    versionSubmitting.value = false
-  }
-}
-
-async function toggleVersion(row) {
-  await ElMessageBox.confirm(
-    `确认要${row.status === 1 ? '停用' : '启用'}版本 ${row.versionNo} 吗？`,
-    '版本状态变更',
-    { type: 'warning' }
-  )
-  await http.put(`/admin/system/versions/${row.id}`, {
-    versionNo: row.versionNo,
-    clientType: row.clientType,
-    releaseNote: row.releaseNote,
-    downloadUrl: row.downloadUrl,
-    forceUpdate: row.forceUpdate,
-    status: row.status === 1 ? 0 : 1
-  })
-  ElMessage.success(row.status === 1 ? '版本已停用' : '版本已启用')
-  await loadVersions()
-}
-
 function handleNoticePageChange(current) {
   noticeQuery.current = current
   loadNotices()
-}
-
-function handleVersionPageChange(current) {
-  versionQuery.current = current
-  loadVersions()
 }
 
 function parseDisplayTimeRange(value) {
@@ -607,6 +546,7 @@ function configPlaceholder(configKey) {
   if (configKey === 'intlExchangeRate') return '例如 7.15'
   if (configKey === 'freeCancelMinutes') return '例如 5'
   if (configKey === 'nightTimeRange') return '例如 22:00-06:00'
+  if (configKey === 'tencentMapKey') return '请输入腾讯位置服务控制台的 Key'
   return '请输入配置值'
 }
 
@@ -615,12 +555,115 @@ function configHint(configKey) {
   if (configKey === 'intlExchangeRate') return '国际出行汇率必须大于 0'
   if (configKey === 'freeCancelMinutes') return '免费取消时长必须是大于等于 0 的整数'
   if (configKey === 'nightTimeRange') return '请按 22:00-06:00 的格式填写'
+  if (configKey === 'tencentMapKey') return '保存后网页端和两个小程序会在下次拉取首页配置时自动换用新 Key'
   return '修改后会影响业务计算逻辑'
+}
+
+/* ---------------- 腾讯地图 Key 可用性测试 ---------------- */
+
+const mapKeyTesting = ref(false)
+const mapKeyTest = ref(null) // { ok, text }
+const mapKeyMasked = ref('') // 后端回传的打码值，仅用于"当前已配置"展示
+
+function tencentMapStatusText(status) {
+  const texts = {
+    110: '请求来源未被授权（请在腾讯位置服务控制台为该 Key 绑定域名或勾选 WebServiceAPI 授权）',
+    111: '签名验证失败（Key 开启了签名校验，需按规则签名或关闭）',
+    112: 'IP 未被授权（该 Key 配置了 IP 白名单，不包含当前机器）',
+    113: 'Key 已被禁用',
+    119: '请求来源未被授权',
+    120: '该 Key 每秒请求量已达上限，请稍后再试',
+    121: '该 Key 日调用量超限',
+    198: '请求参数非法'
+  }
+  return texts[status] || '腾讯地图返回未知错误'
+}
+
+function testTencentMapKey(item) {
+  const key = `${item.configValue ?? ''}`.trim()
+  if (!key || key.includes('****')) {
+    ElMessage.warning('请先输入要测试的新Key（留空保存则保持当前Key）')
+    return
+  }
+  mapKeyTesting.value = true
+  mapKeyTest.value = { ok: false, text: '正在测试腾讯地图Key（解析「深圳湾口岸」）...' }
+  // JSONP 直连腾讯 WebService 地理解析接口，避开浏览器跨域限制
+  const callbackName = `__tencentMapKeyTest_${Date.now()}`
+  const script = document.createElement('script')
+  let settled = false
+  const cleanup = () => {
+    delete window[callbackName]
+    if (script.parentNode) script.parentNode.removeChild(script)
+  }
+  window[callbackName] = (response) => {
+    if (settled) return
+    settled = true
+    cleanup()
+    if (response?.status === 0) {
+      const location = response.result?.location || {}
+      mapKeyTest.value = {
+        ok: true,
+        text: `✅ Key可用：地理解析成功（${Number(location.longitude || 0).toFixed(4)}, ${Number(location.latitude || 0).toFixed(4)}）`
+      }
+    } else {
+      mapKeyTest.value = {
+        ok: false,
+        text: `❌ Key不可用：${tencentMapStatusText(response?.status)}（错误码 ${response?.status ?? '-'}）`
+      }
+    }
+    mapKeyTesting.value = false
+  }
+  script.onerror = () => {
+    if (settled) return
+    settled = true
+    cleanup()
+    mapKeyTest.value = { ok: false, text: '❌ 测试请求失败，请检查本机网络能否访问 apis.map.qq.com' }
+    mapKeyTesting.value = false
+  }
+  script.src = `https://apis.map.qq.com/ws/geocoder/v1/?address=${encodeURIComponent('深圳湾口岸')}&key=${encodeURIComponent(key)}&output=jsonp&callback=${callbackName}`
+  document.body.appendChild(script)
+  window.setTimeout(() => {
+    if (settled) return
+    settled = true
+    cleanup()
+    mapKeyTest.value = { ok: false, text: '❌ 测试超时（8秒无响应），请检查网络后重试' }
+    mapKeyTesting.value = false
+  }, 8000)
+}
+
+function mapKeyRemark(configKey, item) {
+  if (configKey === 'tencentMapKey') {
+    if (mapKeyTest.value) {
+      return mapKeyTest.value.text
+    }
+    if (`${item.configValue ?? ''}`.trim()) {
+      return '保存后将替换当前腾讯地图Key'
+    }
+    if (mapKeyMasked.value) {
+      return `当前已配置：${mapKeyMasked.value}`
+    }
+    return '尚未配置腾讯地图Key'
+  }
+  return item.remark || configHint(configKey)
+}
+
+function mapKeyRemarkClass(configKey) {
+  if (configKey === 'tencentMapKey' && mapKeyTest.value) {
+    return mapKeyTest.value.ok ? 'config-remark--success' : 'config-remark--danger'
+  }
+  return ''
 }
 
 function validateConfigs() {
   for (const item of configList.value) {
     const value = `${item.configValue ?? ''}`.trim()
+    // 腾讯地图Key 为密码式配置：留空 = 保持当前 Key，后端会跳过；打码回显值也不参与校验
+    if (item.configKey === 'tencentMapKey') {
+      if (value && !value.includes('****') && value.length < 20) {
+        throw new Error('腾讯地图Key 格式不正确，请到腾讯位置服务控制台复制完整 Key')
+      }
+      continue
+    }
     if (!value) {
       throw new Error(`${item.configName}不能为空`)
     }
@@ -651,21 +694,37 @@ function validateConfigs() {
 onMounted(() => {
   loadConfigs()
   loadNotices()
-  loadVersions()
+  loadRuntimeInfo()
+  resetAccountForm()
 })
 </script>
 
 <style scoped>
 .config-groups {
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: 14px;
+}
+
+/* 条目多的分组独占整行，单条目分组两两并排，压缩整体高度 */
+.config-group--wide {
+  grid-column: 1 / -1;
 }
 
 .config-group {
-  padding: 18px;
+  padding: 14px 16px;
   border-radius: 22px;
   background: rgba(248, 250, 252, 0.78);
   border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.config-group :deep(.el-form-item) {
+  margin-bottom: 10px;
+}
+
+.config-group :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
 }
 
 .config-group-head {
@@ -673,7 +732,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .config-group-head h4 {
@@ -688,8 +747,16 @@ onMounted(() => {
 }
 
 .config-remark {
-  margin-top: 6px;
-  line-height: 1.6;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.config-remark--success {
+  color: #16a34a;
+}
+
+.config-remark--danger {
+  color: #dc2626;
 }
 
 .runtime-summary-list {
@@ -710,5 +777,9 @@ onMounted(() => {
   line-height: 1.3;
   font-weight: 700;
   word-break: break-word;
+}
+
+.account-form {
+  padding: 4px 2px 0;
 }
 </style>

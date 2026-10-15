@@ -69,6 +69,16 @@ test('active route endpoints follow the mini-program phase rules', () => {
   assert.deepEqual(trip.end, { latitude: order.endLat, longitude: order.endLng })
 })
 
+test('unassigned orders stay in booking phase so the map never draws a fake driver car', () => {
+  const booking = resolveDemoRouteEndpoints({ ...order, orderStatus: 'DISPATCHING' }, null)
+  assert.equal(booking.phase, 'booking')
+  assert.deepEqual(booking.start, { latitude: order.startLat, longitude: order.startLng })
+  assert.deepEqual(booking.end, { latitude: order.endLat, longitude: order.endLng })
+
+  const created = resolveDemoRouteEndpoints({ ...order, orderStatus: 'CREATED' }, null)
+  assert.equal(created.phase, 'booking')
+})
+
 test('simulation progress is projected onto a planned road route', () => {
   const plannedRoute = [
     { latitude: 39.98, longitude: 117.08 },

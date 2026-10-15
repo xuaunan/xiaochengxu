@@ -82,6 +82,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.time.DayOfWeek;
+import java.util.HashSet;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -91,6 +92,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -126,6 +128,7 @@ public class AdminServiceImpl implements AdminService {
     private final MessagePushSupport messagePushSupport;
     private final CouponService couponService;
     private final OrderService orderService;
+    private final com.sunshine.travel.service.support.OrderRuntimeSupport orderRuntimeSupport;
 
     public AdminServiceImpl(PlatformUserMapper platformUserMapper,
                             DriverProfileMapper driverProfileMapper,
@@ -148,7 +151,8 @@ public class AdminServiceImpl implements AdminService {
                             OperationLogSupport operationLogSupport,
                             MessagePushSupport messagePushSupport,
                             CouponService couponService,
-                            OrderService orderService) {
+                            OrderService orderService,
+                            com.sunshine.travel.service.support.OrderRuntimeSupport orderRuntimeSupport) {
         this.platformUserMapper = platformUserMapper;
         this.driverProfileMapper = driverProfileMapper;
         this.rideOrderMapper = rideOrderMapper;
@@ -171,6 +175,7 @@ public class AdminServiceImpl implements AdminService {
         this.messagePushSupport = messagePushSupport;
         this.couponService = couponService;
         this.orderService = orderService;
+        this.orderRuntimeSupport = orderRuntimeSupport;
     }
 
     @Override
@@ -298,48 +303,91 @@ public class AdminServiceImpl implements AdminService {
                     rows.add(row);
                 });
 
-        driverProfileMapper.selectList(new LambdaQueryWrapper<DriverProfile>()
-                        .orderByDesc(DriverProfile::getUpdatedAt))
+        // 司机资质 + 车辆资料：同一司机的两项待审核合并成一条待办消息
+        List<DriverProfile> pendingDriverProfiles = driverProfileMapper.selectList(new LambdaQueryWrapper<DriverProfile>()
+                .orderByDesc(DriverProfile::getUpdatedAt))
                 .stream()
                 .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
-                .limit(10)
-                .forEach(item -> {
-                    Map<String, Object> row = adminMessage(
-                            "driver-audit-" + item.getUserId(),
-                            "DRIVER_AUDIT",
-                            "司机资料待审核",
-                            buildDriverAuditMessage(item),
-                            "MEDIUM",
-                            70,
-                            "/messages",
-                            "审核司机",
-                            item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
-                    );
-                    row.put("driverId", item.getUserId());
-                    rows.add(row);
-                });
+                .toList();
+        Map<Long, DriverProfile> profileByUserId = new LinkedHashMap<>();
+        for (DriverProfile item : pendingDriverProfiles) {
+            profileByUserId.put(item.getUserId(), item);
+        }
+        List<Vehicle> pendingVehicles = vehicleMapper.selectList(new LambdaQueryWrapper<Vehicle>()
+                .orderByDesc(Vehicle::getUpdatedAt))
+                .stream()
+                .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
+                .toList();
+        Map<Long, Vehicle> vehicleByDriverId = new LinkedHashMap<>();
+        for (Vehicle item : pendingVehicles) {
+            vehicleByDriverId.put(item.getDriverId(), item);
+        }
 
-        vehicleMapper.selectList(new LambdaQueryWrapper<Vehicle>()
-                        .orderByDesc(Vehicle::getUpdatedAt))
-                .stream()
-                .filter(item -> Objects.equals(item.getAuditStatus(), AuthStatus.PENDING))
-                .limit(10)
-                .forEach(item -> {
-                    Map<String, Object> row = adminMessage(
-                            "vehicle-audit-" + item.getId(),
-                            "VEHICLE_AUDIT",
-                            "车辆资料待审核",
-                            buildVehicleAuditMessage(item),
-                            "MEDIUM",
-                            68,
-                            "/messages",
-                            "审核车辆",
-                            item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
-                    );
-                    row.put("vehicleId", item.getId());
-                    row.put("driverId", item.getDriverId());
-                    rows.add(row);
-                });
+        Set<Long> mergedDriverIds = new HashSet<>();
+        // 1) 司机资质 + 车辆资料 都待审核：合并为一条
+        for (Vehicle vehicle : pendingVehicles) {
+            DriverProfile profile = profileByUserId.get(vehicle.getDriverId());
+            if (profile == null) {
+                continue;
+            }
+            mergedDriverIds.add(profile.getUserId());
+            Map<String, Object> row = adminMessage(
+                    "driver-audit-" + profile.getUserId(),
+                    "DRIVER_AUDIT",
+                    "司机资质审核",
+                    buildDriverAuditMessage(profile) + "；" + buildVehicleAuditMessage(vehicle),
+                    "MEDIUM",
+                    70,
+                    "/messages",
+                    "审核司机",
+                    profile.getUpdatedAt() == null ? profile.getCreatedAt() : profile.getUpdatedAt()
+            );
+            row.put("driverId", profile.getUserId());
+            row.put("vehicleId", vehicle.getId());
+            row.put("auditScopes", List.of("DRIVER", "VEHICLE"));
+            rows.add(row);
+        }
+        // 2) 仅车辆资料待审核
+        for (Vehicle vehicle : pendingVehicles) {
+            if (vehicle.getDriverId() != null && mergedDriverIds.contains(vehicle.getDriverId())) {
+                continue;
+            }
+            Map<String, Object> row = adminMessage(
+                    "vehicle-audit-" + vehicle.getId(),
+                    "VEHICLE_AUDIT",
+                    "车辆资料待审核",
+                    buildVehicleAuditMessage(vehicle),
+                    "MEDIUM",
+                    68,
+                    "/messages",
+                    "审核车辆",
+                    vehicle.getUpdatedAt() == null ? vehicle.getCreatedAt() : vehicle.getUpdatedAt()
+            );
+            row.put("vehicleId", vehicle.getId());
+            row.put("driverId", vehicle.getDriverId());
+            row.put("auditScopes", List.of("VEHICLE"));
+            rows.add(row);
+        }
+        // 3) 仅司机资质待审核
+        for (DriverProfile item : pendingDriverProfiles) {
+            if (mergedDriverIds.contains(item.getUserId())) {
+                continue;
+            }
+            Map<String, Object> row = adminMessage(
+                    "driver-audit-" + item.getUserId(),
+                    "DRIVER_AUDIT",
+                    "司机资料待审核",
+                    buildDriverAuditMessage(item),
+                    "MEDIUM",
+                    70,
+                    "/messages",
+                    "审核司机",
+                    item.getUpdatedAt() == null ? item.getCreatedAt() : item.getUpdatedAt()
+            );
+            row.put("driverId", item.getUserId());
+            row.put("auditScopes", List.of("DRIVER"));
+            rows.add(row);
+        }
 
         withdrawApplicationMapper.selectList(new LambdaQueryWrapper<WithdrawApplication>()
                         .eq(WithdrawApplication::getStatus, WithdrawStatus.PENDING)
@@ -614,10 +662,30 @@ public class AdminServiceImpl implements AdminService {
                 .eq(StringUtils.hasText(status), RideOrder::getOrderStatus, status)
                 .eq(StringUtils.hasText(serviceType), RideOrder::getServiceType, serviceType)
                 .orderByDesc(RideOrder::getId));
-        return new PageResult<>(page.getTotal(), page.getCurrent(), page.getSize(), page.getRecords().stream().map(item -> {
-            RideOrder synced = orderService.detail(item.getId());
-            Map<String, Object> row = mapOrderRow(synced);
-            row.put("runtime", orderService.runtime(synced.getId()));
+        List<RideOrder> records = page.getRecords();
+        if (records.isEmpty()) {
+            return new PageResult<>(page.getTotal(), page.getCurrent(), page.getSize(), List.of());
+        }
+        // 批量同步支付状态/顺风车超时/默认好评（逻辑与逐单 detail 完全一致，仅支付记录改为一次批量查询）
+        List<RideOrder> syncedOrders = orderService.syncBatchForList(records);
+        // 批量取乘客/司机，避免逐行 selectById
+        List<Long> personIds = syncedOrders.stream()
+                .flatMap(item -> java.util.stream.Stream.of(item.getUserId(), item.getDriverId()))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, PlatformUser> personMap = personIds.isEmpty()
+                ? Map.of()
+                : platformUserMapper.selectBatchIds(personIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(PlatformUser::getId, item -> item));
+        // 批量取轨迹，避免逐单查询 travel_trace
+        List<Long> orderIds = syncedOrders.stream().map(RideOrder::getId).filter(Objects::nonNull).toList();
+        Map<Long, List<TravelTrace>> tracesByOrder = orderRuntimeSupport.queryTracesByOrderIds(orderIds);
+        return new PageResult<>(page.getTotal(), page.getCurrent(), page.getSize(), syncedOrders.stream().map(item -> {
+            Map<String, Object> row = mapOrderRow(item,
+                    item.getUserId() == null ? null : personMap.get(item.getUserId()),
+                    item.getDriverId() == null ? null : personMap.get(item.getDriverId()));
+            row.put("runtime", orderRuntimeSupport.buildRuntimeSummary(item, tracesByOrder.getOrDefault(item.getId(), List.of())));
             return row;
         }).toList());
     }
@@ -924,24 +992,36 @@ public class AdminServiceImpl implements AdminService {
         if (!List.of(AuthStatus.APPROVED, AuthStatus.REJECTED).contains(request.getAuthStatus())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "车辆审核只支持通过或驳回");
         }
+        String scope = StringUtils.hasText(request.getScope()) ? request.getScope().toUpperCase() : "ALL";
+        if (!List.of("ALL", "DRIVER", "VEHICLE").contains(scope)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "审核范围仅支持 ALL、DRIVER、VEHICLE");
+        }
         DriverProfile profile = requireDriverProfile(driverId);
         Vehicle vehicle = queryVehicle(driverId);
-        if (vehicle == null) {
+        if (vehicle == null && !"DRIVER".equals(scope)) {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "司机尚未提交车辆资料");
         }
-        vehicle.setAuditStatus(request.getAuthStatus());
-        vehicle.setAuditRemark(request.getRemark());
-        vehicleMapper.updateById(vehicle);
-        profile.setAuditStatus(request.getAuthStatus());
-        profile.setAuditRemark(request.getRemark());
-        if (!DriverServiceStatus.BUSY.equals(profile.getServiceStatus())) {
-            profile.setServiceStatus(DriverServiceStatus.OFFLINE);
+        boolean approved = request.getAuthStatus() == AuthStatus.APPROVED;
+        if ("ALL".equals(scope) || "VEHICLE".equals(scope)) {
+            vehicle.setAuditStatus(request.getAuthStatus());
+            vehicle.setAuditRemark(request.getRemark());
+            vehicleMapper.updateById(vehicle);
         }
-        driverProfileMapper.updateById(profile);
+        if ("ALL".equals(scope) || "DRIVER".equals(scope)) {
+            profile.setAuditStatus(request.getAuthStatus());
+            profile.setAuditRemark(request.getRemark());
+            if (!DriverServiceStatus.BUSY.equals(profile.getServiceStatus())) {
+                profile.setServiceStatus(DriverServiceStatus.OFFLINE);
+            }
+            driverProfileMapper.updateById(profile);
+        }
+        String scopeText = switch (scope) {
+            case "DRIVER" -> "司机资质";
+            case "VEHICLE" -> "车辆资料";
+            default -> "司机车辆资料";
+        };
         operationLogSupport.log("DRIVER", "AUDIT", "DRIVER", driverId,
-                request.getAuthStatus() == AuthStatus.APPROVED
-                        ? "管理员审核通过司机车辆资料"
-                        : "管理员驳回司机车辆资料：" + request.getRemark());
+                approved ? "管理员审核通过" + scopeText : "管理员驳回" + scopeText + "：" + request.getRemark());
     }
 
     @Override
@@ -1012,7 +1092,10 @@ public class AdminServiceImpl implements AdminService {
                     row.put("id", item.getId());
                     row.put("configKey", item.getConfigKey());
                     row.put("configName", item.getConfigName());
-                    row.put("configValue", item.getConfigValue());
+                    // 腾讯地图Key 属于敏感凭证：列表只回打码值，原始值仅在保存新 Key 时落库
+                    row.put("configValue", CONFIG_KEY_TENCENT_MAP.equals(item.getConfigKey())
+                            ? maskSecret(item.getConfigValue())
+                            : item.getConfigValue());
                     row.put("configType", item.getConfigType());
                     row.put("configGroup", item.getConfigGroup());
                     row.put("remark", item.getRemark());
@@ -1031,10 +1114,32 @@ public class AdminServiceImpl implements AdminService {
             if (config == null) {
                 throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "配置项不存在：" + item.getConfigKey());
             }
-            config.setConfigValue(item.getConfigValue());
+            if (CONFIG_KEY_TENCENT_MAP.equals(item.getConfigKey())) {
+                // 留空或仍为打码回显值 = 保持当前 Key，避免把掩码当成真实 Key 存库
+                String nextValue = item.getConfigValue() == null ? "" : item.getConfigValue().trim();
+                if (!StringUtils.hasText(nextValue) || nextValue.contains("****")) {
+                    continue;
+                }
+                config.setConfigValue(nextValue);
+            } else {
+                config.setConfigValue(item.getConfigValue());
+            }
             systemConfigMapper.updateById(config);
         }
         operationLogSupport.log("SYSTEM", "SAVE_CONFIG", "SYSTEM_CONFIG", null, "管理员保存系统配置");
+    }
+
+    private static final String CONFIG_KEY_TENCENT_MAP = "tencentMapKey";
+
+    private String maskSecret(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() <= 8) {
+            return "****";
+        }
+        return trimmed.substring(0, 4) + "****" + trimmed.substring(trimmed.length() - 4);
     }
 
     @Override
@@ -1179,6 +1284,10 @@ public class AdminServiceImpl implements AdminService {
     private Map<String, Object> mapOrderRow(RideOrder item) {
         PlatformUser user = item.getUserId() == null ? null : platformUserMapper.selectById(item.getUserId());
         PlatformUser driver = item.getDriverId() == null ? null : platformUserMapper.selectById(item.getDriverId());
+        return mapOrderRow(item, user, driver);
+    }
+
+    private Map<String, Object> mapOrderRow(RideOrder item, PlatformUser user, PlatformUser driver) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", item.getId());
         row.put("orderNo", item.getOrderNo());

@@ -143,10 +143,14 @@ input {
 .status-tag {
   display: inline-flex;
   align-items: center;
-  padding: 8rpx 16rpx;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 8rpx 18rpx;
   border-radius: 999rpx;
   font-size: 22rpx;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .status-tag.waiting {
